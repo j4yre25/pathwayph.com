@@ -2,7 +2,7 @@
 import Graduate from '@/Layouts/AppLayout.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { useForm, usePage, router } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
@@ -11,16 +11,52 @@ import SelectInput from '@/Components/SelectInput.vue';
 import axios from 'axios';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
+import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
+import VueApexCharts from 'vue3-apexcharts';
+import SkillsChart from '@/Components/SkillsChart.vue';
 
 const datepickerConfig = {
   format: 'YYYY-MM-DD',
   enableTime: false,
+  parseDate: (dateStr) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  },
+  formatDate: (date) => {
+    if (!date || isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
+  }
 };
 
 const formatDate = (date) => {
   if (!date) return '';
-  return new Date(date).toISOString().split('T')[0];
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return '';
+  parsedDate.setHours(0, 0, 0, 0);
+  return parsedDate.toISOString().split('T')[0];
+};
+
+const formatDisplayDate = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (!isValid(d)) return '';
+  try {
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return '';
+  }
+};
+
+const formatCertificationDate = (issueDate, expiryDate, noExpiry = false) => {
+  const formattedIssueDate = formatDisplayDate(issueDate);
+  return noExpiry ? `${formattedIssueDate} - No expiry date` : `${formattedIssueDate} - ${formatDisplayDate(expiryDate)}`;
 };
 
 const formattedStartDate = computed(() => {
@@ -30,6 +66,7 @@ const formattedStartDate = computed(() => {
 });
 
 const formattedEndDate = computed(() => {
+  if (education.value.is_current) return null;
   return education.value.graduate_education_end_date
     ? new Date(education.value.graduate_education_end_date).toISOString().split('T')[0]
     : null;
@@ -169,8 +206,13 @@ const isUpdateSkillModalOpen = ref(false);
 let currentSkillIndex = ref(null);
 const noExpiryDate = ref(false);
 
+// Register ApexCharts component
+const apexchart = VueApexCharts;
+
 // Experience Data
 const experienceEntries = ref(props.experienceEntries || []);
+const isAddExperienceModalOpen = ref(false);
+const isUpdateExperienceModalOpen = ref(false);
 const experience = ref({
   graduate_experience_title: '',
   graduate_experience_company: '',
@@ -180,6 +222,191 @@ const experience = ref({
   graduate_experience_description: '',
   graduate_experience_employment_type: '',
   is_current: false,
+  id: null
+});
+
+const openAddExperienceModal = () => {
+  resetExperience();
+  isAddExperienceModalOpen.value = true;
+};
+
+const closeAddExperienceModal = () => {
+  isAddExperienceModalOpen.value = false;
+  resetExperience();
+};
+
+const resetExperience = () => {
+  experience.value = {
+    graduate_experience_title: '',
+    graduate_experience_company: '',
+    graduate_experience_start_date: null,
+    graduate_experience_end_date: null,
+    graduate_experience_address: '',
+    graduate_experience_description: '',
+    graduate_experience_employment_type: '',
+    is_current: false,
+    id: null
+  };
+  stillInRole.value = false;
+  console.log('Experience reset.');
+};
+
+const validateExperience = () => {
+  const errors = {};
+  if (!experience.value.graduate_experience_title) errors.title = 'Title is required';
+  if (!experience.value.graduate_experience_company) errors.company = 'Company is required';
+  if (!experience.value.graduate_experience_start_date) errors.startDate = 'Start date is required';
+  if (!experience.value.graduate_experience_employment_type) errors.employmentType = 'Employment type is required';
+  
+  // Handle end date validation
+  if (!experience.value.is_current) {
+    if (!experience.value.graduate_experience_end_date) {
+      errors.endDate = 'End date is required when not current position';
+    } else {
+      const startDate = new Date(experience.value.graduate_experience_start_date);
+      const endDate = new Date(experience.value.graduate_experience_end_date);
+      
+      if (isNaN(endDate.getTime())) {
+        errors.endDate = 'Please enter a valid end date';
+      } else if (startDate && !isNaN(startDate.getTime()) && endDate < startDate) {
+        errors.endDate = 'End date cannot be earlier than start date';
+      }
+    }
+  }
+  
+  // Validate description length
+  if (experience.value.graduate_experience_description && experience.value.graduate_experience_description.length > 1000) {
+    errors.description = 'Description cannot exceed 1000 characters';
+  }
+  
+  return Object.keys(errors).length === 0 ? null : errors;
+};
+
+const openUpdateExperienceModal = (experienceEntry) => {
+  resetExperience();
+  experience.value = {
+    id: experienceEntry.id,
+    graduate_experience_title: experienceEntry.graduate_experience_title,
+    graduate_experience_company: experienceEntry.graduate_experience_company,
+    graduate_experience_start_date: experienceEntry.graduate_experience_start_date ? formatDate(experienceEntry.graduate_experience_start_date) : null,
+    graduate_experience_end_date: experienceEntry.is_current ? null : (experienceEntry.graduate_experience_end_date ? formatDate(experienceEntry.graduate_experience_end_date) : null),
+    graduate_experience_address: experienceEntry.graduate_experience_address || '',
+    graduate_experience_description: experienceEntry.graduate_experience_description || 'No description provided',
+    graduate_experience_employment_type: experienceEntry.graduate_experience_employment_type || '',
+    is_current: experienceEntry.is_current
+  };
+  stillInRole.value = experienceEntry.is_current;
+  isUpdateExperienceModalOpen.value = true;
+};
+
+const addExperience = () => {
+  const errors = validateExperience();
+  if (errors) {
+    console.error('Validation errors:', errors);
+    return;
+  }
+
+  const experienceData = {
+    graduate_experience_title: experience.value.graduate_experience_title.trim(),
+    graduate_experience_company: experience.value.graduate_experience_company.trim(),
+    graduate_experience_start_date: formatDate(experience.value.graduate_experience_start_date),
+    graduate_experience_end_date: experience.value.is_current ? null : formatDate(experience.value.graduate_experience_end_date),
+    graduate_experience_address: experience.value.graduate_experience_address?.trim() || '',
+    graduate_experience_description: experience.value.graduate_experience_description?.trim() || 'No description provided',
+    graduate_experience_employment_type: experience.value.graduate_experience_employment_type.trim(),
+    is_current: experience.value.is_current
+  };
+
+  const experienceForm = useForm(experienceData);
+
+  experienceForm.post(route('experience.add'), {
+    onSuccess: (response) => {
+      const updatedExperiences = response?.props?.experienceEntries;
+      if (updatedExperiences) {
+        experienceEntries.value = updatedExperiences;
+      }
+      resetExperience();
+      isAddExperienceModalOpen.value = false;
+    },
+    onError: (errors) => {
+      console.error('Error adding experience:', errors);
+      alert('An error occurred while adding the experience. Please try again.');
+    },
+  });
+};
+
+const updateExperience = () => {
+  const errors = validateExperience();
+  if (errors) {
+    console.error('Validation errors:', errors);
+    return;
+  }
+
+  const experienceData = {
+    id: experience.value.id,
+    graduate_experience_title: experience.value.graduate_experience_title,
+    graduate_experience_company: experience.value.graduate_experience_company,
+    graduate_experience_start_date: formatDate(experience.value.graduate_experience_start_date),
+    graduate_experience_end_date: experience.value.is_current ? null : formatDate(experience.value.graduate_experience_end_date),
+    graduate_experience_address: experience.value.graduate_experience_address || '',
+    graduate_experience_description: experience.value.graduate_experience_description || 'No description provided',
+    graduate_experience_employment_type: experience.value.graduate_experience_employment_type || '',
+    is_current: experience.value.is_current
+  };
+
+  const experienceForm = useForm(experienceData);
+
+  experienceForm.put(route('experience.update', experience.value.id), {
+    onSuccess: () => {
+      const index = experienceEntries.value.findIndex(e => e.id === experience.value.id);
+      if (index !== -1) {
+        experienceEntries.value[index] = { ...experienceData };
+      }
+      resetExperience();
+      isUpdateExperienceModalOpen.value = false;
+    },
+    onError: (errors) => {
+      console.error('Error updating experience:', errors);
+    },
+  });
+};
+
+const closeUpdateExperienceModal = () => {
+  isUpdateExperienceModalOpen.value = false;
+  resetExperience();
+};
+
+const deleteExperience = (experienceId) => {
+  itemToDelete.value = { id: experienceId, type: 'experience' };
+  isDeleteConfirmationModalOpen.value = true;
+};
+
+const formattedExperienceStartDate = computed(() => {
+  return experience.value.graduate_experience_start_date
+    ? new Date(experience.value.graduate_experience_start_date).toISOString().split('T')[0]
+    : null;
+});
+
+const formattedExperienceEndDate = computed(() => {
+  if (experience.value.is_current) return null;
+  return experience.value.graduate_experience_end_date
+    ? new Date(experience.value.graduate_experience_end_date).toISOString().split('T')[0]
+    : null;
+});
+
+watch(() => experience.value.is_current, (newValue) => {
+  stillInRole.value = newValue;
+  if (newValue) {
+    experience.value.graduate_experience_end_date = null;
+  } else {
+    experience.value.graduate_experience_end_date = '';
+  }
+}, { immediate: true });
+
+watch(() => experience.value.graduate_experience_end_date, (newValue) => {
+  if (newValue && isNaN(new Date(newValue).getTime())) {
+    experience.value.graduate_experience_end_date = null;
+  }
 });
 
 // Project Data
@@ -195,7 +422,217 @@ const projects = ref({
   is_current: false,
   id: null
 });
+
+const ongoingProject = ref(false);
+
+watch(() => ongoingProject.value, (newValue) => {
+  projects.value.is_current = newValue;
+  if (newValue) {
+    projects.value.graduate_projects_end_date = null;
+  } else if (!projects.value.graduate_projects_end_date) {
+    projects.value.graduate_projects_end_date = '';
+  }
+}, { immediate: true });
+
+const validateProject = () => {
+  const errors = {};
+  if (!projects.value.graduate_projects_title) errors.title = 'Project title is required';
+  if (!projects.value.graduate_projects_role) errors.role = 'Project role is required';
+  if (!projects.value.graduate_projects_start_date) errors.startDate = 'Start date is required';
+  if (!projects.value.is_current && !projects.value.graduate_projects_end_date) {
+    errors.endDate = 'End date is required when not current project';
+  }
+  if (projects.value.graduate_projects_start_date && projects.value.graduate_projects_end_date && !projects.value.is_current) {
+    const startDate = new Date(projects.value.graduate_projects_start_date);
+    const endDate = new Date(projects.value.graduate_projects_end_date);
+    if (endDate < startDate) {
+      errors.endDate = 'End date cannot be earlier than start date';
+    }
+  }
+  return Object.keys(errors).length === 0 ? null : errors;
+};
+
+watch(() => projects.value.is_current, (newValue) => {
+  ongoingProject.value = newValue;
+  if (newValue) {
+    projects.value.graduate_projects_end_date = null;
+  } else {
+    projects.value.graduate_projects_end_date = '';
+  }
+}, { immediate: true });
+
+watch(() => projects.value.graduate_projects_start_date, (newValue) => {
+  if (newValue && isNaN(new Date(newValue).getTime())) {
+    projects.value.graduate_projects_start_date = null;
+  }
+});
+
+watch(() => projects.value.graduate_projects_end_date, (newValue) => {
+  if (newValue && isNaN(new Date(newValue).getTime())) {
+    projects.value.graduate_projects_end_date = null;
+  }
+});
+
+const resetProject = () => {
+  projects.value = {
+    graduate_projects_title: '',
+    graduate_projects_description: '',
+    graduate_projects_role: '',
+    graduate_projects_start_date: null,
+    graduate_projects_end_date: null,
+    graduate_projects_url: '',
+    graduate_projects_key_accomplishments: '',
+    is_current: false,
+    id: null
+  };
+  noProjectUrl.value = false;
+  ongoingProject.value = false;
+  console.log('Project reset.');
+};
+
+const deleteProject = (projectId) => {
+  itemToDelete.value = { id: projectId, type: 'project' };
+  isDeleteConfirmationModalOpen.value = true;
+};
+
+const confirmDelete = () => {
+  if (!itemToDelete.value) return;
+
+  if (itemToDelete.value.type === 'project') {
+    router.delete(route('projects.remove', itemToDelete.value.id), {
+      onSuccess: () => {
+        const index = projectsEntries.value.findIndex(project => project.id === itemToDelete.value.id);
+        if (index !== -1) {
+          projectsEntries.value.splice(index, 1);
+        }
+        isDeleteConfirmationModalOpen.value = false;
+        itemToDelete.value = null;
+      },
+      onError: (errors) => {
+        console.error('Error deleting project:', errors);
+      },
+    });
+  } else if (itemToDelete.value.type === 'experience') {
+    router.delete(route('experience.remove', itemToDelete.value.id), {
+      onSuccess: () => {
+        const index = experienceEntries.value.findIndex(exp => exp.id === itemToDelete.value.id);
+        if (index !== -1) {
+          experienceEntries.value.splice(index, 1);
+        }
+        isDeleteConfirmationModalOpen.value = false;
+        itemToDelete.value = null;
+      },
+      onError: (errors) => {
+        console.error('Error deleting experience:', errors);
+      },
+    });
+  }
+};
+
+const openUpdateProjectModal = (projectEntry) => {
+  // Reset form state before updating
+  resetProject();
+
+  // Update project values with properly formatted dates
+  projects.value = {
+    id: projectEntry.id,
+    graduate_projects_title: projectEntry.graduate_projects_title,
+    graduate_projects_description: projectEntry.graduate_projects_description || 'No description provided',
+    graduate_projects_role: projectEntry.graduate_projects_role,
+    graduate_projects_start_date: projectEntry.graduate_projects_start_date ? new Date(projectEntry.graduate_projects_start_date) : null,
+    graduate_projects_end_date: projectEntry.is_current ? null : (projectEntry.graduate_projects_end_date ? new Date(projectEntry.graduate_projects_end_date) : null),
+    graduate_projects_url: projectEntry.graduate_projects_url || '',
+    graduate_projects_key_accomplishments: projectEntry.graduate_projects_key_accomplishments || 'No key accomplishment provided',
+    is_current: projectEntry.is_current
+  };
+
+  // Set ongoing project status and URL flag
+  ongoingProject.value = projectEntry.is_current;
+  noProjectUrl.value = !projectEntry.graduate_projects_url;
+
+  // Open the modal
+  isUpdateProjectModalOpen.value = true;
+};
+
+const updateProject = () => {
+  const errors = validateProject();
+  if (errors) {
+    console.error('Validation errors:', errors);
+    return;
+  }
+
+  const projectData = {
+    id: projects.value.id,
+    graduate_projects_title: projects.value.graduate_projects_title,
+    graduate_projects_description: projects.value.graduate_projects_description || 'No description provided',
+    graduate_projects_role: projects.value.graduate_projects_role,
+    graduate_projects_start_date: formatDate(projects.value.graduate_projects_start_date),
+    graduate_projects_end_date: projects.value.is_current ? null : formatDate(projects.value.graduate_projects_end_date),
+    graduate_projects_url: noProjectUrl.value ? '' : projects.value.graduate_projects_url,
+    graduate_projects_key_accomplishments: projects.value.graduate_projects_key_accomplishments,
+    is_current: projects.value.is_current
+  };
+
+  const projectForm = useForm(projectData);
+
+  projectForm.put(route('projects.update', projects.value.id), {
+    onSuccess: () => {
+      const index = projectsEntries.value.findIndex(p => p.id === projects.value.id);
+      if (index !== -1) {
+        projectsEntries.value[index] = { ...projectData };
+      }
+      resetProject();
+      isUpdateProjectModalOpen.value = false;
+    },
+    onError: (errors) => {
+      console.error('Error updating project:', errors);
+    },
+  });
+};
+
+const closeUpdateProjectModal = () => {
+  isUpdateProjectModalOpen.value = false;
+  resetProject();
+};
 const noProjectUrl = ref(false);
+
+const isAddProjectModalOpen = ref(false);
+
+const addProject = () => {
+  const errors = validateProject();
+  if (errors) {
+    console.error('Validation errors:', errors);
+    return;
+  }
+
+  const projectData = {
+    graduate_projects_title: projects.value.graduate_projects_title,
+    graduate_projects_description: projects.value.graduate_projects_description || 'No description provided',
+    graduate_projects_role: projects.value.graduate_projects_role,
+    graduate_projects_start_date: formatDate(projects.value.graduate_projects_start_date),
+    graduate_projects_end_date: projects.value.is_current ? null : formatDate(projects.value.graduate_projects_end_date),
+    graduate_projects_url: noProjectUrl.value ? '' : projects.value.graduate_projects_url,
+    graduate_projects_key_accomplishments: projects.value.graduate_projects_key_accomplishments || 'No key accomplishments provided',
+    is_current: projects.value.is_current
+  };
+
+  const projectForm = useForm(projectData);
+
+  projectForm.post(route('projects.add'), {
+    onSuccess: (response) => {
+      // Refresh the projects list from the updated page props
+      const updatedProjects = response?.props?.projectsEntries;
+      if (updatedProjects) {
+        projectsEntries.value = updatedProjects;
+      }
+      resetProject();
+      isAddProjectModalOpen.value = false;
+    },
+    onError: (errors) => {
+      console.error('Error adding project:', errors);
+    },
+  });
+};
 
 console.log('yawa', props.projectsEntries);
 
@@ -241,21 +678,50 @@ const achievementForm = ref({
   credential_picture_url: null
 });
 
-const handleCredentialPictureUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        achievementForm.credential_picture = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            previewImage.value = e.target.result;
-        };
-        reader.readAsDataURL(file);
+const handleFileUpload = (event, type) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file type and size
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  const maxSize = 2 * 1024 * 1024; // 2MB
+
+  if (!allowedTypes.includes(file.type)) {
+    alert('Please upload only JPG, JPEG or PNG files');
+    return;
+  }
+
+  if (file.size > maxSize) {
+    alert('File size should not exceed 2MB');
+    return;
+  }
+
+  // Create preview URL
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    if (type === 'achievement') {
+      achievementForm.value.credential_picture = file;
+      previewImage.value = e.target.result;
+    } else if (type === 'testimonial') {
+      testimonials.value.graduate_testimonials_letters = file;
+      testimonialsPreview.value = e.target.result;
     }
+  };
+  reader.readAsDataURL(file);
 };
+
+const testimonialsPreview = ref(null);
+
+
+const change = (e) => {
+  console.log('File selected:', e.target.files[0]);
+};
+
+const noCredentialUrl = ref(false);
 
 const toggleUrlField = () => {
   if (noCredentialUrl.value) {
-    achievement.value.graduate_achievement_url = '';
+    achievementForm.value.graduate_achievement_url = '';
   }
 };
 
@@ -264,8 +730,8 @@ const testimonialsEntries = ref(props.testimonialsEntries || []);
 const testimonials = ref({
   graduate_testimonials_name: '',
   graduate_testimonials_role_title: '',
-  graduate_testimonials_relationship: '',
-  graduate_testimonials_testimonial: ''
+  graduate_testimonials_testimonial: '',
+  graduate_testimonials_letters: null,
 });
 
 // Employment Data
@@ -354,8 +820,6 @@ const isEducationAddedModalOpen = ref(false);
 const isEducationUpdatedModalOpen = ref(false);
 const isAddSkillModalOpen = ref(false);
 const isSkillsAddedModalOpen = ref(false);
-const isAddExperienceModalOpen = ref(false);
-const isUpdateExperienceModalOpen = ref(false);
 let currentExperienceIndex = ref(null);
 const isAddCertificationModalOpen = ref(false);
 const isAddAchievementModalOpen = ref(false);
@@ -368,10 +832,7 @@ const isAddTestimonialsModalOpen = ref(false);
 const isUpdateTestimonialsModalOpen = ref(false);
 let currentTestimonialsIndex = ref(null);
 const isAddLocationModalOpen = ref(false);
-const isAddProjectModalOpen = ref(false);
 const isUpdateProjectModalOpen = ref(false);
-const ongoingProject = ref(false);
-const noCredentialUrl = ref(false);
 
 // Watchers
 watch(() => profile.value.fullName, (newFullName) => {
@@ -393,21 +854,16 @@ watch(() => education.value.graduate_education_start_date, (newValue) => {
   }
 });
 
-watch(() => education.value.graduate_education_end_date, (newValue) => {
-
-  console.log('Start Date:', newValue);
-
-  if (newValue && isNaN(new Date(newValue).getTime())) {
+watch(() => education.value.is_current, (newValue) => {
+  if (newValue) {
     education.value.graduate_education_end_date = null;
+  } else {
+    education.value.graduate_education_end_date = '';
   }
 });
 
 watch(() => education.value.graduate_education_end_date, (newValue) => {
-
-  console.log('End Date:', newValue);
-
   if (newValue && isNaN(new Date(newValue).getTime())) {
-    console.error('Invalid end date:', newValue);
     education.value.graduate_education_end_date = null;
   }
 });
@@ -476,7 +932,7 @@ const saveProfile = () => {
   settingsForm.post(route('profile.updateProfile'), {
     onSuccess: (response) => {
       Object.assign(profile.value, settingsForm.data());
-      isProfileModalOpen.value = true;
+      modalState.value.profile = true;
 
       console.log('Profile saved successfully on the backend:', response.user);
 
@@ -493,8 +949,9 @@ const handleSubmit = () => {
   console.log('Current Password:', currentPassword.value);
   console.log('New Password:', newPassword.value);
   console.log('Confirm Password:', confirmPassword.value);
-  isPasswordModalOpen.value = true;
+  modalState.value.password = true;
 };
+
 
 const handleSaveCareerGoals = () => {
   // Your save logic here
@@ -508,77 +965,98 @@ const handleSaveCareerGoals = () => {
 // Education Handlers
 const addEducation = () => {
   if (
-    education.value.graduate_education_institution_id &&
-    education.value.graduate_education_program &&
-    education.value.graduate_education_field_of_study
+    !education.value.graduate_education_institution_id ||
+    !education.value.graduate_education_program ||
+    !education.value.graduate_education_field_of_study
   ) {
-    const educationForm = useForm({
-      graduate_education_institution_id: education.value.graduate_education_institution_id,
-      graduate_education_program: education.value.graduate_education_program,
-      graduate_education_field_of_study: education.value.graduate_education_field_of_study,
-      graduate_education_start_date: education.value.graduate_education_start_date,
-      graduate_education_end_date: education.value.is_current ? null : education.value.graduate_education_end_date, // Set to null if is_current is true
-      graduate_education_description: education.value.graduate_education_description,
-      is_current: education.value.is_current,
-      achievements: education.value.noAchievements ? null : education.value.achievements,
-    });
-
-    console.log('Data sent to backend:', educationForm.data()); // Debugging: Check the data
-
-    educationForm.post(route('education.add'), {
-      onSuccess: (response) => {
-        console.log('Education added successfully:', response);
-        educationEntries.value.push({ ...educationForm.data(), id: response.id });
-        resetEducation();
-        isAddEducationModalOpen.value = false;
-      },
-      onError: (errors) => {
-        console.error('Error adding education:', errors); // Debugging: Log the errors
-        alert('An error occurred while adding education. Please try again.');
-      },
-    });
-  } else {
     alert('Please fill in all required fields.');
+    return;
   }
-};
 
-const updateEducation = () => {
+  // Check for duplicates
+  const isDuplicate = educationEntries.value.some(entry => 
+    entry.graduate_education_institution_id === education.value.graduate_education_institution_id &&
+    entry.graduate_education_program === education.value.graduate_education_program &&
+    entry.graduate_education_field_of_study === education.value.graduate_education_field_of_study
+  );
+
+  if (isDuplicate) {
+    alert('This education entry already exists.');
+    return;
+  }
+
   const educationForm = useForm({
     graduate_education_institution_id: education.value.graduate_education_institution_id,
     graduate_education_program: education.value.graduate_education_program,
     graduate_education_field_of_study: education.value.graduate_education_field_of_study,
     graduate_education_start_date: education.value.graduate_education_start_date,
-    graduate_education_end_date: education.value.is_current ? 'present' : education.value.graduate_education_end_date,
+    graduate_education_end_date: education.value.is_current ? null : education.value.graduate_education_end_date,
+    graduate_education_description: education.value.graduate_education_description,
+    is_current: education.value.is_current,
+    achievements: education.value.noAchievements ? null : education.value.achievements,
+  });
+
+  console.log('Data being sent to backend for adding education:', educationForm.data());
+
+  educationForm.post(route('education.add'), {
+    onSuccess: (response) => {
+      console.log('Education added successfully:', response);
+      educationEntries.value.push({ ...educationForm.data(), id: response.id });
+      resetEducation();
+      isAddEducationModalOpen.value = false;
+    },
+    onError: (errors) => {
+      if (errors.duplicate) {
+        alert('This education entry already exists.');
+      } else {
+        alert('An error occurred while adding education. Please try again.');
+      }
+    },
+  });
+};
+
+const updateEducation = () => {
+  if (!education.value.id) {
+    console.error('Education ID is required for update');
+    return;
+  }
+
+  const formData = {
+    graduate_education_institution_id: education.value.graduate_education_institution_id,
+    graduate_education_program: education.value.graduate_education_program,
+    graduate_education_field_of_study: education.value.graduate_education_field_of_study,
+    graduate_education_start_date: formatDate(education.value.graduate_education_start_date),
+    graduate_education_end_date: education.value.is_current ? null : formatDate(education.value.graduate_education_end_date),
     graduate_education_description: education.value.graduate_education_description,
     is_current: education.value.is_current,
     achievements: education.value.achievements,
     no_achievements: education.value.noAchievements,
-  });
+  };
 
-  console.log('Updating education with data:', educationForm.data());
-
-  educationForm.put(route('education.update', education.value.id), {
+  router.put(route('education.update', { id: education.value.id }), formData, {
     onSuccess: () => {
       const index = educationEntries.value.findIndex(entry => entry.id === education.value.id);
       if (index !== -1) {
-        educationEntries.value[index] = { ...educationForm.data(), id: education.value.id };
+        educationEntries.value[index] = { ...formData, id: education.value.id };
       }
-
       closeUpdateEducationModal();
       isEducationUpdatedModalOpen.value = true;
     },
-    onError: (errors) => {
-      console.error('Error updating education entry:', errors);
-      alert('An error occurred while updating the education entry. Please try again.');
+    onError: (error) => {
+      if (error.response?.data?.message?.includes('duplicate')) {
+        alert('This education entry already exists.');
+      } else {
+        alert('An error occurred while updating the education entry. Please try again.');
+      }
     },
   });
 };
 
 const handleIsCurrent = () => {
   if (education.value.is_current) {
-    education.value.graduate_education_end_date = 'present';
-  } else {
     education.value.graduate_education_end_date = null;
+  } else {
+    education.value.graduate_education_end_date = '';
   }
 };
 
@@ -609,7 +1087,7 @@ const saveSkill = () => {
 
   const skillForm = useForm({
     graduate_skills_name: skillName.value,
-    graduate_skills_proficiency_type: skillProficiencyType.value, // Ensure this is included
+    graduate_skills_proficiency_type: skillProficiencyType.value,
     graduate_skills_type: skillType.value,
     graduate_skills_years_experience: yearsExperience.value,
   });
@@ -646,6 +1124,15 @@ console.log('Skills Array:', skills.value);
 console.log('Skill at Index:', skills.value[currentSkillIndex.value])
 
 // Update Skill Handler
+const openEditSkillModal = (skill) => {
+  currentSkillIndex.value = skills.value.findIndex(s => s.id === skill.id);
+  skillName.value = skill.graduate_skills_name;
+  skillProficiencyType.value = skill.graduate_skills_proficiency_type;
+  skillType.value = skill.graduate_skills_type;
+  yearsExperience.value = skill.graduate_skills_years_experience;
+  isUpdateSkillModalOpen.value = true;
+};
+
 const updateSkill = () => {
   if (!skillProficiencyType.value) {
     alert("Please select a proficiency type.");
@@ -665,17 +1152,23 @@ const updateSkill = () => {
 
   const skillForm = useForm({
     graduate_skills_name: skillName.value,
-    graduate_skills_proficiency_type: skillProficiencyType.value, // Ensure this is included
+    graduate_skills_proficiency_type: skillProficiencyType.value, 
     graduate_skills_type: skillType.value,
     graduate_skills_years_experience: yearsExperience.value,
   });
 
+  const skillId = skills.value[currentSkillIndex.value]?.id;
+  if (!skillId) {
+    console.error('No skill ID found for update');
+    return;
+  }
+
   console.log('Updating skill with data:', skillForm.data());
 
-  skillForm.put(route('skills.update', skills.value[currentSkillIndex.value].id), {
+  skillForm.put(route('skills.update', { id: skillId }), {
     onSuccess: () => {
       console.log('Skill updated successfully.');
-      skills.value[currentSkillIndex.value] = { ...skillForm.data(), id: skills.value[currentSkillIndex.value].id };
+      skills.value[currentSkillIndex.value] = { ...skillForm.data(), id: skillId };
       closeUpdateSkillModal();
     },
     onError: (errors) => {
@@ -704,192 +1197,13 @@ const closeAddSkillModal = () => {
 
 const newSkill = ref('');
 
-const addSkillToExperience = () => {
-  console.log('New Skill:', newSkill.value);
-  console.log('Existing Skills:', experience.value.graduate_experience_skills_tech);
-
-  if (newSkill.value.trim()) {
-    // Check if the skill already exists in the comma-separated string
-    const skills = experience.value.graduate_experience_skills_tech.split(',').map(skill => skill.trim());
-    if (skills.includes(newSkill.value.trim())) {
-      alert('This skill is already added.');
-      return;
-    }
-
-    // Add the new skill to the comma-separated string
-    if (experience.value.graduate_experience_skills_tech) {
-      experience.value.graduate_experience_skills_tech += `, ${newSkill.value.trim()}`;
-    } else {
-      experience.value.graduate_experience_skills_tech = newSkill.value.trim();
-    }
-
-    console.log('Skill added to experience:', newSkill.value);
-    newSkill.value = ''; // Clear the input
-  } else {
-    alert('Skill is empty.');
-  }
-};
-
-
-// Experience Handlers
-const addExperience = () => {
-  if (
-    experience.value.graduate_experience_title &&
-    experience.value.graduate_experience_company &&
-    experience.value.graduate_experience_employment_type &&
-    experience.value.graduate_experience_start_date
-  ) {
-
-
-    const experienceForm = useForm({
-      graduate_experience_title: experience.value.graduate_experience_title,
-      graduate_experience_company: experience.value.graduate_experience_company,
-      graduate_experience_employment_type: experience.value.graduate_experience_employment_type,
-      graduate_experience_start_date: experience.value.graduate_experience_start_date,
-      graduate_experience_end_date: experience.value.is_current ? present : experience.value.graduate_experience_end_date,
-      graduate_experience_address: experience.value.graduate_experience_address,
-      graduate_experience_description: experience.value.graduate_experience_description,
-      is_current: experience.value.is_current,
-    });
-
-    // Log data being sent to the backend
-    console.log('Data being sent to backend for adding experience:', experienceForm.data());
-
-    experienceForm.post(route('experience.addExperience'), {
-      onSuccess: (response) => {
-        console.log('Experience added successfully:', response);
-        experienceEntries.value.push({ ...experienceForm.data(), id: response.id });
-        resetExperience();
-        isAddExperienceModalOpen.value = false;
-      },
-      onError: (errors) => {
-        console.error('Error adding experience:', errors);
-        alert('An error occurred while adding experience. Please try again.');
-      },
-    });
-  } else {
-    alert('Please fill in all required fields.');
-  }
-};
-
-const updateExperience = () => {
-  const experienceForm = useForm({
-    graduate_experience_title: experience.value.graduate_experience_title,
-    graduate_experience_company: experience.value.graduate_experience_company,
-    graduate_experience_employment_type: experience.value.graduate_experience_employment_type,
-    graduate_experience_start_date: experience.value.graduate_experience_start_date,
-    graduate_experience_end_date: experience.value.is_current ? 'present' : experience.value.graduate_experience_end_date,
-    graduate_experience_address: experience.value.graduate_experience_address,
-    graduate_experience_description: experience.value.graduate_experience_description,
-    is_current: experience.value.is_current,
-  });
-
-  // Log data being sent to the backend
-  console.log('Data being sent to backend for updating experience:', experienceForm.data());
-
-  experienceForm.put(route('experience.update', experience.value.id), {
-    onSuccess: () => {
-      console.log('Experience updated successfully.');
-      const index = experienceEntries.value.findIndex(entry => entry.id === experience.value.id);
-      if (index !== -1) {
-        experienceEntries.value[index] = { ...experienceForm.data(), id: experience.value.id };
-      }
-      closeUpdateExperienceModal();
-      isExperienceUpdatedModalOpen.value = true;
-    },
-    onError: (errors) => {
-      console.error('Error updating experience entry:', errors);
-      alert('An error occurred while updating the experience entry. Please try again.');
-    },
-  });
-};
-
-
-// Project Handlers
-const addProject = () => {
-  const projectForm = useForm({
-    graduate_projects_title: projects.value.graduate_projects_title,
-    graduate_projects_description: projects.value.graduate_projects_description || 'No description provided',
-    graduate_projects_role: projects.value.graduate_projects_role,
-    graduate_projects_start_date: projects.value.graduate_projects_start_date,
-    graduate_projects_end_date: projects.value.is_current ? null : projects.value.graduate_projects_end_date,
-    graduate_projects_url: noProjectUrl.value ? null : projects.value.graduate_projects_url,
-    graduate_projects_key_accomplishments: projects.value.graduate_projects_key_accomplishments || 'No key accomplishment provided',
-    is_current: projects.value.is_current,
-  });
-
-  projectForm.post(route('projects.add'), {
-    onSuccess: (response) => {
-      projectsEntries.value.push({ ...projectForm.data(), id: response.id });
-      resetProject();
-      isAddProjectModalOpen.value = false;
-    },
-    onError: (errors) => {
-      console.error('Backend error when adding project:', errors);
-      alert('An error occurred while adding the project. Please try again.');
-    },
-  });
-};
-
-const updateProject = () => {
-  const projectForm = useForm({
-    graduate_projects_title: projects.value.graduate_projects_title,
-    graduate_projects_description: projects.value.graduate_projects_description || 'No description provided',
-    graduate_projects_role: projects.value.graduate_projects_role,
-    graduate_projects_start_date: projects.value.graduate_projects_start_date,
-    graduate_projects_end_date: projects.value.is_current ? null : projects.value.graduate_projects_end_date,
-    graduate_projects_url: noProjectUrl.value ? null : projects.value.graduate_projects_url,
-    graduate_projects_key_accomplishments: projects.value.graduate_projects_key_accomplishments || 'No key accomplishment provided',
-    is_current: projects.value.is_current,
-  });
-
-  projectForm.put(route('projects.update', projects.value.id), {
-    onSuccess: () => {
-      const index = projectsEntries.value.findIndex(entry => entry.id === projects.value.id);
-      if (index !== -1) {
-        projectsEntries.value[index] = { 
-          ...projectForm.data(), 
-          id: projects.value.id,
-          graduate_projects_end_date: projects.value.is_current ? null : projects.value.graduate_projects_end_date
-        };
-      }
-      resetProject();
-      isUpdateProjectModalOpen.value = false;
-    },
-    onError: (errors) => {
-      console.error('Backend error when updating project:', errors);
-      alert('An error occurred while updating the project. Please try again.');
-    },
-  });
-};
-
-
-
-const openUpdateProjectModal = (entry) => {
-  projects.value = {
-    id: entry.id,
-    graduate_projects_title: entry.graduate_projects_title,
-    graduate_projects_description: entry.graduate_projects_description,
-    graduate_projects_role: entry.graduate_projects_role,
-    graduate_projects_start_date: entry.graduate_projects_start_date,
-    graduate_projects_end_date: entry.graduate_projects_end_date,
-    graduate_projects_url: entry.graduate_projects_url,
-    graduate_projects_key_accomplishments: entry.graduate_projects_key_accomplishments,
-    is_current: entry.is_current
-  };
-  noProjectUrl.value = !entry.graduate_projects_url;
-  isUpdateProjectModalOpen.value = true;
-};
-
+// Project HandlersS
 const closeAddProjectModal = () => {
   resetProject();
   isAddProjectModalOpen.value = false;
 };
 
-const closeUpdateProjectModal = () => {
-  resetProject();
-  isUpdateProjectModalOpen.value = false;
-};
+
 
 // Certification Handlers
 const addCertification = () => {
@@ -1095,42 +1409,60 @@ const resetAchievementForm = () => {
   };
 };
 
+const validateAchievementForm = () => {
+  const errors = {};
+  if (!achievementForm.value.graduate_achievement_title?.trim()) {
+    errors.title = 'Achievement title is required';
+  }
+  if (!achievementForm.value.graduate_achievement_issuer?.trim()) {
+    errors.issuer = 'Achievement issuer is required';
+  }
+  if (!achievementForm.value.graduate_achievement_date) {
+    errors.date = 'Achievement date is required';
+  }
+  if (!achievementForm.value.graduate_achievement_type?.trim()) {
+    errors.type = 'Achievement type is required';
+  }
+  return Object.keys(errors).length === 0 ? null : errors;
+};
+
 const editAchievement = (achievement) => {
   achievementForm.value = {
     id: achievement.id,
     graduate_achievement_title: achievement.graduate_achievement_title,
     graduate_achievement_type: achievement.graduate_achievement_type,
     graduate_achievement_issuer: achievement.graduate_achievement_issuer,
-    graduate_achievement_date: achievement.graduate_achievement_date,
-    graduate_achievement_description: achievement.graduate_achievement_description,
-    graduate_achievement_url: achievement.graduate_achievement_url,
+    graduate_achievement_date: achievement.graduate_achievement_date ? new Date(achievement.graduate_achievement_date) : null,
+    graduate_achievement_description: achievement.graduate_achievement_description || '',
+    graduate_achievement_url: achievement.graduate_achievement_url || '',
     noCredentialUrl: !achievement.graduate_achievement_url,
     credential_picture: null,
     credential_picture_url: achievement.credential_picture_url
   };
+  achievementErrors.value = {};
   isUpdateAchievementModalOpen.value = true;
 };
 
 // Update achievement handler
 const updateAchievement = () => {
-  if (
-    !achievementForm.value.graduate_achievement_title ||
-    !achievementForm.value.graduate_achievement_issuer ||
-    !achievementForm.value.graduate_achievement_date
-  ) {
-    alert("Please fill in all required fields.");
+  const errors = validateAchievementForm();
+  if (errors) {
+    achievementErrors.value = errors;
     return;
   }
 
+  isSubmittingAchievement.value = true;
+  achievementErrors.value = {};
+
   const formData = new FormData();
-  formData.append('graduate_achievement_title', achievementForm.value.graduate_achievement_title);
-  formData.append('graduate_achievement_issuer', achievementForm.value.graduate_achievement_issuer);
-  formData.append('graduate_achievement_date', achievementForm.value.graduate_achievement_date);
+  formData.append('graduate_achievement_title', achievementForm.value.graduate_achievement_title.trim());
+  formData.append('graduate_achievement_issuer', achievementForm.value.graduate_achievement_issuer.trim());
+  formData.append('graduate_achievement_date', formatDate(achievementForm.value.graduate_achievement_date));
   formData.append('graduate_achievement_description', 
     achievementForm.value.graduate_achievement_description?.trim() || 'No description provided'
   );
-  formData.append('graduate_achievement_url', achievementForm.value.graduate_achievement_url);
-  formData.append('graduate_achievement_type', achievementForm.value.graduate_achievement_type);
+  formData.append('graduate_achievement_url', achievementForm.value.noCredentialUrl ? '' : (achievementForm.value.graduate_achievement_url || ''));
+  formData.append('graduate_achievement_type', achievementForm.value.graduate_achievement_type.trim());
   
   if (achievementForm.value.credential_picture) {
     formData.append('credential_picture', achievementForm.value.credential_picture);
@@ -1144,16 +1476,23 @@ const updateAchievement = () => {
       if (index !== -1) {
         achievementEntries.value[index] = {
           ...achievementForm.value,
+          graduate_achievement_date: formatDate(achievementForm.value.graduate_achievement_date),
           credential_picture_url: response.credential_picture_url
         };
       }
       resetAchievementForm();
       previewImage.value = null;
+      isSubmittingAchievement.value = false;
       isUpdateAchievementModalOpen.value = false;
     },
     onError: (errors) => {
       console.error('Error updating achievement:', errors);
-      alert('An error occurred while updating the achievement. Please try again.');
+      isSubmittingAchievement.value = false;
+      if (errors.response?.data?.errors) {
+        achievementErrors.value = errors.response.data.errors;
+      } else {
+        alert('An error occurred while updating the achievement. Please try again.');
+      }
     },
   });
 };
@@ -1168,7 +1507,7 @@ const deleteAchievement = async (id) => {
       alert('An error occurred while deleting the achievement');
     }
   }
-};
+};''
 
 
 // Testimonials Handlers
@@ -1211,14 +1550,12 @@ const updateTestimonials = () => {
   if (
     testimonials.value.graduate_testimonials_name.trim() &&
     testimonials.value.graduate_testimonials_role_title.trim() &&
-    testimonials.value.graduate_testimonials_relationship.trim() &&
     testimonials.value.graduate_testimonials_testimonial.trim()
   ) {
     const updatedTestimonial = {
       id: testimonialsEntries.value[index].id,
       graduate_testimonials_name: testimonials.value.graduate_testimonials_name,
       graduate_testimonials_role_title: testimonials.value.graduate_testimonials_role_title,
-      graduate_testimonials_relationship: testimonials.value.graduate_testimonials_relationship,
       graduate_testimonials_testimonial: testimonials.value.graduate_testimonials_testimonial
     };
     testimonialsEntries.value[index] = updatedTestimonial;
@@ -1231,6 +1568,22 @@ const updateTestimonials = () => {
     alert("Please fill in all required fields.");
   }
 };
+
+const handleTestimonialFileUpload = (event) => {
+  const file = event.target.files[0];
+}
+
+const submitTestimonial = () => {
+  const formData = new FormData();
+  formData.append('graduate_testimonials_name', testimonials.value.graduate_testimonials_name);
+  formData.append('graduate_testimonials_role_title', testimonials.value.graduate_testimonials_role_title);
+  formData.append('graduate_testimonials_testimonial', testimonials.value.graduate_testimonials_testimonial);
+  formData.append('graduate_testimonials_file', testimonials.value.graduate_testimonials_file);
+  const form = useForm(Object.fromEntries(formData));
+  form.post(route('testimonials.add'), {
+    
+  })
+}
 
 // Employment Preferences Handlers
 const saveEmploymentPreferences = () => {
@@ -1445,35 +1798,6 @@ const resetSkill = () => {
   console.log('Skill reset.');
 };
 
-const resetExperience = () => {
-  experience.value = {
-    graduate_experience_title: '',
-    graduate_experience_company: '',
-    graduate_experience_start_date: null,
-    graduate_experience_end_date: null,
-    graduate_experience_address: '',
-    graduate_experience_description: '',
-    graduate_experience_skills_tech: []
-  };
-  stillInRole.value = false;
-  console.log('Experience reset.');
-};
-
-const resetProject = () => {
-  projects.value = {
-    graduate_projects_title: '',
-    graduate_projects_description: '',
-    graduate_projects_role: '',
-    graduate_projects_start_date: null,
-    graduate_projects_end_date: null,
-    graduate_projects_url: '',
-    graduate_projects_key_accomplishments: '',
-    is_current: false,
-    id: null
-  };
-  noProjectUrl.value = false;
-};
-
 const resetCertification = () => {
   certification.value = {
     graduate_certification_name: '',
@@ -1503,7 +1827,6 @@ const resetTestimonials = () => {
   testimonials.value = {
     graduate_testimonials_name: '',
     graduate_testimonials_role_title: '',
-    graduate_testimonials_relationship: '',
     graduate_testimonials_testimonial: ''
   };
   console.log('Testimonials reset.');
@@ -1603,18 +1926,6 @@ const closeUpdateSkillModal = () => {
   console.log('Update skill modal closed.');
 };
 
-
-const closeAddExperienceModal = () => {
-  isAddExperienceModalOpen.value = false;
-  console.log('Add experience modal closed.');
-};
-
-const closeUpdateExperienceModal = () => {
-  isUpdateExperienceModalOpen.value = false;
-  resetExperience();
-  console.log('Update experience modal closed.');
-};
-
 const closeAddCertificationModal = () => {
   isAddCertificationModalOpen.value = false;
   resetCertification();
@@ -1709,20 +2020,20 @@ const openAddIndustryModal = () => {
   console.log('Add industry modal opened.');
 };
 
-const openUpdateEducationModal = (educationData) => {
+const openUpdateEducationModal = (entry) => {
   education.value = {
-    ...educationData,
-    noAchievements: !educationData.achievements,
+    id: entry.id,
+    graduate_education_institution_id: entry.graduate_education_institution_id,
+    graduate_education_program: entry.graduate_education_program,
+    graduate_education_field_of_study: entry.graduate_education_field_of_study,
+    graduate_education_start_date: new Date(entry.graduate_education_start_date),
+    graduate_education_end_date: entry.graduate_education_end_date ? new Date(entry.graduate_education_end_date) : null,
+    graduate_education_description: entry.graduate_education_description || '',
+    is_current: !entry.graduate_education_end_date,
+    achievements: entry.achievements || '',
+    noAchievements: !entry.achievements
   };
   isUpdateEducationModalOpen.value = true;
-  console.log('Update education modal opened with data:', educationData);
-};
-
-const openUpdateExperienceModal = (entry, index) => {
-  experience.value = { ...entry };
-  currentExperienceIndex.value = index;
-  isUpdateExperienceModalOpen.value = true;
-  console.log('Update experience modal opened with entry:', entry);
 };
 
 const openUpdateAchievementModal = (entry, index) => {
@@ -1740,7 +2051,7 @@ const openUpdateCertificationModal = (entry) => {
   form.graduate_certification_issue_date = entry.graduate_certification_issue_date;
   form.graduate_certification_expiry_date = entry.graduate_certification_expiry_date;
   form.graduate_certification_credential_url = entry.graduate_certification_credential_url;
-  form.avatar = null; // Reset file input
+  form.avatar = null; 
   form.noExpiryDate = !entry.graduate_certification_expiry_date;
   form.noCredentialUrl = !entry.graduate_certification_credential_url;
   isUpdateCertificationModalOpen.value = true;
@@ -1754,72 +2065,95 @@ const openUpdateTestimonialsModal = (entry, index) => {
 };
 
 //  Confirmation and Removal Functions
-const removeEducation = (id) => {
-  if (confirm('Are you sure you want to remove this education entry?')) {
-    educationEntries.value = educationEntries.value.filter(entry => entry.id !== id);
-    console.log('Education entry removed from frontend.');
+const deleteForm = useForm({});
 
-    alert('Education entry has been removed from your profile view.');
+const removeEducation = (education) => {
+  if (confirm(`Are you sure you want to remove this education entry: ${education.graduate_education_program}?`)) {
+    deleteForm.delete(route('education.remove', education.id), {
+      onSuccess: () => {
+        const index = educationEntries.value.findIndex(e => e.id === education.id);
+        if (index !== -1) {
+          educationEntries.value.splice(index, 1);
+        }
+      }
+    });
   }
 };
 
-const removeExperience = (id) => {
-  if (confirm('Are you sure you want to remove this experience entry?')) {
-    experienceEntries.value = experienceEntries.value.filter(entry => entry.id !== id);
-    console.log('Experience entry removed from frontend.');
-
-    alert('Experience entry has been removed from your profile view.');
+const removeExperience = (experience) => {
+  if (confirm(`Are you sure you want to remove this experience entry: ${experience.graduate_experience_title}?`)) {
+    deleteForm.delete(route('experience.remove', experience.id), {
+      onSuccess: () => {
+        const index = experienceEntries.value.findIndex(e => e.id === experience.id);
+        if (index !== -1) {
+          experienceEntries.value.splice(index, 1);
+        }
+      }
+    });
   }
 };
 
 const removeSkill = (skill) => {
   if (confirm(`Are you sure you want to remove the skill: ${skill.graduate_skills_name}?`)) {
-    skills.value = skills.value.filter(s => s.id !== skill.id);
-    console.log(`Skill "${skill.graduate_skills_name}" removed from frontend.`);
-
-    alert(`Skill "${skill.graduate_skills_name}" has been removed from your profile view.`);
+    const index = skills.value.findIndex(s => s.id === skill.id);
+    if (index !== -1) {
+      skills.value.splice(index, 1);
+      console.log(`Skill "${skill.graduate_skills_name}" removed from view.`);
+    }
   }
 };
 
-const removeTestimonials = (id) => {
-  if (confirm('Are you sure you want to remove this testimonial entry?')) {
-    testimonialsEntries.value = testimonialsEntries.value.filter(entry => entry.id !== id);
-    console.log('Testimonial entry removed from frontend.');
-
-    alert('Testimonial entry has been removed from your profile view.');
+const removeTestimonials = (testimonial) => {
+  if (confirm(`Are you sure you want to remove this testimonial from ${testimonial.graduate_testimonials_name}?`)) {
+    const index = testimonialsEntries.value.findIndex(t => t.id === testimonial.id);
+    if (index !== -1) {
+      testimonialsEntries.value.splice(index, 1);
+      console.log(`Testimonial from "${testimonial.graduate_testimonials_name}" removed from view.`);
+    }
   }
 };
 
-const removeCertification = (id) => {
-  if (confirm('Are you sure you want to remove this certification entry?')) {
-    certificationsEntries.value = certificationsEntries.value.filter(entry => entry.id !== id);
-    console.log('Certification entry removed from frontend.');
-
-    alert('Certification entry has been removed from your profile view.');
+const removeCertification = (certification) => {
+  if (confirm(`Are you sure you want to remove this certification: ${certification.graduate_certification_name}?`)) {
+    deleteForm.delete(route('certification.remove', certification.id), {
+      onSuccess: () => {
+        const index = certificationsEntries.value.findIndex(c => c.id === certification.id);
+        if (index !== -1) {
+          certificationsEntries.value.splice(index, 1);
+        }
+      }
+    });
   }
 };
 
-const removeAchievement = (id) => {
-  if (confirm('Are you sure you want to remove this achievement entry?')) {
-    achievementEntries.value = achievementEntries.value.filter(entry => entry.id !== id);
-    console.log('Achievement entry removed from frontend.');
-
-    alert('Achievement entry has been removed from your profile view.');
+const removeAchievement = (achievement) => {
+  if (confirm(`Are you sure you want to remove this achievement: ${achievement.graduate_achievement_title}?`)) {
+    const index = achievementEntries.value.findIndex(a => a.id === achievement.id);
+    if (index !== -1) {
+      achievementEntries.value.splice(index, 1);
+      console.log(`Achievement "${achievement.graduate_achievement_title}" removed from view.`);
+    }
   }
 };
 
-const deleteProject = (index) => {
-  if (confirm('Are you sure you want to remove this project entry?')) {
-    const projectId = projectsEntries.value[index].id;
-    
-    axios.delete(route('projects.remove', projectId))
-      .then(() => {
-        projectsEntries.value.splice(index, 1); // Remove from frontend
-      })
-      .catch((error) => {
-        console.error('Error deleting project:', error);
-        alert('An error occurred while deleting the project. Please try again.');
-      });
+const removeProject = (project) => {
+  if (!project || !project.graduate_projects_title) {
+    console.error('Invalid project data');
+    return;
+  }
+  if (confirm(`Are you sure you want to remove this project: ${project.graduate_projects_title}?`)) {
+    deleteForm.delete(route('project.delete', project.id), {
+      onSuccess: () => {
+        const index = projectsEntries.value.findIndex(p => p.id === project.id);
+        if (index !== -1) {
+          projectsEntries.value.splice(index, 1);
+          console.log(`Project "${project.graduate_projects_title}" removed successfully.`);
+        }
+      },
+      onError: (error) => {
+        console.error('Error removing project:', error);
+      }
+    });
   }
 };
 
@@ -1852,33 +2186,6 @@ const resetAllStates = () => {
   resetCareerGoals();
   resetEmploymentPreferences();
   console.log('All states reset.');
-};
-
-// Event listeners for file uploads
-const handleFileUpload = (event, type) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      switch (type) {
-        case 'profile':
-          profile.value.graduate_picture_url = e.target.result;
-          console.log('Profile picture uploaded:', file.name);
-          break;
-        case 'achievement':
-          achievement.value.credential_picture = file;
-          console.log('Achievement picture uploaded:', file.name);
-          break;
-        case 'certification':
-          form.avatar = file;
-          console.log('Certification file uploaded:', file.name);
-          break;
-        default:
-          console.error('Unknown file upload type:', type);
-      }
-    };
-    reader.readAsDataURL(file);
-  }
 };
 
 // Function to initialize data on component mount
@@ -2134,10 +2441,12 @@ onMounted(() => {
               <div v-if="educationEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
                   <div>
-                    <h2 class="text-xl font-bold">{{ entry.graduate_education_institution_id }}</h2>
-                    <p class="text-gray-600">
-                      {{ entry.graduate_education_program }} in {{ entry.graduate_education_field_of_study }}
-                    </p>
+                    <div class="border-b pb-2">
+                      <h2 class="text-xl font-bold">{{ entry.graduate_education_institution_id }}</h2>
+                      <p class="text-gray-600">
+                        {{ entry.graduate_education_program }} in {{ entry.graduate_education_field_of_study }}
+                      </p>
+                    </div>
                     <div class="flex items-center text-gray-600 mt-2">
                       <i class="far fa-calendar-alt mr-2"></i>
                       <span>
@@ -2171,7 +2480,7 @@ onMounted(() => {
                     <button class="text-gray-600 hover:text-indigo-600" @click="openUpdateEducationModal(entry)">
                       <i class="fas fa-pen"></i>
                     </button>
-                    <button class="text-red-600 hover:text-red-800" @click="removeEducation(entry.id)">
+                    <button class="text-red-600 hover:text-red-800" @click="removeEducation(entry)">
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -2285,7 +2594,7 @@ onMounted(() => {
                       <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
                       <input type="text" v-model="education.graduate_education_program"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                        placeholder="e.g. Bachelor of Science"required>
+                        placeholder="e.g. Bachelor of Science" required>
                     </div>
                     <div class="mb-4">
                       <label class="block text-gray-700 font-medium mb-2">Field of Study <span class="text-red-500">*</span></label>
@@ -2345,51 +2654,104 @@ onMounted(() => {
           </div>
 
           <!-- Skills Section -->
-          <div v-if="activeSection === 'skills'" class="flex flex-col lg:flex-row">
-            <div class="w-full lg:w-1/1 mb-6 lg:mb-0">
-              <div class="flex justify-between items-center mb-4">
-                <h1 class="text-xl font-semibold">Skills</h1>
-                <button class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center" @click="openAddSkillModal">
-                  <i class="fas fa-plus mr-2"></i>
-                  Add Skill
-                </button>
+          <div v-if="activeSection === 'skills'" class="space-y-8">
+            <!-- Skills Header -->
+            <div class="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+              <div>
+                <h1 class="text-2xl font-semibold text-gray-900">Skills</h1>
+                <p class="mt-2 text-gray-600">Showcase your professional expertise and competencies</p>
               </div>
-              <p class="text-gray-600 mb-6">Showcase your skills</p>
-              <div v-if="Object.keys(groupedSkills).length > 0" class="space-y-6">
-                <div v-for="(skillsGroup, type) in groupedSkills" :key="type"
-                  class="bg-white p-8 rounded-lg shadow relative">
-                  <h2 class="text-xl font-bold text-indigo-600 mb-4">{{ type }}</h2>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div v-for="skill in skillsGroup" :key="skill.graduate_skills_name"
-                      class="bg-gray-50 p-8 rounded-lg shadow relative">
-                      <!-- Edit and Delete Buttons -->
-                      <div class="absolute top-8 right-4 flex space-x-4">
-                        <button class="text-gray-600 hover:text-indigo-600" @click="editSkill(skill)">
-                          <i class="fas fa-pen"></i>
-                        </button>
-                        <button class="text-red-600 hover:text-red-800" @click="removeSkill(skill)">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                      <div>
-                        <h3 class="text-lg font-bold text-gray-800">{{ skill.graduate_skills_name }}</h3>
-                        <p class="text-gray-600 mt-2 flex items-center">
-                          <i class="fas fa-chart-line text-gray-600 mr-2"></i>Proficiency: {{
-                            skill.graduate_skills_proficiency_type }}
-                        </p>
-                        <p class="text-gray-600 mt-2 flex items-center">
-                          <i class="fas fa-clock text-gray-600 mr-2"></i>Years of Experience: {{
-                            skill.graduate_skills_years_experience }} year/s
-                        </p>
+              <PrimaryButton @click="openAddSkillModal" class="inline-flex px-4 bg-indigo-600 text-white py-2 rounded-md items-center justify-center hover:bg-indigo-700">
+                <i class="fas fa-plus mr-2"></i>
+                Add Skill
+              </PrimaryButton>
+            </div>
+
+            <!-- Skills Content -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              <!-- Skills List -->
+              <div class="xl:col-span-2 space-y-6">
+                <div v-if="Object.keys(groupedSkills).length > 0" class="space-y-8">
+                  <div v-for="(skillsGroup, type) in groupedSkills" :key="type"
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100">
+                      <h2 class="text-lg font-semibold text-gray-900">{{ type }}</h2>
+                    </div>
+                    <div class="p-6">
+                      <div class="grid gap-6">
+                        <div v-for="skill in skillsGroup" :key="skill.graduate_skills_name"
+                          class="bg-gray-50 rounded-lg p-6 transition-all duration-200 hover:bg-gray-100">
+                          <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1">
+                              <h3 class="text-lg font-medium text-gray-900">{{ skill.graduate_skills_name }}</h3>
+                              <span class="inline-flex mt-2 px-3 py-1 rounded-full text-sm font-medium"
+                                :class="{
+                                  'bg-blue-100 text-blue-800': skill.graduate_skills_proficiency_type === 'Beginner',
+                                  'bg-green-100 text-green-800': skill.graduate_skills_proficiency_type === 'Intermediate',
+                                  'bg-purple-100 text-purple-800': skill.graduate_skills_proficiency_type === 'Advanced',
+                                  'bg-indigo-100 text-indigo-800': skill.graduate_skills_proficiency_type === 'Expert'
+                                }">
+                                {{ skill.graduate_skills_proficiency_type }}
+                              </span>
+                            </div>
+                            <div class="flex space-x-2">
+                              <button @click="editSkill(skill)"
+                                class="text-gray-600 hover:text-indigo-600">
+                                <i class="fas fa-pen"></i>
+                              </button>
+                              <button @click="removeSkill(skill)"
+                                class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                          <!-- Proficiency Bar -->
+                          <div class="space-y-4">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                              <div class="h-2 rounded-full transition-all duration-300"
+                                :class="{
+                                  'w-1/4 bg-blue-500': skill.graduate_skills_proficiency_type === 'Beginner',
+                                  'w-2/4 bg-green-500': skill.graduate_skills_proficiency_type === 'Intermediate',
+                                  'w-3/4 bg-purple-500': skill.graduate_skills_proficiency_type === 'Advanced',
+                                  'w-full bg-indigo-500': skill.graduate_skills_proficiency_type === 'Expert'
+                                }"></div>
+                            </div>
+                            
+                            <!-- Experience Level -->
+                            <div class="flex items-center justify-between text-sm">
+                              <span class="font-medium text-gray-700">Years of Experience</span>
+                              <span class="text-gray-600">{{ skill.graduate_skills_years_experience }} year(s)</span>
+                            </div>
+                            <div class="flex space-x-2">
+                              <div v-for="n in 5" :key="n"
+                                class="flex-1 h-1.5 rounded transition-all duration-200"
+                                :class="{
+                                  'bg-indigo-500': n <= skill.graduate_skills_years_experience,
+                                  'bg-gray-200': n > skill.graduate_skills_years_experience
+                                }"></div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                <!-- No Skills Message -->
+                <div v-else class="bg-white rounded-xl shadow-sm p-8 text-center border border-gray-100">
+                  <div class="text-gray-400 mb-4">
+                    <i class="fas fa-lightbulb text-4xl"></i>
+                  </div>
+                  <h3 class="text-lg font-medium text-gray-900 mb-2">No skills added yet</h3>
+                  <p class="text-gray-600 mb-4">Start building your skill profile by adding your technical, soft, and language skills.</p>
+                </div>
               </div>
 
-              <!-- No Skills Message -->
-              <div v-else class="bg-white p-8 rounded-lg shadow mb-4">
-                <p class="text-gray-600">No skills entries added yet.</p>
+              <!-- Skills Chart -->
+              <div class="xl:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-4">
+                  <SkillsChart :skills="skills" />
+                </div>
               </div>
             </div>
 
@@ -2484,7 +2846,6 @@ onMounted(() => {
                       <option value="Soft Skills">Soft Skills</option>
                       <option value="Language Skills">Language Skills</option>
                       <option value="Tool/Platform">Tool/Platform</option>
-                      <option value="Other Skills">Other Skills</option>
                     </select>
                   </div>
                   <div class="mb-4">
@@ -2514,11 +2875,13 @@ onMounted(() => {
               </div>
               <p class="text-gray-600 mb-6">Showcase your professional experience</p>
               <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div v-for="(entry, index) in experienceEntries" :key="entry.id"
+                <div v-for="entry in experienceEntries" :key="entry.id"
                   class="bg-white p-8 rounded-lg shadow relative">
                   <div>
+                    <div class="border-b pb-2">
                     <h2 class="text-xl font-bold">{{ entry.graduate_experience_title }}</h2>
                     <p class="text-gray-600">{{ entry.graduate_experience_company }}</p>
+                    </div>
                     <div class="flex items-center text-gray-600 mt-2">
                       <i class="fas fa-map-marker-alt mr-2"></i>
                       <span>{{ entry.graduate_experience_address }}</span>
@@ -2526,9 +2889,8 @@ onMounted(() => {
                     <div class="flex items-center text-gray-600 mt-2">
                       <i class="far fa-calendar-alt mr-2"></i>
                       <span>
-                        {{ formatDate(entry.graduate_experience_start_date) }} -
-                        {{ entry.graduate_experience_end_date ? formatDate(entry.graduate_experience_end_date) :
-                          'Present' }}
+                        {{ formatDate(entry.graduate_experience_start_date) }} - {{ entry.graduate_experience_end_date ? 
+                        formatDate(entry.graduate_experience_end_date) : 'present' }}
                       </span>
                     </div>
                     <p class="text-gray-600 mt-2 flex items-center">
@@ -2544,10 +2906,10 @@ onMounted(() => {
                   </div>
                   <div class="absolute top-2 right-2 flex space-x-2">
                     <button class="text-gray-600 hover:text-indigo-600"
-                      @click="openUpdateExperienceModal(entry, index)">
+                      @click="openUpdateExperienceModal(entry)">
                       <i class="fas fa-pen"></i>
                     </button>
-                    <button class="text-red-600 hover:text-red-800" @click="removeExperience(entry.id)">
+                    <button class="text-red-600 hover:text-red-800" @click="removeExperience(entry)">
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -2695,8 +3057,9 @@ onMounted(() => {
                       <div class="mt-2">
                         <input type="checkbox" id="still-in-role-update" v-model="stillInRole"
                           @change="experience.graduate_experience_end_date = stillInRole ? null : experience.graduate_experience_end_date" />
-                        <label for="still-in-role-update" class="text-sm text-gray-700 ml-2">I currently work
-                          here</label>
+                        <label for="still-in-role-update" class="text-sm text-gray-700 ml-2">
+                          I currently work here
+                        </label>
                       </div>
                     </div>
                     <div class="mb-4">
@@ -2731,7 +3094,7 @@ onMounted(() => {
               <p class="text-gray-600 mb-6">Showcase your personal and professional projects</p>
 
               <div v-if="projectsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div v-for="(entry, index) in projectsEntries" :key="entry.id" 
+                <div v-for="entry  in projectsEntries" :key="entry.id" 
                     class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="p-6">
                     <div class="flex justify-between items-start mb-4">
@@ -2744,7 +3107,7 @@ onMounted(() => {
                           <i class="fas fa-pen"></i>
                         </button>
                         <button class="text-red-600 hover:text-red-800 transition-colors" 
-                                @click="deleteProject(index)">
+                                @click="deleteProject(entry.id)">
                           <i class="fas fa-trash"></i>
                         </button>
                       </div>
@@ -2781,12 +3144,19 @@ onMounted(() => {
                           <span v-if="entry.graduate_projects_key_accomplishments">
                             {{ entry.graduate_projects_key_accomplishments }}
                           </span>
-                          <span v-else>No key accomplishment provided</span> <!-- Display message if no accomplishments -->
+                          <span v-else>No key accomplishment provided</span> 
                         </p>
                       </div>
+
+                      <div v-if="projects.graduate_project_file" class="mt-3">
+                    <img :src="`/storage/${projects.graduate_project_file}`" 
+                        :alt="projects.graduate_projects_title"
+                        class="max-w-full h-auto rounded-lg shadow"
+                    />
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
 
               <div v-else class="bg-white p-8 rounded-lg shadow">
@@ -2817,10 +3187,10 @@ onMounted(() => {
                           rows="3" placeholder="Describe your project..."></textarea>
                       </div>
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Role</label>
+                        <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
                         <input type="text" v-model="projects.graduate_projects_role"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                          placeholder="Your role in the project" />
+                          placeholder="Your role in the project" required />
                       </div>
                       <div class="mb-4">
                         <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
@@ -2846,13 +3216,18 @@ onMounted(() => {
                       </div>
                       <div class="mb-4">
                         <input type="checkbox" v-model="noProjectUrl" id="noProjectUrl" />
-                        <label for="noProjectUrl" class="text-gray-700 font-medium ml-2">No Project URL</label>
+                        <label for="noProjectUrl" class="text-sm text-gray-700 ml-2">No Project URL</label>
                       </div>
                       <div class="mb-4">
                         <label class="block text-gray-700 font-medium mb-2">Key Accomplishments</label>
                         <textarea v-model="projects.graduate_projects_key_accomplishments"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           rows="3" placeholder="What did you achieve?"></textarea>
+                      </div>
+                      <div class="mb-4">
+                        <label for="project-file" class="block text-sm font-medium text-gray-700">Upload File</label>
+                        <input type="file" id="project-file" @change="handleFileUpload"
+                          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                       </div>
                       <button type="submit"
                         class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Add Project</button>
@@ -2885,10 +3260,10 @@ onMounted(() => {
                           rows="3" placeholder="Describe your personal or professional project..."></textarea>
                       </div>
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Role</label>
+                        <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
                         <input type="text" v-model="projects.graduate_projects_role"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                          placeholder="Your role in the project" />
+                          placeholder="Your role in the project" required />
                       </div>
                       <div class="mb-4">
                         <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
@@ -2947,15 +3322,17 @@ onMounted(() => {
               <div v-if="certificationsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div v-for="entry in certificationsEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
                   <div>
+                    <div class="border-b pb-2">
                     <h2 class="text-xl font-bold">{{ entry.graduate_certification_name }}</h2>
                     <p class="text-gray-600">{{ entry.graduate_certification_issuer }}</p>
+                  </div>
                     <div class="flex items-center text-gray-600 mt-2">
                       <i class="far fa-calendar-alt mr-2"></i>
                       <span>{{ entry.graduate_certification_issue_date }} - {{ entry.graduate_certification_expiry_date || 'No expiry date' }}</span>
                     </div>
                     <p class="mt-2">
                       URL: 
-                      <span v-if="entry.graduate_certification_credential_url">
+                      <span v-if="entry.graduate_certification_credential_url && !entry.noCredentialUrl">
                         <a :href="entry.graduate_certification_credential_url" class="text-blue-600 hover:underline" target="_blank">
                           {{ entry.graduate_certification_credential_url }}
                         </a>
@@ -2970,7 +3347,7 @@ onMounted(() => {
                     <button class="text-gray-600 hover:text-indigo-600" @click="openUpdateCertificationModal(entry)">
                       <i class="fas fa-pen"></i>
                     </button>
-                    <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry.id)">
+                    <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry)">
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -3139,7 +3516,7 @@ onMounted(() => {
                   
                   <!-- Description -->
                   <div class="text-sm">
-                    <p>{{ achievement.graduate_achievement_description }}</p>
+                    <p class="text-sm"><span class="font-medium">Description:</span>{{ achievement.graduate_achievement_description }}</p>
                   </div>
                   
                   <!-- URL if available -->
@@ -3165,7 +3542,7 @@ onMounted(() => {
                             class="text-gray-600 hover:text-indigo-600">
                       <i class="fas fa-pen"></i>
                     </button>
-                    <button @click="deleteAchievement(achievement.id)" class="text-red-600 hover:text-red-800">
+                    <button @click="removeAchievement(achievement)" class="text-red-600 hover:text-red-800">
                   <i class="fas fa-trash"></i>
                 </button>
                   </div>
@@ -3175,6 +3552,88 @@ onMounted(() => {
               <!-- No Achievement Entries Message -->
               <div v-else class="bg-white p-8 rounded-lg shadow mb-4">
                 <p class="text-gray-600">No achievement entries added yet.</p>
+              </div>
+            </div>
+
+            <!-- Update Project Modal -->
+            <div v-if="isUpdateProjectModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+              <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-xl font-semibold">Update Project</h2>
+                  <button class="text-gray-500 hover:text-gray-700" @click="closeUpdateProjectModal">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <p class="text-gray-600 mb-4">Update details about your project</p>
+                <form @submit.prevent="updateProject">
+                  <div class="max-h-96 overflow-y-auto">
+                    <div class="mb-4">
+                      <label class="block text-gray-700 font-medium mb-2">Project Title <span class="text-red-500">*</span></label>
+                      <input type="text" v-model="projects.graduate_projects_title"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        placeholder="Enter project title" required />
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
+                      <input type="text" v-model="projects.graduate_projects_role"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        placeholder="Your role in the project" required />
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-gray-700 font-medium mb-2">Description</label>
+                      <textarea v-model="projects.graduate_projects_description"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        rows="3" placeholder="Describe the project..."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                      <Datepicker v-model="projects.graduate_projects_start_date"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        placeholder="Select start date" required />
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-gray-700 font-medium mb-2">End Date</label>
+                      <Datepicker v-model="projects.graduate_projects_end_date"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        placeholder="Select end date" :disabled="projects.is_current" />
+                      <div class="mt-2">
+                        <input type="checkbox" id="ongoing-project-update" v-model="ongoingProject" />
+                        <label for="ongoing-project-update" class="text-sm text-gray-700 ml-2">This is an ongoing project</label>
+                      </div>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-gray-700 font-medium mb-2">Project URL</label>
+                      <input type="url" v-model="projects.graduate_projects_url"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        placeholder="e.g. https://example.com"
+                        :disabled="noProjectUrl" />
+                      <div class="mt-2">
+                        <input type="checkbox" id="no-project-url-update" v-model="noProjectUrl" />
+                        <label for="no-project-url-update" class="text-sm text-gray-700 ml-2">No Project URL</label>
+                      </div>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="block text-gray-700 font-medium mb-2">Key Accomplishments</label>
+                      <textarea v-model="projects.graduate_projects_key_accomplishments"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        rows="3" placeholder="List key accomplishments..."></textarea>
+                    </div>
+
+                    <div class="flex justify-end">
+                      <button type="submit"
+                        class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i>
+                        Update Project
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
             </div>
 
@@ -3303,7 +3762,6 @@ onMounted(() => {
                         <option value="Recognition">Recognition</option>
                         <option value="Publication">Publication</option>
                         <option value="Patent">Patent</option>
-                        <option value="Other">Other</option>
                       </select>
                     </div>
 
@@ -3315,7 +3773,7 @@ onMounted(() => {
                     </div>
 
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2"> <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Date <span class="text-red-500">*</span></label>
                       <Datepicker v-model="achievementForm.graduate_achievement_date"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Select date" required />
@@ -3370,42 +3828,57 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Testimonials Section-->
-          <div v-if="activeSection === 'testimonials'" class="flex flex-col lg:flex-row">
-            <div class="w-full lg:w-1/1 mb-6 lg:mb-0">
-              <div class="flex justify-between items-center mb-4">
-                <h1 class="text-xl font-semibold mb-4">Testimonials</h1>
-                <button class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center"
-                  @click="isAddTestimonialsModalOpen = true">
-                  <i class="fas fa-plus mr-2"></i>
-                  Add Testimonials
-                </button>
+          <!-- Testimonials Section -->
+          <div v-if="activeSection === 'testimonials'" class="bg-white p-6 rounded-lg shadow space-y-6">
+            <!-- Testimonials Header -->
+            <div class="flex justify-between items-center">
+              <div>
+                <h1 class="text-xl font-semibold">Testimonials</h1>
+                <p class="text-gray-600 mt-2">Recommendations from colleagues and clients</p>
               </div>
-              <p class="text-gray-600 mb-6">Recommendations from colleagues and clients</p>
-              <div v-if="testimonialsEntries.length > 0" class="bg-white p-8 rounded-lg shadow mb-4 relative">
-                <div v-for="(entry, index) in testimonialsEntries" :key="entry.id"
-                  class="flex justify-between items-center">
-                  <div>
-                    <h2 class="text-xl font-bold">{{ entry.graduate_testimonials_name }}</h2>
-                    <p class="text-gray-600">{{ entry.graduate_testimonials_role_title }}</p>
-                    <p class="mt-2">"{{ entry.graduate_testimonials_testimonial }}"</p>
+              <button class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center hover:bg-indigo-700 transition-colors"
+                @click="isAddTestimonialsModalOpen = true">
+                <i class="fas fa-plus mr-2"></i>
+                Add Testimonials
+              </button>
+            </div>
+
+            <!-- Testimonials Entries -->
+            <div v-if="testimonialsEntries.length > 0" class="space-y-4">
+              <div v-for="(entry, index) in testimonialsEntries" :key="entry.id"
+                class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 relative hover:shadow-md transition-shadow">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                  <div class="flex-grow">
+                    <h2 class="text-xl font-bold text-gray-900">{{ entry.graduate_testimonials_name }}</h2>
+                    <p class="text-gray-600 font-medium">{{ entry.graduate_testimonials_role_title }}</p>
+                    <p class="mt-3 text-gray-700 italic">"{{ entry.graduate_testimonials_testimonial }}"</p>
                   </div>
-                  <div class="absolute top-2 right-2 flex space-x-2">
-                    <button class="text-gray-600" @click="openUpdateTestimonialsModal(entry, index)">
-                      <i class="fas fa-pen"></i>
-                    </button>
-                    <button class="text-red-600" @click="removeTestimonials(entry.id)">
-                      <i class="fas fa-trash"></i>
-                    </button>
+                  <div v-if="testimonials.graduate_testimonials_letters" class="md:w-1/3">
+                    <img :src="`/storage/${testimonials.graduate_testimonials_letters}`" 
+                        :alt="testimonials.graduate_testimonials_name"
+                        class="w-full h-auto rounded-lg shadow-sm"
+                    />
                   </div>
                 </div>
-              </div>
-
-              <!-- If no testimonials entries exist -->
-              <div v-else class="bg-white p-8 rounded-lg shadow mb-4">
-                <p class="text-gray-600">No testimonial entries added yet.</p>
+                <div class="absolute top-4 right-4 flex space-x-2">
+                  <button class="text-gray-600 hover:text-indigo-600" 
+                    @click="openUpdateTestimonialsModal(entry, index)">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="text-red-600 hover:text-red-800" 
+                    @click="removeTestimonials(entry)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
               </div>
             </div>
+
+            <!-- If no testimonials entries exist -->
+            <div v-else class="text-center py-8">
+              <p class="text-gray-600">No testimonial entries added yet.</p>
+              <p class="text-sm text-gray-500 mt-2">Click the "Add Testimonials" button to get started.</p>
+            </div>
+          
 
             <!-- Add Testimonials Modal -->
             <div v-if="isAddTestimonialsModalOpen"
@@ -3435,7 +3908,12 @@ onMounted(() => {
                     <label class="block text-gray-700 font-medium mb-2">Testimonial <span class="text-red-500">*</span></label>
                     <textarea v-model="testimonials.graduate_testimonials_testimonial"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                      rows="3" placeholder="Write the testimonial here..." required></textarea>
+            rows="3" placeholder="Write the testimonial here..." required></textarea>
+                  </div>
+                  <div class="mb-4">
+                    <label for="testimonial-file" class="block text-sm font-medium text-gray-700">Upload File</label>
+                    <input type="file" id="testimonial-file" @change="handleFileUpload"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                   </div>
                   <div class="flex justify-end">
                     <button type="submit"
@@ -3774,7 +4252,7 @@ onMounted(() => {
         </div>
 
         <teleport to="body">
-          <div v-if="isDeleteConfirmationModalOpen"
+          <!-- <div v-if="isDeleteConfirmationModalOpen"
             class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
             <div class="bg-white p-6 rounded shadow-lg">
               <h2 class="text-lg font-bold">Confirm Deletion</h2>
@@ -3786,7 +4264,7 @@ onMounted(() => {
                   class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
               </div>
             </div>
-          </div>
+          </div> -->
           <div v-if="isProfileModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
             <div class="bg-white p-6 rounded shadow-lg">
               <h2 class="text-lg font-bold">Profile Information Updated</h2>

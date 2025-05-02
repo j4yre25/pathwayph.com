@@ -12,10 +12,12 @@ class ManageUsersController extends Controller
     {
 
 
-        $all_users = User::all();
+        $users = User::whereIn('role', ['company', 'institution'])
+        ->orderBy('created_at', 'desc') // Sort by created_at in descending order
+        ->paginate(10); // Paginate the results
 
         return Inertia::render('Admin/ManageUsers/Index/Index', [
-            'all_users' => $all_users
+            'all_users' => $users
 
 
         ]);
@@ -23,41 +25,36 @@ class ManageUsersController extends Controller
 
     public function list(Request $request)
     {
-        $query = User::query();
-
-        // role
-        if ($request->has('role') && $request->role !== 'all') {
-            $query->where('role', $request->role);
-        } else {
-            $query->where('role', '!=', 'graduate');
-        }
-
-        // date
-        if ($request->has('date_from') && $request->has('date_to')) {
-            $query->whereBetween('created_at', [$request->date_from, $request->date_to]);
-        }
-
-        // status
-        if ($request->has('status') && $request->status !== 'all') {
-            $query->where('is_approved', $request->status === 'active');
-        }
-
-        $all_users = $query->get();
-
-        return Inertia::render('Admin/ManageUsers/Index/List', [
-            'all_users' => $all_users,
-            'filters' => $request->only(['role', 'date_from', 'date_to', 'status']),
+        $users = User::query()
+            ->when($request->role && $request->role !== 'all', function ($query) use ($request) {
+                $query->where('role', $request->role);
+            })
+            ->when($request->date_from, function ($query) use ($request) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            })
+            ->when($request->date_to, function ($query) use ($request) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            })
+            ->when($request->status && $request->status !== 'all', function ($query) use ($request) {
+                $query->where('is_approved', $request->status === 'active');
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10); // Paginate the results (10 users per page)
+    
+        return inertia('Admin/ManageUsers/Index/List', [
+            'all_users' => $users,
         ]);
     }
-
+    
     public function archivedlist()
     {
 
-
-        $all_users = User::onlyTrashed()->get();
+        $users = User::onlyTrashed() 
+        ->orderBy('created_at', 'desc') 
+        ->paginate(10);
 
         return Inertia::render('Admin/ManageUsers/Index/ArchivedList', [
-            'all_users' => $all_users
+            'all_users' => $users
 
 
         ]);
@@ -107,6 +104,7 @@ class ManageUsersController extends Controller
 
         $user->restore();
 
-        return redirect()->back()->with('flash.banner', 'User restored successfully.');
+        return redirect()->route('admin.manage_users')->with('flash.banner', 'User restored successfully.');
+        
     }
 }

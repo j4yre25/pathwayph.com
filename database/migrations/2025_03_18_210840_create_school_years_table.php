@@ -14,6 +14,8 @@ return new class extends Migration
             $table->integer('term'); 
             $table->softDeletes();         
             $table->timestamps();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
         });
     }
 

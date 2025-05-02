@@ -6,10 +6,12 @@
     import { useForm } from '@inertiajs/vue3';
     import PrimaryButton from '@/Components/PrimaryButton.vue';
     import ActionMessage from '@/Components/ActionMessage.vue';
+    import { Inertia } from '@inertiajs/inertia';
+
 
 
     const props = defineProps({
-        categoryr: Object
+        category: Object
     })
 
     const form = useForm({
@@ -19,7 +21,11 @@
 
     const submitForm = () => {
         form.put(route('categories.update', {category: props.category.id}), {
-            preserveScroll: true
+            preserveScroll: true,
+
+            onSuccess: () => {
+            Inertia.visit(route('categories.index'));
+            },
         })
     }
 

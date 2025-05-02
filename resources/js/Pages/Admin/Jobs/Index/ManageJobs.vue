@@ -15,7 +15,7 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 const page = usePage()
 
 const props = defineProps({
-  jobs: Array,
+  jobs: Object,
   job: Object,
 });
 
@@ -64,6 +64,9 @@ const disapproveJob = (job) => {
     }
   });
 };
+const goTo = (url) => {
+  router.get(url);
+};
 
 </script>
 
@@ -96,7 +99,7 @@ const disapproveJob = (job) => {
             </tr>
           </thead>
           <tbody class="text-gray-600 text-sm font-light">
-            <tr v-for="job in jobs" :key="job.id" class="border-b border-gray-200 hover:bg-gray-100">
+            <tr v-for="job in jobs.data" :key="job.id" class="border-b border-gray-200 hover:bg-gray-100">
               <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
               <td class="border border-gray-200 px-6 py-4">
                 <!-- Check if user exists before accessing its properties -->
@@ -128,27 +131,41 @@ const disapproveJob = (job) => {
                 <span v-else class="text-yellow-600 font-semibold">Pending</span>
               </td>
               <td class="border border-gray-200 px-6 py-4">
-                <PrimaryButton class="mr-2 mb-2" @click="approveJob(job)"
-                  v-if="page.props.roles.isPeso && !job.is_approved">Approve
-                </PrimaryButton>
-                <DangerButton class="mr-2" @click="disapproveJob(job)"
-                  v-if="page.props.roles.isPeso && !job.is_approved">
-                  Disapprove
-                </DangerButton>
-                <Link :href="route('jobs.view', { job: job.id })">
-                <PrimaryButton class="mr-2">View</PrimaryButton>
-                </Link>
-                <Link :href="route('jobs.edit', { job: job.id })">
-                <PrimaryButton class="mr-2">Edit</PrimaryButton>
-                </Link>
-                <button @click="confirmArchive(job)">
-                  <DangerButton class="mr-2">Archive</DangerButton>
-                </button>
+                <div class="flex items-center">
+                  <PrimaryButton class="mr-2" @click="approveJob(job)" v-if="job.is_approved !== 0 && !job.is_approved">
+                    Approve
+                  </PrimaryButton>
+                  <DangerButton @click="disapproveJob(job)" v-if="job.is_approved !== 0 && !job.is_approved">
+                    Disapprove
+                  </DangerButton>
+                  <DangerButton class="ml-2" @click="confirmArchive(job)" v-if="job.is_approved !== 0">
+                    Archive
+                  </DangerButton>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+
+      <div class="mt-4">
+        <nav v-if="jobs.links.length > 1" aria-label="Page navigation">
+          <ul class="inline-flex -space-x-px text-sm">
+            <li v-for="link in jobs.links" :key="link.url" :class="{ 'active': link.active }">
+              <a v-if="link.url" @click.prevent="goTo(link.url)"
+                :class="link.active ? 'flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700' : 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700'">
+                <span v-html="link.label"></span>
+              </a>
+              <span v-else
+                class="flex items-center justify-center px-3 h-8 leading-tight text-gray-400 bg-gray-200 border border-gray-300">
+                <span v-html="link.label"></span>
+              </span>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      
       <ConfirmationModal @close="showModal = false" :show="showModal">
         <template #title>
           Are you sure?

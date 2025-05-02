@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SchoolYear;
+use App\Models\Program;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
@@ -97,12 +98,14 @@ class  CustomRegisteredUserController extends Controller
 
     public function showGraduateDetails()
     {
-        $insti_users = User::all();
+        $insti_users = User::where('role', 'institution')->get(['id', 'institution_name']);
         $school_year = SchoolYear::all();
+        $programs = Program::all();
         
         return Inertia::render('Auth/Register', [
             'insti_users' => $insti_users,
             'school_year' => $school_year,
+            'programs' => $programs,
         ]);
     }
    

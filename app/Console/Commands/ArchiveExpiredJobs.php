@@ -8,36 +8,45 @@ use Carbon\Carbon;
 
 class ArchiveExpiredJobs extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'app:archive-expired-jobs';
+    protected $description = 'Archive jobs that are expired, full, or have met application limits.';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
-
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
         $now = Carbon::now();
 
-        $expiredJobs = Job::where('created_at', '<', $now->subDays(30))->get();
-        foreach ($expiredJobs as $job) {
-            $job->delete(); // Soft delete the job
-        }
-        $fullJobs = Job::whereColumn('vacancies_filled', '>=', 'vacancy')->get();
-        foreach ($fullJobs as $job) {
-            $job->delete(); // Soft delete the job
+        $jobs = Job::all();
+        $archivedCount = 0;
+
+        foreach ($jobs as $job) {
+            $shouldArchive = false;
+
+            // Check 1: If job has expired based on expiration_date
+            if ($job->expiration_date && Carbon::parse($job->expiration_date)->lt($now)) {
+                $shouldArchive = true;
+            }
+
+            // Check 2: If applicants_limit is set and reached
+            if ($job->applicants_limit && $job->applications()->count() >= $job->applicants_limit) {
+                $shouldArchive = true;
+            }
+
+            // Check 3: If vacancies filled >= vacancy
+            if ($job->vacancies_filled >= $job->vacancy) {
+                $shouldArchive = true;
+            }
+
+            // Optional Check 4: Older than 30 days
+            if ($job->created_at->lt($now->copy()->subDays(30))) {
+                $shouldArchive = true;
+            }
+
+            if ($shouldArchive) {
+                $job->delete(); // Soft delete
+                $archivedCount++;
+            }
         }
 
-        $this->info('Expired and full jobs have been archived.');
+        $this->info("Archived $archivedCount job(s).");
     }
 }

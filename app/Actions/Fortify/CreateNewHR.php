@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewHR implements CreatesNewUsers
@@ -18,30 +19,44 @@ class CreateNewHR implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-Validator::make($input, [
-        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-        'password' => $this->passwordRules(),
-        'company_hr_first_name' => ['required', 'string', 'max:255'],    // Update 04/04
-        'company_hr_last_name' => ['required', 'string', 'max:255'],    // Update 04/04
-        'gender' => ['required', 'string', 'in:Male,Female,Other'], // Update 04/04
-        'dob' => ['required', 'date'], // Update 04/04
-        'contact_number' => ['required', 'string', 'max:15', 'regex:/^[0-9]{10,15}$/'], // Update 04/04
-    ])->validate();
 
-    // Create the HR user
-    $user = User::create([
-        'email' => $input['email'],
-        'password' => Hash::make($input['password']),
-        'role' => 'hr',
-        'is_approved' => 1,
-        'company_hr_first_name' => $input['company_hr_first_name'], // Update 04/04
-        'company_hr_last_name' => $input['company_hr_last_name'], // Update 04/04
-        'gender' => $input['gender'], // Update 04/04
-        'dob' => $input['dob'], // Update 04/04
-        'contact_number' => $input['contact_number'], // Update 04/04
-    ]);
+        $currentUser = auth()->user(); // Logged-in company user
 
+        Validator::make($input, [
+                'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+                'password' => $this->passwordRules(),
+                'company_hr_first_name' => ['required', 'string', 'max:255'],    
+                'company_hr_last_name' => ['required', 'string', 'max:255'],    
+                'dob' => ['required', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')],
+                'gender' => ['required', 'string', 'in:Male,Female,Other'],
+                'contact_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
+            ])->validate();
 
+            // Create the HR user
+            $user = User::create([
+                'email' => $input['email'],
+                'password' => Hash::make($input['password']),
+                'role' => 'company',
+                'company_hr_first_name' => $input['company_hr_first_name'],
+                'company_hr_last_name' => $input['company_hr_last_name'], 
+                'gender' => $input['gender'],
+                'dob' => $input['dob'], 
+                'contact_number' => $input['contact_number'], 
+                'is_approved' => 1,
+                 'is_main_hr' => false,
+
+                  // Inherit from the current company user
+                'company_name' => $currentUser->company_name,
+                'company_street_address' => $currentUser->company_street_address,
+                'company_brgy' => $currentUser->company_brgy,
+                'company_city' => $currentUser->company_city,
+                'company_province' => $currentUser->company_province,
+                'company_zip_code' => $currentUser->company_zip_code,
+                'company_email' => $currentUser->company_email,
+                'company_contact_number' => $currentUser->company_contact_number,
+                'company_description' => $currentUser->company_description,
+                'company_sector' => $currentUser->company_sector,
+                ]);
 
         $user->assignRole('company');
         return $user;

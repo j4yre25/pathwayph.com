@@ -7,6 +7,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import { router } from '@inertiajs/vue3';
+import {inertia} from '@inertiajs/inertia';
+
 
 
 const props = defineProps({
@@ -23,6 +25,11 @@ const restoreJob = () => {
     onSuccess: () => {
       console.log('Job restored successfully!');
       showModal.value = false; // Close the modal after success
+      inertia.visit(route('jobs.index'), {
+        method: 'get',
+        preserveState: true,
+        preserveScroll: true,
+      });
     }
   });
 };

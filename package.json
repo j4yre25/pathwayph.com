@@ -24,10 +24,12 @@
         "@fortawesome/fontawesome-free": "^6.7.2",
         "@headlessui/vue": "^1.7.23",
         "@inertiajs/inertia-vue3": "^0.6.0",
+        "@vuepic/vue-datepicker": "^11.0.2",
         "chart.js": "^4.4.8",
         "dayjs": "^1.11.13",
         "lucide-vue-next": "^0.503.0",
         "vue-the-mask": "^0.11.1",
+        "vue3-apexcharts": "^1.8.0",
         "vue3-datepicker": "^0.4.0"
     }
 }

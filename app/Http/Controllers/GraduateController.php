@@ -116,42 +116,68 @@ class GraduateController extends Controller
     }
 
     public function batchUpload(Request $request)
-    {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt',
-        ]);
+{
+    $request->validate([
+        'csv_file' => 'required|file|mimes:csv,txt',
+    ]);
 
-        $file = $request->file('csv_file');
-        $csv = Reader::createFromPath($file->getRealPath(), 'r');
-        $csv->setHeaderOffset(0); // Use the first row as header
+    try {
+        // Store the uploaded file temporarily in storage/app/temp
+        $path = $request->file('csv_file')->storeAs('temp', uniqid() . '_' . $request->file('csv_file')->getClientOriginalName());
+
+        // Create CSV reader from stored file
+        $csv = Reader::createFromPath(storage_path('app/' . $path), 'r');
+        $csv->setHeaderOffset(0); // Use first row as headers
+
+        // Read records safely and log them
         $records = Statement::create()->process($csv);
+        $recordsArray = iterator_to_array($records); // clone iterator
+        Log::info('Batch upload CSV records:', $recordsArray);
 
-        foreach ($records as $record) {
+        foreach ($recordsArray as $index => $record) {
             try {
-                $program = Program::where('name', $record['Program'])->first();
-                $schoolYear = SchoolYear::where('school_year_range', $record['Year Graduated'])->first();
+                // Normalize and trim headers to avoid invisible space issues
+                $programName = trim($record['Program']);
+                $yearRange = trim($record['Year Graduated']);
+                $employmentStatus = trim($record['Employment Status']);
+                $currentJobTitle = isset($record['Current Job Title']) ? trim($record['Current Job Title']) : null;
+
+                $program = Program::where('name', $programName)->first();
+                $schoolYear = SchoolYear::where('school_year_range', $yearRange)->first();
 
                 if (!$program || !$schoolYear) {
-                    continue; // skip if invalid foreign key match
+                    Log::warning("Skipping row {$index}: Program or Year not found", [
+                        'program' => $programName,
+                        'year' => $yearRange,
+                    ]);
+                    continue;
                 }
 
                 Graduate::create([
-                    'first_name' => $record['First Name'],
-                    'middle_initial' => $record['Middle Initial'] ?? null,
-                    'last_name' => $record['Last Name'],
+                    'first_name' => trim($record['First Name']),
+                    'middle_initial' => trim($record['Middle Initial'] ?? ''),
+                    'last_name' => trim($record['Last Name']),
                     'program_id' => $program->id,
                     'school_year_id' => $schoolYear->id,
-                    'employment_status' => $record['Employment Status'],
-                    'current_job_title' => $record['Employment Status'] === 'Unemployed' ? 'N/A' : $record['Current Job Title'],
+                    'employment_status' => $employmentStatus,
+                    'current_job_title' => $employmentStatus === 'Unemployed' ? 'N/A' : $currentJobTitle,
                 ]);
             } catch (\Exception $e) {
-                Log::error('CSV row skipped due to error: ' . $e->getMessage());
+                Log::error("Error processing row {$index}: " . $e->getMessage(), ['row' => $record]);
                 continue;
             }
         }
 
+        // Clean up the uploaded file
+        Storage::delete($path);
+
         return redirect()->route('graduates.index')->with('success', 'Graduates uploaded successfully.');
+    } catch (\Exception $e) {
+        Log::critical('Batch upload failed: ' . $e->getMessage(), ['exception' => $e]);
+        return redirect()->back()->withErrors(['csv_file' => 'Batch upload failed. Please check the server logs for details.']);
     }
+}
+
 
 
     private function splitName(string $fullName): array

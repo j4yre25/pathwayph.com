@@ -22,8 +22,8 @@ console.log('User ID:', page.props);
 
 const form = useForm({
     job_title: '', 
-    location: '',
     vacancy: '',
+    location: 'PESO',
     min_salary: 5000,  
     max_salary: 100000, 
     job_type: '',
@@ -83,14 +83,14 @@ const createJob = () => {
     form.post(route('peso.jobs.store', { user: page.props.auth.user.id }), {
         onSuccess: () => {
             // form.reset();
-            router.visit(route('jobs', { user: page.props.auth.user.id }));
+            router.visit(route('peso.jobs', { user: page.props.auth.user.id }));
         },
         onError: (errors) => {
             console.log('Validation errors:', errors);
         }
     });
 
-    console.log('Route:', route('jobs.store', { user: page.props.auth.user.id }));
+    console.log('Route:', route('peso.jobs.store', { user: page.props.auth.user.id }));
 }   
 
 </script>
@@ -128,11 +128,7 @@ const createJob = () => {
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="col-span-1">
-                                <InputLabel for="location" value="Job Location" class="mb-2"/>
-                                <TextInput id="location" v-model="form.location" type="text" placeholder="Job Location" class="w-full p-2 border rounded-lg mt-1" required />
-                                <InputError :message="form.errors.location" class="mt-2" />
-                            </div>
+                     
 
                             <div class="mx-20 col-span-1">
                                 <InputLabel for="vacancy" value="No. of Vacancies" class="mb-2" />

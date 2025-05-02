@@ -6,6 +6,8 @@
     import { useForm } from '@inertiajs/vue3';
     import PrimaryButton from '@/Components/PrimaryButton.vue';
     import ActionMessage from '@/Components/ActionMessage.vue';
+    import { Inertia } from '@inertiajs/inertia';
+
 
 
     const props = defineProps({
@@ -19,7 +21,13 @@
 
     const submitForm = () => {
         form.put(route('sectors.update', {sector: props.sector.id}), {
-            preserveScroll: true
+            preserveScroll: true,
+
+            onSuccess: () => {
+            Inertia.visit(route('sectors.index'));
+            },
+
+            
         })
     }
 

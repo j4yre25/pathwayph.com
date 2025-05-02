@@ -29,12 +29,12 @@ const archiveCategory = () => {
     if (selectedCategory.value) {
         router.delete(route('categories.delete', { category: selectedCategory.value.id }));
         open.value = false;
-        selectedSector.value = null;
+        selectedCategory.value = null;
     }
 };
 
-const confirmArchive = (sector) => {
-    selectedSector.value = sector;
+const confirmArchive = (category) => {
+    selectedCategory.value = category;
     open.value = true;
 };
 
@@ -58,7 +58,6 @@ console.log('Categories:', props.categories);
         <table class="min-w-full bg-white border border-gray-200">
             <thead>
                 <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                    <th class="border border-gray-200 px-6 py-3 text-left">ID</th>
                     <th class="border border-gray-200 px-6 py-3 text-left">Name</th>
                     <th class="border border-gray-200 px-6 py-3 text-left">Actions</th>
                 </tr>
@@ -66,7 +65,6 @@ console.log('Categories:', props.categories);
             <tbody class="text-gray-600 text-sm font-light">
                 <tr v-for="category in filteredCategories" :key="category.id"
                     class="border-b border-gray-200 hover:bg-gray-100">
-                    <td class="border border-gray-200 px-6 py-4">{{ category.id }}</td>
                     <td class="border border-gray-200 px-6 py-4">{{ category.name }}</td>
                     <td class="border border-gray-200 px-6 py-4">
                         <Link :href="route('categories.edit', { category: category.id })">
@@ -88,7 +86,7 @@ console.log('Categories:', props.categories);
         </template>
 
         <template #content>
-            Are you sure you want to archive this sector #{{ selectedCategory?.id }} {{ selectedCategory?.name }}?
+            Are you sure you want to archive this category #{{ selectedCategory?.id }} {{ selectedCategory?.name }}?
         </template>
 
         <template #footer>

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use Illuminate\Routing\Controller;
 use App\Actions\Fortify\CreateNewHR;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +14,20 @@ class HRRegisterController extends Controller
      *
      * @return \Inertia\Response
      */
+
+     public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+
+            if (!($user->role === 'company' && $user->is_main_hr)) {
+                abort(403, 'Only main HR can register other HRs.');
+            }
+
+            return $next($request);
+        });
+    }
     public function showRegistrationForm()
     {
         return Inertia::render('Auth/HResourceRegister');

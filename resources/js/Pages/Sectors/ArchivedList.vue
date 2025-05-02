@@ -8,6 +8,8 @@ import DangerButton from '@/Components/DangerButton.vue';
 import { router } from '@inertiajs/vue3';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { ref, computed } from 'vue';
+import {inertia} from '@inertiajs/inertia';
+
 
 
 const page = usePage();
@@ -36,7 +38,12 @@ const restoreSector = () => {
     }), {}, {
         onSuccess: () => {
             console.log('Sector restored successfully!');
-            showModal.value = false; // Close the modal after success
+            showModal.value = false; 
+            inertia.visit(route('sectors.index'), {
+                method: 'get',
+                preserveState: true,
+                preserveScroll: true,
+            });
         }
     });
 };

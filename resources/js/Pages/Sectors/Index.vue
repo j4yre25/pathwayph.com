@@ -44,7 +44,7 @@ const createSector = () => {
 <template>
     <AppLayout title ="Sectors">
         <template #header>
-            Sectors ni sha
+            Sectors
         </template>
         
 

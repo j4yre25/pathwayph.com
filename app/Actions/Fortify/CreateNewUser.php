@@ -59,6 +59,8 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['company_hr_last_name'] = ['required', 'string', 'max:255'];
                 break;
             case 'institution':
+                $rules[ 'dob'] = ['nullable', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')];
+                $rules['gender'] = ['nullable', 'string', 'in:Male,Female,Other'];
                 $rules['institution_type'] = ['required', 'string'];
                 $rules['institution_name'] = ['required', 'string'];
                 $rules['institution_address'] = ['required', 'string'];

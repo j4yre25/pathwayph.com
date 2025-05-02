@@ -10,10 +10,11 @@ return new class extends Migration
     {
         Schema::create('degrees', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique(); // e.g., "Bachelor's Degree"
             $table->enum('type', ['Bachelor', 'Associate', 'Master', 'Doctoral', 'Diploma']);
             $table->timestamps();
             $table->softDeletes(); // Archiving support
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
         });
     }
 

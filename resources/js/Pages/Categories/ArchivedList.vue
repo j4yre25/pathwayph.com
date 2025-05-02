@@ -8,6 +8,8 @@ import DangerButton from '@/Components/DangerButton.vue';
 import { router } from '@inertiajs/vue3';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { ref, computed } from 'vue';
+import {Inertia} from '@inertiajs/inertia';
+
 
 
 const page = usePage();
@@ -29,14 +31,19 @@ const showModal = ref(false);
 const categoryToRestore = ref(null);
 
 
-const restoreSector = () => {
-    console.log(route('categoriess.restore', { category: categoryToRestore.value.id })); // Log the generated URL
+const restoreCategory = () => {
+    console.log(route('categories.restore', { category: categoryToRestore.value.id })); // Log the generated URL
     router.post(route('categories.restore', {
         category: categoryToRestore.value.id
     }), {}, {
         onSuccess: () => {
             console.log('Category restored successfully!');
             showModal.value = false; // Close the modal after success
+            Inertia.visit(route('categories.index'), {
+                method: 'get',
+                preserveState: true,
+                preserveScroll: true,
+            });
         }
     });
 };

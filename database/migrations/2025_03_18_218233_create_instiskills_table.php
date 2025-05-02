@@ -12,6 +12,8 @@ return new class extends Migration {
             $table->string('name')->unique();
             $table->timestamps();
             $table->softDeletes();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
         });
 
         Schema::create('program_skill', function (Blueprint $table) {

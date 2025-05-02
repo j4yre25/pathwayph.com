@@ -14,21 +14,20 @@ use Illuminate\Support\Facades\Gate;
 
 class PesoJobsController extends Controller
 {
-    public function index(User $user) {
-
-
-        $jobs = Job::with('user', 'sector', 'category')->get();
+    public function index(User $user)
+    {
+        $jobs = Job::with('user', 'sector', 'category')
+            ->orderBy('created_at', 'desc') // Sort by created_at in descending order
+            ->paginate(10); // Paginate the results
+    
         $sectors = Sector::all();
         $categories = Category::all();
     
-
         return Inertia::render('Admin/Jobs/Index/Index', [
             'jobs' => $jobs,
             'sectors' => $sectors,
             'categories' => $categories,
         ]);
-
-        
     }
 
 
@@ -44,20 +43,20 @@ class PesoJobsController extends Controller
 
     public function archivedlist(User $user)
     {
+        $all_jobs = Job::onlyTrashed()
+        ->with('user')
+        ->orderBy('created_at', 'desc') 
+        ->paginate(10); 
 
-
-        $all_jobs = Job::with('user')->onlyTrashed()->get();
-
-        return Inertia::render('Admin/Jobs/Index/ArchivedList', [
-            'all_jobs' => $all_jobs
-
-
-        ]);
+    return Inertia::render('Admin/Jobs/Index/ArchivedList', [
+        'all_jobs' => $all_jobs, 
+    ]);
     }
 
     public function manage(User $user) {
-        // Fetch jobs posted by the authenticated user
-        $jobs = Job::with('user')->get();
+        $jobs = Job::with('user')
+            ->orderBy('created_at', 'desc') // Sort by created_at in descending order
+            ->paginate(10); // Paginate the results
         return Inertia::render('Admin/Jobs/Index/ManageJobs', [
             'jobs' => $jobs
         ]);
@@ -74,10 +73,9 @@ class PesoJobsController extends Controller
                 'max:255',
                 Rule::unique('jobs')->where(function ($query) use ($user, $request) {
                     return $query->where('user_id', $user->id)
-                                 ->where('location', $request->location);
+                                 ->where('location', 'PESO');
                 }),
             ],
-            'location' => 'required|string|max:255',
             'vacancy' => 'required|integer',
             'min_salary' => 'required|integer',
             'max_salary' => 'required|integer',
@@ -93,7 +91,7 @@ class PesoJobsController extends Controller
         $new_job = new Job();
         $new_job->user_id = $user->id;
         $new_job->job_title = $validated['job_title'];
-        $new_job->location = $validated['location'];
+        $new_job->location = 'PESO'; 
         $new_job->min_salary = $validated['min_salary'];
         $new_job->max_salary = $validated['max_salary'];
         $new_job->job_type = $validated['job_type'];
@@ -174,6 +172,6 @@ class PesoJobsController extends Controller
 
         $job->restore();
 
-        return redirect()->back()->with('flash.banner', 'Job restored successfully.');
+        return redirect()->route('peso.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job restored successfully.');
     }
 }

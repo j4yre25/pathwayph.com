@@ -3,57 +3,112 @@
 namespace App\Http\Controllers;
 
 use App\Models\Degree;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class DegreeController extends Controller
 {
-    public function index(Request $request)
+    public function index(User $user)
     {
-        $filter = $request->query('status', 'active');
+        $degrees = $user->degrees;
 
-        $query = Degree::query();
-        if ($filter === 'inactive') {
-            $query->onlyTrashed();
-        }
-
-        $degrees = $query->orderBy('name')->get();
-
-        return Inertia::render('Institutions/Degrees', [
-            'degrees' => $degrees,
-            'filter' => $filter,
+        return Inertia::render('Institutions/Degrees/Index', [
+            'degrees' => $degrees
         ]);
     }
 
-    public function store(Request $request)
+    public function list(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:degrees,name',
-            'type' => 'required|in:Bachelor,Associate,Master,Doctoral,Diploma',
+        $status = $request->input('status', 'all');
+
+        $degrees = Degree::with('user')->withTrashed()
+        ->when($status === 'active', fn($query) => $query->whereNull('deleted_at'))
+        ->when($status === 'inactive', fn($query) => $query->whereNotNull('deleted_at'))
+        ->get();
+
+        return Inertia::render('Institutions/Degrees/List', [
+            'degrees' => $degrees,
+            'status' => $status,
+        ]);
+    }
+
+    public function archivedList()
+    {
+        $all_degrees = Degree::with('user')->onlyTrashed()->get();
+
+        return Inertia::render('Institutions/Degrees/ArchivedList', [
+            'all_degrees' => $all_degrees
+        ]);
+    }
+
+    public function create(User $user)
+    {
+        return Inertia::render('Institutions/Degrees/Create');
+    }
+
+    public function store(Request $request, User $user)
+    {
+        $request->validate([
+            'type' => ['required', 'in:Bachelor,Associate,Master,Doctoral,Diploma'],
         ]);
 
-        Degree::create($validated);
+        $exists = Degree::withTrashed()
+            ->where('user_id', $user->id)
+            ->where('type', $request->type)
+            ->exists();
 
-        return redirect()->route('degrees.index')->with('success', 'Degree added successfully.');
+        if ($exists) {
+            return back()->withErrors(['flash.banner' => 'This degree type already exists.']);
+        }
+
+        Degree::create([
+            'type' => $request->type,
+            'user_id' => $user->id,
+        ]);
+
+        return redirect()->back()->with('flash.banner', 'Degree added.');
+    }
+
+    public function edit(Degree $degree)
+    {
+        return Inertia::render('Institutions/Degrees/Edit', [
+            'degree' => $degree
+        ]);
     }
 
     public function update(Request $request, Degree $degree)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:degrees,name,' . $degree->id,
-            'type' => 'required|in:Bachelor,Associate,Master,Doctoral,Diploma',
+
+        $request->validate([
+            'type' => ['required', 'in:Bachelor,Associate,Master,Doctoral,Diploma'],
         ]);
 
-        $degree->update($validated);
+        $exists = Degree::withTrashed()
+            ->where('user_id', $degree->user_id)
+            ->where('type', $request->type)
+            ->where('id', '!=', $degree->id)
+            ->exists();
 
-        return redirect()->route('degrees.index')->with('success', 'Degree updated successfully.');
+        if ($exists) {
+            return back()->withErrors(['flash.banner' => 'This degree type already exists.']);
+        }
+
+        $degree->update([
+            'type' => $request->type
+        ]);
+
+        return redirect()->back()->with('flash.banner', 'Degree updated.');
     }
 
-    public function destroy(Degree $degree)
+    public function delete(Request $request, Degree $degree)
     {
         $degree->delete();
 
-        return redirect()->route('degrees.index')->with('success', 'Degree archived successfully.');
+    return redirect()->route('degrees', ['user' => $degree->user_id])
+        ->with('flash.banner', 'Degree archived.');
     }
 
     public function restore($id)
@@ -61,6 +116,6 @@ class DegreeController extends Controller
         $degree = Degree::withTrashed()->findOrFail($id);
         $degree->restore();
 
-        return redirect()->route('degrees.index')->with('success', 'Degree restored successfully.');
+        return redirect()->back()->with('flash.banner', 'Degree restored.');
     }
 }

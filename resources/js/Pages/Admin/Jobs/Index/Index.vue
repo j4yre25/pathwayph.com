@@ -34,7 +34,7 @@ const filteredJobs = computed(() => {
     console.log('Selected Sector:', selectedSector.value);
     console.log('Selected Category:', selectedCategory.value);
 
-    return props.jobs.filter(job => {
+    return props.jobs.data.filter(job => {
         const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
         const matchesSector = selectedSector.value
             ? job.sector_id === parseInt(selectedSector.value)
@@ -136,7 +136,7 @@ console.log(route('peso.jobs.manage', { user: page.props.auth.user.id }));
 
 
             <div class="mt-8">
-                <MyJobs :jobs="filteredJobs" />
+                <MyJobs :jobs="{ data: filteredJobs, links: props.jobs.links, prev_page_url: props.jobs.prev_page_url, next_page_url: props.jobs.next_page_url }" />
             </div>
 
 

@@ -14,6 +14,8 @@ return new class extends Migration
             $table->text('description')->nullable(); // Description (optional)
             $table->foreignId('program_id')->constrained()->onDelete('cascade'); // Foreign key to programs
             $table->timestamps(); // Created at and updated at timestamps
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+
         });
     }
 

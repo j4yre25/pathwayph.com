@@ -10,7 +10,7 @@ import { router } from '@inertiajs/vue3';
 
 
 const props = defineProps({
-  all_jobs: Array
+  all_jobs: Object
 });
 
 
@@ -23,6 +23,11 @@ const restoreJob = () => {
     onSuccess: () => {
       console.log('Job restored successfully!');
       showModal.value = false; // Close the modal after success
+      inertia.visit(route('peso.jobs', { user: page.props.auth.user.id }), {
+        method: 'get',
+        preserveState: true,
+        preserveScroll: true,
+      });
     }
   });
 };
@@ -37,6 +42,12 @@ const confirmRestore = (job) => {
 
 const showModal = ref(false);
 const jobToRestore = ref(null);
+
+const goTo = (url) => {
+  if (url) {
+    router.get(url);
+  }
+};
 
 </script>
 
@@ -64,12 +75,12 @@ const jobToRestore = ref(null);
             </tr>
           </thead>
           <tbody class="text-gray-600 text-sm font-light">
-            <tr v-for="job in all_jobs" :key="job.id" class="border-b border-gray-200 hover:bg-gray-100">
+            <tr v-for="job in all_jobs.data" :key="job.id" class="border-b border-gray-200 hover:bg-gray-100">
               <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
               <td class="border border-gray-200 px-6 py-4">{{ job.job_type }}</td>
               <td class="border border-gray-200 px-6 py-4">{{ job.experience_level }}</td>
               <td class="border border-gray-200 px-6 py-4">
-              <span class="text-red-600 font-semibold">Archived</span>
+                <span class="text-red-600 font-semibold">Archived</span>
               </td>
               <td class="border border-gray-200 px-6 py-4">
                 <DangerButton class="mr-2" @click="confirmRestore(job)">Restore Job
@@ -80,6 +91,24 @@ const jobToRestore = ref(null);
           </tbody>
         </table>
       </div>
+
+      <div class="mt-4">
+        <nav v-if="all_jobs.links.length > 1" aria-label="Page navigation">
+          <ul class="inline-flex -space-x-px text-sm">
+            <li v-for="link in all_jobs.links" :key="link.url" :class="{ 'active': link.active }">
+              <a v-if="link.url" @click.prevent="goTo(link.url)"
+                :class="link.active ? 'flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700' : 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700'">
+                <span v-html="link.label"></span>
+              </a>
+              <span v-else
+                class="flex items-center justify-center px-3 h-8 leading-tight text-gray-400 bg-gray-200 border border-gray-300">
+                <span v-html="link.label"></span>
+              </span>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      
       <ConfirmationModal :show="showModal" @close="showModal = false" @confirm="restoreJob">
         <template #title>
           Confirm Deletion

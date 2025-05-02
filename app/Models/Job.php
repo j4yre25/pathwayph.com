@@ -35,12 +35,10 @@ class Job extends Model
         'description',
         'min_salary',
         'max_salary',
-        'salary_frequency',
         'work_type',
         'sector',
         'sector_category',
         'posted_at',
-        'application_deadline',
         'status',
         'user_id',
         'job_title',
@@ -54,7 +52,15 @@ class Job extends Model
         'sector',
         'category',
         'requirements',
+        'job_benefits',
+        'posted_by',
+        'branch_location',
+        'salary_type',
         'status',
+        'expiration_date',
+        'applicants_limit',
+
+        'work_type',
     ];
 
     /**
@@ -151,5 +157,25 @@ class Job extends Model
     {
         return $this->hasMany(JobInvitation::class);
     }
+
+    public function isExpired()
+    {
+        return $this->expiration_date && $this->expiration_date < now();
+    }
+
+    public function hasApplicationLimitReached()
+    {
+        if (!$this->applicants_limit) {
+            return false;
+        }
+
+        return $this->applicants()->count() >= $this->applicants_limit;
+    }
+
+    public function shouldBeArchived()
+    {
+        return $this->isExpired() || $this->hasApplicationLimitReached();
+    }
+
 
 }

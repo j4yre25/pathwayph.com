@@ -94,7 +94,7 @@ class SectorController extends Controller
     }
 
     public function update(Request $request, Sector $sector){
-        Gate::authorize('update', $sector);
+        // Gate::authorize('update', $sector);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:99'],
 
@@ -119,13 +119,15 @@ class SectorController extends Controller
         
     }
 
-    public function restore($sector)
+    public function restore(Request $request, $sector)
     {
         $sector = Sector::withTrashed()->findOrFail($sector);
 
         $sector->restore();
+        $user_id = $request->user()->id;
 
-        return redirect()->back()->with('flash.banner', 'Sector restored successfully.');
+
+        return redirect()->route('sectors',  ['user' => $user_id])->with('flash.banner', 'Sector restored successfully.');
     }
     
 }

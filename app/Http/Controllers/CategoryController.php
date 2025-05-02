@@ -109,7 +109,6 @@ class CategoryController extends Controller
     }
 
     public function update(Request $request, Category $category) {
-        Gate::authorize('update', $category);
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
