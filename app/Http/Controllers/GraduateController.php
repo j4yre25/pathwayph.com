@@ -6,9 +6,10 @@ use App\Models\Graduate;
 use App\Models\Program;
 use App\Models\SchoolYear;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB; // Added this
-use Illuminate\Support\Facades\Auth; // Optional, if needed for auth()
+use App\Actions\Fortify\CreateNewGraduate;
+use Illuminate\Support\Facades\Auth;
 
 class GraduateController extends Controller
 {
@@ -47,6 +48,25 @@ class GraduateController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        return Inertia::render('Auth/GraduateCreate', [
+            'programs' => Program::where('institution_id', Auth::user()->id)->get(),
+            'schoolYears' => SchoolYear::where('institution_id', Auth::user()->id)->get(),
+            'institutions' => DB::table('users')
+                ->where('role', 'institution')
+                ->where('id', Auth::user()->id)
+                ->get(['id', 'institution_name']),
+        ]);
+    }
+
+    public function store(Request $request, CreateNewGraduate $creator)
+    {
+        $creator->create($request->all());
+
+        return redirect()->route('graduates.index')->with('flash.banner', 'Graduate created successfully with auto-generated credentials.');
+    }
+
     public function update(Request $request, Graduate $graduate)
     {
         $validated = $request->validate([
@@ -59,7 +79,6 @@ class GraduateController extends Controller
             'current_job_title' => 'nullable|string|max:255',
         ]);
 
-        // Convert the raw school year range to its corresponding ID.
         $schoolYearId = DB::table('school_years')
             ->where('school_year_range', $validated['graduate_year_graduated'])
             ->value('id');
@@ -68,8 +87,7 @@ class GraduateController extends Controller
             $validated['current_job_title'] = 'N/A';
         }
 
-        // Prepare update data with the mapped school_year_id.
-        $updateData = [
+        $graduate->update([
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'middle_initial' => $validated['middle_initial'],
@@ -77,18 +95,14 @@ class GraduateController extends Controller
             'school_year_id' => $schoolYearId,
             'employment_status' => $validated['employment_status'],
             'current_job_title' => $validated['current_job_title'],
-        ];
-
-        $graduate->update($updateData);
+        ]);
 
         return redirect()->back()->with('flash.banner', 'Graduate updated successfully.');
     }
-
 
     public function destroy(Graduate $graduate)
     {
         $graduate->delete();
         return redirect()->back()->with('flash.banner', 'Graduate archived successfully.');
     }
-    
 }

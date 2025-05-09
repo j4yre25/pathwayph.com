@@ -2,32 +2,40 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
 import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
+import Checkbox from '@/Components/Checkbox.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { ref, computed } from 'vue';
+import LoginCard from '@/Components/LoginCard.vue';
+import { computed, ref } from 'vue';
+import Modal from '@/Components/Modal.vue';
+import { Inertia } from '@inertiajs/inertia';
 
 
-const isPasswordFocused = ref(false);
+const showModal = ref(false);
 
 // Define the form with additional fields for user types
 const form = useForm({
     institution_career_officer_first_name: '',
     institution_career_officer_last_name: '',
+    gender: '',
+    dob: '',
+    contact_number: '',
     email: '',
     password: '',
     password_confirmation: '',
-    role: 'institution_career_officer',
+    role: 'institution',
     terms: false,
+    is_approved: true,
 });
 
-// Track the selected user type
+console.log(form.role);
+
 
 const formattedContactNumber = computed({
     get: () => {
         let rawNumber = form.contact_number.replace(/\D/g, ""); // Remove non-numeric characters
-
 
         // Ensure only the first 10 digits are considered
         if (rawNumber.length > 10) {
@@ -58,7 +66,6 @@ const formattedContactNumber = computed({
     },
 });
 
-
 // Update 04/04
 const passwordCriteria = computed(() => {
     const password = form.password;
@@ -67,25 +74,35 @@ const passwordCriteria = computed(() => {
         uppercaseLowercase: /[a-z]/.test(password) && /[A-Z]/.test(password), // Upper & lower case
         letter: /[a-zA-Z]/.test(password), // At least one letter
         number: /\d/.test(password), // At least one number
-        symbol: /[@$!%*?&.]/.test(password), // At least one special character
+        symbol: /[~!@#$%^&*()-=+_/>.,<;'']/.test(password), // At least one special character
     };
 });
 
 
 // Handle form submission
 const submit = () => {
-    form.post(route('hr.register'), {
+
+    console.log('Form Data:', form);
+
+    form.post(route('careerofficer.submit'), {
         onFinish: () => {
             console.log("Form submission finished");
-            console.log(form.errors);
+            console.log(form.errors); // Log validation errors
             form.reset('password', 'password_confirmation');
         },
         onSuccess: () => {
-            Inertia.visit(route('dashboard'));
+            showModal.value = true;
+            console.log("showModal:", showModal.value);
+
+
         },
     });
 };
 
+
+const redirectTodDashboard = () => {
+    Inertia.visit(route('dashboard')); // Redirect to dashboard after successful registration
+};
 
 </script>
 
@@ -101,40 +118,67 @@ const submit = () => {
         <template #registerForm>
             <form @submit.prevent="submit">
                 <div class="grid grid-cols-3 mt-8 pt-5">
-                    <!-- Career Officer Information -->
                     <div class=" col-span-1">
-                        <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
+                        <h2 class="text-lg font-semibold text-gray-900">Career Officer Registration</h2>
                         <p class="text-sm text-gray-600"></p>
 
 
                     </div>
 
                     <div class="col-span-2">
+                        <!-- Career Officer First Name -->
+                        <div class="flex items-center gap-1">
+                            <InputLabel for="institution_career_officer_first_name" value="First Name" />
+                            <span class="text-red-500">*</span>
+                        </div>
+                        <div>
+                            <TextInput id="institution_career_officer_first_name" v-model="form.institution_career_officer_first_name" type="text"
+                                class="mt-1 mb-4 block w-full" required />
+                            <InputError class="mt-2" :message="form.errors.institution_career_officer_first_name" />
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <InputLabel for="institution_career_officer_last_name" value="Last Name" />
+                            <span class="text-red-500">*</span>
+                        </div>
+                        <div>
+                            <TextInput id="institution_career_officer_last_name" v-model="form.institution_career_officer_last_name" type="text"
+                                class="mt-1 mb-4 block w-full" required />
+                            <InputError class="mt-2" :message="form.errors_institution_career_officer_last_name" />
+                        </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                               <div> <!-- First Name -->
-                                    <div class="flex items-center gap-1">
-                                        <InputLabel for="institution_career_officer_first_name" value= "First Name" />
-                                        <span class="text-red-500">*</span>
-                                    </div>
-                                    <div>
-                                        <TextInput id="institution_career_officer_first_namee" v-model="form.institution_career_officer_first_name" type="text" class="mt-1 mb-4 block w-full" required />
-                                        <InputError class="mt-2" :message="form.errors.institution_career_officer_first_name" />
-                                    </div>
-                               </div>
-                               <div> <!-- Last Name -->
-                                    <div class="flex items-center gap-1">
-                                        <InputLabel for="institution_career_officer_last_name" value= "Last Name" />
-                                        <span class="text-red-500">*</span>
-                                    </div>
-                                    <div>
-                                        <TextInput id="institution_career_officer_last_name" v-model="form.institution_career_officer_last_name" type="text" class="mt-1 mb-4 block w-full" required />
-                                        <InputError class="mt-2" :message="form.errors.institution_career_officer_last_name" />
-                                    </div>
-                               </div>
+                            <!-- Gender -->
+                            <div>
+                                <div class="flex items-center gap-1">
+                                    <InputLabel for="gender" value="Gender" />
+                                    <span class="text-red-500">*</span>
+                                </div>
+                                <div>
+                                    <select id="gender" v-model="form.gender"
+                                        class="mt-1 mb-4 block w-full" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <InputError class="" :message="form.errors.gender" />
+                                </div>
                             </div>
+                            <!-- Date of Birth -->
+                            <div>
+                                <div class="flex items-center gap-1">
+                                    <InputLabel for="dob" value="Date of Birth" />
+                                    <span class="text-red-500">*</span>
+                                </div>
+                                <div>
+                                    <TextInput id="dob" v-model="form.dob" type="date"
+                                        class="mt-1 mb-4 block w-full" required />
+                                    <InputError class="mt-2" :message="form.errors.dob" />
+                                </div>
+                            </div>
+                        </div>
 
-                        <!-- Officer Email -->
+                        <!-- Career Officer Email -->
                         <div>
                             <div class="flex items-center gap-1">
                                 <InputLabel for="email" value="Email Address" />
@@ -146,7 +190,21 @@ const submit = () => {
                                 <InputError class="mt-2" :message="form.errors.email" />
                             </div>
                         </div>
-                        
+
+                        <!-- Contact Number -->
+                        <div>
+                            <div class="flex items-center gap-1">
+                                <InputLabel for="contact_number" value="Contact Number" />
+                                <span class="text-red-500">*</span>
+                            </div>
+                            <div>
+                                <TextInput id="contact_number" v-model="formattedContactNumber" type="text"
+                                    class="mt-1 mb-4 block w-full" required />
+                                <InputError class="mt-2" :message="form.errors.contact_number" />
+                            </div>
+                        </div>
+
+
                         <!-- Set Password -->
                         <h3 class="mt-6 mb-2 font-semibold">Set Password</h3>
 
@@ -156,23 +214,15 @@ const submit = () => {
                                 <span class="text-red-500">*</span>
                             </div>
                             <div class="mb-2">
-
-                                <TextInput 
-                                    id="password" 
-                                    v-model="form.password" 
-                                    type="password" 
-                                    class="mt-1 block w-full" 
-                                    required
-                                    @focus="isPasswordFocused = true"
-                                    @blur="isPasswordFocused = false" />
+                                <TextInput id="password" v-model="form.password" type="password"
+                                    class="mt-1 block w-full" required />
                                 <InputError class="mt-1" :message="form.errors.password" />
                             </div>
 
                             <!-- Password validation tooltip UPDATE 04/04-->
-
-                            <div v-if="isPasswordFocused && form.password" class="mt-2 p-3 bg-gray-800 text-white rounded-md w-64 text-sm shadow-lg">
-
-                                <p class="font-semibold text-gray-200">Password must meet the following:</p>
+                            <div v-if="form.password"
+                                class="mt-2 p-3 bg-white-800 text-black rounded-md w-64 text-sm shadow-lg">
+                                <p class="font-semibold text-black-200">Password must meet the following:</p>
                                 <ul class="mt-1">
                                     <li :class="passwordCriteria.length ? 'text-green-400' : 'text-red-400'">
                                         ✔ Minimum 8 characters
@@ -185,7 +235,7 @@ const submit = () => {
                                         ✔ At least one number
                                     </li>
                                     <li :class="passwordCriteria.symbol ? 'text-green-400' : 'text-red-400'">
-                                        ✔ At least one special character (@$!%*?&.)
+                                        ✔ At least one special character (@$!%*?&)
                                     </li>
                                 </ul>
                             </div>
@@ -203,12 +253,33 @@ const submit = () => {
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center justify-end mt-8">
-                    <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                        Register
-                    </PrimaryButton>
-                </div>
+                <div class="flex items-center justify-end mt-8 border-t border-gray-200 pt-12">
+              
+              <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                  Register
+              </PrimaryButton>
+          </div>
             </form>
         </template>
     </AuthenticationCard>
+
+
+
+    <Modal v-if="showModal" :show="showModal" @close="redirectTodDashboard">
+        <template #default>
+            <div class="text-center">
+                <h2 class="text-lg font-semibold">Registration Successful</h2>
+
+                <p class="mt-2 text-gray-600">You have registered successfully.</p>
+                <button
+                    class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                    @click="redirectToLogin"
+                    >
+                    Okay
+                </button>
+            </div>
+        </template>
+    </Modal>
+
+
 </template>
