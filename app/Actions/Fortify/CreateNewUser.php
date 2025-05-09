@@ -89,7 +89,7 @@ class CreateNewUser implements CreatesNewUsers
             'gender.required' => 'The gender field is required.',
             'gender.in' => 'The selected gender is invalid.',
             'contact_number.required' => 'The contact number field is required.',
-            'contact_number.digits_between' => 'The contact number must be between 10 and 15 digits.',
+            'contact_number.digits_between' =>  'The contact number must be in valid format (e.g., +63 912 345 6789).',
             'contact_number.regex' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
             'telephone_number.regex' => 'The telephone number must be in valid format (e.g., (02) 123 4567 or (032) 123 1234).',
             'graduate_first_name.required' => 'The first name field is required.',
