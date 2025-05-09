@@ -8,19 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('school_years', function (Blueprint $table) {
+        Schema::create('degrees', function (Blueprint $table) {
             $table->id();
-            $table->string('school_year_range');
-            $table->integer('term'); 
-            $table->softDeletes();         
+            $table->enum('type', ['Bachelor', 'Associate', 'Master', 'Doctoral', 'Diploma']);
             $table->timestamps();
+            $table->softDeletes(); // Archiving support
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('institution_id')->constrained('users')->onDelete('cascade');
 
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('school_years');
+        Schema::dropIfExists('degrees');
     }
 };
+

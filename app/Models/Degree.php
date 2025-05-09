@@ -17,5 +17,5 @@ class Degree extends Model
         return $this->hasMany(Program::class);
     }
 
-    protected $fillable = ['user_id', 'type'];
+    protected $fillable = ['user_id', 'type','institution_id'];
 }

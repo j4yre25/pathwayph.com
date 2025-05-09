@@ -13,48 +13,23 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Fortify\Contracts\RegisterResponse;
 use Laravel\Fortify\Contracts\RegisterViewResponse;
 use Laravel\Fortify\Fortify;
-
 use App\Models\User; // Make sure to import your User model
 use Inertia\Inertia;
 
-class  CustomRegisteredUserController extends Controller
+class CustomRegisteredUserController extends Controller
 {
-    /**
-     * The guard implementation.
-     *
-     * @var \Illuminate\Contracts\Auth\StatefulGuard
-     */
     protected $guard;
 
-    /**
-     * Create a new controller instance.
-     *
-     * @param  \Illuminate\Contracts\Auth\StatefulGuard  $guard
-     * @return void
-     */
     public function __construct(StatefulGuard $guard)
     {
         $this->guard = $guard;
     }
 
-    /**
-     * Show the registration view.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Laravel\Fortify\Contracts\RegisterViewResponse
-     */
     public function create(Request $request): RegisterViewResponse
     {
         return app(RegisterViewResponse::class);
     }
 
-    /**
-     * Create a new registered user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Laravel\Fortify\Contracts\CreatesNewUsers  $creator
-     * @return \Laravel\Fortify\Contracts\RegisterResponse
-     */
     public function store(Request $request, CreatesNewUsers $creator)
     {
         if (config('fortify.lowercase_usernames') && $request->has(Fortify::username())) {
@@ -63,28 +38,16 @@ class  CustomRegisteredUserController extends Controller
             ]);
         }
 
-        // Determine the role based on the route or request
         $role = $this->determineRole($request);
-
-        // Pass the role to the creator
         $user = $creator->create(array_merge($request->all(), ['role' => $role]));
 
         event(new Registered($user));
 
-        // $this->guard->login($user, $request->boolean('remember'));
+        return redirect()->back()->with('flash.banner', 'Registered Successfully!');
+    }
 
-        redirect()->back()->with('flash.banner', 'Registered Successfully!');
-        }
-
-    /**
-     * Determine the role based on the route or request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return string
-     */
     protected function determineRole(Request $request): string
     {
-
         if ($request->is('register/graduate')) {
             return 'graduate';
         } elseif ($request->is('register/company')) {
@@ -97,20 +60,20 @@ class  CustomRegisteredUserController extends Controller
     }
 
     public function showGraduateDetails()
-    {
-        $insti_users = User::where('role', 'institution')->get(['id', 'institution_name']);
-        $school_year = SchoolYear::all();
-        $programs = Program::all();
-        
-        return Inertia::render('Auth/Register', [
-            'insti_users' => $insti_users,
-            'school_year' => $school_year,
-            'programs' => $programs,
-        ]);
-    }
-   
+{
+    $insti_users = User::where('role', 'institution')->get(['id', 'institution_name']);
+    
+    // Retrieve programs per institution instead of globally
+    $programs = Program::whereIn('institution_id', $insti_users->pluck('id'))->get();
 
+    // Retrieve school years per institution instead of globally
+    $school_years = SchoolYear::whereIn('institution_id', $insti_users->pluck('id'))->get();
 
-
+    return Inertia::render('Auth/Register', [
+        'insti_users' => $insti_users,
+        'programs' => $programs,
+        'school_years' => $school_years
+    ]);
 }
 
+}

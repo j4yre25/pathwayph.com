@@ -4,6 +4,7 @@ use App\Http\Controllers\ManageGraduatesController;
 use App\Http\Controllers\PesoJobsController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ManageUsersController;
+use App\Http\Controllers\ManageHRController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -14,8 +15,6 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SectorController;
-use App\Http\Controllers\HRRegisterController;
-use App\Http\Controllers\ManageHRController;
 use App\Http\Controllers\GraduateController;
 use App\Http\Controllers\GraduateRegisterController;
 use App\Http\Controllers\InstitutionController;
@@ -24,14 +23,19 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\CareerOpportunityController;
 use App\Http\Controllers\ManageGraduatesApprovalController;
 use App\Http\Controllers\BatchUploadController;
-use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
 use App\Http\Controllers\InstiSkillController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\JobSearchController;
+use App\Http\Controllers\CreateNewGraduateController;
+
+// Company 
+use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\HRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
+use App\Http\Controllers\CompanyManageHRController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -77,44 +81,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/peso/register', [AdminRegisterController::class, 'register'])->name('admin.register.submit');
 });
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/hr/register', [HRRegisterController::class, 'showRegistrationForm'])->name('hr.register');
-    Route::post('/hr/register', [HRRegisterController::class, 'register'])->name('hr.register.submit');
-});
-
-
-
-
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage approval graduate'])->group(function () {
-        Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
-
-        // Show the form for creating a new graduate
-        Route::get('/graduates/create', [GraduateController::class, 'create'])->name('graduates.create');
-
-        // Store a new graduate
-        Route::post('/graduates', [GraduateController::class, 'store'])->name('graduates.store');
-
-        // Show a specific graduate
-        Route::get('/graduates/{graduate}', [GraduateController::class, 'show'])->name('graduates.show');
-
-        // Show the form for editing a specific graduate
-        Route::get('/graduates/{graduate}/edit', [GraduateController::class, 'edit'])->name('graduates.edit');
-
-        // Update a specific graduate
-        Route::patch('/graduates/{graduate}', [GraduateController::class, 'update'])->name('graduates.update');
-
-        // Delete a specific graduate
-        Route::delete('/graduates/{graduate}', [GraduateController::class, 'destroy'])->name('graduates.destroy');
-    });
-
-});
 
 
 // Admin Routes
@@ -226,23 +197,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 // Manage HR Accounts 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    // View all HR accounts
-    Route::get('/hr-accounts', [ManageHRController::class, 'index'])->name('hr-accounts.index');
-
-    // Create a new HR account
-    Route::post('/hr-accounts', [ManageHRController::class, 'store'])->name('hr-accounts.store');
-
-    // View details of a specific HR account
-    Route::get('/hr-accounts/{hrAccount}', [ManageHRController::class, 'show'])->name('hr-accounts.show');
-
-    // Update an HR account
-    Route::put('/hr-accounts/{hrAccount}', [ManageHRController::class, 'update'])->name('hr-accounts.update');
-
-    // Delete an HR account
-    Route::delete('/hr-accounts/{hrAccount}', [ManageHRController::class, 'delete'])->name('hr-accounts.delete');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/company/manage-hrs', [CompanyManageHRController::class, 'index'])->name('company.manage-hrs');
+    Route::get('/company/manage-hrs/{id}/edit', [CompanyManageHRController::class, 'edit'])->name('company.manage-hrs.edit');
+    Route::put('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'update'])->name('company.manage-hrs.update');
+    Route::delete('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'destroy'])->name('company.manage-hrs.destroy');
 });
-
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
@@ -408,32 +368,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage approval graduate'])->group(function () {
 
-        // Graduate Routes
-        Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
-        Route::post('/graduates', [GraduateController::class, 'store'])->name('graduates.store');
-        Route::patch('/graduates/{graduate}', [GraduateController::class, 'update'])->name('graduates.update');
-        Route::delete('/graduates/{graduate}', [GraduateController::class, 'destroy'])->name('graduates.destroy');
-        Route::post('/graduates/restore/{id}', [GraduateController::class, 'restore'])->name('graduates.restore');
-        Route::post('/graduate/batch-upload', [GraduateController::class, 'batchUpload'])->name('graduates.batch-upload');
-        Route::get('/graduate/download-template', [GraduateController::class, 'downloadTemplate'])->name('graduates.template');
-    });
 
-    
-
-    // Manage Graduates Approval Routes
-
-    Route::get('/manage-users', [ManageGraduatesApprovalController::class, 'index'])
-        ->middleware('can:manage approval graduate')
-        ->name('institution.manage_users');
-    Route::post('/manage-users/{user}/approve', [ManageGraduatesApprovalController::class, 'approve'])
-        ->middleware('can:manage approval graduate')
-        ->name('institution.manage_users.approve');
-});
-
-//School Year Routes
+ //School Year Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/institutions/school-years/{user}', [SchoolYearController::class, 'index'])->name('school-years');
     Route::get('/institutions/school-years/{user}/list', [SchoolYearController::class, 'list'])->name('school-years.list');
@@ -474,6 +411,32 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/programs/edit/{program}', [ProgramController::class, 'restore'])->name('programs.restore');
 });
 
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
+    Route::get('/graduates/manage', [ManageGraduatesApprovalController::class, 'index'])->name('graduates.manage');
+    Route::get('/graduates/list', [ManageGraduatesApprovalController::class, 'list'])->name('graduates.list');
+    Route::get('/graduates/archived', [ManageGraduatesApprovalController::class, 'archivedList'])->name('graduates.archived');
+    Route::put('/graduates/approve/{user}', [ManageGraduatesApprovalController::class, 'approve'])->name('graduates.approve');
+    Route::put('/graduates/disapprove/{user}', [ManageGraduatesApprovalController::class, 'disapprove'])->name('graduates.disapprove');
+    Route::delete('/graduates/archive/{user}', [ManageGraduatesApprovalController::class, 'archive'])->name('graduates.archive');
+    Route::put('/graduates/restore/{user}', [ManageGraduatesApprovalController::class, 'restore'])->name('graduates.restore');
+});
+
+Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
+    // List Graduates – displays only graduates for the current institution
+    Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
+
+    // Graduate Manual Creation – for manually creating a new graduate account.
+    Route::post('/graduates/manual-store', [CreateNewGraduateController::class, 'store'])
+         ->name('graduates.manual.store');
+
+    // Update Graduate – used by your modal when editing existing graduate data.
+    Route::patch('/graduates/{graduate}', [GraduateController::class, 'update'])
+         ->name('graduates.update');
+
+    // Archive Graduate – soft-deletes a graduate record.
+    Route::delete('/graduates/{graduate}', [GraduateController::class, 'destroy'])
+         ->name('graduates.destroy');
+});
 
 
 
@@ -808,9 +771,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('education.remove');
 
     // Experience Routes
-    Route::post('/profile/experiences', [ProfileController::class, 'addExperience'])->name('experience.addExperience');
-    Route::put('/profile/experiences/{id}', [ProfileController::class, 'updateExperience'])->name('experience.updateExperience');
-    Route::delete('/profile/experiences/{id}', [ProfileController::class, 'removeExperience'])->name('experience.remove c');
+    Route::post('/profile/experiences', [ProfileController::class, 'addExperience'])->name('experience.add');
+    Route::put('/profile/experiences/{id}', [ProfileController::class, 'updateExperience'])->name('experience.update');
+    Route::delete('/profile/experiences/{id}', [ProfileController::class, 'removeExperience'])->name('experience.remove');
 
     // Project Routes
     Route::prefix('profile/projects')->group(function () {

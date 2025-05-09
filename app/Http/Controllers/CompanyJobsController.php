@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Inertia\Inertia;
 
 
+
 class CompanyJobsController extends Controller
 {
     public function index(User $user) {
@@ -240,7 +241,7 @@ class CompanyJobsController extends Controller
             'job_id' => $job->id,
             'graduate_id' => $graduate->id,
         ], [
-            'company_id' => auth()->id(),
+            'company_id' => auth()->id,
             'status' => 'pending',
             'message' => 'You have been invited to apply to this job opportunity.',
         ]);

@@ -9,18 +9,17 @@ import TextInput from '@/Components/TextInput.vue';
 import { useFormattedMobileNumber } from '@/Composables/useFormattedMobileNumber';
 import { useFormattedTelephoneNumber } from '@/Composables/useFormattedTelephoneNumber';
 import { usePasswordCriteria } from '@/Composables/usePasswordCriteria';
-import { defineProps, onMounted, ref } from 'vue';
+import { defineProps, onMounted, ref, computed } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { Inertia } from '@inertiajs/inertia';
 
 const props = defineProps({
     insti_users: Array,
-    school_year: Array,
+    school_years: Array,
     programs: Array,
+});
 
-})
-
-console.log(props)
+console.log(props);
 
 const isPasswordFocused = ref(false);
 const showModal = ref(false);
@@ -30,7 +29,7 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
-    role: '', // Set the role dynamically
+    role: '',
     gender: '',
     dob: '',
     contact_number: '',
@@ -57,33 +56,47 @@ const form = useForm({
     graduate_first_name: '',
     graduate_middle_initial: '',
     graduate_last_name: '',
+    employment_status: '',
+    current_job_title: '',
 });
 
-
-
+// Determine user role based on URL
 onMounted(() => {
-
     const path = window.location.pathname;
     if (path.includes('institution')) {
         form.role = 'institution';
     } else if (path.includes('graduate')) {
         form.role = 'graduate';
     } else {
-        form.role = 'company'; // Default to company if not specified
+        form.role = 'company';
     }
     console.log('Current Role:', form.role);
 });
 
-console.log(form.role);
+function handleEmploymentStatus() {
+  if(form.employment_status === 'Unemployed') {
+    form.current_job_title = 'N/A';
+  }
+}
 
 
+// Computed properties for filtering programs and school years
+const filteredPrograms = computed(() => {
+    return props.programs.filter(
+        (program) => Number(program.institution_id) === Number(form.graduate_school_graduated_from)
+    );
+});
 
+const filteredSchoolYears = computed(() => {
+    return props.school_years.filter(
+        (year) => Number(year.institution_id) === Number(form.graduate_school_graduated_from)
+    );
+});
+
+// Utility functions
 const { formattedMobileNumber: contactNumber } = useFormattedMobileNumber(form, 'contact_number');
-
 const { formattedMobileNumber: companyContactNumber } = useFormattedMobileNumber(form, 'company_contact_number');
-
 const { formattedTelephoneNumber } = useFormattedTelephoneNumber(form, 'telephone_number');
-
 const { passwordCriteria } = usePasswordCriteria(form);
 
 const maxDate = ref(new Date().toISOString().split('T')[0]);
@@ -91,7 +104,6 @@ const minDate = ref('1900-01-01');
 
 // Handle form submission
 const submit = () => {
-
     let routeName;
     if (form.role === 'company') {
         routeName = 'register.company.store';
@@ -105,7 +117,6 @@ const submit = () => {
     }
 
     console.log('Form Data:', form);
-
     form.post(route(routeName), {
         onFinish: () => {
             console.log("Form submission finished");
@@ -113,21 +124,18 @@ const submit = () => {
             form.reset('password', 'password_confirmation');
         },
         onSuccess: () => {
-
             showModal.value = true;
             console.log("showModal:", showModal.value);
-
-        }
-
-
+        },
     });
 };
 
+// Redirect to login after successful registration
 const redirectToLogin = () => {
     Inertia.visit(route('login'));
 };
-
 </script>
+
 
 <template>
 
@@ -535,11 +543,13 @@ const redirectToLogin = () => {
                                         <InputLabel for="telephone_number" value="Telephone Number" />
                                         <span class="text-red-500">*</span>
                                     </div>
-                                    <TextInput id="telephone_number" v-model="form.telephone_number" type="text"
-                                        class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"/>
+                                    <TextInput id="telephone_number" v-model="formattedTelephoneNumber" type="text"
+                                        :placeholder="formattedTelephoneNumber === '(##) ###-####' ? '(02) 123-5678' : '(0XX) XXX-XXXX'"
+                                        class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg" />
                                     <InputError class="mt-2" :message="form.errors.telephone_number" />
                                 </div>
                             </div>
+                            
 
                             <!-- President's First and Last Name -->
                             <div class="grid grid-cols-2 gap-4">
@@ -697,7 +707,7 @@ const redirectToLogin = () => {
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
                                 <option value="" disabled>Select a School</option>
-                                <option v-for="user in insti_users" :key="user.id" :value="user.institution_name">
+                                <option v-for="user in insti_users" :key="user.id" :value="user.id">
                                     {{ user.institution_name }}
                                 </option>
                             </select>
@@ -710,8 +720,8 @@ const redirectToLogin = () => {
                             <select id="graduate_program_completed" v-model="form.graduate_program_completed"
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
-                                <option value="" disabled>Select a Program</option>
-                                <option v-for="program in programs" :key="program.id" :value="program.name">
+                                <option value="">Select Program</option>
+                                <option v-for="program in filteredPrograms" :key="program.id" :value="program.name">
                                     {{ program.name }}
                                 </option>
                             </select>
@@ -724,9 +734,11 @@ const redirectToLogin = () => {
                             <select id="graduate_year_graduated" v-model="form.graduate_year_graduated"
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
-                                <option value="" disabled>Select Year</option>
-                                <option v-for="year in school_year" :key="year" :value="year.school_year_range">{{
-                                    year.school_year_range }}</option>
+                                <option value="">Select Year</option>
+                                <option v-for="year in filteredSchoolYears" :key="year.id"
+                                    :value="year.school_year_range">
+                                    {{ year.school_year_range }}
+                                </option>
                             </select>
                             <InputError class="mt-2" :message="form.errors.graduate_year_graduated" />
 
@@ -785,15 +797,49 @@ const redirectToLogin = () => {
                         <!--  Contact Number -->
                         <div>
                             <div class="flex items-center gap-1">
-                                <InputLabel for="contact_number" value="Contact Number" />
+                                <InputLabel for="contact_number" value="Mobile Number" />
                                 <span class="text-red-500">*</span>
                             </div>
                             <div>
-                                <TextInput id="contact_number" v-model="form.contact_number" v-mask="'# (###) ###-####'"
-                                    type="text" class="mt-1 mb-4 block w-full" required />
+                                <TextInput id="contact_number" v-model="contactNumber" type="text"
+                                    class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
+                                    required />
                                 <InputError class="mt-2" :message="form.errors.contact_number" />
                             </div>
                         </div>
+
+                    <div>
+                        <!-- Employment Status -->
+                        <div class="flex items-center gap-1">
+                            <InputLabel for="employment_status" value="Employment Status" />
+                            <span class="text-red-500">*</span>
+                        </div>
+                        <div>
+                            <select id="employment_status" v-model="form.employment_status"
+                                @change="handleEmploymentStatus" required class="w-full border rounded px-3 py-2">
+                                <option value="" disabled>Select Employment Status</option>
+                                <option value="Employed">Employed</option>
+                                <option value="Underemployed">Underemployed</option>
+                                <option value="Unemployed">Unemployed</option>
+                            </select>
+                            <InputError :message="form.errors.employment_status" class="mt-1" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <!-- Current Job Title – conditionally shown -->
+                        <div v-if="form.employment_status !== 'Unemployed'">
+                            <div class="flex items-center gap-1">
+                                <InputLabel for="current_job_title" value="Current Job Title" />
+                                <span class="text-red-500">*</span>
+                            </div>
+                            <div>
+                            <TextInput id="current_job_title" v-model="form.current_job_title" type="text" required
+                                class="w-full border rounded px-3 py-2" />
+                            <InputError :message="form.errors.current_job_title" class="mt-1" />
+                            </div>
+                        </div>
+                    </div>
 
                         <!-- Set Password -->
                         <h3 class="mt-6 mb-2 font-semibold">Set Password</h3>

@@ -76,6 +76,7 @@ class ProgramController extends Controller
             'name' => $request->name,
             'degree_id' => $request->degree_id,
             'user_id' => $user->id,
+            'institution_id' => $user->id, // Ensure institution_id is set
         ]);
 
         return redirect()->back()->with('flash.banner', 'Program added.');
@@ -125,7 +126,7 @@ class ProgramController extends Controller
     {
         $program->delete();
 
-        return redirect()->route('programs.index', ['user' => $request->user()->id])
+        return redirect()->route('programs', ['user' => $request->user()->id])
             ->with('flash.banner', 'Program archived.');
     }
 

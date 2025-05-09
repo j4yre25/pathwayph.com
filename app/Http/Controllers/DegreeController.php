@@ -67,6 +67,7 @@ class DegreeController extends Controller
         Degree::create([
             'type' => $request->type,
             'user_id' => $user->id,
+            'institution_id' => $user->id, // Ensure institution_id is set
         ]);
 
         return redirect()->back()->with('flash.banner', 'Degree added.');

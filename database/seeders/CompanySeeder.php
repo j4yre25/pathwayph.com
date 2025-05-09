@@ -60,6 +60,7 @@ class CompanySeeder extends Seeder
                 'company_email' => $companyEmail,
                 'company_contact_number' => $companyContact,
                 'telephone_number' => $companyTel,
+                'is_main_hr' => true,
             ]);
 
             $user->assignRole('company');

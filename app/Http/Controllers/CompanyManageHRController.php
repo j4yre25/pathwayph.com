@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+
 
 class CompanyManageHRController extends Controller
 {
@@ -14,7 +17,7 @@ class CompanyManageHRController extends Controller
      */
     public function index()
     {
-        $user = auth()->user(); // Get the logged-in user (company)
+        $user = Auth::user(); // Get the logged-in user (company)
 
         // Ensure only main HR can manage HRs
         if ($user->role !== 'company' || !$user->is_main_hr) {
@@ -40,7 +43,7 @@ class CompanyManageHRController extends Controller
      */
     public function edit($id)
     {
-        $user = auth()->user(); // Get the logged-in user (company)
+        $user = Auth::user();// Get the logged-in user (company)
 
         // Ensure only main HR can edit HRs
         if ($user->role !== 'company' || !$user->is_main_hr) {
@@ -69,7 +72,7 @@ class CompanyManageHRController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = auth()->user(); // Get the logged-in user (company)
+        $user = Auth::user(); // Get the logged-in user (company)
 
         // Ensure only main HR can update HRs
         if ($user->role !== 'company' || !$user->is_main_hr) {
@@ -107,7 +110,7 @@ class CompanyManageHRController extends Controller
      */
     public function destroy($id)
     {
-        $user = auth()->user(); // Get the logged-in user (company)
+        $user = Auth::user(); // Get the logged-in user (company)
 
         // Ensure only main HR can delete HRs
         if ($user->role !== 'company' || !$user->is_main_hr) {

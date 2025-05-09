@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\User;
 use App\Models\Job;
 use Faker\Factory as Faker;
 use Illuminate\Support\Arr;
@@ -224,10 +225,26 @@ class JobSeeder extends Seeder
         $salaryTypes = ['monthly', 'weekly', 'hourly', 'negotiable'];
         $skillsList = ['Communication', 'Teamwork', 'Problem-solving', 'Time Management', 'Customer Service', 'Leadership'];
 
+        
         foreach ($companies as $company) {
             $companyName = $company['name'];
             $companyLocation = $company['address'] . ', ' . $company['brgy'] . ', General Santos City';
             $branchLocation =  $company['brgy'] . ', General Santos City';
+       
+            $hrUser = User::where('company_name', $companyName)
+              ->where('role', 'company')
+              ->first(); 
+
+                if ($hrUser) {
+                    $postedByName = $hrUser->company_hr_first_name . ' ' . $hrUser->company_hr_last_name;
+                    $userId = $hrUser->id;
+                } else {
+                    $postedByName = 'Default HR';
+                    $userId = 1;
+                }
+
+
+       
             foreach ($jobTitlesPerCompany[$companyName] as $title) {
                 $sectorId = Arr::random($sectors); // Use valid sector IDs
                 $categoryId = Arr::random($categories); // Use valid category IDs
@@ -237,7 +254,9 @@ class JobSeeder extends Seeder
                 $maxSalary = $this->getSalaryRange($salaryType, 'max');
 
                 Job::create([
-                    'user_id' => 45,
+                    'user_id' => $userId, 
+                    'company_name' => $companyName,
+                    'posted_by' => $postedByName,
                     'job_title' => $title,
                     'sector_id' => $sectorId,
                     'category_id' => $categoryId,
@@ -246,11 +265,11 @@ class JobSeeder extends Seeder
                     'salary_type' => $salaryType,
                     'min_salary' => $minSalary,
                     'max_salary' => $maxSalary,
-                    'job_location' => $companyLocation,
+                    'location' => $companyLocation,
                     'branch_location' => $branchLocation,
                     'vacancy' => random_int(1, 10),
                     'description' => "$title position at $companyName. Responsibilities include ...",
-                    'job_requirements' => "Requirements for $title include ...",
+                    'requirements' => "Requirements for $title include ...",
                     'job_benefits' => "Health benefits, SSS, Pag-IBIG, PhilHealth",
                     'skills' => json_encode(array_rand(array_flip($skillsList), 3)),
                     'expiration_date' => now()->addDays(30)->format('Y-m-d'),
@@ -258,6 +277,7 @@ class JobSeeder extends Seeder
                 ]);
             }
         }
+        
     }
 
     private function getSalaryRange($salaryType, $type)

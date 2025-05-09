@@ -46,7 +46,8 @@ class User extends Authenticatable
         'peso_first_name',
         'peso_last_name',
 
-
+        //Graduate
+        'institution_id',
         'graduate_first_name',
         'graduate_last_name',
         'graduate_middle_initial',
@@ -136,6 +137,10 @@ class User extends Authenticatable
         ];
     }
 
+    public function graduates() {
+        return $this->hasOne(Graduate::class);
+
+    }
     public function jobs() {
         return $this->hasMany(Job::class);
 
@@ -163,6 +168,7 @@ class User extends Authenticatable
     {
     return $this->hasMany(SchoolYear::class);
     }
+
 
     /**
      * Get the user's settings.

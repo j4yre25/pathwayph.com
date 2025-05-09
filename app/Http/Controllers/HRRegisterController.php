@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Routing\Controller;
 use App\Actions\Fortify\CreateNewHR;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class HRRegisterController extends Controller
@@ -19,7 +20,7 @@ class HRRegisterController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
-            $user = auth()->user();
+            $user = Auth::user();
 
             if (!($user->role === 'company' && $user->is_main_hr)) {
                 abort(403, 'Only main HR can register other HRs.');

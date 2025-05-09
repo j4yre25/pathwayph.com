@@ -11,11 +11,13 @@ class Graduate extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'first_name', 'last_name', 'middle_initial',
-        'program_id', 'school_year_id', 'employment_status',
-        'current_job_title',
+        'user_id','program_id', 'school_year_id','gender', 'dob',
+         'employment_status','current_job_title',
     ];
 
+    public function user() {
+        return $this->belongsTo(User::class);
+    }
     public function program() {
         return $this->belongsTo(Program::class);
     }
@@ -24,9 +26,6 @@ class Graduate extends Model
         return $this->belongsTo(SchoolYear::class);
     }
 
-    public function getFullNameAttribute() {
-        return $this->first_name . ' ' . ($this->middle_initial ? $this->middle_initial . '. ' : '') . $this->last_name;
-    }
 }
 
 

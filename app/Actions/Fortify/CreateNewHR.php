@@ -3,10 +3,12 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
+
 
 class CreateNewHR implements CreatesNewUsers
 {
@@ -20,7 +22,8 @@ class CreateNewHR implements CreatesNewUsers
     public function create(array $input): User
     {
 
-        $currentUser = auth()->user(); // Logged-in company user
+
+        $currentUser = Auth::user(); // Logged-in company user
 
         Validator::make($input, [
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],

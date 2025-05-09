@@ -36,9 +36,7 @@
 <script setup>
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { useForm } from '@inertiajs/vue3'
 
-const form = useForm({})
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
 
@@ -65,21 +63,20 @@ function submitUpload() {
   const formData = new FormData()
   formData.append('csv_file', file.value)
 
-  form.post(route('graduates.batch-upload'), formData, {
+  router.post('/graduate/batch-upload', formData, {
     forceFormData: true,
     onSuccess: () => {
       emit('close')
       file.value = null
       error.value = ''
     },
-    onError: () => {
+    onError: (err) => {
       error.value = 'An error occurred during upload. Please ensure your CSV is properly formatted.'
     }
   })
 }
 
-
 function downloadTemplate() {
-  window.location.href = route('graduates.template')
+  window.location.href = '/graduate/download-template'
 }
 </script>

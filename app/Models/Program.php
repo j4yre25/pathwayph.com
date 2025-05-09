@@ -31,6 +31,6 @@ class Program extends Model
 
         return $prefix . ' ' . $this->name;
     }
-    protected $fillable = ['name', 'user_id','degree_id'];
+    protected $fillable = ['name', 'user_id','institution_id','degree_id'];
 
 }

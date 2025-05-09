@@ -75,6 +75,7 @@ class SchoolYearController extends Controller
             'school_year_range' => $request->school_year_range,
             'term' => $request->term,
             'user_id' => $user->id,
+            'institution_id' => $user->id, // Ensure institution_id is set
         ]);
 
         return redirect()->back()->with('flash.banner', 'School year added.');

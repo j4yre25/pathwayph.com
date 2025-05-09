@@ -15,7 +15,7 @@ const page = usePage();
 
 
 const props = defineProps({
-    all_users: Object,
+    all_users: Array,
     // user: Object
 
 })
@@ -58,8 +58,8 @@ const filteredUsers = computed(() => {
         const matchesRole = filters.value.role === 'all' || user.role === filters.value.role;
         const matchesDateFrom = !filters.value.date_from || new Date(user.created_at) >= new Date(filters.value.date_from);
         const matchesDateTo = !filters.value.date_to || new Date(user.created_at) <= new Date(filters.value.date_to);
-        const matchesStatus = filters.value.status === 'all' ||
-            (filters.value.status === 'active' && user.is_approved) ||
+        const matchesStatus = filters.value.status === 'all' || 
+            (filters.value.status === 'active' && user.is_approved) || 
             (filters.value.status === 'inactive' && !user.is_approved);
 
         return matchesRole && matchesDateFrom && matchesDateTo && matchesStatus;
@@ -68,9 +68,7 @@ const filteredUsers = computed(() => {
 
 const showModal = ref(false);
 
-const goTo = (url) => {
-    router.get(url); // Use Inertia's router to navigate to the next/previous page
-};
+
 
 
 
@@ -139,7 +137,7 @@ const goTo = (url) => {
                         </tr>
                     </thead>
                     <tbody class="text-gray-600 text-sm font-light">
-                        <tr v-for="user in all_users.data" :key="user.id"
+                        <tr v-for="user in filteredUsers" :key="user.id"
                             class="border-b border-gray-200 hover:bg-gray-100">
                             <td class="border border-gray-200 px-6 py-4">{{ user.role }}</td>
                             <td class="border border-gray-200 px-6 py-4">
@@ -149,15 +147,18 @@ const goTo = (url) => {
                                     {{ user.company_name }}
                                 </template>
                                 <template v-else-if="user.role === 'institution'">
-                                    {{ user.institution.name }}
+                                    {{ user.institution_career_officer_first_name }} {{
+                                        user.institution_career_officer_last_name }}
                                 </template>
                                 <template v-else-if="user.role === 'peso'">
                                     {{ user.peso_first_name }} {{ user.peso_last_name }}
 
                                 </template>
-                             
+                                <template v-else>
+                                    {{ user.name }}
+                                </template>
                             </td>
-
+                            
                             <td class="border border-gray-200 px-6 py-4">
                                 {{ new Date(user.created_at).toLocaleDateString() }}
                             </td>
@@ -169,28 +170,16 @@ const goTo = (url) => {
                                     {{ user.is_approved ? 'Active' : 'Inactive' }}
                                 </span>
                             </td>
+
+
+
+
+
+
                         </tr>
                     </tbody>
                 </table>
             </div>
-
-            <div class="mt-4">
-                <nav v-if="all_users.links.length > 1" aria-label="Page navigation example">
-                    <ul class="inline-flex -space-x-px text-sm">
-                        <li v-for="link in all_users.links" :key="link.url" :class="{ 'active': link.active }">
-                            <a v-if="link.url" @click.prevent="goTo(link.url)"
-                                :class="link.active ? 'flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white' : 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white'">
-                                <span v-html="link.label"></span>
-                            </a>
-                            <span v-else
-                                class="flex items-center justify-center px-3 h-8 leading-tight text-gray-400 bg-gray-200 border border-gray-300">
-                                <span v-html="link.label"></span>
-                            </span>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-            
             <ConfirmationModal :show="showModal" @close="showModal = false" @confirm="handleDelete">
                 <template #title>
                     Confirm Deletion
