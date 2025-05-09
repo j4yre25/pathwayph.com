@@ -7,6 +7,10 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { ref, computed } from 'vue';
+import { useFormattedMobileNumber } from '@/Composables/useFormattedMobileNumber';
+import { usePasswordCriteria } from '@/Composables/usePasswordCriteria';
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
 
 
 const isPasswordFocused = ref(false);
@@ -17,7 +21,7 @@ const form = useForm({
     company_hr_last_name: '',
     gender: '',
     dob: '',
-    contact_number: '',
+    contact_number: null,
     email: '',
     password: '',
     password_confirmation: '',
@@ -25,54 +29,13 @@ const form = useForm({
     terms: false,
 });
 
-// Track the selected user type
 
-const formattedContactNumber = computed({
-    get: () => {
-        let rawNumber = form.contact_number.replace(/\D/g, ""); // Remove non-numeric characters
+const { formattedMobileNumber} = useFormattedMobileNumber(form, 'contact_number');
+const { passwordCriteria } = usePasswordCriteria(form);
 
+const maxDate = ref(new Date().toISOString().split('T')[0]);
+const minDate = ref('1900-01-01');
 
-        // Ensure only the first 10 digits are considered
-        if (rawNumber.length > 10) {
-            rawNumber = rawNumber.slice(0, 10);
-        }
-
-        // Ensure that the displayed format is always "+63 XXX XXX XXXX"
-        return `+63 ${rawNumber.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3")}`.trim();
-    },
-    set: (value) => {
-        // Remove non-numeric characters except for numbers
-        let rawValue = value.replace(/\D/g, "");
-
-        // Ensure only the last 10 digits are stored
-        if (rawValue.startsWith("63")) {
-            rawValue = rawValue.slice(2);
-        }
-
-        if (rawValue.startsWith("0")) {
-            rawValue = rawValue.slice(1);
-        }
-
-        if (rawValue.length > 10) {
-            rawValue = rawValue.slice(0, 10);
-        }
-
-        form.contact_number = rawValue;
-    },
-});
-
-
-// Update 04/04
-const passwordCriteria = computed(() => {
-    const password = form.password;
-    return {
-        length: password.length >= 8, // Minimum 8 characters
-        uppercaseLowercase: /[a-z]/.test(password) && /[A-Z]/.test(password), // Upper & lower case
-        letter: /[a-zA-Z]/.test(password), // At least one letter
-        number: /\d/.test(password), // At least one number
-        symbol: /[@$!%*?&.]/.test(password), // At least one special character
-    };
-});
 
 
 // Handle form submission
@@ -101,93 +64,118 @@ const submit = () => {
             <AuthenticationCardLogo />
         </template>
 
+
         <template #registerForm>
-            <form @submit.prevent="submit">
-                <div class="grid grid-cols-3 mt-8 pt-5">
-                    <!-- Company HR Information -->
-                    <div class=" col-span-1">
-                        <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
-                        <p class="text-sm text-gray-600"></p>
-
-
-                    </div>
-
-                    <div class="col-span-2">
-
-                        <div class="grid grid-cols-2 gap-4">
-                               <div> <!-- First Name -->
-                                    <div class="flex items-center gap-1">
-                                        <InputLabel for="company_hr_first_name" value= "First Name" />
-                                        <span class="text-red-500">*</span>
-                                    </div>
-                                    <div>
-                                       <!-- <TextInput id="company_hr_first_name" v-model="form.company_hr_first_name" type="text" class="mt-1 mb-4 block w-full" required /> -->
-                                        <i class="fas fa-user absolute left-3 top-10 text-gray-400"></i>
-                    <input type="text" id="full-name"
-                      class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-2 focus:ring-indigo-600"
-                      v-model="profile.fullName" placeholder="Enter your full name" />
-                                        <InputError class="mt-2" :message="form.errors.company_hr_first_name" />
-                                    </div>
-                               </div>
-                               <div> <!-- First Name -->
-                                    <div class="flex items-center gap-1">
-                                        <InputLabel for="company_hr_last_name" value= "Last Name" />
-                                        <span class="text-red-500">*</span>
-                                    </div>
-                                    <div>
-                                        <TextInput id="company_hr_last_name" v-model="form.company_hr_last_name" type="text" class="mt-1 mb-4 block w-full" required />
-                                        <InputError class="mt-2" :message="form.errors.company_hr_last_name" />
-                                    </div>
-                               </div>
+            <div class="flex flex-col items-center justify-center mb-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Register New Human Resource Officer </h1>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Please fill out the form below to register.</p>
+                </div>
+            </div>
+            <div class="w-full border-t border-gray-300 mb-6"></div>
+            <form @submit.prevent="submit" class="max-w-2xl mx-auto px-4">
+                <div >
+                    <div class="grid grid-cols-2 gap-4">
+                        <div> <!-- First Name -->
+                            <div class="flex items-center gap-1">
+                                <InputLabel for="company_hr_first_name" value= "First Name" />
+                                <span class="text-red-500">*</span>
                             </div>
-
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Gender -->
-                            <div>
-                                <div class="flex items-center gap-1">
-                                    <InputLabel for="gender" value="Gender" />
-                                    <span class="text-red-500">*</span>
-                                </div>
-                                <div>
-                       <select id="gender" v-model="form.gender" class="mt-1 mb-4 block w-full" required>
-                          <option value="">Select Gender</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                    </select>
-                                    <InputError class="" :message="form.errors.gender" />
-                                </div>
-                            </div>
-                            <!-- Date of Birth -->
-                            <div>
-                                <div class="flex items-center gap-1">
-                                    <InputLabel for="dob" value="Date of Birth" />
-                                    <span class="text-red-500">*</span>
-                                </div>
-                                <div>
-
-                                    <TextInput 
-                                        id="dob" 
-                                        v-model="form.dob" 
-                                        type="date" 
-                                        class="mt-1 mb-4 block w-full" 
-                                        required />
-                                    <InputError class="mt-2" :message="form.errors.dob" />
-
-                                </div>
+                            <div class="relative">
+                                <i class="fa-solid fa-user absolute left-3 top-4 text-gray-400"></i>
+                                <TextInput
+                                    id="company_hr_first_name"
+                                    type="text"
+                                    class="mb-4 mt-1 w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600"
+                                    placeholder="Enter first name"
+                                    v-model="form.company_hr_first_name"
+                                    required
+                                    @keydown.enter.prevent
+                                />
+                                <InputError class="mt-2" :message="form.errors.company_hr_first_name" />
                             </div>
                         </div>
+                            
+                        <div > <!-- Last Name -->
+                            <div class="flex items-center gap-1">
+                                <InputLabel for="company_hr_last_name" value= "Last Name" />
+                                <span class="text-red-500">*</span>
+                            </div>
+                            <div class="relative">
+                                <i class="fa-solid fa-user absolute left-3 top-4 text-gray-400"></i>
+                                <TextInput 
+                                    id="company_hr_last_name" 
+                                    type="text" 
+                                    class="mb-4 mt-1 w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600 "
+                                    placeholder="Enter last name"
+                                    v-model="form.company_hr_last_name" 
+                                    required
+                                    @keydown.enter.prevent
+                                    />
+                                <InputError class="mt-2" :message="form.errors.company_hr_last_name" />
+                            </div>
+                        </div>
+                    </div>
 
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Gender -->
+                        <div>
+                            <div class="flex items-center gap-1">
+                                <InputLabel for="gender" value="Gender" />
+                                <span class="text-red-500">*</span>
+                            </div>
+                            <div class="relative">
+                                <i class="fa-solid fa-mars-and-venus absolute left-3 top-4 text-gray-400"></i>
+                                    <select 
+                                    id="gender" v-model="form.gender" 
+                                    class="mt-1 mb-4 block w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600 " required>
+                                    <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                                <InputError class="" :message="form.errors.gender" />
+                            </div>
+                        </div>
+                        <!-- Date of Birth -->
+                        <div>
+                            <div class="flex items-center gap-1">
+                                <InputLabel for="dob" value="Date of Birth" />
+                                <span class="text-red-500">*</span>
+                            </div>
+                            <div>
+                                <TextInput 
+                                    id="dob" 
+                                    v-model="form.dob" 
+                                    :max="maxDate"
+                                    :min="minDate"  
+                                    type="date" 
+                                    class="mt-1 block w-full" 
+                                    required />
+                                <InputError class="mt-1" :message="form.errors.dob" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
                         <!-- HR Email -->
                         <div>
                             <div class="flex items-center gap-1">
                                 <InputLabel for="email" value="Email Address" />
                                 <span class="text-red-500">*</span>
                             </div>
-                            <div>
-                                <TextInput id="email" v-model="form.email" type="email" class="mt-1 mb-4 block w-full"
+                            <div class="relative">
+                                <i class="fa-solid fa-envelope absolute left-3 top-3 text-gray-400"></i>
+                                <TextInput 
+                                    id="email" 
+                                    type="email" 
+                                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600"
+                                    placeholder="Enter email address"
+                                    v-model="form.email" 
                                     required />
-                                <InputError class="mt-2" :message="form.errors.email" />
+                                <InputError class="mt-1" :message="form.errors.email" />
                             </div>
                         </div>
 
@@ -197,22 +185,26 @@ const submit = () => {
                                 <InputLabel for="contact_number" value="Contact Number" />
                                 <span class="text-red-500">*</span>
                             </div>
-                            <div>
-
+                            <div class="relative">
+                                <i class="fa-solid fa-phone absolute left-3 top-3 text-gray-400"></i>
                                 <TextInput 
                                     id="contact_number"
-                                    v-model="formattedContactNumber"
-                                    type="text"
-                                    class="mt-1 mb-4 block w-full"
+                                    placeholder="+63 912 345 6789"
+                                    type="tel"
+                                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600"
+                                    v-model="formattedMobileNumber"
                                     required />
-                                <InputError class="mt-2" :message="form.errors.contact_number" />
+                                <InputError class="mt-1" :message="form.errors.contact_number" />
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Set Password -->
-                        <h3 class="mt-6 mb-2 font-semibold">Set Password</h3>
+                        
+                    <!-- Set Password -->
+                    <h3 class="mt-5 mb-2 font-semibold">Set Password</h3>
 
-                        <div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-1">
                             <div class="flex items-center gap-1">
                                 <InputLabel for="password" value="Password" />
                                 <span class="text-red-500">*</span>
@@ -251,8 +243,10 @@ const submit = () => {
                                     </li>
                                 </ul>
                             </div>
+                        </div>
 
-
+                        <div class="col-span-1">
+                            <!-- Confirm Password -->
                             <div class="flex items-center gap-1">
                                 <InputLabel for="password_confirmation" value="Confirm Password" />
                                 <span class="text-red-500">*</span>
