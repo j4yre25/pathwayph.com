@@ -21,19 +21,26 @@ class DegreeController extends Controller
     }
 
     public function list(Request $request)
-    {
-        $status = $request->input('status', 'all');
+{
+    $user = Auth::user();
+    $status = $request->input('status', 'all');
 
-        $degrees = Degree::with('user')->withTrashed()
-        ->when($status === 'active', fn($query) => $query->whereNull('deleted_at'))
-        ->when($status === 'inactive', fn($query) => $query->whereNotNull('deleted_at'))
+    $degrees = Degree::with('user')
+        ->withTrashed()
+        ->where('user_id', $user->id) // Only get degrees for the current institution.
+        ->when($status === 'active', function ($query) {
+            $query->whereNull('deleted_at');
+        })
+        ->when($status === 'inactive', function ($query) {
+            $query->whereNotNull('deleted_at');
+        })
         ->get();
 
-        return Inertia::render('Institutions/Degrees/List', [
-            'degrees' => $degrees,
-            'status' => $status,
-        ]);
-    }
+    return Inertia::render('Institutions/Degrees/List', [
+        'degrees' => $degrees,
+        'status' => $status,
+    ]);
+}
 
     public function archivedList()
     {

@@ -48,7 +48,7 @@ function archiveGraduate(id) {
           <!-- Action Buttons -->
           <div class="flex justify-between items-center mb-6">
             <div class="space-x-2">
-              <button @click="$inertia.get(route('graduates.index'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              <button @click="$inertia.get(route('graduates.list'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 List of Graduates
               </button>
               <button @click="$inertia.get(route('graduates.archived'))" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">

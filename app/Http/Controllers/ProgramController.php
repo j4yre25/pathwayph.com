@@ -23,19 +23,23 @@ class ProgramController extends Controller
     }
 
     public function list(Request $request)
-    {
-        $status = $request->input('status', 'all');
+{
+    $user = Auth::user();  // Retrieve the currently authenticated institution user
+    $status = $request->input('status', 'all');
 
-        $programs = Program::with(['user', 'degree'])->withTrashed()
-            ->when($status === 'active', fn($query) => $query->whereNull('deleted_at'))
-            ->when($status === 'inactive', fn($query) => $query->whereNotNull('deleted_at'))
-            ->get();
+    $programs = Program::with(['user', 'degree'])
+        ->withTrashed()
+        ->where('user_id', $user->id) // Only get programs for the current institution
+        ->when($status === 'active', fn($query) => $query->whereNull('deleted_at'))
+        ->when($status === 'inactive', fn($query) => $query->whereNotNull('deleted_at'))
+        ->get();
 
-        return Inertia::render('Institutions/Programs/List', [
-            'programs' => $programs,
-            'status' => $status,
-        ]);
-    }
+    return Inertia::render('Institutions/Programs/List', [
+        'programs' => $programs,
+        'status'   => $status,
+    ]);
+}
+
 
     public function archivedList()
     {
@@ -123,12 +127,12 @@ class ProgramController extends Controller
     }
 
     public function delete(Request $request, Program $program)
-    {
-        $program->delete();
+{
+    $program->delete();
 
-        return redirect()->route('programs', ['user' => $request->user()->id])
-            ->with('flash.banner', 'Program archived.');
-    }
+    return back()->with('flash.banner', 'Program archived.');
+}
+
 
     public function restore($id)
     {

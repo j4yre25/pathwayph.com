@@ -33,39 +33,51 @@ const confirmRestore = (degree) => {
 <template>
     <AppLayout title="Archived Degrees">
         <template #header>
-            Archived Degrees
+            <h2 class="text-3xl font-semibold text-gray-900">Archived Degrees</h2>
         </template>
 
-        <Container class="py-16">
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200">
+        <Container class="py-16 space-y-8">
+            <!-- Degrees Table -->
+            <div class="overflow-x-auto bg-white shadow-lg rounded-lg">
+                <table class="min-w-full text-sm text-gray-700">
                     <thead>
-                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                            <th class="border border-gray-200 px-6 py-3 text-left">Degree</th>
-                            <th class="border border-gray-200 px-6 py-3 text-left">Status</th>
-                            <th class="border border-gray-200 px-6 py-3 text-left">Actions</th>
+                        <tr class="bg-gray-200 text-gray-600 uppercase text-xs font-medium">
+                            <th class="px-6 py-4 text-left">Degree</th>
+                            <th class="px-6 py-4 text-left">Status</th>
+                            <th class="px-6 py-4 text-left">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="text-gray-600 text-sm font-light">
-                        <tr v-for="deg in all_degrees" :key="deg.id" class="border-b border-gray-200 hover:bg-gray-100">
-                            <td class="border border-gray-200 px-6 py-4">{{ deg.type }}</td>
-                            <td class="border border-gray-200 px-6 py-4">
-                                <span class="text-red-600 font-semibold">Archived</span>
+                    <tbody class="text-gray-600">
+                        <tr v-for="deg in all_degrees" :key="deg.id" class="border-t hover:bg-gray-50 transition-all">
+                            <td class="px-6 py-4">{{ deg.type }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-red-600">
+                                Archived
                             </td>
-                            <td class="border border-gray-200 px-6 py-4">
-                                <DangerButton @click="confirmRestore(deg)">Restore</DangerButton>
+                            <td class="px-6 py-4 flex gap-3 items-center">
+                                <DangerButton @click="confirmRestore(deg)" class="text-xs text-white bg-red-600 hover:bg-red-700">
+                                    Restore
+                                </DangerButton>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
+            <!-- Confirmation Modal -->
             <ConfirmationModal :show="showModal" @close="showModal = false" @confirm="restoreDegree">
-                <template #title>Confirm Restore</template>
-                <template #content>Are you sure you want to restore this degree?</template>
+                <template #title>
+                    <span class="text-xl font-semibold text-gray-800">Confirm Restore</span>
+                </template>
+                <template #content>
+                    <p class="text-sm text-gray-600">Are you sure you want to restore the degree <strong>"{{ degreeToRestore?.type }}"</strong>?</p>
+                </template>
                 <template #footer>
-                    <PrimaryButton @click="showModal = false" class="mr-2">Cancel</PrimaryButton>
-                    <DangerButton @click="restoreDegree">Restore</DangerButton>
+                    <PrimaryButton @click="showModal = false" class="mr-2 text-gray-600 hover:bg-gray-200">
+                        Cancel
+                    </PrimaryButton>
+                    <DangerButton @click="restoreDegree" class="text-white bg-red-600 hover:bg-red-700">
+                        Restore
+                    </DangerButton>
                 </template>
             </ConfirmationModal>
         </Container>
