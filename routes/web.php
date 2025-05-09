@@ -16,7 +16,6 @@ use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SectorController;
 use App\Http\Controllers\GraduateController;
-use App\Http\Controllers\CreateNewGraduateController;
 use App\Http\Controllers\SchoolYearController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\CareerOpportunityController;
@@ -473,15 +472,17 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 });
 
 
-
+// MAIN INSITUTION GRADUATE ROUTES
 Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
     
     Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
     Route::get('/graduates/create', [GraduateController::class, 'create'])->name('graduates.create');
     Route::post('/graduates', [GraduateController::class, 'store'])->name('institution.graduate.store');
+    Route::get('/graduates/upload', [GraduateController::class, 'batchPage'])->name('graduates.batch.page');
     Route::put('/graduates/{graduate}', [GraduateController::class, 'update'])->name('graduates.update');
     Route::delete('/graduates/{graduate}', [GraduateController::class, 'destroy'])->name('graduates.destroy');
-
+    Route::post('/graduates/batch-upload', [GraduateController::class, 'batchUpload'])->name('graduates.batch.upload');
+    Route::get('/graduates/template/download', [GraduateController::class, 'downloadTemplate'])->name('graduates.template.download');
 });
 
 

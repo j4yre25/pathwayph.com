@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Actions\Fortify\CreateNewGraduate;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 
 class GraduateController extends Controller
 {
@@ -104,5 +109,127 @@ class GraduateController extends Controller
     {
         $graduate->delete();
         return redirect()->back()->with('flash.banner', 'Graduate archived successfully.');
+    }
+
+    public function batchPage()
+    {
+        return Inertia::render('Graduates/BatchUploadPreview');
+    }
+
+    public function batchUpload(Request $request): JsonResponse
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt',
+        ]);
+
+        $file = $request->file('csv_file');
+        $handle = fopen($file, 'r');
+
+        if (!$handle) {
+            return response()->json(['status' => 'error', 'message' => 'Unable to read the CSV file.'], 400);
+        }
+
+        $header = fgetcsv($handle);
+        $errors = [];
+        $validRows = [];
+        $rowNum = 2; // Start from second row (after header)
+        $institutionId = auth()->id();
+
+        while (($data = fgetcsv($handle)) !== false) {
+            $row = array_combine($header, $data);
+
+            $validator = Validator::make($row, [
+                'email' => 'required|email|unique:users,email',
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'middle_initial' => 'required|string|max:5',
+                'program_completed' => 'required|exists:programs,name',
+                'year_graduated' => 'required|exists:school_years,school_year_range',
+                'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
+                'current_job_title' => 'required_if:employment_status,Employed,Underemployed|nullable|string|max:255',
+                'gender' => 'required|in:Male,Female,Other',
+                'dob' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
+                'contact_number' => 'required|digits_between:10,15|regex:/^9\d{9}$/',
+            ]);
+
+            if ($validator->fails()) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'messages' => $validator->errors()->all(),
+                ];
+            } else {
+                $validRows[] = $row;
+            }
+
+            $rowNum++;
+        }
+
+        fclose($handle);
+
+        if (count($errors)) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        foreach ($validRows as $row) {
+            $password = $this->generatePassword($row['last_name'], $row['dob']);
+
+            $user = User::create([
+                'email' => $row['email'],
+                'password' => Hash::make($password),
+                'role' => 'graduate',
+                'is_approved' => true,
+                'gender' => $row['gender'],
+                'dob' => $row['dob'],
+                'contact_number' => $row['contact_number'],
+                'graduate_first_name' => $row['first_name'],
+                'graduate_last_name' => $row['last_name'],
+                'graduate_middle_initial' => $row['middle_initial'],
+                'graduate_school_graduated_from' => $institutionId,
+                'graduate_program_completed' => $this->getProgramId($row['program_completed']),
+                'graduate_year_graduated' => $this->getYearId($row['year_graduated']),
+                'institution_id' => $institutionId,
+            ]);
+
+            DB::table('graduates')->insert([
+                'user_id' => $user->id,
+                'first_name' => $row['first_name'],
+                'last_name' => $row['last_name'],
+                'middle_initial' => $row['middle_initial'],
+                'institution_id' => $institutionId,
+                'program_id' => $this->getProgramId($row['program_completed']),
+                'school_year_id' => $this->getYearId($row['year_graduated']),
+                'employment_status' => $row['employment_status'],
+                'current_job_title' => in_array($row['employment_status'], ['Employed', 'Underemployed']) ? $row['current_job_title'] : 'N/A',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $user->assignRole('graduate');
+        }
+
+        return response()->json(['status' => 'success']);
+    }
+    public function downloadTemplate()
+    {
+        return response()->download(public_path('templates/graduate_template.csv'));
+    }
+
+    private function getProgramId($programName)
+    {
+        return DB::table('programs')->where('name', $programName)->value('id');
+    }
+
+    private function getYearId($schoolYearRange)
+    {
+        return DB::table('school_years')->where('school_year_range', $schoolYearRange)->value('id');
+    }
+
+    private function generatePassword($lastName, $dob)
+    {
+        $year = Carbon::parse($dob)->year;
+        return "{$lastName}{$year}!!!";
     }
 }

@@ -46,17 +46,36 @@ const applyFilters = () => {
 };
 
 const filteredGraduates = computed(() => {
-    return props.graduates.filter(g => {
-        const matchesProgram = filters.value.program === 'all' || g.program_name === filters.value.program;
-        const matchesDateFrom = !filters.value.date_from || new Date(g.created_at) >= new Date(filters.value.date_from);
-        const matchesDateTo = !filters.value.date_to || new Date(g.created_at) <= new Date(filters.value.date_to);
-        const matchesStatus = filters.value.status === 'all' ||
-            (filters.value.status === 'active' && g.is_approved) ||
-            (filters.value.status === 'inactive' && !g.is_approved);
-
-        return matchesProgram && matchesDateFrom && matchesDateTo && matchesStatus;
-    });
+  return props.graduates.filter(g => {
+    const createdAt = new Date(g.created_at);
+    const dateFrom = filters.value.date_from ? new Date(filters.value.date_from) : null;
+    
+    let dateTo = null;
+    if (filters.value.date_to) {
+      // Create a Date from the filter and set its time to the end of the day.
+      dateTo = new Date(filters.value.date_to);
+      dateTo.setHours(23, 59, 59, 999);
+    }
+    
+    const matchesDateFrom = !dateFrom || createdAt >= dateFrom;
+    const matchesDateTo = !dateTo || createdAt <= dateTo;
+    
+    const matchesProgram = filters.value.program === 'all' || g.program_name === filters.value.program;
+    
+    return matchesProgram && matchesDateFrom && matchesDateTo;
+  });
 });
+
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString; // fallback for invalid dates
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 </script>
 <template>
     <AppLayout title="Graduate List">
@@ -135,7 +154,7 @@ const filteredGraduates = computed(() => {
                                 graduate.graduate_last_name }}
                             </td>
                             <td class="px-6 py-4">{{ graduate.program_name }}</td>
-                            <td class="px-6 py-4">{{ new Date(graduate.created_at).toLocaleDateString() }}</td>
+                            <td class="px-6 py-4">{{ formatDate(graduate.created_at) }}</td>
                             <td class="px-6 py-4">
                                 <span
                                     :class="graduate.status === 'Active' ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'">
