@@ -158,25 +158,30 @@ const redirectToLogin = () => {
     <Head title="Register" />
 
     <AuthenticationCard>
-
-
         <!-- UPDATE 04/04 Putting form inside the template for registrtion form layout -->
         <template #registerForm>
-
-
+            <div class="flex flex-col items-center justify-center mb-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Register {{ form.role }} </h1>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Please fill out the form below to register.</p>
+                </div>
+            </div>
+            <div class="w-full border-t border-gray-300 mb-6"></div>
 
             <form @submit.prevent="submit" autocomplete="off">
                 <!-- Company Fields -->
                 <div v-if="form.role === 'company'" class="flex space-x-12  ">
                     <div
                         class="flex-1 flex flex-col items-start justify-center p-6 bg-gradient-to-r from-purple-600 to-blue-500 rounded-lg shadow-lg text-white ">
-                        <AuthenticationCardLogo class="mx-20 fill-white-100" />
-                        <h2 class="text-6xl font-bold">Welcome to</h2>
-                        <h1 class="text-7xl font-extrabold">Pathway</h1>
-                        <p class="mt-4 text-sm">
-                            Join us in shaping the future of education. We are excited to partner with you in this
-                            journey.
-                        </p>
+                            <AuthenticationCardLogo class="mx-20 fill-white-100" />
+                            <h2 class="text-6xl font-bold">Welcome to</h2>
+                            <h1 class="text-7xl font-extrabold">Pathway</h1>
+                            <p class="mt-4 text-sm">
+                                Join us in shaping the future of education. We are excited to partner with you in this
+                                journey.
+                            </p>
                     </div>
 
                     <div class="flex-1 space-y-2">
@@ -192,6 +197,7 @@ const redirectToLogin = () => {
                                 </div>
                                 <div>
                                     <TextInput id="company_name" v-model="form.company_name" type="text"
+                                        placeholder="XYZ Corporation"
                                         class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                         required />
                                     <InputError class="mt-2" :message="form.errors.company_name" />
@@ -207,6 +213,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="company_street_address" v-model="form.company_street_address"
+                                            placeholder="123 Main St"
                                             type="text"
                                             class="mt-1 mb-4 block w-full l border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
@@ -221,6 +228,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="company_brgy" v-model="form.company_brgy" type="text"
+                                            placeholder="Barangay 123"
                                             class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-1" :message="form.errors.company_brgy" />
@@ -236,6 +244,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="company_city" v-model="form.company_city" type="text"
+                                            placeholder="General Santos City"
                                             class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-1" :message="form.errors.company_city" />
@@ -249,6 +258,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="company_province" v-model="form.company_province" type="text"
+                                            placeholder="South Cotabato"
                                             class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-1" :message="form.errors.company_province" />
@@ -282,6 +292,7 @@ const redirectToLogin = () => {
                                 </div>
                                 <div>
                                     <TextInput id="company_email" v-model="form.company_email" type="email"
+                                        placeholder="example@email.com"
                                         class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                         required />
                                     <InputError class="mt-2" :message="form.errors.company_email" />
@@ -297,7 +308,8 @@ const redirectToLogin = () => {
                                             <span class="text-red-500">*</span>
                                         </div>
                                         <TextInput id="company_contact_number" v-model="companyContactNumber"
-                                            v-mask="'# (###) ###-####'" type="text"
+                                            placeholder="+63 912 345 6789"
+                                            type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-2" :message="form.errors.company_contact_number" />
@@ -329,6 +341,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="company_hr_first_name" v-model="form.company_hr_first_name"
+                                            placeholder="Juan"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
@@ -342,6 +355,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="company_hr_last_name" v-model="form.company_hr_last_name"
+                                            placeholder="Dela Cruz"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
@@ -363,7 +377,6 @@ const redirectToLogin = () => {
                                             <option value="">Select Gender</option>
                                             <option value="Male">Male</option>
                                             <option value="Female">Female</option>
-                                            <option value="Other">Other</option>
                                         </select>
                                         <InputError class="" :message="form.errors.gender" />
                                     </div>
@@ -392,6 +405,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="email" v-model="form.email" type="email"
+                                            placeholder="example@email.com"
                                             class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-2" :message="form.errors.email" />
@@ -406,8 +420,7 @@ const redirectToLogin = () => {
                                     </div>
                                     <div>
                                         <TextInput id="contact_number" v-model="contactNumber"
-                                            v-mask="'# (###) ###-####'"
-                                            :placeholder="contactNumber === '(##) ###-####' ? '(02) 1234-5678' : '(0XX) XXXX-XXXX'"
+                                            placeholder="+63 912 345 6789"
                                             type="text"
                                             class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />

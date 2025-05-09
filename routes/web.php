@@ -30,7 +30,7 @@ use App\Http\Controllers\JobSearchController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\HRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
-use App\Http\Controllers\ManageHRController;
+use App\Http\Controllers\CompanyManageHRController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -261,24 +261,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 });
 
 // Manage HR Accounts 
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    // View all HR accounts
-    Route::get('/hr-accounts', [ManageHRController::class, 'index'])->name('hr-accounts.index');
-
-    // Create a new HR account
-    Route::post('/hr-accounts', [ManageHRController::class, 'store'])->name('hr-accounts.store');
-
-    // View details of a specific HR account
-    Route::get('/hr-accounts/{hrAccount}', [ManageHRController::class, 'show'])->name('hr-accounts.show');
-
-    // Update an HR account
-    Route::put('/hr-accounts/{hrAccount}', [ManageHRController::class, 'update'])->name('hr-accounts.update');
-
-    // Delete an HR account
-    Route::delete('/hr-accounts/{hrAccount}', [ManageHRController::class, 'delete'])->name('hr-accounts.delete');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/company/manage-hrs', [CompanyManageHRController::class, 'index'])->name('company.manage-hrs');
+    Route::get('/company/manage-hrs/{id}/edit', [CompanyManageHRController::class, 'edit'])->name('company.manage-hrs.edit');
+    Route::put('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'update'])->name('company.manage-hrs.update');
+    Route::delete('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'destroy'])->name('company.manage-hrs.destroy');
 });
-
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
