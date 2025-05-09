@@ -35,6 +35,7 @@ class CompanyProfileController extends Controller
                     $user->company_brgy,
                     $user->company_city,
                 ])),
+                'job_post_count' => $user->jobs()->count(),
                 'profile_photo' => $user->profile_photo_path ? Storage::url($user->profile_photo_path) : null,
                 'cover_photo' => $user->cover_photo_path ? Storage::url($user->cover_photo_path) : null,
             ],
