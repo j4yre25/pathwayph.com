@@ -20,6 +20,7 @@ const props = defineProps({
 
 })
 
+console.log(props.all_users);
 
 
 const filters = ref({
@@ -149,7 +150,7 @@ const goTo = (url) => {
                                     {{ user.company_name }}
                                 </template>
                                 <template v-else-if="user.role === 'institution'">
-                                    {{ user.institution.name }}
+                                    {{ user.institution_name }}
                                 </template>
                                 <template v-else-if="user.role === 'peso'">
                                     {{ user.peso_first_name }} {{ user.peso_last_name }}

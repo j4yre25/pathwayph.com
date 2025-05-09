@@ -12,7 +12,7 @@ class ManageUsersController extends Controller
     {
 
 
-        $users = User::whereIn('role', ['company', 'institution'])
+        $users = User::whereIn('role', ['company', 'institution', 'peso'])
         ->orderBy('created_at', 'desc') // Sort by created_at in descending order
         ->paginate(10); // Paginate the results
 
@@ -40,6 +40,8 @@ class ManageUsersController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->paginate(10); // Paginate the results (10 users per page)
+
+            
     
         return inertia('Admin/ManageUsers/Index/List', [
             'all_users' => $users,
