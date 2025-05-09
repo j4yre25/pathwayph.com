@@ -69,7 +69,10 @@ use App\Http\Controllers\CareerGoalsController;
 use App\Http\Controllers\JobsListController;
 use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\ResumeController;
-
+use App\Notifications\VerifyEmailWithCode;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return Inertia::render('Auth/Login');
@@ -141,7 +144,7 @@ Route::middleware(['auth'])->group(function () {
 // Company Jobs Routes
 // Route::prefix('user')->group(function () {
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}', [CompanyJobsController::class, 'index'])
-->name('company.jobs');
+    ->name('company.jobs');
 
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}/archivedlist', [CompanyJobsController::class, 'archivedlist'])
@@ -152,14 +155,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->post('company/jobs/{user}', [CompanyJobsController::class, 'store'])
     ->name('company.jobs.store');
-    
-    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->get('company/jobs/manage/{user}', [CompanyJobsController::class, 'manage'])
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->get('company/jobs/manage/{user}', [CompanyJobsController::class, 'manage'])
     ->name('company.jobs.manage');
-    
-    
-    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/view/{job}', [CompanyJobsController::class, 'view'])
+
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/view/{job}', [CompanyJobsController::class, 'view'])
     ->name('company.jobs.view');
-    
+
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/edit/{job}', [CompanyJobsController::class, 'edit'])
     ->name('company.jobs.edit');
 
@@ -171,7 +174,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     ->name('company.jobs.delete');
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->post('company/jobs/{job}/auto-invite', [CompanyJobsController::class, 'autoInvite'])
-->name('company.jobs.auto-invite');
+    ->name('company.jobs.auto-invite');
 
 Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
 
@@ -211,7 +214,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
-}); 
+});
 
 //End of Company Routes
 
@@ -297,7 +300,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
-}); 
+});
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
@@ -329,11 +332,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::delete('/sectors/edit/{sector}', [SectorController::class, 'delete'])->name('sectors.delete');
     Route::get('/sectors/{user}/archivedlist', [SectorController::class, 'archivedlist'])->name('sectors.archivedlist');
     Route::post('/sectors/edit/{sector}', [SectorController::class, 'restore'])->name('sectors.restore');
-
 });
 
 // Categories
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ])->group(function () {
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->group(function () {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/list', [CategoryController::class, 'list'])->name('categories.list');
     Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
@@ -370,7 +372,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 
 
- //School Year Routes
+//School Year Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/institutions/school-years/{user}', [SchoolYearController::class, 'index'])->name('school-years');
     Route::get('/institutions/school-years/{user}/list', [SchoolYearController::class, 'list'])->name('school-years.list');
@@ -381,7 +383,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::delete('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'delete'])->name('school-years.delete');
     Route::get('/institutions/school-years/{user}/archivedlist', [SchoolYearController::class, 'archivedlist'])->name('school-years.archivedlist');
     Route::post('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'restore'])->name('school-years.restore');
-
 });
 
 //Degree Routes
@@ -395,7 +396,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::delete('/institutions/degrees/edit/{degree}', [DegreeController::class, 'delete'])->name('degrees.delete');
     Route::get('/institutions/degrees/{user}/archivedlist', [DegreeController::class, 'archivedlist'])->name('degrees.archivedlist');
     Route::post('/institutions/degrees/edit/{degree}', [DegreeController::class, 'restore'])->name('degrees.restore');
-
 });
 
 // PROGRAM ROUTES
@@ -421,21 +421,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::put('/graduates/restore/{user}', [ManageGraduatesApprovalController::class, 'restore'])->name('graduates.restore');
 });
 
-Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     // List Graduates – displays only graduates for the current institution
     Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
 
     // Graduate Manual Creation – for manually creating a new graduate account.
     Route::post('/graduates/manual-store', [CreateNewGraduateController::class, 'store'])
-         ->name('graduates.manual.store');
+        ->name('graduates.manual.store');
 
     // Update Graduate – used by your modal when editing existing graduate data.
     Route::patch('/graduates/{graduate}', [GraduateController::class, 'update'])
-         ->name('graduates.update');
+        ->name('graduates.update');
 
     // Archive Graduate – soft-deletes a graduate record.
     Route::delete('/graduates/{graduate}', [GraduateController::class, 'destroy'])
-         ->name('graduates.destroy');
+        ->name('graduates.destroy');
 });
 
 
@@ -470,10 +470,37 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
     // Password Reset...
     if (Features::enabled(Features::registration())) {
         if ($enableViews) {
+            // Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+            //     $request->fulfill();
+
+            //     return redirect('/dashboard'); // Redirect to the dashboard or another page after verification
+            // })->middleware(['auth', 'signed'])->name('verification.verify');
             // Default registration view
+            Route::post('/verify-email', [CustomRegisteredUserController::class, 'verifyEmail'])->name('verify.email');
+            Route::post('/email/verify-code', [CustomRegisteredUserController::class, 'verifyCode'])->name('verify.code');
 
+            Route::get('/email/verify', function () {
+                return Inertia::render('Auth/VerifyEmail', [
 
-            // Role-specific registration views
+                    'auth' => [
+                        'user' => Auth::user(), // Pass the authenticated user's data
+                    ],
+                ]);
+            })->middleware('auth')->name('verification.notice');
+
+            Route::post('/email/verification-notification', function (Request $request) {
+                $user = $request->user();
+
+                // Generate a new verification code
+                $verificationCode = rand(100000, 999999);
+                $user->verification_code = $verificationCode;
+                $user->save();
+
+                // Send the verification code via email
+                $user->notify(new VerifyEmailWithCode($verificationCode));
+
+                return back()->with('message', 'Verification code sent!');
+            })->middleware(['auth', 'throttle:6,1'])->name('verification.resend');
 
             Route::get('/register/graduate', [CustomRegisteredUserController::class, 'create'])
                 ->middleware(['guest:' . config('fortify.guard')])
@@ -519,21 +546,21 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->name('register.users');
     }
     // Email Verification...
-    if (Features::enabled(Features::emailVerification())) {
-        if ($enableViews) {
-            Route::get(RoutePath::for('verification.notice', '/email/verify'), [EmailVerificationPromptController::class, '__invoke'])
-                ->middleware([config('fortify.auth_middleware', 'auth') . ':' . config('fortify.guard')])
-                ->name('verification.notice');
-        }
+    // if (Features::enabled(Features::emailVerification())) {
+    //     if ($enableViews) {
+    //         Route::get(RoutePath::for('verification.notice', '/email/verify'), [EmailVerificationPromptController::class, '__invoke'])
+    //             ->middleware([config('fortify.auth_middleware', 'auth') . ':' . config('fortify.guard')])
+    //             ->name('verification.notice');
+    //     }
 
-        Route::get(RoutePath::for('verification.verify', '/email/verify/{id}/{hash}'), [VerifyEmailController::class, '__invoke'])
-            ->middleware([config('fortify.auth_middleware', 'auth') . ':' . config('fortify.guard'), 'signed', 'throttle:' . $verificationLimiter])
-            ->name('verification.verify');
+    // Route::get(RoutePath::for('verification.verify', '/email/verify/{id}/{hash}'), [VerifyEmailController::class, '__invoke'])
+    //     ->middleware([config('fortify.auth_middleware', 'auth') . ':' . config('fortify.guard'), 'signed', 'throttle:' . $verificationLimiter])
+    //     ->name('verification.verify');
 
-        Route::post(RoutePath::for('verification.send', '/email/verification-notification'), [EmailVerificationNotificationController::class, 'store'])
-            ->middleware([config('fortify.auth_middleware', 'auth') . ':' . config('fortify.guard'), 'throttle:' . $verificationLimiter])
-            ->name('verification.send');
-    }
+    //     Route::post(RoutePath::for('verification.send', '/email/verification-notification'), [EmailVerificationNotificationController::class, 'store'])
+    //         ->middleware([config('fortify.auth_middleware', 'auth') . ':' . config('fortify.guard'), 'throttle:' . $verificationLimiter])
+    //         ->name('verification.send');
+    // }
 
     // Profile Information...
     if (Features::enabled(Features::updateProfileInformation())) {
@@ -822,4 +849,3 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/file/{filename}', [ProfileController::class, 'getFile']);
     Route::delete('/file/{filename}', [ProfileController::class, 'deleteFile']);
 });
-

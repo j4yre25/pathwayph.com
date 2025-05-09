@@ -23,6 +23,12 @@ console.log(props);
 
 const isPasswordFocused = ref(false);
 const showModal = ref(false);
+const showVerificationModal = ref(false); // New modal for verification code
+const verificationForm = useForm({
+    email: '',
+    verification_code: '',
+});
+
 
 // Define the form with additional fields for user types
 const form = useForm({
@@ -124,8 +130,17 @@ const submit = () => {
             form.reset('password', 'password_confirmation');
         },
         onSuccess: () => {
-            showModal.value = true;
-            console.log("showModal:", showModal.value);
+            showVerificationModal.value = true; // Show verification modal
+            verificationForm.email = form.email;
+        },
+    });
+};
+
+const verifyCode = () => {
+    verificationForm.post(route('verify.email'), {
+        onSuccess: () => {
+            showVerificationModal.value = false;
+            Inertia.visit(route('login')); // Redirect to login after successful verification
         },
     });
 };
@@ -905,18 +920,36 @@ const redirectToLogin = () => {
         </template>
     </AuthenticationCard>
 
-    <Modal v-if="showModal" :show="showModal" @close="redirectToLogin">
-        <template #default>
-            <div class="text-center">
-                <h2 class="text-lg font-semibold">Registration Successful</h2>
-                <p class="mt-2 text-gray-600">You have registered successfully. Click "Okay" to proceed to the login
-                    page.</p>
-                <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-                    @click="redirectToLogin">
-                    Okay
-                </button>
-            </div>
-        </template>
-    </Modal>
+
+   <Modal v-if="showVerificationModal" :show="showVerificationModal" @close="redirectToLogin">
+    <template #default>
+        <div class="text-center">
+            <h2 class="text-lg font-semibold">Verify Your Email</h2>
+            <p class="mt-2 text-gray-600">
+                A verification code has been sent to your email. Please enter the code below to verify your email address.
+                The code will expire in 10 minutes.
+            </p>
+            <form @submit.prevent="verifyCode" class="mt-4">
+                <div>
+                    <InputLabel for="verification_code" value="Verification Code" />
+                    <TextInput id="verification_code" v-model="verificationForm.verification_code" type="text" required />
+                    <InputError :message="verificationForm.errors.verification_code" class="mt-2" />
+                </div>
+                <div class="mt-4 flex items-center justify-between">
+                    <PrimaryButton :class="{ 'opacity-25': verificationForm.processing }" :disabled="verificationForm.processing">
+                        Verify
+                    </PrimaryButton>
+                    <button
+                        type="button"
+                        @click="resendCode"
+                        class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                        Resend Verification Code
+                    </button>
+                </div>
+            </form>
+        </div>
+    </template>
+</Modal>
 
 </template>
