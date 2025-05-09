@@ -392,7 +392,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 // Categories
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->group(function () {
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage users'])->group(function () {
 
@@ -486,21 +485,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 });
 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
-    // List Graduates – displays only graduates for the current institution
-    Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
-
-    // Graduate Manual Creation – for manually creating a new graduate account.
-    Route::post('/graduates/manual-store', [CreateNewGraduateController::class, 'store'])
-        ->name('graduates.manual.store');
-
-    // Update Graduate – used by your modal when editing existing graduate data.
-    Route::patch('/graduates/{graduate}', [GraduateController::class, 'update'])
-        ->name('graduates.update');
-
-    // Archive Graduate – soft-deletes a graduate record.
-    Route::delete('/graduates/{graduate}', [GraduateController::class, 'destroy'])
-        ->name('graduates.destroy');
 
 Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
     
