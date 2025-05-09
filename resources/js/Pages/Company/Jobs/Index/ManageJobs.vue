@@ -136,7 +136,7 @@ const disapproveJob = (job) => {
 
                 <template #footer>
                     <DangerButton @click="archiveJob" class="mr-2">
-                        Archive User
+                        Archive Job
                     </DangerButton>
                     <SecondaryButton @click="showModal = false">Cancel</SecondaryButton>
                 </template>

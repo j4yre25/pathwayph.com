@@ -31,7 +31,7 @@ class CreateNewHR implements CreatesNewUsers
                 'company_hr_first_name' => ['required', 'string', 'max:255'],    
                 'company_hr_last_name' => ['required', 'string', 'max:255'],    
                 'dob' => ['required', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')],
-                'gender' => ['required', 'string', 'in:Male,Female,Other'],
+                'gender' => ['required', 'string', 'in:Male,Female'],
                 'contact_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
             ])->validate();
 
