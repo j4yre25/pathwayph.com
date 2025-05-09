@@ -121,7 +121,11 @@ const submit = () => {
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
-                                        <TextInput id="company_hr_first_name" v-model="form.company_hr_first_name" type="text" class="mt-1 mb-4 block w-full" required />
+                                       <!-- <TextInput id="company_hr_first_name" v-model="form.company_hr_first_name" type="text" class="mt-1 mb-4 block w-full" required /> -->
+                                        <i class="fas fa-user absolute left-3 top-10 text-gray-400"></i>
+                    <input type="text" id="full-name"
+                      class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-2 focus:ring-indigo-600"
+                      v-model="profile.fullName" placeholder="Enter your full name" />
                                         <InputError class="mt-2" :message="form.errors.company_hr_first_name" />
                                     </div>
                                </div>
