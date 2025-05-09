@@ -698,20 +698,20 @@ const redirectToLogin = () => {
                         <!-- Graduate First Name -->
                         <div class="grid grid-cols-1 gap-4">
 
-                            <InputLabel for="graduate_first_name" value="Graduate First Name" />
+                            <InputLabel for="graduate_first_name" value="First Name" />
                             <TextInput id="graduate_first_name" v-model="form.graduate_first_name" type="text"
                                 class="mt-1 block w-full" required />
                             <InputError class="mt-2" :message="form.errors.graduate_first_name" />
                         </div>
 
                         <!-- Graduate Middle Initial -->
-                        <InputLabel for="graduate_middle_initial" value="Graduate Middle Initial" />
+                        <InputLabel for="graduate_middle_initial" value="GMiddle Initial" />
                         <TextInput id="graduate_middle_initial" v-model="form.graduate_middle_initial" type="text"
                             class="mt-1 block w-full" required />
                         <InputError class="mt-2" :message="form.errors.graduate_middle_initial" />
 
                         <!-- Graduate Last Name -->
-                        <InputLabel for="graduate_last_name" value="Graduate Last Name" />
+                        <InputLabel for="graduate_last_name" value="Last Name" />
                         <TextInput id="graduate_last_name" v-model="form.graduate_last_name" type="text"
                             class="mt-1 block w-full" required />
                         <InputError class="mt-2" :message="form.errors.graduate_last_name" />

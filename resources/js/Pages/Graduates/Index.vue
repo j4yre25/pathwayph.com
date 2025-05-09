@@ -20,7 +20,6 @@ function openAddModal() {
 }
 
 function editGraduate(grad) {
-  // Pre-fill the modal with all graduate info.
   selectedGraduate.value = { ...grad }
   isModalOpen.value = true;
 }
@@ -48,20 +47,24 @@ function archiveGraduate(id) {
         <div class="bg-white shadow-xl rounded-2xl p-6">
           <!-- Action Buttons -->
           <div class="flex justify-between items-center mb-6">
-            <div>
-              <button @click="$inertia.get(route('graduates.index'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-2">
+            <div class="space-x-2">
+              <button @click="$inertia.get(route('graduates.index'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 List of Graduates
               </button>
               <button @click="$inertia.get(route('graduates.archived'))" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
                 Archived Graduates
               </button>
+              <button @click="$inertia.get(route('graduates.batch.page'))" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                Upload CSV
+              </button>
             </div>
             <div>
-              <button @click="$inertia.get(route('graduates.create'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              <button @click="openAddModal" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 Add Graduate
               </button>
             </div>
           </div>
+
           <!-- Graduate Table -->
           <table class="min-w-full table-auto border rounded-lg overflow-hidden">
             <thead class="bg-gray-100 text-sm text-left">
@@ -90,6 +93,7 @@ function archiveGraduate(id) {
               </tr>
             </tbody>
           </table>
+
           <!-- Graduate Modal -->
           <GraduateModal
             :show="isModalOpen"
