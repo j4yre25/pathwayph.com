@@ -1,77 +1,87 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
-import { usePage } from '@inertiajs/vue3';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 
 const page = usePage();
 
 const props = defineProps({
-    programs: Array
+  programs: Array
 });
 
-const showModal = ref(false);
-const programToDelete = ref(null);
+const selectedStatus = ref('all');
+const appliedStatus = ref('all');
 
 const filteredPrograms = computed(() => {
-    return props.programs;
+  if (appliedStatus.value === 'all') return props.programs;
+  return props.programs.filter(program =>
+    appliedStatus.value === 'active' ? !program.deleted_at : program.deleted_at
+  );
 });
 
-function confirmDelete(program) {
-    programToDelete.value = program;
-    showModal.value = true;
-}
-
-function handleDelete() {
-    router.delete(route('programs.destroy', { program: programToDelete.value.id }), {
-        preserveScroll: true,
-        onSuccess: () => showModal.value = false,
-    });
+function applyFilter() {
+  appliedStatus.value = selectedStatus.value;
 }
 </script>
 
 <template>
-    <AppLayout title="Manage Programs">
-        <template #header>List of Programs</template>
+  <AppLayout title="Manage Programs">
+    <template #header>
+      <h2 class="text-2xl font-semibold text-gray-800">Manage Programs</h2>
+    </template>
 
-        <Container class="py-8">
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                            <th class="border border-gray-200 px-6 py-3 text-left">Program</th>
-                            <th class="border border-gray-200 px-6 py-3 text-left">Degree</th>
-                            <th class="border border-gray-200 px-6 py-3 text-left">Status</th>
-                            <th class="border border-gray-200 px-6 py-3 text-left">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-gray-600 text-sm font-light">
-                        <tr v-for="prog in filteredPrograms" :key="prog.id" class="border-b border-gray-200 hover:bg-gray-100">
-                            <td class="border border-gray-200 px-6 py-4">{{ prog.name }}</td>
-                            <td class="border border-gray-200 px-6 py-4">{{ prog.degree?.type }}</td>
-                            <td class="border border-gray-200 px-6 py-4" :class="prog.deleted_at ? 'text-red-500 font-bold' : 'text-green-500 font-bold'">
-                                {{ prog.deleted_at ? 'Inactive' : 'Active' }}
-                            </td>
-                            <td class="border border-gray-200 px-6 py-4">
-                                <DangerButton @click="confirmDelete(prog)">Delete</DangerButton>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+    <Container class="py-6 space-y-6">
+      <!-- Filter Section -->
+      <div class="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-4">
+        <label for="statusFilter" class="font-medium text-gray-700">Filter by Status:</label>
+        <select
+          id="statusFilter"
+          v-model="selectedStatus"
+          class="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+        >
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button
+          @click="applyFilter"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm transition"
+        >
+          Apply Filter
+        </button>
+      </div>
 
-            <ConfirmationModal :show="showModal" @close="showModal = false">
-                <template #title>Confirm Deletion</template>
-                <template #content>Are you sure you want to delete this program?</template>
-                <template #footer>
-                    <PrimaryButton @click="showModal = false">Cancel</PrimaryButton>
-                    <DangerButton @click="handleDelete">Delete</DangerButton>
-                </template>
-            </ConfirmationModal>
-        </Container>
-    </AppLayout>
+      <!-- Table Section -->
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left text-gray-700">
+            <thead class="bg-gray-100 text-xs uppercase tracking-wider text-gray-600">
+              <tr>
+                <th class="px-6 py-4">Program</th>
+                <th class="px-6 py-4">Degree</th>
+                <th class="px-6 py-4">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="prog in filteredPrograms"
+                :key="prog.id"
+                class="border-t hover:bg-gray-50 transition-colors"
+              >
+                <td class="px-6 py-4 whitespace-nowrap">{{ prog.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ prog.degree?.type }}</td>
+                <td
+                  class="px-6 py-4 font-semibold whitespace-nowrap"
+                  :class="prog.deleted_at ? 'text-red-600' : 'text-green-600'"
+                >
+                  {{ prog.deleted_at ? 'Inactive' : 'Active' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Container>
+  </AppLayout>
 </template>

@@ -11,29 +11,38 @@ use Inertia\Inertia;
 
 class SchoolYearController extends Controller
 {
-    public function index(User $user)
-    {
-        $user->load('school_years');
+    public function index()
+{
+    $user = Auth::user();
+    $user->load('school_years');
+    return Inertia::render('Institutions/SchoolYears/Index', [
+        'school_years' => $user->school_years,
+    ]);
+}
 
-        return Inertia::render('Institutions/SchoolYears/Index', [
-            'school_years' => $user->school_years
-        ]);
-    }
 
     public function list(Request $request)
-    {
-        $status = $request->input('status', 'all');
+{
+    $user = Auth::user();
+    $status = $request->input('status', 'all');
 
-        $school_years = SchoolYear::with('user')->withTrashed()
-            ->when($status === 'active', fn($query) => $query->whereNull('deleted_at'))
-            ->when($status === 'inactive', fn($query) => $query->whereNotNull('deleted_at'))
-            ->get();
+    $school_years = SchoolYear::with('user')
+        ->withTrashed()
+        ->where('user_id', $user->id) // Only get school years for the current institution
+        ->when($status === 'active', function ($query) {
+            $query->whereNull('deleted_at');
+        })
+        ->when($status === 'inactive', function ($query) {
+            $query->whereNotNull('deleted_at');
+        })
+        ->get();
 
-        return Inertia::render('Institutions/SchoolYears/List', [
-            'school_years' => $school_years,
-            'status' => $status,
-        ]);
-    }
+    return Inertia::render('Institutions/SchoolYears/List', [
+        'school_years' => $school_years,
+        'status' => $status,
+    ]);
+}
+
 
     public function archivedList()
     {
@@ -126,7 +135,7 @@ class SchoolYearController extends Controller
 
         $user_id = $request->user()->id;
 
-        return redirect(route('school-years', ['user' => $user_id]))->with('flash.banner', 'School year archived.');
+        return back()->with('flash.banner', 'School Year archived.');
     }
 
     public function restore($schoolYear)
