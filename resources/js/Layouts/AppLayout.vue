@@ -334,6 +334,10 @@ console.log(page.props.permissions.canManageInstitution)
                                             Admin Registration
                                         </DropdownLink>
 
+                                        <DropdownLink v-if="page.props.roles.isInstitution" :href="route('careerofficer.register')">
+                                            Career Officer Registration
+                                        </DropdownLink>
+
 
                                         <DropdownLink
                                             v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"

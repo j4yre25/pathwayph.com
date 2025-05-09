@@ -14,6 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 
+
 class User extends Authenticatable
 {
     use HasApiTokens;
@@ -93,7 +94,7 @@ class User extends Authenticatable
         'institution_president_last_name',
         'institution_president_first_name',
         'institution_career_officer_first_name',
-        // 'institution_career_officer_last_name',
+        'institution_career_officer_last_name',
     ];
 
     /**

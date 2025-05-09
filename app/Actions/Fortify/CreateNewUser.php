@@ -68,6 +68,7 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['institution_president_last_name'] = ['required', 'string', 'max:255'];
                 $rules['institution_president_first_name'] = ['required', 'string', 'max:255'];
                 $rules['institution_career_officer_first_name'] = ['required', 'string', 'max:255'];
+                $rules['institution_career_officer_last_name'] = ['required', 'string', 'max:255'];
                 $rules['dob'] = ['nullable', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')];
                 $rules['gender'] = ['nullable', 'string', 'in:Male,Female,Other'];
 
@@ -113,6 +114,7 @@ class CreateNewUser implements CreatesNewUsers
             'institution_president_last_name.required' => 'The president last name field is required.',
             'institution_president_first_name.required' => 'The president first name field is required.',
             'institution_career_officer_first_name.required' => 'The career officer first name field is required.',
+            'institution_career_officer_last_name.required' => 'The career officer last name field is required.',
             'employment_status.required' => 'The employment status field is required.',
             'employment_status.in' => 'The selected employment status is invalid.',
             'current_job_title.required_if' => 'The current job title field is required when employed or underemployed.',
@@ -165,6 +167,7 @@ class CreateNewUser implements CreatesNewUsers
                 $userData['institution_president_last_name'] = $input['institution_president_last_name'];
                 $userData['institution_president_first_name'] = $input['institution_president_first_name'];
                 $userData['institution_career_officer_first_name'] = $input['institution_career_officer_first_name'];
+                $userData['institution_career_officer_last_name'] = $input['institution_career_officer_last_name'];
 
                 break;
             default:
