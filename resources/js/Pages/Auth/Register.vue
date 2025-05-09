@@ -56,6 +56,7 @@ const form = useForm({
     institution_president_last_name: '',
     institution_president_first_name: '',
     institution_career_officer_first_name: '',
+    institution_career_officer_last_name: '',
     graduate_school_graduated_from: '',
     graduate_program_completed: '',
     graduate_year_graduated: '',

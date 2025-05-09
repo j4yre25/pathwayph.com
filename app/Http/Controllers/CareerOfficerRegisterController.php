@@ -23,7 +23,7 @@ class CareerOfficerRegisterController extends Controller
      * Handle an incoming hr registration request.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Actions\Fortify\CreateNewHR  $creator
+     * @param  \App\Actions\Fortify\CreateNewCareerOfficer  $creator
      * @return \Illuminate\Http\RedirectResponse
      */
     public function register(Request $request, CreateNewCareerOfficer $creator)

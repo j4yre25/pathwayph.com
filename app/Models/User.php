@@ -94,7 +94,7 @@ class User extends Authenticatable
         'institution_president_last_name',
         'institution_president_first_name',
         'institution_career_officer_first_name',
-        // 'institution_career_officer_last_name',
+        'institution_career_officer_last_name',
     ];
 
     /**

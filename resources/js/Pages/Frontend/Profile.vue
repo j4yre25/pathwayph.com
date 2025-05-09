@@ -12,7 +12,6 @@ import axios from 'axios';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
-import '@fortawesome/fontawesome-free/css/all.css';
 import VueApexCharts from 'vue3-apexcharts';
 import SkillsChart from '@/Components/SkillsChart.vue';
 
