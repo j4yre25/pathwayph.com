@@ -62,6 +62,7 @@ use App\Http\Controllers\EmploymentPreferencesController;
 use App\Http\Controllers\CareerGoalsController;
 use App\Http\Controllers\JobsListController;
 use App\Http\Controllers\PesoProfileController;
+use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\ResumeController;
 
 use App\Notifications\VerifyEmailWithCode;
@@ -281,6 +282,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
     Route::get('/admin/profile', [PesoProfileController::class, 'profile'])->name('peso.profile');
+});
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    // View Institution Profile
+    Route::get('/institution/profile', [InstitutionProfileController::class, 'profile'])->name('institution.profile');
 });
 
 

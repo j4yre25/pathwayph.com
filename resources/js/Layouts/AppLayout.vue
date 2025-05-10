@@ -324,6 +324,12 @@ console.log(page.props.permissions.canManageInstitution)
                                             Profile
                                         </DropdownLink>
 
+                                        <DropdownLink
+                                            v-if="page.props.roles.isInstitution && page.props.auth.user.is_approved"
+                                            :disabled="!page.props.auth.user.is_approved" :href="route('institution.profile')">
+                                            Profile
+                                        </DropdownLink>
+
 
                                         <DropdownLink v-if="page.props.roles.isGraduate"
                                             :href="route('profile.index', { user: page.props.auth.user.id })"

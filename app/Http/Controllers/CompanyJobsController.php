@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-
+use Illuminate\Support\Str;
 
 
 class CompanyJobsController extends Controller
@@ -186,7 +187,7 @@ class CompanyJobsController extends Controller
     }
 
     public function update(Request $request, Job $job){
-        Gate::authorize('update', $job);
+       
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:99'],
             'description' => ['required', 'string', 'max:99'],
@@ -230,25 +231,32 @@ class CompanyJobsController extends Controller
 
 
     public function autoInvite(Job $job)
-{
-    // Get all graduates who have a graduate profile
-    $allGraduates = User::where('role', 'graduate')
-        // ->whereHas('graduate') 
-        ->get();
+    {
+        $jobSkills = collect($job->skill)
+            ->map(fn($skill) => Str::lower($skill))
+            ->filter()
+            ->unique();
 
-    foreach ($allGraduates as $graduate) {
-        JobInvitation::updateOrCreate([
-            'job_id' => $job->id,
-            'graduate_id' => $graduate->id,
-        ], [
-            'company_id' => auth()->id,
-            'status' => 'pending',
-            'message' => 'You have been invited to apply to this job opportunity.',
-        ]);
+        // Fetch all graduates (Users with role 'graduate') who have matching skills
+        $qualifiedGraduates = User::where('role', 'graduate')
+            ->whereHas('skills', function ($query) use ($jobSkills) {
+                $query->whereIn(DB::raw('LOWER(graduate_skills_name)'), $jobSkills);
+            })
+            ->get();
+
+        foreach ($qualifiedGraduates as $graduate) {
+            JobInvitation::updateOrCreate([
+                'job_id' => $job->id,
+                'graduate_id' => $graduate->id,
+            ], [
+                'company_id' => Auth::id(),
+                'status' => 'pending',
+                'message' => 'You have been invited to apply to this job opportunity.',
+            ]);
+        }
+            
+        return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skill alignment.');
     }
-
-    return back()->with('flash.banner', count($allGraduates) . ' graduates invited successfully.');
-}
 
 
     public function restore($job)

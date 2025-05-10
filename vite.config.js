@@ -19,6 +19,19 @@ export default defineConfig({
         }),
         
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // Split large dependencies into separate chunks
+                    vue: ['vue'],
+                    apexcharts: ['vue3-apexcharts'],
+                    dateFns: ['date-fns'],
+                },
+            },
+        },
+        chunkSizeWarningLimit: 1000, // Adjust the chunk size warning limit (default is 500 kB)
+    },
 
     
 });

@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import Papa from 'papaparse'
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import dayjs from 'dayjs'
+
 
 const file = ref(null)
 const parsedRows = ref([])
@@ -39,7 +41,16 @@ function validateRows() {
     if (!row.last_name) rowErrors.push('Missing last name')
     if (!row.program_completed) rowErrors.push('Missing program')
     if (!row.year_graduated) rowErrors.push('Missing year')
-    if (!row.dob) rowErrors.push('Missing date of birth')
+   if (row.dob) {
+      const parsedDate = dayjs(row.dob, 'MM/DD/YYYY', true)
+      if (parsedDate.isValid()) {
+        row.dob = parsedDate.format('YYYY-MM-DD') // Update the row with the correct format
+      } else {
+        rowErrors.push('Invalid date format for DOB (expected MM/DD/YYYY)')
+      }
+    } else {
+      rowErrors.push('Missing date of birth')
+    }
     if (!row.gender) rowErrors.push('Missing gender')
     if (!row.contact_number) rowErrors.push('Missing contact number')
     if (!row.employment_status) rowErrors.push('Missing employment status')

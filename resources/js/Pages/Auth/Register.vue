@@ -138,7 +138,7 @@ const submit = () => {
 };
 
 const verifyCode = () => {
-    verificationForm.post(route('verify.email'), {
+    verificationForm.post(route('verify.code'), {
         onSuccess: () => {
             showVerificationModal.value = false;
             Inertia.visit(route('login')); // Redirect to login after successful verification
@@ -150,6 +150,16 @@ const verifyCode = () => {
 const redirectToLogin = () => {
     Inertia.visit(route('login'));
 };
+
+
+const resendCode = () => {
+    form.post(route('verification.resend'), {
+        onSuccess: () => {
+            alert('A new verification code has been sent to your email.');
+        },
+    });
+};
+
 </script>
 
 

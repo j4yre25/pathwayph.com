@@ -18,7 +18,7 @@
     })
 
     const submitForm = () => {
-        form.put(route('jobs.update', {job: props.job.id}), {
+        form.put(route('company.jobs.update', {job: props.job.id}), {
             preserveScroll: true
         })
     }
