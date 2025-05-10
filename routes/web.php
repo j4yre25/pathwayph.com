@@ -13,6 +13,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRegisterController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ApplicantController;
+use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SectorController;
 use App\Http\Controllers\GraduateController;
@@ -293,6 +294,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
     Route::get('/admin/profile', [PesoProfileController::class, 'profile'])->name('peso.profile');
+});
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    // View Institution Profile
+    Route::get('/institution/profile', [InstitutionProfileController::class, 'profile'])->name('institution.profile');
 });
 
 
