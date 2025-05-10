@@ -14,6 +14,7 @@ const props = defineProps({
   categories: Array,
 });
 
+console.log(props.jobs)
 const goTo = (url) => {
   if (url) {
     router.get(url); // Use Inertia's router to navigate to the provided URL
@@ -44,6 +45,10 @@ const archiveJob = (jobId) => {
 const approveJob = (job) => {
   router.post(route('peso.jobs.approve', { job: job.id }), {});
 };
+
+const goToJob = (jobId) => {
+  router.get(route('peso.jobs.view', { id: jobId }));
+};
 </script>
 
 <template>
@@ -60,7 +65,8 @@ const approveJob = (job) => {
         </tr>
       </thead>
       <tbody class="text-gray-600 text-sm font-light">
-        <tr v-for="job in filteredJobs" :key="job.id" class="border-b border-gray-200 hover:bg-gray-100">
+        <tr v-for="job in filteredJobs" :key="job.id" @click="goToJob(job.id)"
+          class="border-b border-gray-200 hover:bg-gray-100">
           <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
           <td class="border border-gray-200 px-6 py-4">
             <template v-if="job.user">
