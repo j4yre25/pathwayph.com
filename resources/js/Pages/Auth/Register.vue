@@ -160,7 +160,21 @@ const resendCode = () => {
     });
 };
 
+
+
+
+const resendCode = () => {
+    form.post(route('verification.resend'), {
+        onSuccess: () => {
+            alert('A new verification code has been sent to your email.');
+        },
+    });
+};
+
+
 </script>
+
+
 
 
 <template>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Job;
 use App\Models\User;
+use App\Models\Graduate;
 use App\Models\Sector;
 use App\Models\JobInvitation;
 use Illuminate\Http\Request;
@@ -19,7 +20,8 @@ use Illuminate\Support\Str;
 
 class CompanyJobsController extends Controller
 {
-    public function index(User $user) {
+    public function index(User $user)
+    {
 
         // $jobs = $user->jobs()->withCount('applicant')->get();
 
@@ -27,25 +29,26 @@ class CompanyJobsController extends Controller
         $jobs = $user->jobs;
         $sectors = Sector::pluck('name'); // Fetch all sector names
         $categories = \App\Models\Category::pluck('name'); // Fetch all category names
-        
+
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
             'sectors' => $sectors, // Array of sectors
             'categories' => $categories,
         ]);
 
-    
+
     }
 
 
-    
-    public function create(User $user) {
-         $sectors = Sector::with('categories')->get();
+
+    public function create(User $user)
+    {
+        $sectors = Sector::with('categories')->get();
 
 
         return Inertia::render('Company/Jobs/Index/CreateJobs', [
             'sectors' => $sectors,
-    ]);
+        ]);
     }
 
     public function archivedlist(User $user)
@@ -61,18 +64,20 @@ class CompanyJobsController extends Controller
         ]);
     }
 
-    public function manage(User $user) {
+    public function manage(User $user)
+    {
         // Fetch jobs posted by the authenticated user
         $jobs = $user->jobs;
-    
+
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
             'jobs' => $jobs
         ]);
     }
-    
 
 
-    public function store(Request $request, User $user) {
+
+    public function store(Request $request, User $user)
+    {
         // return Inertia::render('Jobs/Index/CreateJobs');
         $validated = $request->validate([
             'job_title' => [
@@ -81,7 +86,7 @@ class CompanyJobsController extends Controller
                 'max:255',
                 Rule::unique('jobs')->where(function ($query) use ($user, $request) {
                     return $query->where('user_id', $user->id)
-                                 ->where('location', $request->location);
+                        ->where('location', $request->location);
                 }),
             ],
             'location' => 'required|string|max:255',
@@ -98,11 +103,11 @@ class CompanyJobsController extends Controller
             'expiration_date' => 'required|date',
             'applicants_limit' => 'nullable|integer',
             'skills' => 'required|array',
-            'sector' => 'required|exists:sectors,id', 
+            'sector' => 'required|exists:sectors,id',
             'category' => 'required|exists:categories,id',
             'posted_by' => 'string|max:255',
         ]);
-    
+
         $new_job = new Job();
         $new_job->user_id = $user->id;
         $new_job->job_title = $validated['job_title'];
@@ -117,14 +122,14 @@ class CompanyJobsController extends Controller
         $new_job->vacancy = $validated['vacancy'];
         $new_job->description = $validated['description'];
         $new_job->requirements = $validated['requirements'];
-        $new_job->sector_id = $validated['sector']; 
-        $new_job->category_id = $validated['category']; 
+        $new_job->sector_id = $validated['sector'];
+        $new_job->category_id = $validated['category'];
         $new_job->job_benefits = $validated['job_benefits'];
         $new_job->expiration_date = Carbon::parse($validated['expiration_date'])->format('F j, Y');
-        $new_job->applicants_limit = $validated['applicants_limit'] ?? null; 
-        $new_job->posted_by = $validated['posted_by'] ?? null; 
+        $new_job->applicants_limit = $validated['applicants_limit'] ?? null;
+        $new_job->posted_by = $validated['posted_by'] ?? null;
         $new_job->save();
-    
+
         // return redirect()->back()->with('flash.banner', 'Job posted successfully.');
         return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
     }
@@ -132,15 +137,15 @@ class CompanyJobsController extends Controller
     public function view(Job $job)
     {
         $job->load('company', 'category', 'user');
-    
+
         // Combine min_salary and max_salary into a salary range string
-        $salaryRange = $job->min_salary && $job->max_salary 
-                        ? $job->min_salary . ' - ' . $job->max_salary
-                        : null;
+        $salaryRange = $job->min_salary && $job->max_salary
+            ? $job->min_salary . ' - ' . $job->max_salary
+            : null;
 
         $hrFirstName = $job->user->company_hr_first_name ?? '';
         $hrLastName = $job->user->company_hr_last_name ?? '';
-        
+
         $hrFullName = trim($hrFirstName . ' ' . $hrLastName);
 
         return Inertia::render('Company/Jobs/View/EmployersJobDetails', [
@@ -160,7 +165,7 @@ class CompanyJobsController extends Controller
                 'expiration_date' => Carbon::parse($job->expiration_date)->format('F j, Y'),
                 'user_role' => $job->user->role ?? null,
                 'category' => $job->category->name ?? null,
-                'salary_range' => $salaryRange,  
+                'salary_range' => $salaryRange,
                 'company' => [
                     'name' => $job->company->company_name,
                     'email' => $job->company->company_email,
@@ -180,7 +185,8 @@ class CompanyJobsController extends Controller
         ]);
     }
 
-    public function edit(Job $job) {
+    public function edit(Job $job)
+    {
         return Inertia::render('Company/Jobs/Edit/Index', [
             'job' => $job
         ]);
@@ -189,41 +195,50 @@ class CompanyJobsController extends Controller
     public function update(Request $request, Job $job){
        
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:99'],
-            'description' => ['required', 'string', 'max:99'],
-
-
+            'job_title' => ['required', 'string', 'max:99'],
+            'description' => ['required', 'string', 'max:1000'],
+            'requirements' => ['required', 'string', 'max:1000'],
+            'skills' => ['nullable', 'array'], // Optional: if you want to update skills too
+            'skills.*' => ['string', 'max:255'], // Validate each skill
         ]);
-        
-        $job->name = $request->name;
-        $job->description = $request->description;
+
+        $job->update([
+            'job_title' => $validated['job_title'],
+            'description' => $validated['description'],
+            'requirements' => $validated['requirements'],
+            'skills' => $validated['skills'] ?? $job->skills, // Keep existing if not updating
+        ]);
         $job->save();
 
-        return Redirect()->back()->with('flash.banner', 'Job updated successfully.');
+
+        return redirect()->back()->with('flash.banner', 'Job updated successfully.');
     }
+
 
     public function approve(Job $job)
     {
-        $job->is_approved = 1; 
+        $job->is_approved = 1;
         $job->save();
-    
-        return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');    }
+
+        return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');
+    }
 
     public function disapprove(Job $job)
     {
-        $job->is_approved = 0; 
+        $job->is_approved = 0;
         $job->save();
 
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job disapproved successfully.');
     }
 
 
-    public function delete(Request $request, Job $job) {
+    public function delete(Request $request, Job $job)
+    {
 
         // Gate::authorize('delete', $job);
 
         $job->delete();
-    
+
         // $user_id = $request->user()->id;
 
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job Archived successfully.');
@@ -267,5 +282,5 @@ class CompanyJobsController extends Controller
 
         return redirect()->back()->with('flash.banner', 'Job restored successfully.');
     }
-    
+
 }

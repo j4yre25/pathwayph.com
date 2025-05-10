@@ -14,6 +14,7 @@ const props = defineProps({
   categories: Array,
 });
 
+console.log(props.jobs)
 const goTo = (url) => {
   if (url) {
     router.get(url); // Use Inertia's router to navigate to the provided URL

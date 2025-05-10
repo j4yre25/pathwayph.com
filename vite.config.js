@@ -16,7 +16,10 @@ export default defineConfig({
                     includeAbsolute: false,
                 },
             },
-        }),
+        }
+    
+    ),
+        
         
     ],
     build: {
@@ -30,8 +33,7 @@ export default defineConfig({
                 },
             },
         },
-        chunkSizeWarningLimit: 1000, // Adjust the chunk size warning limit (default is 500 kB)
+        chunkSizeWarningLimit: 1500, // Adjust the chunk size warning limit (default is 500 kB)
     },
-
     
 });

@@ -12,12 +12,15 @@
         job: Object
     })
 
+    console.log(props.job)
     const form = useForm({
-        job_name: props.job.job_title,
+        job_title: props.job.job_title,
         description: props.job.description,
+        requirements: props.job.requirements,
     })
 
     const submitForm = () => {
+        console.log('Submitted form data:', form); // Log the form data
         form.put(route('company.jobs.update', {job: props.job.id}), {
             preserveScroll: true
         })
@@ -40,14 +43,20 @@
                     <template #form>
                         <div class="col-span-6 sm:col-span-4">
                             <InputLabel value="Job Title"/>
-                                <TextInput v-model="form.job_name" type="text" class="block w-full"/>
-                                <InputError :message="form.errors.job_name" />
+                                <TextInput v-model="form.job_title" type="text" class="block w-full"/>
+                                <InputError :message="form.errors.job_title" />
                         </div>
                         
                         <div class="col-span-6 sm:col-span-4">
                             <InputLabel value="Job Description"/>
                                 <TextInput v-model="form.description" type="text" class="block w-full"/>
                                 <InputError :message="form.errors.description" />
+                        </div>
+                        
+                        <div class="col-span-6 sm:col-span-4 mt-2">
+                            <InputLabel value="Job Requirements"/>
+                                <TextInput v-model="form.requirements" type="text" class="block w-full"/>
+                                <InputError :message="form.errors.requirements" />
                         </div>
                     </template>
                     <template #actions>

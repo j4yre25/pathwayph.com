@@ -63,38 +63,46 @@ console.log(page.props.permissions.canManageInstitution)
                                 </Link>
                             </div>
 
-                           <!-- Company Navigation Links -->
-                           <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex" v-if="page.props.roles.isCompany && page.props.auth.user.is_approved">
+                            <!-- Company Navigation Links -->
+                            <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
+                                v-if="page.props.roles.isCompany && page.props.auth.user.is_approved">
 
-                                <NavLink :href="route('dashboard')" :active="route().current('dashboard')" :disabled="!page.props.auth.user.is_approved"
-                                >
+                                <NavLink :href="route('dashboard')" :active="route().current('dashboard')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Dashboard
                                 </NavLink>
 
                                 <!-- Job Inbox for Graduates -->
-                                <NavLink v-if="page.props.roles.isGraduate" :href="route('job.inbox')" :active="route().current('job.inbox')" :disabled="!page.props.auth.user.is_approved">
+                                <NavLink v-if="page.props.roles.isGraduate" :href="route('job.inbox')"
+                                    :active="route().current('job.inbox')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Job Inbox
                                 </NavLink>
 
-                                <NavLink
-                                    v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
+                                <NavLink v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
                                     :href="route('company.jobs', { user: page.props.auth.user.id })"
-                                    :active="route().current('company.jobs')" :disabled="!page.props.auth.user.is_approved">
+                                    :active="route().current('company.jobs')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Manage Job Posting
                                 </NavLink>
 
-                                <NavLink v-if="page.props.roles.isCompany" :href="route('company.jobs' , { user: page.props.auth.user.id })" :active="route().current('jobs')"    :disabled="!page.props.auth.user.is_approved"
-                                >
+                                <NavLink v-if="page.props.roles.isCompany"
+                                    :href="route('company.jobs', { user: page.props.auth.user.id })"
+                                    :active="route().current('jobs')" :disabled="!page.props.auth.user.is_approved">
                                     Manage Applicants
                                 </NavLink>
 
-                                <NavLink v-if="page.props.roles.isCompany && page.props.auth.user.is_main_hr" :href="route('company.manage-hrs' , { user: page.props.auth.user.id })" :active="route().current('company.manage-hrs')"    :disabled="!page.props.auth.user.is_approved"
-                                >
+                                <NavLink v-if="page.props.roles.isCompany && page.props.auth.user.is_main_hr"
+                                    :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
+                                    :active="route().current('company.manage-hrs')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Manage HR Accounts
                                 </NavLink>
 
-                                <NavLink v-if="page.props.roles.isCompany" :href="route('dashboard' , { user: page.props.auth.user.id })" :active="route().current('jdashboard')"    :disabled="!page.props.auth.user.is_approved"
-                                >
+                                <NavLink v-if="page.props.roles.isCompany"
+                                    :href="route('dashboard', { user: page.props.auth.user.id })"
+                                    :active="route().current('jdashboard')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Reports
                                 </NavLink>
                             </div>
@@ -102,13 +110,16 @@ console.log(page.props.permissions.canManageInstitution)
                             <!-- Navigation Links -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
 
-                                <NavLink :href="route('dashboard')" v-if="!page.props.roles.isCompany" :active="route().current('dashboard')" :disabled="!page.props.auth.user.is_approved"
-                                >
+                                <NavLink :href="route('dashboard')" v-if="!page.props.roles.isCompany"
+                                    :active="route().current('dashboard')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Dashboard
                                 </NavLink>
 
                                 <!-- Job Inbox for Graduates -->
-                                <NavLink v-if="page.props.roles.isGraduate" :href="route('job.inbox')" :active="route().current('job.inbox')" :disabled="!page.props.auth.user.is_approved">
+                                <NavLink v-if="page.props.roles.isGraduate" :href="route('job.inbox')"
+                                    :active="route().current('job.inbox')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Job Inbox
                                 </NavLink>
 
@@ -117,7 +128,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     :active="route().current('admin.manage_users')">
                                     Manage Users
 
-                                  </NavLink>
+                                </NavLink>
 
 
 
@@ -135,12 +146,10 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
 
 
-                             
 
-                                
-                                <NavLink
-                                    
-                                    v-if="page.props.roles.isPeso && page.props.auth.user.is_approved"
+
+
+                                <NavLink v-if="page.props.roles.isPeso && page.props.auth.user.is_approved"
                                     :href="route('peso.jobs', { user: page.props.auth.user.id })"
                                     :active="route().current('pesojobs')" :disabled="!page.props.auth.user.is_approved">
                                     PESO Job Posting
@@ -148,20 +157,20 @@ console.log(page.props.permissions.canManageInstitution)
 
 
 
-                                
+
 
                                 <NavLink :href="route('dashboard')" v-if="page.props.roles.isPeso" Categories
                                     :active="route().current('dashboard')">
                                     Manage Job Referrals
                                 </NavLink>
-<!-- 
+                                <!-- 
                                 <NavLink :href="route('jobs.list')" v-if="page.props.roles.isPeso" Categories
                                     :active="route().current('job.list')">
                                     Reports
                                 </NavLink> -->
 
                                 <!-- Institution Link -->
-                                
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageGraduate && page.props.auth.user.is_approved"
                                     :href="route('graduates.index')" :active="route().current('graduates.index')">
@@ -192,8 +201,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 <!-- Manage Approval Link -->
                                 <NavLink
                                     v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved"
-                                    :href="route('graduates.manage')"
-                                    :active="route().current('graduates.manage')">
+                                    :href="route('graduates.manage')" :active="route().current('graduates.manage')">
                                     Manage Approval
                                 </NavLink>
 
@@ -318,8 +326,7 @@ console.log(page.props.permissions.canManageInstitution)
                                         </div>
 
 
-                                        <DropdownLink
-                                            v-if="page.props.roles.isPeso && page.props.auth.user.is_approved"
+                                        <DropdownLink v-if="page.props.roles.isPeso && page.props.auth.user.is_approved"
                                             :disabled="!page.props.auth.user.is_approved" :href="route('peso.profile')">
                                             Profile
                                         </DropdownLink>
@@ -340,17 +347,19 @@ console.log(page.props.permissions.canManageInstitution)
                                             Admin Registration
                                         </DropdownLink>
 
-                                        <DropdownLink v-if="page.props.roles.isInstitution" :href="route('careerofficer.register')">
+                                        <DropdownLink v-if="page.props.roles.isInstitution"
+                                            :href="route('careerofficer.register')">
                                             Career Officer Registration
                                         </DropdownLink>
 
 
                                         <DropdownLink
                                             v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
-                                            :disabled="!page.props.auth.user.is_approved" :href="route('company.profile')">
+                                            :disabled="!page.props.auth.user.is_approved"
+                                            :href="route('company.profile')">
                                             Profile
                                         </DropdownLink>
-                                        
+
                                         <DropdownLink
                                             v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
                                             :disabled="!page.props.auth.user.is_approved" :href="route('hr.register')">
@@ -400,23 +409,6 @@ console.log(page.props.permissions.canManageInstitution)
                 <div :class="{ 'block': showingNavigationDropdown, 'hidden': !showingNavigationDropdown }"
                     class="sm:hidden">
                     <div class="pt-2 pb-3 space-y-1">
-                        <!-- <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
-                            Dashboard
-                        </ResponsiveNavLink> -->
-
-                        
-
-                   
-                        <ResponsiveNavLink v-if="page.props.roles.isPeso"
-                            :href="route('admin.manage_users', { user: page.props.auth.user.id })"
-                            :active="route().current('admin.manage_users')">
-                            Manage Users
-                        </ResponsiveNavLink>
-
-                        <ResponsiveNavLink v-if="page.props.roles.isPeso"
-                            :href="route('', { user: page.props.auth.user.id })" :active="route().current('')">
-                            List of Users
-                        </ResponsiveNavLink>
 
                     </div>
 
