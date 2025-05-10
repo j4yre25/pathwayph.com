@@ -6,11 +6,13 @@ use App\Models\Category;
 use App\Models\Job;
 use App\Models\Sector;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Gate;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class PesoJobsController extends Controller
 {
@@ -111,9 +113,54 @@ class PesoJobsController extends Controller
    
 
 
-    public function view(Job $job) {
-        return Inertia::render('Admin/Jobs/View/Index', [
-            'job' => $job
+public function view(Job $job)
+    {
+        $job->load('company', 'category', 'user');
+
+        // Combine min_salary and max_salary into a salary range string
+        $salaryRange = $job->min_salary && $job->max_salary
+            ? $job->min_salary . ' - ' . $job->max_salary
+            : null;
+
+        $hrFirstName = $job->user->company_hr_first_name ?? '';
+        $hrLastName = $job->user->company_hr_last_name ?? '';
+
+        $hrFullName = trim($hrFirstName . ' ' . $hrLastName);
+
+        return Inertia::render('Company/Jobs/View/EmployersJobDetails', [
+            'job' => [
+                'id' => $job->id,
+                'job_title' => $job->job_title,
+                'location' => $job->location,
+                'job_type' => $job->job_type,
+                'experience_level' => $job->experience_level,
+                'description' => $job->description,
+                'requirements' => $job->requirements,
+                'vacancy' => $job->vacancy,
+                'skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
+                'is_approved' => $job->is_approved,
+                'posted_at' => $job->created_at->format('F j, Y'),
+                'posted_by' => $job->posted_by,
+                'expiration_date' => Carbon::parse($job->expiration_date)->format('F j, Y'),
+                'user_role' => $job->user->role ?? null,
+                'category' => $job->category->name ?? null,
+                'salary_range' => $salaryRange,
+                'company' => [
+                    'name' => $job->company->company_name,
+                    'email' => $job->company->company_email,
+                    'contact_number' => $job->company->company_contact_number,
+                    'address' => implode(', ', array_filter([
+                        $job->company->company_street_address,
+                        $job->company->company_brgy,
+                        $job->company->company_city,
+                        $job->company->company_province,
+                        $job->company->company_zip_code,
+                    ])),
+                    'profile_photo' => $job->company->profile_photo_path ? Storage::url($job->company->profile_photo_path) : null,
+                    'cover_photo' => $job->company->cover_photo_path ? Storage::url($job->company->cover_photo_path) : null,
+                ],
+            ],
+            'user' =>Auth::user(),
         ]);
     }
 

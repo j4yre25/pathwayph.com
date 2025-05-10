@@ -129,14 +129,38 @@ class GraduateController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unable to read the CSV file.'], 400);
         }
 
-        $header = fgetcsv($handle);
+        // Specify the delimiter (e.g., ',' for comma, ';' for semicolon, '\t' for tab)
+        $delimiter = ','; // Change this to match your CSV file's delimiter
+        $header = fgetcsv($handle, 0, $delimiter);
+        if (isset($header[0])) {
+            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+        }
+        $header = array_map(fn($h) => strtolower(trim($h)), $header); // Normalize headers
+
+
         $errors = [];
         $validRows = [];
         $rowNum = 2; // Start from second row (after header)
-        $institutionId = auth()->id();
+        $institutionId = Auth::user()->id;
 
-        while (($data = fgetcsv($handle)) !== false) {
+        while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
             $row = array_combine($header, $data);
+
+
+                if (!empty($row['dob'])) {
+            try {
+                $row['dob'] = Carbon::createFromFormat('m/d/Y', $row['dob'])->format('Y-m-d');
+            } catch (\Exception $e) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'messages' => ['Invalid date format for DOB. Expected format: MM/DD/YYYY.'],
+                ];
+                $rowNum++;
+                continue;
+            }
+        }
+
+
 
             $validator = Validator::make($row, [
                 'email' => 'required|email|unique:users,email',
