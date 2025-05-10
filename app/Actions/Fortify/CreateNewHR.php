@@ -21,19 +21,33 @@ class CreateNewHR implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-
-
+        
+        
         $currentUser = Auth::user(); // Logged-in company user
-
+        
+        $messages = [
+            'email.required' => 'The email field is required.',
+            'email.email' => 'The email must be a valid email address.',
+            'email.unique' => 'The email has already been taken.',
+            'password.required' => 'The password field is required.',
+            'dob.required' => 'The date of birth field is required.',
+            'dob.date' => 'The date of birth must be a valid date.',
+            'dob.before_or_equal' => 'You must be at least 18 years old to register.',
+            'gender.required' => 'The gender field is required.',
+            'gender.in' => 'The selected gender is invalid.',
+            'contact_number.required' => 'The contact number field is required.',
+            'contact_number.digits_between' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
+            'contact_number.regex' => 'The contact number must be in valid format (e.g., +63 912 345 6789).'
+        ];
         Validator::make($input, [
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
                 'password' => $this->passwordRules(),
                 'company_hr_first_name' => ['required', 'string', 'max:255'],    
                 'company_hr_last_name' => ['required', 'string', 'max:255'],    
                 'dob' => ['required', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')],
-                'gender' => ['required', 'string', 'in:Male,Female,Other'],
+                'gender' => ['required', 'string', 'in:Male,Female'],
                 'contact_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
-            ])->validate();
+        ], $messages)->validate();
 
             // Create the HR user
             $user = User::create([
@@ -60,6 +74,7 @@ class CreateNewHR implements CreatesNewUsers
                 'company_description' => $currentUser->company_description,
                 'company_sector' => $currentUser->company_sector,
                 ]);
+
 
         $user->assignRole('company');
         return $user;

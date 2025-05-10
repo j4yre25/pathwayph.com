@@ -141,22 +141,27 @@ class GraduateController extends Controller
         $errors = [];
         $validRows = [];
         $rowNum = 2; // Start from second row (after header)
-        $institutionId = auth()->id();
+        $institutionId = Auth::user()->id;
 
         while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
             $row = array_combine($header, $data);
-            if (!empty($row['dob'])) {
-                try {
-                    $row['dob'] = Carbon::createFromFormat('m/d/Y', $row['dob'])->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $errors[] = [
-                        'row' => $rowNum,
-                        'messages' => ['Invalid date format for DOB. Expected format: MM/DD/YYYY.'],
-                    ];
-                    $rowNum++;
-                    continue;
-                }
+
+
+                if (!empty($row['dob'])) {
+            try {
+                $row['dob'] = Carbon::createFromFormat('m/d/Y', $row['dob'])->format('Y-m-d');
+            } catch (\Exception $e) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'messages' => ['Invalid date format for DOB. Expected format: MM/DD/YYYY.'],
+                ];
+                $rowNum++;
+                continue;
             }
+        }
+
+
+
             $validator = Validator::make($row, [
                 'email' => 'required|email|unique:users,email',
                 'first_name' => 'required|string|max:255',

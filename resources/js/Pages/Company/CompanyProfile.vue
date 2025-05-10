@@ -148,7 +148,7 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
                 </div>
                 <div class="bg-white shadow-lg rounded-lg p-6">
                     <h4 class="text-lg font-semibold text-gray-800">Posted Jobs</h4>
-                    <p class="text-gray-600">{{ company.posted_jobs || 0 }}</p>
+                    <p class="text-gray-600">{{ company.job_post_count || 0 }}</p>
                 </div>
             </div>
 
@@ -156,7 +156,7 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
             <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             
                 <!-- Company Description (spans 2 cols on md+) -->
-                <div class="md:col-span-2 bg-white shadow-lg rounded-lg p-6">
+                <div class="md:col-span-2 bg-white c">
                     <div class="flex items-center justify-between">
                         <h4 class="text-xl font-semibold text-gray-800">Company Description</h4>
                         <Pencil

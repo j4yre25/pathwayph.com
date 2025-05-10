@@ -49,6 +49,12 @@
                                 <TextInput v-model="form.description" type="text" class="block w-full"/>
                                 <InputError :message="form.errors.description" />
                         </div>
+
+                         <div class="col-span-6 sm:col-span-4">
+                            <InputLabel value="Job Requirements" class="my-2"/>
+                                <TextInput v-model="form.requirements" type="text" class="block w-full"/>
+                                <InputError :message="form.errors.requirements" />
+                        </div>
                     </template>
                     <template #actions>
                         <ActionMessage :on="form.recentlySuccessful" class="mr-2">
