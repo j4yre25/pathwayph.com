@@ -347,7 +347,8 @@ console.log(page.props.permissions.canManageInstitution)
                                             Profile
                                         </DropdownLink>
 
-                                        <DropdownLink v-if="page.props.roles.isInstitution" :href="route('careerofficer.register')">
+                                        <DropdownLink v-if="page.props.roles.isInstitution" :href="route('careerofficer.register')"/>
+                                        
 
                                         <DropdownLink v-if="page.props.roles.isInstitution"
                                             :href="route('careerofficer.register')">
