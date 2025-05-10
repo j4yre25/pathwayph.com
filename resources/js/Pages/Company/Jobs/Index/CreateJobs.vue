@@ -36,8 +36,6 @@ const form = useForm({
     sector: '', 
     category: '',
     requirements: '',
-    salary_type: '',
-    job_benefits: '',
     branch_location: '',
     applicants_limit: '',
     expiration_date: '',
@@ -88,62 +86,19 @@ watch(() => form.sector, (newSector) => {
 
 
 // Salary Setup
-const salaryError = ref('')
-const minSalaryLimit = ref(0)
-const maxSalaryLimit = ref(0)
-
-watch(() => form.salary_type, (newType) => {
-  if (newType === 'negotiable') {
-    form.min_salary = ''
-    form.max_salary = ''
-    minSalaryLimit.value = 0
-    maxSalaryLimit.value = 0
-  } else if (newType === 'monthly') {
-    form.min_salary = 5000
-    form.max_salary = 100000
-    minSalaryLimit.value = 5000
-    maxSalaryLimit.value = 100000
-  } else if (newType === 'weekly') {
-    form.min_salary = 1500
-    form.max_salary = 25000
-    minSalaryLimit.value = 1500
-    maxSalaryLimit.value = 25000
-  } else if (newType === 'hourly') {
-    form.min_salary = 100
-    form.max_salary = 2000
-    minSalaryLimit.value = 100
-    maxSalaryLimit.value = 2000
-  } else {
-    minSalaryLimit.value = 0
-    maxSalaryLimit.value = 0
-  }
-
-  validateSalary()
-})
+const salaryError = ref('');
 
 const validateSalary = () => {
-  const type = form.salary_type
-  const min = Number(form.min_salary)
-  const max = Number(form.max_salary)
-
-  if (type === 'negotiable') {
-    salaryError.value = ''
-    return
-  }
-
-  const minLimit = minSalaryLimit.value
-  const maxLimit = maxSalaryLimit.value
-
-  if (min < minLimit || min > maxLimit) {
-    salaryError.value = `Minimum salary for ${type} must be between ₱${minLimit} and ₱${maxLimit}`
-  } else if (max < minLimit || max > maxLimit) {
-    salaryError.value = `Maximum salary for ${type} must be between ₱${minLimit} and ₱${maxLimit}`
-  } else if (min > max) {
-    salaryError.value = 'Minimum salary cannot be greater than maximum salary.'
-  } else {
-    salaryError.value = ''
-  }
-}
+    if (form.min_salary < 5000 || form.min_salary > 100000) {
+        salaryError.value = 'Minimum salary must be between 5,000 and 100,000';
+    } else if (form.max_salary < 5000 || form.max_salary > 100000) {
+        salaryError.value = 'Maximum salary must be between 5,000 and 100,000';
+    } else if (form.min_salary > form.max_salary) {
+        salaryError.value = 'Minimum salary cannot be greater than maximum salary';
+    } else {
+        salaryError.value = '';
+    }
+};
 // End of Salary Setup
 
 const newSkill = ref('');
@@ -194,7 +149,6 @@ const createJob = () => {
 
 
                     <template #form>
-
                         <div class="tabs mb-4">
                             <div class="flex justify-center space-x-8">
                                 <div 
@@ -208,6 +162,7 @@ const createJob = () => {
                             </div>
                         </div>
 
+                        <div class="w-full border-t border-gray-300 mb-6"></div>
 
                         <div v-if="activeTab === 'basic'">    
                             <div class=" col-span-6 sm:col-span-4">
@@ -270,102 +225,85 @@ const createJob = () => {
                                     </div>
                             </div>
                             
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                
-                                <div class="col-span-1">
-                                    <InputLabel for="salary_type" value="Salary Type" class="mb-2" />
-                                    <select v-model="form.salary_type" id="salary_type" class="w-full mt-1 mb-2 p-2 border rounded-lg" required>
-                                        <option value="">Select Salary Type</option>
-                                        <option value="monthly">Monthly</option>
-                                        <option value="weekly">Weekly</option>
-                                        <option value="hourly">Hourly</option>
-                                        <option value="negotiable">Negotiable</option>
-                                    </select>
-                                    <InputError :message="form.errors.salary_type" class="mt-2" />
-                                </div>
+                            <div class="grid grid-cols-5 gap-4 mt-4">
+                                <div class="col-span-2">    
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="col-span-1">
+                                            <InputLabel for="min_salary" value="Minimum Salary" class="mb-2" />
+                                            <TextInput 
+                                                id="min_salary" 
+                                                v-model="form.min_salary" 
+                                                type="text" 
+                                                class="mt-1 p-2 border rounded-lg w-full text-center" 
+                                                required
+                                                min="5000"
+                                                max="100000"
+                                                @input="validateSalary"
+                                            />
+                                            <InputError :message="form.errors.min_salary" class="mt-2" />
+                                        </div>
+                                    
+                                        <div class="col-span-1">
+                                            <InputLabel for="max_salary" value="Maximum Salary" class="mb-2" />
+                                            <TextInput 
+                                                id="max_salary" 
+                                                v-model="form.max_salary" 
+                                                type="text" 
+                                                class="mt-1 p-2 border rounded-lg w-full text-center" 
+                                                required
+                                                min="5000"
+                                                max="100000"
+                                                @input="validateSalary"
+                                            />
+                                            <InputError :message="form.errors.max_salary" class="mt-2" />
+                                        </div>
 
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="col-span-1">
-                                        <InputLabel for="min_salary" value="Minimum Salary" class="mb-2" />
-                                        <TextInput 
-                                            id="min_salary" 
-                                            v-model="form.min_salary" 
-                                            type="text" 
-                                            class="mt-1 p-2 border rounded-lg w-full text-center" 
-                                            :disabled="form.salary_type === 'negotiable'" 
-                                            @input="validateSalary"
-                                        />
-                                        <InputError :message="form.errors.min_salary" class="mt-2" />
-                                    </div>
-                                
-                                    <div class="col-span-1">
-                                        <InputLabel for="max_salary" value="Maximum Salary" class="mb-2" />
-                                        <TextInput 
-                                            id="max_salary" 
-                                            v-model="form.max_salary" 
-                                            type="text" 
-                                            class="mt-1 p-2 border rounded-lg w-full text-center" 
-                                            :disabled="form.salary_type === 'negotiable'" 
-                                            @input="validateSalary"
-                                        />
-                                        <InputError :message="form.errors.max_salary" class="mt-2" />
-                                    </div>
-        
-                                    <div class="col-span-2">
-                                        <div 
-                                            class="md:col-span-3 text-sm text-gray-600 "
-                                            v-if="form.salary_type !== 'negotiable' && minSalaryLimit && maxSalaryLimit"
-                                            >
-                                            Suggested Range for {{ form.salary_type }}: ₱{{ minSalaryLimit }} - ₱{{ maxSalaryLimit }}
+                                        <div class="col-span-2">
+                                            <p class="text-gray-500 text-sm ">Salary Range: Min 5,000 - Max 100,000</p>
+                                            <p v-if="salaryError" class="text-red-500 text-sm mt-1">{{ salaryError }}</p>
                                         </div>
-                                        <div 
-                                            class="md:col-span-3 text-sm text-gray-600 "
-                                            v-if="form.salary_type === 'negotiable'" >
-                                            Salary is negotiable; no range required.
-                                        </div>
-                                        <p v-if="salaryError" class="text-red-500 text-sm mt-1">{{ salaryError }}</p>
                                     </div>
                                 </div>
-                                    
-                            </div>
-                                
-                            <div class="grid grid-cols-5 mt-4 gap-4">
-                                <div class="col-span-2">
-                                    <InputLabel for="location" value="Job Location" class="mb-2"/>
+                                <div class="col-span-1">
+                                    <InputLabel for="vacancy" value="No. of Vacancies" class="mb-2" />
                                     <TextInput 
-                                        id="location" 
-                                        v-model="form.location" 
-                                        type="text" 
-                                        placeholder="e.g. General Santos City, South Cotabato" 
-                                        class="w-full p-2 border rounded-lg mt-1" 
-                                        required />
-                                    <InputError :message="form.errors.location" class="mt-2" />
+                                    id="vacancy"    
+                                    v-model="form.vacancy" 
+                                    type="number" 
+                                    placeholder="No. of Vacancies" 
+                                    class="w-full mt-1 p-2 border rounded-lg" 
+                                    required />
+                                    <InpError :message="form.errors.vacancy" class="mt-2" />
                                 </div>
-                                    
+                                
                                 <div class="col-span-2">
                                     <InputLabel for="branch_location" value="Branch Location" class="mb-2" />
                                     <TextInput 
                                         id="branch_location"    
                                         v-model="form.branch_location" 
                                         type="text" 
-                                        placeholder="e.g. SM City Gensan - 2nd Floor, Brgy. Lagao" 
+                                        placeholder="e.g. Lagao  Branch" 
                                         class="w-full mt-1 p-2 border rounded-lg" 
                                         required />
-                                    <InputError :message="form.errors.vacancy" class="mt-2" />
-                                </div>
-
-                                <div class="col-span-1">
-                                    <InputLabel for="vacancy" value="No. of Vacancies" class="mb-2" />
-                                    <TextInput 
-                                        id="vacancy"    
-                                        v-model="form.vacancy" 
-                                        type="number" 
-                                        placeholder="No. of Vacancies" 
-                                        class="w-full mt-1 p-2 border rounded-lg" 
-                                        required />
-                                    <InputError :message="form.errors.vacancy" class="mt-2" />
+                                    <InputError :message="form.errors.branch_location" class="mt-2" />
                                 </div>
                                 
+                            </div>
+                                
+                            <div class="grid grid-cols-1 mt-4 gap-4">
+                                <div class="col-span-1">
+                                    <InputLabel for="location" value="Job Location" class="mb-2"/>
+                                    <TextInput 
+                                        id="location" 
+                                        v-model="form.location" 
+                                        type="text" 
+                                        placeholder="e.g. J.Catolico Avenue, General Santos City, South Cotabato" 
+                                        class="w-full p-2 border rounded-lg mt-1" 
+                                        required />
+                                    <InputError :message="form.errors.location" class="mt-2" />
+                                </div>
+                                    
+
                             </div>
                         </div>
                             
@@ -381,12 +319,6 @@ const createJob = () => {
                                 <InputLabel for="requirements" value="Job Requirements" />
                                 <textarea id="requirements" v-model="form.requirements" placeholder="Job Requirements" class="w-full p-2 border rounded-lg h-40 mt-2  resize-none" required></textarea>
                                 <InputError :message="form.errors.requirements" class="mt-2" />
-                            </div>
-
-                            <div class="col-span-6 sm:col-span-4 mt-5" >
-                                <InputLabel for="job_benefits" value="Job Benefits" />
-                                <textarea id="job_benefits" v-model="form.job_benefits" placeholder="Job Benefits" class="w-full p-2 border rounded-lg h-40 mt-2  resize-none" ></textarea>
-                                <InputError :message="form.errors.job_benefits" class="mt-2" />
                             </div>
 
                             <div class="mt-4">
@@ -460,7 +392,7 @@ const createJob = () => {
                             type="submit" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                             Post Job
                         </PrimaryButton>
-                    </div>
+                     </div>
                     </template>
                 </FormSection>
 

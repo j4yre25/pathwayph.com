@@ -52,14 +52,11 @@ class Job extends Model
         'sector',
         'category',
         'requirements',
-        'job_benefits',
         'posted_by',
         'branch_location',
-        'salary_type',
         'status',
         'expiration_date',
         'applicants_limit',
-
         'work_type',
     ];
 
