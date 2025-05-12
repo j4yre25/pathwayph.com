@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-class HRRegisterController extends Controller
+class CompanyHRRegisterController extends Controller
 {
     /**
      * Show the admin registration form.

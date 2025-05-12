@@ -28,7 +28,7 @@ use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\JobSearchController;
 // Company 
 use App\Http\Controllers\CompanyProfileController;
-use App\Http\Controllers\HRRegisterController;
+use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyManageHRController;
 
@@ -193,8 +193,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 //Company Register Routes
 Route::middleware(['auth'])->group(function () {
-    Route::get('company/hr/register', [HRRegisterController::class, 'showRegistrationForm'])->name('hr.register');
-    Route::post('company/hr/register', [HRRegisterController::class, 'register'])->name('hr.register.submit');
+    Route::get('company/hr/register', [CompanyHRRegisterController::class, 'showRegistrationForm'])->name('hr.register');
+    Route::post('company/hr/register', [CompanyHRRegisterController::class, 'register'])->name('hr.register.submit');
 });
 
 // CompanyDashboard Contents 
