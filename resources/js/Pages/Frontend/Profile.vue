@@ -318,7 +318,7 @@ const addExperience = () => {
 
   const experienceForm = useForm(experienceData);
 
-  experienceForm.post(route('experience.add'), {
+  experienceForm.post(route('profile.experience.store'), {
     onSuccess: (response) => {
       const updatedExperiences = response?.props?.experienceEntries;
       if (updatedExperiences) {
