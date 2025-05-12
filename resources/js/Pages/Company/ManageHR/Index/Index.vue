@@ -61,9 +61,9 @@ const deleteHR = async (hrId) => {
                         <td class="px-4 py-2 border">{{ hr.email }}</td>
                         <td class="px-4 py-2 border">{{ hr.contact_number }}</td>
                         <td class="px-4 py-2 border">
-                            <PrimaryButton @click="editHR(hr)" class="text-blue-500 hover:underline">Activate</PrimaryButton>
+                            <!-- <PrimaryButton @click="editHR(hr)" class="text-blue-500 hover:underline">Activate</PrimaryButton>
                             <PrimaryButton @click="editHR(hr)" class="text-blue-500 hover:underline ml-2">Deactivate</PrimaryButton>
-                            <PrimaryButton @click="deleteHR(hr.id)" class="text-red-500 hover:underline ml-2">Archived</PrimaryButton>
+                            <PrimaryButton @click="deleteHR(hr.id)" class="text-red-500 hover:underline ml-2">Archived</PrimaryButton> -->
                         </td>
                         </tr>
                     </tbody>

@@ -15,6 +15,222 @@ import { isValid } from 'date-fns';
 import VueApexCharts from 'vue3-apexcharts';
 import SkillsChart from '@/Components/SkillsChart.vue';
 
+
+
+// Modal State Management
+const isSuccessModalOpen = ref(false);
+const isNoChangesModalOpen = ref(false);
+const isPasswordUpdatedModalOpen = ref(false);
+const isDuplicateEducationModalOpen = ref(false);
+const isEducationAddedModalOpen = ref(false);
+const isEducationUpdatedModalOpen = ref(false);
+const modalState = ref({
+ profile: false,
+ password: false
+});
+const duplicateEducationMessage = ref('');
+const educationModalMessage = ref('');
+ 
+// Modal Handlers
+const showSuccessModal = () => {
+isSuccessModalOpen.value = true;
+ setTimeout(() => {
+   isSuccessModalOpen.value = false;
+ }, 3000);
+};
+ 
+const showPasswordUpdatedModal = () => {
+isPasswordUpdatedModalOpen.value = true;
+ setTimeout(() => {
+  isPasswordUpdatedModalOpen.value = false;
+  router.visit(route('logout'), { method: 'post' });
+ }, 3000);
+};
+
+// Profile Data
+const { props } = usePage();
+const user = ref(props?.user || {});
+const profile = ref({
+ fullName: `${props.user?.graduate_first_name || ''} ${props.user?.graduate_middle_initial || ''} ${props.user?.graduate_last_name || ''}`.trim(),
+ graduate_first_name: props.user?.graduate_first_name || '',
+graduate_middle_initial: props.user?.graduate_middle_initial || '',
+ graduate_last_name: props.user?.graduate_last_name || '',
+graduate_professional_title: props.user?.graduate_professional_title || '',
+ email: props.user?.email || '',
+ graduate_phone: props.user?.contact_number || '',
+ graduate_location: props.user?.graduate_location || '',
+ graduate_birthdate: props.user?.dob ? new Date(props.user.dob) : null,
+ graduate_gender: props.user?.gender || '',
+ graduate_ethnicity: props.user?.graduate_ethnicity || '',
+ graduate_address: props.user?.graduate_address || '',
+ graduate_about_me: props.user?.graduate_about_me || '',
+graduate_picture_url: props.user?.profile_picture || 'path/to/default/image.jpg',
+});
+ 
+// Form for settings
+const settingsForm = useForm({
+ current_password: '',
+ password: '',
+password_confirmation: '',
+ graduate_first_name: profile.value.graduate_first_name,
+graduate_middle_initial: profile.value.graduate_middle_initial,
+ graduate_last_name: profile.value.graduate_last_name,
+graduate_professional_title: profile.value.graduate_professional_title,
+ email: profile.value.email,
+ graduate_phone: profile.value.graduate_phone,
+ graduate_location: profile.value.graduate_location,
+ dob: profile.value.dob,
+ graduate_gender: profile.value.graduate_gender,
+ graduate_ethnicity: profile.value.graduate_ethnicity,
+ graduate_address: profile.value.graduate_address,
+ graduate_about_me: profile.value.graduate_about_me,
+graduate_picture_url: profile.value.graduate_picture_url,
+});
+ 
+// Profile Name Handling
+const parseFullName = () => {
+ const fullName = profile.value.fullName.trim();
+ const nameParts = fullName.split(' ');
+ 
+ if (nameParts.length >= 1) {
+  profile.value.graduate_first_name = nameParts[0];
+ }
+ if (nameParts.length >= 2) {
+  profile.value.graduate_last_name = nameParts[nameParts.length - 1];
+ }
+ if (nameParts.length > 2) {
+  profile.value.graduate_middle_initial = nameParts[1].charAt(0);
+ }
+};
+ 
+// Watch for name changes
+watch(() => profile.value.fullName, (newFullName) => {
+ const nameParts = newFullName.trim().split(' ');
+ profile.value.graduate_first_name = nameParts[0] || '';
+profile.value.graduate_last_name = nameParts[nameParts.length - 1] || '';
+profile.value.graduate_middle_initial = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
+});
+ 
+watch(() => profile.value.fullName, () => {
+ parseFullName();
+});
+ 
+// Profile Update Handler
+const saveProfile = () => {
+ if (profile.value.graduate_birthdate) {
+   const date = new Date(profile.value.graduate_birthdate);
+   settingsForm.dob = date.toISOString().split('T')[0];
+ } else {
+   settingsForm.dob = null;
+ }
+settingsForm.graduate_first_name = profile.value.graduate_first_name;
+settingsForm.graduate_middle_initial = profile.value.graduate_middle_initial;
+settingsForm.graduate_last_name = profile.value.graduate_last_name;
+ settingsForm.email = profile.value.email;
+settingsForm.graduate_phone = profile.value.graduate_phone;
+settingsForm.graduate_professional_title = profile.value.graduate_professional_title;
+ settingsForm.graduate_location = profile.value.graduate_location;
+settingsForm.graduate_gender = profile.value.graduate_gender;
+settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
+settingsForm.graduate_address = profile.value.graduate_address;
+settingsForm.graduate_about_me = profile.value.graduate_about_me;
+settingsForm.graduate_picture_url = profile.value.graduate_picture_url;
+ 
+ const hasChanges = Object.keys(settingsForm.data()).some(
+   (key) => settingsForm[key] !== profile.value[key]
+ );
+ 
+ if (!hasChanges) {
+  isNoChangesModalOpen.value = true;
+   return;
+ }
+ 
+settingsForm.post(route('profile.updateProfile'), {
+   onSuccess: (response) => {
+    Object.assign(profile.value, settingsForm.data());
+    modalState.value.profile = true;
+    showSuccessModal(); // Show success modal
+    
+    console.log('Profile saved successfully on the backend:', response.user);
+   },
+   onError: (errors) => {
+    console.error('Error updating profile:', errors);
+     alert('An error occurred while updating the profile. Please try again.');
+   },
+ });
+};
+ 
+// Profile Picture Handler
+const onFileChange = (event) => {
+ const file = event.target.files[0];
+ if (file) {
+   const reader = new FileReader();
+   reader.onload = (e) => {
+    profile.value.graduate_picture_url = e.target.result;
+    console.log('Profile picture updated:', file.name);
+   };
+  reader.readAsDataURL(file);
+ }
+};
+ 
+// Password Management
+const passwordInput = ref(null);
+const currentPasswordInput = ref(null);
+const currentPassword = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+ 
+const validatePassword = (password) => {
+ const minLength = 8;
+ const hasUpperCase = /[A-Z]/.test(password);
+ const hasLowerCase = /[a-z]/.test(password);
+ const hasNumber = /[0-9]/.test(password);
+ const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+ return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+};
+ 
+const updatePassword = () => {
+ if (!validatePassword(settingsForm.password)) {
+   alert('Password must be at least 8 characters long and contain uppercase, lowercase, number, and special characters.');
+   return;
+ }
+ if (settingsForm.password !== settingsForm.password_confirmation) {
+   alert('Password confirmation does not match.');
+   return;
+ }
+ 
+settingsForm.put(route('user-password.update'), {
+   errorBag: 'updatePassword',
+   preserveScroll: true,
+   onSuccess: () => {
+    settingsForm.reset();
+    showPasswordUpdatedModal();
+   },
+   onError: () => {
+    console.log('Form Data:', {
+      current_password: settingsForm.current_password,
+       password: settingsForm.password,
+      password_confirmation: settingsForm.password_confirmation,
+     });
+ 
+     if (settingsForm.errors.password) {
+      settingsForm.reset('password', 'password_confirmation');
+      passwordInput.value.focus();
+     }
+     if (settingsForm.errors.current_password) {
+       settingsForm.reset('current_password');
+      currentPasswordInput.value.focus();
+     }
+   },
+ });
+};
+ 
+const handleSubmit = () => {
+ updatePassword();
+};
+ 
+//End
+
 const datepickerConfig = {
   format: 'YYYY-MM-DD',
   enableTime: false,
@@ -81,105 +297,6 @@ const setActiveSection = (section) => {
   activeSection.value = section;
   localStorage.setItem('activeSection', section);
 };
-
-// Profile Data
-const { props } = usePage();
-const user = ref(props.user || {});
-const profile = ref({
-  fullName: `${props.user?.graduate_first_name || ''} ${props.user?.graduate_middle_initial || ''} ${props.user?.graduate_last_name || ''}`.trim(),
-  graduate_first_name: props.user?.graduate_first_name || '',
-  graduate_middle_initial: props.user?.graduate_middle_initial || '',
-  graduate_last_name: props.user?.graduate_last_name || '',
-  graduate_professional_title: props.user?.graduate_professional_title || '',
-  email: props.user?.email || '',
-  graduate_phone: props.user?.contact_number || '',
-  graduate_location: props.user?.graduate_location || '',
-  graduate_birthdate: props.user?.dob ? new Date(props.user.dob) : null,
-  graduate_gender: props.user?.gender || '',
-  graduate_ethnicity: props.user?.graduate_ethnicity || '',
-  graduate_address: props.user?.graduate_address || '',
-  graduate_about_me: props.user?.graduate_about_me || '',
-  graduate_picture_url: props.user?.profile_picture || 'path/to/default/image.jpg',
-});
-
-const settingsForm = useForm({
-  current_password: '',
-  password: '',
-  password_confirmation: '',
-  graduate_first_name: profile.value.graduate_first_name,
-  graduate_middle_initial: profile.value.graduate_middle_initial,
-  graduate_last_name: profile.value.graduate_last_name,
-  graduate_professional_title: profile.value.graduate_professional_title,
-  email: profile.value.email,
-  graduate_phone: profile.value.graduate_phone,
-  graduate_location: profile.value.graduate_location,
-  dob: profile.value.dob,
-  graduate_gender: profile.value.graduate_gender,
-  graduate_ethnicity: profile.value.graduate_ethnicity,
-  graduate_address: profile.value.graduate_address,
-  graduate_about_me: profile.value.graduate_about_me,
-  graduate_picture_url: profile.value.graduate_picture_url,
-});
-
-
-const parseFullName = () => {
-  const fullName = profile.value.fullName.trim();
-  const nameParts = fullName.split(' ');
-
-  if (nameParts.length >= 1) {
-    profile.value.graduate_first_name = nameParts[0];
-  }
-  if (nameParts.length >= 2) {
-    profile.value.graduate_last_name = nameParts[nameParts.length - 1];
-  }
-  if (nameParts.length > 2) {
-    profile.value.graduate_middle_initial = nameParts[1].charAt(0);
-  }
-};
-
-// Password Management
-const passwordInput = ref(null);
-const currentPasswordInput = ref(null);
-
-const updatePassword = () => {
-
-  settingsForm.put(route('user-password.update'), {
-    errorBag: 'updatePassword',
-    preserveScroll: true,
-    onSuccess: () => settingsForm.reset(),
-    onError: () => {
-
-      console.log('Form Data:', {
-        current_password: settingsForm.current_password,
-        password: settingsForm.password,
-        password_confirmation: settingsForm.password_confirmation,
-      });
-
-      if (settingsForm.errors.password) {
-        settingsForm.reset('password', 'password_confirmation');
-        passwordInput.value.focus();
-      }
-      if (settingsForm.errors.current_password) {
-        settingsForm.reset('current_password');
-        currentPasswordInput.value.focus();
-      }
-    },
-  });
-};
-
-const validatePassword = (password) => {
-  const minLength = 8;
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
-};
-
-const currentPassword = ref('');
-const newPassword = ref('');
-const confirmPassword = ref('');
-
 
 // Education Data
 const educationEntries = ref(props.educationEntries || []);
@@ -815,15 +932,12 @@ const isProfileModalOpen = ref(false);
 const isPasswordModalOpen = ref(false);
 const isAddEducationModalOpen = ref(false);
 const isUpdateEducationModalOpen = ref(false);
-const isEducationAddedModalOpen = ref(false);
-const isEducationUpdatedModalOpen = ref(false);
 const isAddSkillModalOpen = ref(false);
 const isSkillsAddedModalOpen = ref(false);
 let currentExperienceIndex = ref(null);
 const isAddCertificationModalOpen = ref(false);
 const isAddAchievementModalOpen = ref(false);
 const isUpdateAchievementModalOpen = ref(false);
-const isNoChangesModalOpen = ref(false);
 const isAddIndustryModalOpen = ref(false);
 let currentAchievementIndex = ref(null);
 const isUpdateCertificationModalOpen = ref(false);
@@ -899,57 +1013,6 @@ watch(() => achievementForm.noCredentialUrl, (newValue) => {
   }
 });
 
-// Profile Handlers
-const saveProfile = () => {
-  if (profile.value.graduate_birthdate) {
-    const date = new Date(profile.value.graduate_birthdate);
-    settingsForm.dob = date.toISOString().split('T')[0];
-  } else {
-    settingsForm.dob = null;
-  }
-  settingsForm.graduate_first_name = profile.value.graduate_first_name;
-  settingsForm.graduate_middle_initial = profile.value.graduate_middle_initial;
-  settingsForm.graduate_last_name = profile.value.graduate_last_name;
-  settingsForm.email = profile.value.email;
-  settingsForm.graduate_phone = profile.value.graduate_phone;
-  settingsForm.graduate_professional_title = profile.value.graduate_professional_title;
-  settingsForm.graduate_location = profile.value.graduate_location;
-  settingsForm.graduate_gender = profile.value.graduate_gender;
-  settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
-  settingsForm.graduate_address = profile.value.graduate_address;
-  settingsForm.graduate_about_me = profile.value.graduate_about_me;
-  settingsForm.graduate_picture_url = profile.value.graduate_picture_url;
-  const hasChanges = Object.keys(settingsForm.data()).some(
-    (key) => settingsForm[key] !== profile.value[key]
-  );
-  if (!hasChanges) {
-    isNoChangesModalOpen.value = true;
-    return;
-
-    console.log('Data sent to backend:', settingsForm.data());
-  }
-  settingsForm.post(route('profile.updateProfile'), {
-    onSuccess: (response) => {
-      Object.assign(profile.value, settingsForm.data());
-      modalState.value.profile = true;
-
-      console.log('Profile saved successfully on the backend:', response.user);
-
-    },
-    onError: (errors) => {
-      console.error('Error updating profile:', errors);
-      alert('An error occurred while updating the profile. Please try again.');
-    },
-  });
-};
-
-// Password Handlers
-const handleSubmit = () => {
-  console.log('Current Password:', currentPassword.value);
-  console.log('New Password:', newPassword.value);
-  console.log('Confirm Password:', confirmPassword.value);
-  modalState.value.password = true;
-};
 
 
 const handleSaveCareerGoals = () => {
@@ -1193,6 +1256,7 @@ const closeAddSkillModal = () => {
   skillType.value = '';
   yearsExperience.value = 0;
 };
+
 
 const newSkill = ref('');
 
@@ -1962,17 +2026,7 @@ const closeAddLocationModal = () => {
   console.log('Add location modal closed.');
 };
 
-const onFileChange = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      profile.value.graduate_picture_url = e.target.result;
-      console.log('Profile picture updated:', file.name);
-    };
-    reader.readAsDataURL(file);
-  }
-};
+
 
 //  Grouping and Filtering Functions
 // Computed property to group skills by type
@@ -2206,6 +2260,74 @@ onMounted(() => {
       <div class="container mx-auto">
         <h1 class="text-3xl font-bold mb-4">Profile Settings</h1>
         <p class="text-gray-600 mb-6">Manage your personal information and account settings</p>
+        <!-- Success Message Alert -->
+       <div v-if="isSuccessModalOpen" class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+         <strong class="font-bold">Success!</strong>
+         <span class="block sm:inline"> Your profile has been updated successfully.</span>
+         <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="isSuccessModalOpen = false">
+           <i class="fas fa-times"></i>
+        </span>
+       </div>
+      
+       <!-- Success Modal -->
+       <Modal :show="modalState.profile" @close="modalState.profile = false">
+         <div class="p-6">
+           <div class="flex items-center mb-4">
+             <div class="rounded-full bg-green-100 p-2 mr-3">
+               <i class="fas fa-check text-green-500 text-xl"></i>
+            </div>
+             <h3 class="text-lg font-medium text-gray-900">Profile Updated Successfully</h3>
+          </div>
+           <div class="mt-3 text-gray-600">
+            <p>Your profile information has been updated successfully.</p>
+          </div>
+           <div class="mt-6 flex justify-end">
+            <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md" @click="modalState.profile = false">
+               Close
+            </button>
+          </div>
+         </div>
+       </Modal>
+      
+       <!-- No Changes Modal -->
+       <Modal :show="isNoChangesModalOpen" @close="isNoChangesModalOpen = false">
+         <div class="p-6">
+           <div class="flex items-center mb-4">
+             <div class="rounded-full bg-blue-100 p-2 mr-3">
+               <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+            </div>
+             <h3 class="text-lg font-medium text-gray-900">No Changes Detected</h3>
+          </div>
+           <div class="mt-3 text-gray-600">
+            <p>No changes were detected in your profile information.</p>
+          </div>
+           <div class="mt-6 flex justify-end">
+            <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md" @click="isNoChangesModalOpen = false">
+               Close
+            </button>
+          </div>
+         </div>
+       </Modal>
+      
+       <!-- Password Updated Modal -->
+       <Modal :show="isPasswordUpdatedModalOpen" @close="isPasswordUpdatedModalOpen = false">
+         <div class="p-6">
+           <div class="flex items-center mb-4">
+             <div class="rounded-full bg-green-100 p-2 mr-3">
+               <i class="fas fa-check text-green-500 text-xl"></i>
+            </div>
+             <h3 class="text-lg font-medium text-gray-900">Password Updated Successfully</h3>
+          </div>
+           <div class="mt-3 text-gray-600">
+            <p>Your password has been updated successfully. You will be logged out for security reasons.</p>
+          </div>
+           <div class="mt-6 flex justify-end">
+            <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md" @click="isPasswordUpdatedModalOpen = false">
+               Close
+            </button>
+          </div>
+         </div>
+       </Modal>
         <div class="bg-white rounded-lg shadow-md p-6">
           <div class="flex border-b border-gray-200 mb-6">
             <button class="py-2 px-4"
