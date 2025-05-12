@@ -13,7 +13,6 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRegisterController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ApplicantController;
-use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SectorController;
 use App\Http\Controllers\GraduateController;
