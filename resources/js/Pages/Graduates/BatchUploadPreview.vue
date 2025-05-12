@@ -20,14 +20,38 @@ function handleFileUpload(e) {
   if (!file.value) return
 
   Papa.parse(file.value, {
-    header: true,
     skipEmptyLines: true,
+    beforeFirstChunk: (chunk) => chunk.replace(/^\uFEFF/, ''),
+    header: true,
+    transformHeader: header => header.trim().toLowerCase(),
     complete: (results) => {
-      parsedRows.value = results.data
+      // Log headers to debug
+      console.log('CSV headers:', Object.keys(results.data[0] || {}))
+
+      // Normalize field keys to expected camelCase
+      parsedRows.value = results.data.map(row => ({
+        email: row.email || '',
+        first_name: row.first_name || '',
+        last_name: row.last_name || '',
+        middle_initial: row.middle_initial || '',
+        program_completed: row.program_completed || '',
+        year_graduated: row.year_graduated || '',
+        dob: row.dob || '',
+        gender: row.gender || '',
+        contact_number: row.contact_number || '',
+        employment_status: row.employment_status || '',
+        current_job_title: row.current_job_title || '',
+      }))
+
       validateRows()
+    },
+    error: (err) => {
+      alert('❌ Failed to parse CSV file.')
+      console.error('CSV Parsing Error:', err)
     },
   })
 }
+
 
 function validateRows() {
   validationErrors.value = []
@@ -41,7 +65,7 @@ function validateRows() {
     if (!row.last_name) rowErrors.push('Missing last name')
     if (!row.program_completed) rowErrors.push('Missing program')
     if (!row.year_graduated) rowErrors.push('Missing year')
-   if (row.dob) {
+    if (row.dob) {
       const parsedDate = dayjs(row.dob, 'MM/DD/YYYY', true)
       if (parsedDate.isValid()) {
         row.dob = parsedDate.format('YYYY-MM-DD') // Update the row with the correct format
@@ -70,7 +94,7 @@ function validateRows() {
     if (rowErrors.length) {
       isValid.value = false
       validationErrors.value.push({
-        row: index + 2,
+        row: index + 2, // +2 to account for header and zero index
         messages: rowErrors,
       })
     }
@@ -78,8 +102,8 @@ function validateRows() {
 }
 
 function submitToBackend() {
-  const formData = new FormData();
-  formData.append('csv_file', file.value);
+  const formData = new FormData()
+  formData.append('csv_file', file.value)
 
   router.post(route('graduates.batch.upload'), formData, {
     forceFormData: true,
@@ -93,16 +117,17 @@ function submitToBackend() {
     },
     onError: (errors) => {
       if (errors.response?.data?.errors) {
-        validationErrors.value = errors.response.data.errors;
+        validationErrors.value = errors.response.data.errors
       } else {
-        alert('⚠ Backend error. Check console.');
-        console.error(errors);
+        alert('⚠ Backend error. Check console.')
+        console.error(errors)
       }
     },
-  });
+  })
 }
 
 </script>
+
 
 <template>
   <AppLayout title="Batch Upload Graduates">
