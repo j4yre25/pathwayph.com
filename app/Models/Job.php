@@ -122,10 +122,9 @@ class Job extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function company()
+      public function company()
     {
-        
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Company::class);
     }
 
 
@@ -173,6 +172,4 @@ class Job extends Model
     {
         return $this->isExpired() || $this->hasApplicationLimitReached();
     }
-
-
 }

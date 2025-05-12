@@ -75,17 +75,7 @@ class User extends Authenticatable
         'graduate_skills_type',
         'graduate_skills_years_experience', 
 
-        // Company
-        'company_name',
-        'company_street_address',
-        'company_brgy',
-        'company_city',
-        'company_province',
-        'company_zip_code',
-        'company_company_email',
-        'company_contact_number',
-        'company_hr_first_name',
-        'company_hr_last_name',
+        
 
         // Institution
         'institution_type',
@@ -140,15 +130,18 @@ class User extends Authenticatable
 
     public function graduates() {
         return $this->hasOne(Graduate::class);
-
     }
+
     public function jobs() {
         return $this->hasMany(Job::class);
-
     }
+
+    public function company() {
+        return $this->hasOne(Company::class);
+    }
+
     public function sectors() {
         return $this->hasMany(Sector::class);
-
     }
 
     public function categories() {
@@ -271,7 +264,7 @@ class User extends Authenticatable
 
     public function jobInvitationsSent()
     {
-        return $this->hasMany(JobInvitation::class, 'company_id'); // For companies
+        return $this->hasMany(JobInvitation::class, 'company_id'); // For r
     }
 
 }
