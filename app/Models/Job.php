@@ -52,14 +52,11 @@ class Job extends Model
         'sector',
         'category',
         'requirements',
-        'job_benefits',
         'posted_by',
         'branch_location',
-        'salary_type',
         'status',
         'expiration_date',
         'applicants_limit',
-
         'work_type',
     ];
 
@@ -125,10 +122,9 @@ class Job extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function company()
+      public function company()
     {
-        
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Company::class);
     }
 
 
@@ -176,6 +172,4 @@ class Job extends Model
     {
         return $this->isExpired() || $this->hasApplicationLimitReached();
     }
-
-
 }

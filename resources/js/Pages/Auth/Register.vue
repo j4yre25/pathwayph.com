@@ -47,7 +47,7 @@ const form = useForm({
     company_province: '',
     company_zip_code: '',
     company_email: '',
-    company_contact_number: '',
+    company_mobile_phone: '',
     company_hr_first_name: '',
     company_hr_last_name: '',
     institution_type: '',
@@ -102,7 +102,7 @@ const filteredSchoolYears = computed(() => {
 
 // Utility functions
 const { formattedMobileNumber: contactNumber } = useFormattedMobileNumber(form, 'contact_number');
-const { formattedMobileNumber: companyContactNumber } = useFormattedMobileNumber(form, 'company_contact_number');
+const { formattedMobileNumber: companyContactNumber } = useFormattedMobileNumber(form, 'company_mobile_phone');
 const { formattedTelephoneNumber } = useFormattedTelephoneNumber(form, 'telephone_number');
 const { passwordCriteria } = usePasswordCriteria(form);
 
@@ -150,6 +150,7 @@ const verifyCode = () => {
 const redirectToLogin = () => {
     Inertia.visit(route('login'));
 };
+
 
 
 
@@ -318,15 +319,15 @@ const resendCode = () => {
                                 <div>
                                     <div>
                                         <div class="flex items-center gap-1">
-                                            <InputLabel for="company_contact_number" value="Mobile Number" />
+                                            <InputLabel for="company_mobile_phone" value="Mobile Number" />
                                             <span class="text-red-500">*</span>
                                         </div>
-                                        <TextInput id="company_contact_number" v-model="companyContactNumber"
+                                        <TextInput id="company_mobile_phone" v-model="companyContactNumber"
                                             placeholder="+63 912 345 6789"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
-                                        <InputError class="mt-2" :message="form.errors.company_contact_number" />
+                                        <InputError class="mt-2" :message="form.errors.company_mobile_phone" />
                                     </div>
                                 </div>
                                 <div>

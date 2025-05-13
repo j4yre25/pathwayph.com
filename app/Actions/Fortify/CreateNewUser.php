@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
+use App\Models\Company;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -57,7 +58,7 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['company_province'] = ['required', 'string', 'max:255'];
                 $rules['company_zip_code'] = ['required', 'string', 'max:4'];
                 $rules['company_email'] = ['required', 'string', 'email', 'max:255'];
-                $rules['company_contact_number'] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
+                $rules['company_mobile_phone'] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
                 $rules['company_hr_first_name'] = ['required', 'string', 'max:255'];
                 $rules['company_hr_last_name'] = ['required', 'string', 'max:255'];
                 break;
@@ -106,8 +107,8 @@ class CreateNewUser implements CreatesNewUsers
             'company_zip_code.required' => 'The zip code field is required.',
             'company_email.required' => 'The company email field is required.',
             'company_email.email' => 'The company email must be a valid email address.',
-            'company_contact_number.required' => 'The contact number field is required.',
-            'company_contact_number.regex' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
+            'company_mobile_phone.required' => 'The contact number field is required.',
+            'company_mobile_phone.regex' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
             'institution_type.required' => 'The institution type field is required.',
             'institution_name.required' => 'The institution name field is required.',
             'institution_address.required' => 'The institution address field is required.',
@@ -122,6 +123,8 @@ class CreateNewUser implements CreatesNewUsers
 
 
         Validator::make($input, $rules, $messages)->validate();
+        
+        
 
 
         $userData = [
@@ -132,6 +135,7 @@ class CreateNewUser implements CreatesNewUsers
             'gender' => $input['gender'],
             'contact_number' => $input['contact_number'],
             'telephone_number' => $input['telephone_number'],
+            
         ];
 
         // Add role-specific fields
@@ -156,7 +160,7 @@ class CreateNewUser implements CreatesNewUsers
                 $userData['company_province'] = $input['company_province'];
                 $userData['company_zip_code'] = $input['company_zip_code'];
                 $userData['company_email'] = $input['company_email'];
-                $userData['company_contact_number'] = $input['company_contact_number'];
+                $userData['company_mobile_phone'] = $input['company_mobile_phone'];
                 $userData['company_hr_first_name'] = $input['company_hr_first_name'];
                 $userData['company_hr_last_name'] = $input['company_hr_last_name'];
                 break;
@@ -192,6 +196,25 @@ class CreateNewUser implements CreatesNewUsers
             ]);
         }
 
+        
+
+        // Kani siya kay para masulod sa Company table
+        if ($role === 'company') {
+           $user->company()->create([
+                'user_id' => $user->id,
+                'company_name' => $input['company_name'],
+                'company_street_address' => $input['company_street_address'],
+                'company_brgy' => $input['company_brgy'],
+                'company_city' => $input['company_city'],
+                'company_province' => $input['company_province'],
+                'company_zip_code' => $input['company_zip_code'],
+                'company_email' => $input['company_email'],
+                'company_mobile_phone' => $input['company_mobile_phone'],
+                'company_tel_phone' => $input['telephone_number'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         $user->assignRole($role);
         return $user;

@@ -163,42 +163,43 @@ const createJob = () => {
                             </div>
 
                             <!-- Example minimum and maximum salary range  -->
-                            <div class="grid grid-cols-2 gap-4">
-                            <div class="col-span-1">
-                                <InputLabel for="min_salary" value="Minimum Salary" class="mb-2" />
-                                <TextInput 
-                                    id="min_salary" 
-                                    v-model="form.min_salary" 
-                                    type="text" 
-                                    class="mt-1 p-2 border rounded-lg w-full text-center" 
-                                    required
-                                    min="5000"
-                                    max="100000"
-                                    @input="validateSalary"
-                                />
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="col-span-1">
+                                        <InputLabel for="min_salary" value="Minimum Salary" class="mb-2" />
+                                        <TextInput 
+                                            id="min_salary" 
+                                            v-model="form.min_salary" 
+                                            type="text" 
+                                            class="mt-1 p-2 border rounded-lg w-full text-center" 
+                                            required
+                                            min="5000"
+                                            max="100000"
+                                            @input="validateSalary"
+                                        />
+                                        
+                                        <InputError :message="form.errors.min_salary" class="mt-2" />
+                                    </div>
                                 
-                                <InputError :message="form.errors.min_salary" class="mt-2" />
-                            </div>
-                            
-                            <div class="col-span-1">
-                                <InputLabel for="max_salary" value="Maximum Salary" class="mb-2" />
-                                <TextInput 
-                                    id="max_salary" 
-                                    v-model="form.max_salary" 
-                                    type="text" 
-                                    class="mt-1 p-2 border rounded-lg w-full text-center" 
-                                    required
-                                    min="5000"
-                                    max="100000"
-                                    @input="validateSalary"
-                                />
-                                <InputError :message="form.errors.max_salary" class="mt-2" />
-                            </div>
-                            <div class="col-span-2">
-                            <p class="text-gray-500 text-sm ">Salary Range: Min 5,000 - Max 100,000</p>
-                            <p v-if="salaryError" class="text-red-500 text-sm mt-1">{{ salaryError }}</p>
-                            </div>
-                        </div>
+                                    <div class="col-span-1">
+                                        <InputLabel for="max_salary" value="Maximum Salary" class="mb-2" />
+                                        <TextInput 
+                                            id="max_salary" 
+                                            v-model="form.max_salary" 
+                                            type="text" 
+                                            class="mt-1 p-2 border rounded-lg w-full text-center" 
+                                            required
+                                            min="5000"
+                                            max="100000"
+                                            @input="validateSalary"
+                                        />
+                                        <InputError :message="form.errors.max_salary" class="mt-2" />
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <p class="text-gray-500 text-sm ">Salary Range: Min 5,000 - Max 100,000</p>
+                                        <p v-if="salaryError" class="text-red-500 text-sm mt-1">{{ salaryError }}</p>
+                                    </div>
+                                </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4 mt-4 place-items-center">

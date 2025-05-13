@@ -13,7 +13,6 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRegisterController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ApplicantController;
-use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SectorController;
 use App\Http\Controllers\GraduateController;
@@ -28,7 +27,7 @@ use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\JobSearchController;
 // Company 
 use App\Http\Controllers\CompanyProfileController;
-use App\Http\Controllers\HRRegisterController;
+use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyManageHRController;
 
@@ -63,6 +62,7 @@ use App\Http\Controllers\EmploymentPreferencesController;
 use App\Http\Controllers\CareerGoalsController;
 use App\Http\Controllers\JobsListController;
 use App\Http\Controllers\PesoProfileController;
+use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\ResumeController;
 
 use App\Notifications\VerifyEmailWithCode;
@@ -196,8 +196,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 //Company Register Routes
 Route::middleware(['auth'])->group(function () {
-    Route::get('company/hr/register', [HRRegisterController::class, 'showRegistrationForm'])->name('hr.register');
-    Route::post('company/hr/register', [HRRegisterController::class, 'register'])->name('hr.register.submit');
+    Route::get('company/hr/register', [CompanyHRRegisterController::class, 'showRegistrationForm'])->name('hr.register');
+    Route::post('company/hr/register', [CompanyHRRegisterController::class, 'register'])->name('hr.register.submit');
 });
 
 // CompanyDashboard Contents 
@@ -242,8 +242,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     ->name('company.jobs.auto-invite');
 
 Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
-
-
 Route::post('company/jobs/{job}/approve', [CompanyJobsController::class, 'approve'])->name('company.jobs.approve');
 Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
 
@@ -281,6 +279,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 });
 
 //End of Company Routes
+
+
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
@@ -470,6 +470,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/programs/edit/{program}', [ProgramController::class, 'restore'])->name('programs.restore');
 });
 
+//MANAGE GRADUATES APPROVAL ROUTES
+
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/graduates/manage', [ManageGraduatesApprovalController::class, 'index'])->name('graduates.manage');
     Route::get('/graduates/list', [ManageGraduatesApprovalController::class, 'list'])->name('graduates.list');
@@ -480,6 +482,18 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::put('/graduates/restore/{user}', [ManageGraduatesApprovalController::class, 'restore'])->name('graduates.restore');
 });
 
+// Career Opportunities Routes
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
+    Route::get('/careeropportunities/{user}', [CareerOpportunityController::class, 'index'])->name('careeropportunities');
+    Route::get('/careeropportunities/{user}/list', [CareerOpportunityController::class, 'list'])->name('careeropportunities.list');
+    Route::get('/careeropportunities/{user}/create', [CareerOpportunityController::class, 'create'])->name('careeropportunities.create');
+    Route::post('/careeropportunities/{user}', [CareerOpportunityController::class, 'store'])->name('careeropportunities.store');
+    Route::get('/careeropportunities/edit/{careeropportunity}', [CareerOpportunityController::class, 'edit'])->name('careeropportunities.edit');
+    Route::put('/careeropportunities/update/{id}', [CareerOpportunityController::class, 'update'])->name('careeropportunities.update');
+    Route::delete('/careeropportunities/edit/{careeropportunity}', [CareerOpportunityController::class, 'delete'])->name('careeropportunities.delete');
+    Route::get('/careeropportunities/{user}/archivedlist', [CareerOpportunityController::class, 'archivedlist'])->name('careeropportunities.archivedlist');
+    Route::post('/careeropportunities/edit/{careeropportunity}', [CareerOpportunityController::class, 'restore'])->name('careeropportunities.restore');
+});
 
 // MAIN INSITUTION GRADUATE ROUTES
 Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
