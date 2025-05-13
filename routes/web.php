@@ -93,6 +93,9 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/{user}', [PesoJobsController::class, 'index'])
     ->name('peso.jobs');
 
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs-peso/{user}', [PesoJobsController::class, 'peso'])
+    ->name('peso.pesojobs');
+
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/{user}/archivedlist', [PesoJobsController::class, 'archivedlist'])
     ->name('peso.jobs.archivedlist');

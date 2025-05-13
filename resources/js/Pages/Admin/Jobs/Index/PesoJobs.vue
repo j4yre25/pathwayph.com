@@ -96,18 +96,19 @@ console.log(route('peso.jobs.manage', { user: page.props.auth.user.id }));
                 </div>
 
                 <div class="mt-8">
-                    
+
                     <Link :href="route('peso.jobs.archivedlist', { user: page.props.auth.user.id })">
-                    <PrimaryButton class="mr-2">Archived Job</PrimaryButton>
+                    <PrimaryButton class="mr-2">Archived Jobs</PrimaryButton>
                     </Link>
                 </div>
 
                  <div class="mt-8">
 
-                    <Link :href="route('peso.pesojobs', { user: page.props.auth.user.id })">
-                    <PrimaryButton class="mr-2">Peso Jobs</PrimaryButton>
+                    <Link :href="route('peso.jobs', { user: page.props.auth.user.id })">
+                    <PrimaryButton class="mr-2">All Jobs</PrimaryButton>
                     </Link>
                 </div>
+
 
             </div>
 

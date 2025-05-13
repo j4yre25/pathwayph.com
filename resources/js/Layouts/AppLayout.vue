@@ -151,7 +151,7 @@ console.log(page.props.permissions.canManageInstitution)
 
                                 <NavLink v-if="page.props.roles.isPeso && page.props.auth.user.is_approved"
                                     :href="route('peso.jobs', { user: page.props.auth.user.id })"
-                                    :active="route().current('pesojobs')" :disabled="!page.props.auth.user.is_approved">
+                                    :active="route().current('peso.jobs')" :disabled="!page.props.auth.user.is_approved">
                                     PESO Job Posting
                                 </NavLink>
 
@@ -347,7 +347,6 @@ console.log(page.props.permissions.canManageInstitution)
                                             Profile
                                         </DropdownLink>
 
-                                        <DropdownLink v-if="page.props.roles.isInstitution" :href="route('careerofficer.register')">
 
                                         <DropdownLink v-if="page.props.roles.isInstitution"
                                             :href="route('careerofficer.register')">
