@@ -235,6 +235,7 @@ class GraduateController extends Controller
         }
 
         return response()->json(['status' => 'success']);
+        
     }
     public function downloadTemplate()
     {

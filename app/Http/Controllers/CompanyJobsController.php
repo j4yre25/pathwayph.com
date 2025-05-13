@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
-
 
 
 class CompanyJobsController extends Controller
@@ -92,14 +92,12 @@ class CompanyJobsController extends Controller
             'location' => 'required|string|max:255',
             'branch_location' => 'nullable|string|max:255',
             'vacancy' => 'required|integer',
-            'salary_type' => 'required|string',
             'min_salary' => 'required|integer',
             'max_salary' => 'required|integer',
             'job_type' => 'required|string',
             'experience_level' => 'required|string',
             'description' => 'required|string| max:5000',
             'requirements' => 'required|string',
-            'job_benefits' => 'nullable|string',
             'expiration_date' => 'required|date',
             'applicants_limit' => 'nullable|integer',
             'skills' => 'required|array',
@@ -110,10 +108,10 @@ class CompanyJobsController extends Controller
 
         $new_job = new Job();
         $new_job->user_id = $user->id;
+        $new_job->company_name = $user->company_name;
         $new_job->job_title = $validated['job_title'];
         $new_job->location = $validated['location'];
         $new_job->branch_location = $validated['branch_location'];
-        $new_job->salary_type = $validated['salary_type'];
         $new_job->min_salary = $validated['min_salary'];
         $new_job->max_salary = $validated['max_salary'];
         $new_job->job_type = $validated['job_type'];
@@ -124,8 +122,7 @@ class CompanyJobsController extends Controller
         $new_job->requirements = $validated['requirements'];
         $new_job->sector_id = $validated['sector'];
         $new_job->category_id = $validated['category'];
-        $new_job->job_benefits = $validated['job_benefits'];
-        $new_job->expiration_date = Carbon::parse($validated['expiration_date'])->format('F j, Y');
+        $new_job->expiration_date = Carbon::parse($validated['expiration_date'])->format('Y-m-d');
         $new_job->applicants_limit = $validated['applicants_limit'] ?? null;
         $new_job->posted_by = $validated['posted_by'] ?? null;
         $new_job->save();
@@ -146,7 +143,6 @@ class CompanyJobsController extends Controller
         $hrFirstName = $job->user->company_hr_first_name ?? '';
         $hrLastName = $job->user->company_hr_last_name ?? '';
 
-        $hrFullName = trim($hrFirstName . ' ' . $hrLastName);
 
         return Inertia::render('Company/Jobs/View/EmployersJobDetails', [
             'job' => [
@@ -166,7 +162,7 @@ class CompanyJobsController extends Controller
                 'user_role' => $job->user->role ?? null,
                 'category' => $job->category->name ?? null,
                 'salary_range' => $salaryRange,
-                'company' => [
+                'company' => [  
                     'name' => $job->company->company_name,
                     'email' => $job->company->company_email,
                     'contact_number' => $job->company->company_contact_number,
@@ -192,9 +188,8 @@ class CompanyJobsController extends Controller
         ]);
     }
 
-    public function update(Request $request, Job $job)
-    {
-
+    public function update(Request $request, Job $job){
+       
         $validated = $request->validate([
             'job_title' => ['required', 'string', 'max:99'],
             'description' => ['required', 'string', 'max:1000'],
@@ -248,34 +243,31 @@ class CompanyJobsController extends Controller
 
     public function autoInvite(Job $job)
     {
-    // Use the raw skill names as-is from the job
-    $jobSkills = collect(is_string($job->skills) ? json_decode($job->skills, true) : $job->skills)
-        ->filter()
-        ->unique()
-        ->values();
+        $jobSkills = collect($job->skill)
+            ->map(fn($skill) => Str::lower($skill))
+            ->filter()
+            ->unique();
 
-    // Fetch graduates whose skills match any of the job's skills (case-sensitive)
-    $qualifiedGraduates = User::where('role', 'graduate')
-        ->whereHas('skills', function ($query) use ($jobSkills) {
-            $query->whereIn('graduate_skills_name', $jobSkills->all());
-        })
-        ->get();
+        // Fetch all graduates (Users with role 'graduate') who have matching skills
+        $qualifiedGraduates = User::where('role', 'graduate')
+            ->whereHas('skills', function ($query) use ($jobSkills) {
+                $query->whereIn(DB::raw('LOWER(graduate_skills_name)'), $jobSkills);
+            })
+            ->get();
 
-    // Send or update invitations
-    foreach ($qualifiedGraduates as $graduate) {
-        JobInvitation::updateOrCreate([
-            'job_id' => $job->id,
-            'graduate_id' => $graduate->id,
-        ], [
-            'company_id' => Auth::id(),
-            'status' => 'pending',
-            'message' => 'You have been invited to apply to this job opportunity.',
-        ]);
+        foreach ($qualifiedGraduates as $graduate) {
+            JobInvitation::updateOrCreate([
+                'job_id' => $job->id,
+                'graduate_id' => $graduate->id,
+            ], [
+                'company_id' => Auth::id(),
+                'status' => 'pending',
+                'message' => 'You have been invited to apply to this job opportunity.',
+            ]);
+        }
+            
+        return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skill alignment.');
     }
-
-    return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skill alignment.');
-}
-
 
 
     public function restore($job)
