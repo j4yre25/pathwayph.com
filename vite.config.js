@@ -22,7 +22,7 @@ export default defineConfig({
         
         
     ],
-build: {
+    build: {
         rollupOptions: {
             output: {
                 manualChunks: {
