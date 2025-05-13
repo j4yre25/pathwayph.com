@@ -32,6 +32,25 @@ class PesoJobsController extends Controller
         ]);
     }
 
+      public function peso(User $user)
+{
+    $jobs = Job::with('user', 'sector', 'category')
+        ->whereHas('user', function ($query) {
+            $query->where('role', 'peso'); // Filter jobs posted by users with the role 'peso'
+        })
+        ->orderBy('created_at', 'desc') // Sort by created_at in descending order
+        ->paginate(10); // Paginate the results
+
+    $sectors = Sector::all();
+    $categories = Category::all();
+
+    return Inertia::render('Admin/Jobs/Index/PesoJobs', [
+        'jobs' => $jobs,
+        'sectors' => $sectors,
+        'categories' => $categories,
+    ]);
+}
+
 
     
     public function create(User $user) {
