@@ -22,8 +22,6 @@ class Company extends Model
         'company_email',
         'company_mobile_phone',
         'company_tel_phone',
-        'company_hr_first_name',
-        'company_hr_last_name',
     ];
 
     /**
