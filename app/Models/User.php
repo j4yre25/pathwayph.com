@@ -48,6 +48,11 @@ class User extends Authenticatable
         'peso_first_name',
         'peso_last_name',
 
+        // Company
+        'company_id',
+        'company_hr_first_name',
+        'company_hr_last_name',
+
         //Graduate
         'institution_id',
         'graduate_first_name',
@@ -141,7 +146,7 @@ class User extends Authenticatable
     }
 
     public function company() {
-        return $this->hasOne(Company::class);
+        return $this->belongsTo(Company::class);
     }
 
 

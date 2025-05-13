@@ -39,4 +39,9 @@ class Company extends Model
     {
         return $this->hasMany(Job::class);
     }
+
+    public function hrs()
+    {
+        return $this->hasMany(User::class);
+    }
 }

@@ -21,9 +21,7 @@ class CreateNewHR implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        
-        
-        $currentUser = Auth::user(); // Logged-in company user
+        $currentUser = Auth::user(); 
         
         $messages = [
             'email.required' => 'The email field is required.',
@@ -50,31 +48,19 @@ class CreateNewHR implements CreatesNewUsers
         ], $messages)->validate();
 
             // Create the HR user
-            $user = User::create([
+             $user = User::create([
                 'email' => $input['email'],
                 'password' => Hash::make($input['password']),
                 'role' => 'company',
                 'company_hr_first_name' => $input['company_hr_first_name'],
-                'company_hr_last_name' => $input['company_hr_last_name'], 
+                'company_hr_last_name' => $input['company_hr_last_name'],
                 'gender' => $input['gender'],
-                'dob' => $input['dob'], 
-                'contact_number' => $input['contact_number'], 
+                'dob' => $input['dob'],
+                'contact_number' => $input['contact_number'],
                 'is_approved' => 1,
-                 'is_main_hr' => false,
-
-                  // Inherit from the current company user
-                'company_name' => $currentUser->company_name,
-                'company_street_address' => $currentUser->company_street_address,
-                'company_brgy' => $currentUser->company_brgy,
-                'company_city' => $currentUser->company_city,
-                'company_province' => $currentUser->company_province,
-                'company_zip_code' => $currentUser->company_zip_code,
-                'company_email' => $currentUser->company_email,
-                'company_contact_number' => $currentUser->company_contact_number,
-                'company_description' => $currentUser->company_description,
-                'company_sector' => $currentUser->company_sector,
-                ]);
-
+                'is_main_hr' => false,
+                'company_id' => $currentUser->company_id,
+            ]);
 
         $user->assignRole('company');
         return $user;
