@@ -13,8 +13,8 @@ class ManageUsersController extends Controller
 
 
         $users = User::whereIn('role', ['company', 'institution', 'peso'])
-        ->orderBy('created_at', 'desc') // Sort by created_at in descending order
-        ->paginate(10); // Paginate the results
+            ->orderBy('created_at', 'desc') // Sort by created_at in descending order
+            ->paginate(10); // Paginate the results
 
         return Inertia::render('Admin/ManageUsers/Index/Index', [
             'all_users' => $users
@@ -41,19 +41,19 @@ class ManageUsersController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10); // Paginate the results (10 users per page)
 
-            
-    
+
+
         return inertia('Admin/ManageUsers/Index/List', [
             'all_users' => $users,
         ]);
     }
-    
+
     public function archivedlist()
     {
 
-        $users = User::onlyTrashed() 
-        ->orderBy('created_at', 'desc') 
-        ->paginate(10);
+        $users = User::onlyTrashed()
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return Inertia::render('Admin/ManageUsers/Index/ArchivedList', [
             'all_users' => $users
@@ -75,6 +75,11 @@ class ManageUsersController extends Controller
     public function approve(User $user)
     {
         $user->is_approved = true;
+
+        if ($user->role === 'company') {
+            $user->is_main_hr = true;
+        }
+        
         $user->save();
 
         return redirect()->route('admin.manage_users')->with('flash.banner', 'User  approved successfully.');
@@ -107,6 +112,5 @@ class ManageUsersController extends Controller
         $user->restore();
 
         return redirect()->route('admin.manage_users')->with('flash.banner', 'User restored successfully.');
-        
     }
 }
