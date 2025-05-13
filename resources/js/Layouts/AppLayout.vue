@@ -205,6 +205,13 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Career Opportunities
                                 </NavLink>
 
+                                <NavLink
+                                    v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved"
+                                    :href="route('instiskills', { user: page.props.auth.user.id })"
+                                    :active="route().current('instiskills')">
+                                    Manage Skills
+                                </NavLink>
+
                                 <!-- Manage Approval Link -->
                                 <NavLink
                                     v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved"

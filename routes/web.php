@@ -22,7 +22,6 @@ use App\Http\Controllers\CareerOpportunityController;
 use App\Http\Controllers\ManageGraduatesApprovalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
-use App\Http\Controllers\InstiSkillController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\JobSearchController;
 // Company 
@@ -494,6 +493,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/careeropportunities/{user}/archivedlist', [CareerOpportunityController::class, 'archivedlist'])->name('careeropportunities.archivedlist');
     Route::post('/careeropportunities/edit/{careeropportunity}', [CareerOpportunityController::class, 'restore'])->name('careeropportunities.restore');
 });
+
+//Manage Skills
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->prefix('skills')->group(function () {
+    Route::get('/{user}', [SkillController::class, 'index'])->name('instiskills');
+    Route::get('/{user}/list', [SkillController::class, 'list'])->name('instiskills.list');
+    Route::get('/{user}/create', [SkillController::class, 'create'])->name('instiskills.create');
+    Route::post('/{user}', [SkillController::class, 'store'])->name('instiskills.store');
+    Route::get('/edit/{id}', [SkillController::class, 'edit'])->name('instiskills.edit');
+    Route::put('/update/{id}', [SkillController::class, 'update'])->name('instiskills.update');
+    Route::delete('/archive/{id}', [SkillController::class, 'archive'])->name('instiskills.archive');
+    Route::get('/{user}/archivedlist', [SkillController::class, 'archivedlist'])->name('instiskills.archivedlist');
+    Route::post('/restore/{id}', [SkillController::class, 'restore'])->name('instiskills.restore');
+});
+
 
 // MAIN INSITUTION GRADUATE ROUTES
 Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
