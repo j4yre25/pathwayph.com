@@ -35,6 +35,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'email',
+        'id',
         'password',
         'role',
         'is_approved',
@@ -55,25 +56,25 @@ class User extends Authenticatable
         'graduate_professional_title',
         'graduate_email',
         'graduate_phone',
-        'graduate_location', 
+        'graduate_location',
         'graduate_birthdate',
         'graduate_gender',
         'graduate_ethnicity',
         'graduate_address',
         'graduate_about_me',
         'graduate_picture_url',
-       
-        'graduate_education_institution_id', 
+
+        'graduate_education_institution_id',
         'graduate_education_program',
         'graduate_education_field_of_study',
         'graduate_education_start_date',
-        'graduate_education_end_date', 
+        'graduate_education_end_date',
         'graduate_education_description',
-        
-        'graduate_skills_name', 
+
+        'graduate_skills_name',
         'graduate_skills_proficiency',
         'graduate_skills_type',
-        'graduate_skills_years_experience', 
+        'graduate_skills_years_experience',
 
         
 
@@ -109,7 +110,7 @@ class User extends Authenticatable
     ];
 
     protected $attributes = [
-        'is_approved' => null, 
+        'is_approved' => null,
     ];
 
     /**
@@ -124,15 +125,18 @@ class User extends Authenticatable
             'password' => 'hashed',
             'graduate_year_graduated' => 'date',
             'is_approved' => 'boolean'
-            
+
         ];
     }
 
-    public function graduates() {
+    public function graduates()
+    {
         return $this->hasOne(Graduate::class);
     }
 
+
     public function jobs() {
+
         return $this->hasMany(Job::class);
     }
 
@@ -140,27 +144,30 @@ class User extends Authenticatable
         return $this->hasOne(Company::class);
     }
 
+
     public function sectors() {
+
         return $this->hasMany(Sector::class);
     }
 
-    public function categories() {
+    public function categories()
+    {
         return $this->hasManyThrough(Category::class, Sector::class);
 
     }
     public function programs()
-    {
-    return $this->hasMany(Program::class);
-    }
+{
+    return $this->hasMany(Program::class, 'institution_id', 'id');
+}
 
     public function degrees()
     {
-    return $this->hasMany(Degree::class);
+        return $this->hasMany(Degree::class);
     }
 
     public function school_years()
     {
-    return $this->hasMany(SchoolYear::class);
+        return $this->hasMany(SchoolYear::class);
     }
 
 
@@ -201,7 +208,7 @@ class User extends Authenticatable
     {
         return json_decode($value, true) ?? []; // Decode JSON to array
     }
-    
+
     public function skills()
     {
         return $this->hasMany(Skill::class);
@@ -265,6 +272,24 @@ class User extends Authenticatable
     public function jobInvitationsSent()
     {
         return $this->hasMany(JobInvitation::class, 'company_id'); // For r
+    }
+
+    public function institutionCareerOpportunities()
+    {
+        return $this->hasMany(InstitutionCareerOpportunity::class, 'institution_id');
+    }
+
+    // Optional: convenience to get all career titles from their links
+    public function careerOpportunities()
+    {
+        return $this->hasManyThrough(
+            CareerOpportunity::class,
+            InstitutionCareerOpportunity::class,
+            'institution_id',           // FK on institution_career_opportunities
+            'id',                       // FK on career_opportunities
+            'id',                       // Local key on users
+            'career_opportunity_id'    // Local key on institution_career_opportunities
+        );
     }
 
 }

@@ -9,13 +9,19 @@ class Program extends Model
 {
     use SoftDeletes;
 
-    public function user() {
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
-    
+
     public function degree()
     {
         return $this->belongsTo(Degree::class);
+    }
+
+    public function careerOpportunities()
+    {
+        return $this->hasMany(CareerOpportunity::class);
     }
 
     public function getFormattedNameAttribute()
@@ -31,6 +37,6 @@ class Program extends Model
 
         return $prefix . ' ' . $this->name;
     }
-    protected $fillable = ['name', 'user_id','institution_id','degree_id'];
+    protected $fillable = ['name', 'user_id', 'institution_id', 'degree_id'];
 
 }

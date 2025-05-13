@@ -198,6 +198,13 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Programs
                                 </NavLink>
 
+                                <NavLink
+                                    v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved"
+                                    :href="route('careeropportunities', { user: page.props.auth.user.id })"
+                                    :active="route().current('careeropportunities')">
+                                    Manage Career Opportunities
+                                </NavLink>
+
                                 <!-- Manage Approval Link -->
                                 <NavLink
                                     v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved"
@@ -358,7 +365,7 @@ console.log(page.props.permissions.canManageInstitution)
 
                                         <DropdownLink v-if="page.props.roles.isInstitution"
                                             :href="route('careerofficer.register')">
-                              Career Officer Registration
+                                        Career Officer Registration
                                         </DropdownLink>
 
 

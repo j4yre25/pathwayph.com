@@ -3,17 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CareerOpportunity extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = ['title'];
 
-    public function programs()
+    public function institutionLinks()
     {
-        return $this->belongsToMany(Program::class)->withTimestamps();
+        return $this->hasMany(InstitutionCareerOpportunity::class);
     }
 }
