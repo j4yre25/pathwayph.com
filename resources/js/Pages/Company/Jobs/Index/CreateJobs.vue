@@ -26,7 +26,7 @@ const props = defineProps ({
 const programs = props.programs;
 
 console.log('User ID:', page.props);
-console.log(programs);
+console.log('Programs:', programs);
 
 const form = useForm({
     job_title: '', 
@@ -152,10 +152,8 @@ const extractProgramIds = () => {
 const createJob = () => {
     console.log('Form data:', form);
     
-    // Call the extractProgramIds() function to ensure only the program IDs are sent
-    extractProgramIds();  
-    console.log('Program:', form.program_id);  // It should print an array of IDs, e.g., [1, 2]
-
+  
+    form.program_id = form.program_id.map(program => program.id ?? program);
 
     form.post(route('company.jobs.store', { user: page.props.auth.user.id }), {
         onSuccess: () => {

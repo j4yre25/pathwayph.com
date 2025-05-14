@@ -146,7 +146,7 @@ public function view(Job $job)
 
         $hrFullName = trim($hrFirstName . ' ' . $hrLastName);
 
-        return Inertia::render('Company/Jobs/View/EmployersJobDetails', [
+        return Inertia::render('Admin/Jobs/View/EmployersJobDetails', [
             'job' => [
                 'id' => $job->id,
                 'job_title' => $job->job_title,

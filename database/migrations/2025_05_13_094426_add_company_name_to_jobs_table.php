@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('jobs', function (Blueprint $table) {
-            $table->boolean('is_salary_negotiable')->default(false);
+         Schema::table('jobs', function (Blueprint $table) {
+            $table->string('company_name')->nullable()->after('user_id'); // Add the company_name column
         });
     }
 
     /**
      * Reverse the migrations.
      */
-    public function down(): void
+    public function down()
     {
         Schema::table('jobs', function (Blueprint $table) {
-             $table->dropColumn(['min_salary', 'max_salary', 'is_salary_negotiable']);
+            $table->dropColumn('company_name');
         });
     }
 };

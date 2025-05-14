@@ -61,6 +61,7 @@ const goToJob = (jobId) => {
           <th class="py-2 px-4 text-left border">Location</th>
           <th class="py-2 px-4 text-left border">Employment Type</th>
           <th class="py-2 px-4 text-left border">Experience Level</th>
+          <th class="py-2 px-4 text-left border">Applicants</th>
           <th class="py-2 px-4 text-left border">Status</th>
         </tr>
       </thead>
@@ -71,7 +72,7 @@ const goToJob = (jobId) => {
           <td class="border border-gray-200 px-6 py-4">
             <template v-if="job.user">
               <template v-if="job.user.role === 'company'">
-                {{ job.user.company_name }}
+                {{ job.company.company_name }}
               </template>
               <template v-else-if="job.user.role === 'institution'">
                 {{ job.user.institution_career_officer_first_name }} {{ job.user.institution_career_officer_last_name }}
@@ -90,6 +91,7 @@ const goToJob = (jobId) => {
           <td class="border border-gray-200 px-6 py-4">{{ job.location }}</td>
           <td class="border border-gray-200 px-6 py-4">{{ job.job_type }}</td>
           <td class="border border-gray-200 px-6 py-4">{{ job.experience_level }}</td>
+          <td class="border border-gray-200 px-6 py-4">{{ job.applicants_count ?? 0 }}</td>
           <td class="border border-gray-200 px-6 py-4">
             <span v-if="job.is_approved === 1" class="text-green-600 font-semibold">Approved</span>
             <span v-else-if="job.is_approved === 0" class="text-red-600 font-semibold">Disapproved</span>
