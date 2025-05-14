@@ -19,6 +19,12 @@ class Program extends Model
         return $this->belongsTo(Degree::class);
     }
 
+    public function jobs()
+    {
+        return $this->belongsToMany(Job::class);
+    }
+
+
     public function careerOpportunities()
     {
         return $this->hasMany(CareerOpportunity::class);

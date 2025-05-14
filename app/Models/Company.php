@@ -22,8 +22,6 @@ class Company extends Model
         'company_email',
         'company_mobile_phone',
         'company_tel_phone',
-        'company_hr_first_name',
-        'company_hr_last_name',
     ];
 
     /**
@@ -31,7 +29,7 @@ class Company extends Model
      */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -40,5 +38,10 @@ class Company extends Model
     public function jobs()
     {
         return $this->hasMany(Job::class);
+    }
+
+    public function hrs()
+    {
+        return $this->hasMany(User::class);
     }
 }

@@ -24,9 +24,9 @@ class CompanyManageHRController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
-        // Fetch all HRs associated with the company
+       // Fetch HRs linked to the same company
         $hrs = User::where('role', 'company')
-            ->where('company_name', $user->company_name)
+            ->where('company_id', $user->company_id)
             ->where('is_main_hr', false)
             ->get();
 

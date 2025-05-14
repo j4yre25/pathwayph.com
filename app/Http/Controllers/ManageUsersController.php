@@ -16,6 +16,26 @@ class ManageUsersController extends Controller
             ->orderBy('created_at', 'desc') // Sort by created_at in descending order
             ->paginate(10); // Paginate the results
 
+            // Append full name depending on role
+        $users->getCollection()->transform(function ($user) {
+            if ($user->role === 'company') {
+                $user->full_name = trim("{$user->company_hr_first_name} {$user->company_hr_last_name}");
+                $user->organization_name = $user->company->company_name ?? '-';
+            } elseif ($user->role === 'institution') {
+                $user->full_name = trim("{$user->institution_career_officer_first_name} {$user->institution_career_officer_last_name}");
+                $user->organization_name = $user->institution_name ?? '-';
+            } elseif ($user->role === 'peso') {
+                $user->full_name = trim("{$user->peso_first_name} {$user->peso_last_name}");
+                $user->organization_name = $user->peso_name ?? '-';
+            } elseif ($user->role === 'graduate') {
+                $user->full_name = trim("{$user->graduate_first_name} {$user->graduate_last_name}");
+            } else {
+                $user->full_name = 'N/A';
+            }
+
+            return $user;
+        });
+
         return Inertia::render('Admin/ManageUsers/Index/Index', [
             'all_users' => $users
 
@@ -41,7 +61,25 @@ class ManageUsersController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10); // Paginate the results (10 users per page)
 
+        
+        $users->getCollection()->transform(function ($user) {
+            if ($user->role === 'company') {
+                $user->full_name = trim("{$user->company_hr_first_name} {$user->company_hr_last_name}");
+                $user->organization_name = $user->company->company_name ?? '-';
+            } elseif ($user->role === 'institution') {
+                $user->full_name = trim("{$user->institution_career_officer_first_name} {$user->institution_career_officer_last_name}");
+                $user->organization_name = $user->institution_name ?? '-';
+            } elseif ($user->role === 'peso') {
+                $user->full_name = trim("{$user->peso_first_name} {$user->peso_last_name}");
+                $user->organization_name = $user->peso_name ?? '-';
+            } elseif ($user->role === 'graduate') {
+                $user->full_name = trim("{$user->graduate_first_name} {$user->graduate_last_name}");
+            } else {
+                $user->full_name = 'N/A';
+            }
 
+            return $user;
+        });
 
         return inertia('Admin/ManageUsers/Index/List', [
             'all_users' => $users,
