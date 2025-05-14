@@ -11,8 +11,17 @@ class Graduate extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'user_id','program_id', 'school_year_id','gender', 'dob',
-         'employment_status','current_job_title',
+        'user_id',
+        'first_name',           // <-- add this
+        'last_name',            // <-- add this
+        'middle_initial',       // <-- add this
+        'program_id',
+        'school_year_id',
+        'gender',
+        'dob',
+        'employment_status',
+        'current_job_title',
+        'institution_id',       // if you use this in your update/store
     ];
 
     public function user() {

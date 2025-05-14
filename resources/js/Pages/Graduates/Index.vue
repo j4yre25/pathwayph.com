@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import GraduateModal from './GraduateModal.vue';
+import GraduateEdit from './GraduateEdit.vue';
 
 const props = defineProps({
   graduates: Array,
@@ -14,12 +14,12 @@ const props = defineProps({
 const isModalOpen = ref(false);
 const selectedGraduate = ref(null);
 
-function openAddModal() {
-  selectedGraduate.value = null;
-  isModalOpen.value = true;
-}
+const showConfirmModal = ref(false)
+const graduateToArchive = ref(null)
+const flashBanner = ref('')
 
 function editGraduate(grad) {
+  // Pre-fill the modal with all graduate info.
   selectedGraduate.value = { ...grad }
   isModalOpen.value = true;
 }
@@ -29,11 +29,30 @@ function closeModal() {
   selectedGraduate.value = null;
 }
 
-function archiveGraduate(id) {
-  if (confirm('Are you sure you want to archive this graduate?')) {
-    router.delete(route('graduates.destroy', { graduate: id }));
-  }
+// Show confirmation modal
+function confirmArchive(grad) {
+  graduateToArchive.value = grad
+  showConfirmModal.value = true
 }
+
+// Archive after confirmation
+function archiveGraduateConfirmed() {
+  router.delete(route('graduates.destroy', { graduate: graduateToArchive.value.graduate_id }), {
+    onSuccess: () => {
+      flashBanner.value = 'Graduate archived successfully.'
+      showConfirmModal.value = false
+      graduateToArchive.value = null
+      setTimeout(() => flashBanner.value = '', 3000)
+    }
+  })
+}
+
+// Cancel confirmation
+function cancelArchive() {
+  showConfirmModal.value = false
+  graduateToArchive.value = null
+}
+
 </script>
 
 <template>
@@ -46,25 +65,24 @@ function archiveGraduate(id) {
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white shadow-xl rounded-2xl p-6">
           <!-- Action Buttons -->
-          <div class="flex justify-between items-center mb-6">
-            <div class="space-x-2">
-              <button @click="$inertia.get(route('graduates.list'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          <div class="flex justify-between items-center mb-7">
+            <div>
+              <button @click="$inertia.get(route('graduates.list'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-2">
                 List of Graduates
               </button>
               <button @click="$inertia.get(route('graduates.archived'))" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
                 Archived Graduates
               </button>
-              <button @click="$inertia.get(route('graduates.batch.page'))" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                Upload CSV
-              </button>
             </div>
-            <div>
-              <button @click="openAddModal" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <div class="flex gap-x-2">
+              <button @click="$inertia.get(route('graduates.create'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 Add Graduate
+              </button>
+              <button @click="$inertia.get(route('graduates.batch.page'))" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                Batch Upload
               </button>
             </div>
           </div>
-
           <!-- Graduate Table -->
           <table class="min-w-full table-auto border rounded-lg overflow-hidden">
             <thead class="bg-gray-100 text-sm text-left">
@@ -86,16 +104,15 @@ function archiveGraduate(id) {
                   <button @click="editGraduate(grad)" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
                     Edit
                   </button>
-                  <button @click="archiveGraduate(grad.user_id)" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                  <button @click="confirmArchive(grad)" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
                     Archive
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
-
           <!-- Graduate Modal -->
-          <GraduateModal
+          <GraduateEdit
             :show="isModalOpen"
             :graduate="selectedGraduate"
             :programs="programs"
@@ -103,6 +120,25 @@ function archiveGraduate(id) {
             :insti-users="instiUsers"
             @close="closeModal"
           />
+          <!-- Confirmation Modal -->
+          <div v-if="showConfirmModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="bg-white p-6 rounded shadow-lg">
+              <h3 class="text-lg font-semibold mb-4">Confirm Archive</h3>
+              <p>Are you sure you want to archive this graduate?</p>
+              <div class="mt-4 flex justify-end space-x-2">
+                <button @click="cancelArchive" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                  Cancel
+                </button>
+                <button @click="archiveGraduateConfirmed" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+          <!-- Flash Banner -->
+          <div v-if="flashBanner" class="fixed top-0 left-0 right-0 bg-green-500 text-white text-center py-2">
+            {{ flashBanner }}
+          </div>
         </div>
       </div>
     </div>
