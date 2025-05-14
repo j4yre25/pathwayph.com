@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Job;
+use App\Models\Program;
+use App\Models\Company;
 use Faker\Factory as Faker;
 use Illuminate\Support\Arr;
 use App\Models\Sector;
@@ -17,23 +19,25 @@ class JobSeeder extends Seeder
         $faker = Faker::create('en_PH');
         $sectors = Sector::pluck('id')->toArray(); // Fetch all valid sector IDs
         $categories = Category::pluck('id')->toArray(); // Fetch all valid category IDs
+        $company = User::where('role', 'company')->pluck('id')->toArray(); // Fetch all valid company IDs
+        $programs = Program::pluck('id')->toArray(); // Fetch all valid program IDs
 
         $companies = [
-            ['name' => 'Sydney Hotel', 'address' => 'PIONEER-PENDATUN AVE.', 'brgy' => 'DADIANGAS WEST'],
-            ['name' => 'KCC Mall of Gensan', 'address' => 'J. CATOLICO SR. AVE.', 'brgy' => 'LAGAO'],
-            ['name' => 'SM Mall of Gensan / SM PRIME HOLDINGS, INC.', 'address' => 'SM CITY, CORNER SANTIAGO BLVD. - SAN MIGUEL ST.', 'brgy' => 'LAGAO'],
-            ['name' => 'SECURITY BANK CORPORATION', 'address' => 'NATIONAL HIGHWAY CORNER RECTO ST.', 'brgy' => 'DADIANGAS NORTH'],
-            ['name' => '1 Cooperative Insurance System of the Philippines Life and General Insurance', 'address' => 'DOOR 1, ACHARON BUILDING, SAMPALOC STREET', 'brgy' => 'DADIANGAS WEST'],
-            ['name' => 'KCD Real Estate Lessor', 'address' => 'DAMASCO, PUROK MANGGA', 'brgy' => 'CITY HEIGHTS'],
-            ['name' => 'Land Bank of the Philippines', 'address' => 'NATIONAL HIGHWAY', 'brgy' => 'CITY HEIGHTS'],
-            ['name' => 'SOUTH COTABATO II ELECTRIC COOPERATIVE', 'address' => 'J. CATOLICO AVENUE', 'brgy' => 'LAGAO'],
-            ['name' => 'WILCON DEPOT, INC.', 'address' => 'PUROK PALEN', 'brgy' => 'LABANGAL'],
-            ['name' => 'AGRIBUSINESS RURAL BANK, INC.', 'address' => 'J. CATOLICO AVENUE', 'brgy' => 'LAGAO'],
-            ['name' => 'ASIA UNITED BANK CORPORATION', 'address' => 'BELINDA ENTERPRISE BLDG., I. SANTIAGO BLVD.', 'brgy' => 'DADIANGAS SOUTH'],
-            ['name' => 'DOLE PHILIPPINES, INC', 'address' => 'PUROK STA. CRUZ', 'brgy' => 'CALUMPANG'],
-            ['name' => 'SAN ANDRES FISHING INDUSTRIES, INC.', 'address' => 'PUROK CABU', 'brgy' => 'TAMBLER'],
-            ['name' => 'SMART COMMUNICATIONS INC.', 'address' => 'CY 9-10, SM CITY, CORNER SANTIAGO BOULEVARD - SAN MIGUEL STREET', 'brgy' => 'LAGAO'],
-            ['name' => 'ST. ELIZABETH HOSPITAL, INC.', 'address' => 'NATIONAL HIGHWAY', 'brgy' => 'LAGAO'],
+            ['id'=>'18','name' => 'Sydney Hotel', 'address' => 'PIONEER-PENDATUN AVE.', 'brgy' => 'DADIANGAS WEST'],
+            ['id'=>'19','name' => 'KCC Mall of Gensan', 'address' => 'J. CATOLICO SR. AVE.', 'brgy' => 'LAGAO'],
+            ['id'=>'20','name' => 'SM Mall of Gensan / SM PRIME HOLDINGS, INC.', 'address' => 'SM CITY, CORNER SANTIAGO BLVD. - SAN MIGUEL ST.', 'brgy' => 'LAGAO'],
+            ['id'=>'21','name' => 'SECURITY BANK CORPORATION', 'address' => 'NATIONAL HIGHWAY CORNER RECTO ST.', 'brgy' => 'DADIANGAS NORTH'],
+            ['id'=>'22','name' => '1 Cooperative Insurance System of the Philippines Life and General Insurance', 'address' => 'DOOR 1, ACHARON BUILDING, SAMPALOC STREET', 'brgy' => 'DADIANGAS WEST'],
+            ['id'=>'23','name' => 'KCD Real Estate Lessor', 'address' => 'DAMASCO, PUROK MANGGA', 'brgy' => 'CITY HEIGHTS'],
+            ['id'=>'24','name' => 'Land Bank of the Philippines', 'address' => 'NATIONAL HIGHWAY', 'brgy' => 'CITY HEIGHTS'],
+            ['id'=>'25','name' => 'SOUTH COTABATO II ELECTRIC COOPERATIVE', 'address' => 'J. CATOLICO AVENUE', 'brgy' => 'LAGAO'],
+            ['id'=>'26','name' => 'WILCON DEPOT, INC.', 'address' => 'PUROK PALEN', 'brgy' => 'LABANGAL'],
+            ['id'=>'27','name' => 'AGRIBUSINESS RURAL BANK, INC.', 'address' => 'J. CATOLICO AVENUE', 'brgy' => 'LAGAO'],
+            ['id'=>'28','name' => 'ASIA UNITED BANK CORPORATION', 'address' => 'BELINDA ENTERPRISE BLDG., I. SANTIAGO BLVD.', 'brgy' => 'DADIANGAS SOUTH'],
+            ['id'=>'29','name' => 'DOLE PHILIPPINES, INC', 'address' => 'PUROK STA. CRUZ', 'brgy' => 'CALUMPANG'],
+            ['id'=>'30','name' => 'SAN ANDRES FISHING INDUSTRIES, INC.', 'address' => 'PUROK CABU', 'brgy' => 'TAMBLER'],
+            ['id'=>'31','name' => 'SMART COMMUNICATIONS INC.', 'address' => 'CY 9-10, SM CITY, CORNER SANTIAGO BOULEVARD - SAN MIGUEL STREET', 'brgy' => 'LAGAO'],
+            ['id'=>'32','name' => 'ST. ELIZABETH HOSPITAL, INC.', 'address' => 'NATIONAL HIGHWAY', 'brgy' => 'LAGAO'],
         ];
 
         $jobTitlesPerCompany = [
@@ -222,75 +226,59 @@ class JobSeeder extends Seeder
 
         $jobTypes = ['full-time', 'part-time'];
         $experienceLevels = ['entry-level', 'intermediate', 'mid-level', 'senior-executive'];
-        $salaryTypes = ['monthly', 'weekly', 'hourly', 'negotiable'];
         $skillsList = ['Communication', 'Teamwork', 'Problem-solving', 'Time Management', 'Customer Service', 'Leadership'];
 
         
         foreach ($companies as $company) {
-            $companyName = $company['name'];
             $companyLocation = $company['address'] . ', ' . $company['brgy'] . ', General Santos City';
-            $branchLocation =  $company['brgy'] . ', General Santos City';
-       
-            $hrUser = User::where('company_name', $companyName)
-              ->where('role', 'company')
-              ->first(); 
+            $branchLocation = $company['brgy'] . ', General Santos City';
 
-                if ($hrUser) {
-                    $postedByName = $hrUser->company_hr_first_name . ' ' . $hrUser->company_hr_last_name;
-                    $userId = $hrUser->id;
-                } else {
-                    $postedByName = 'Default HR';
-                    $userId = 1;
-                }
+            $hrUser = User::where('company_id', $company['id'])
+                ->where('role', 'company')
+                ->first();
 
+            if (!$hrUser) {
+                continue; // Skip this company if no HR user is found
+            }
 
-       
-            foreach ($jobTitlesPerCompany[$companyName] as $title) {
-                $sectorId = Arr::random($sectors); // Use valid sector IDs
-                $categoryId = Arr::random($categories); // Use valid category IDs
+            $postedByName = $hrUser->company_hr_first_name . ' ' . $hrUser->company_hr_last_name;
+            $userId = $hrUser->id;
+            $companyId = $company['id'];
 
-                $salaryType = Arr::random($salaryTypes);
-                $minSalary = $this->getSalaryRange($salaryType, 'min');
-                $maxSalary = $this->getSalaryRange($salaryType, 'max');
+            foreach ($jobTitlesPerCompany[$company['name']] ?? [] as $title) {
+                $sectorId = Arr::random($sectors);
+                $categoryId = Arr::random($categories);
 
-                Job::create([
-                    'user_id' => $userId, 
-                    'company_name' => $companyName,
+                $isNegotiable = (bool)random_int(0, 1);
+
+                $minSalary = $isNegotiable ? null : random_int(5000, 20000);
+                $maxSalary = $isNegotiable ? null : random_int($minSalary, $minSalary + 50000);
+
+                $job = Job::create([
+                    'user_id' => $userId,
+                    'company_id' => $companyId,
                     'posted_by' => $postedByName,
                     'job_title' => $title,
                     'sector_id' => $sectorId,
                     'category_id' => $categoryId,
                     'job_type' => Arr::random($jobTypes),
                     'experience_level' => Arr::random($experienceLevels),
-                    'salary_type' => $salaryType,
+                    'is_salary_negotiable' => $isNegotiable,
                     'min_salary' => $minSalary,
                     'max_salary' => $maxSalary,
                     'location' => $companyLocation,
                     'branch_location' => $branchLocation,
                     'vacancy' => random_int(1, 10),
-                    'description' => "$title position at $companyName. Responsibilities include ...",
+                    'description' => "$title position available at our company. Responsibilities include ...",
                     'requirements' => "Requirements for $title include ...",
-                    'job_benefits' => "Health benefits, SSS, Pag-IBIG, PhilHealth",
                     'skills' => json_encode(array_rand(array_flip($skillsList), 3)),
                     'expiration_date' => now()->addDays(30)->format('Y-m-d'),
-                    'application_limit' => Arr::random([null, 50, 100]),
+                    'applicants_limit' => Arr::random([null, 50, 100]),
                 ]);
-            }
-        }
-        
-    }
 
-    private function getSalaryRange($salaryType, $type)
-    {
-        switch ($salaryType) {
-            case 'monthly':
-                return $type === 'min' ? 5000 : 100000;
-            case 'weekly':
-                return $type === 'min' ? 1500 : 25000;
-            case 'hourly':
-                return $type === 'min' ? 100 : 2000;
-            case 'negotiable':
-                return null;
+                $job->programs()->attach(Arr::random($programs, rand(1, min(3, count($programs)))));
+
+            }
         }
     }
 }
