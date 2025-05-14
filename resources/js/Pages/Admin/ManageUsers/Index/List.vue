@@ -134,6 +134,7 @@ const goTo = (url) => {
                     <thead>
                         <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
                             <th class="border border-gray-200 px-6 py-3 text-left">User Level</th>
+                            <th class="border border-gray-200 px-6 py-3 text-left">Organization Name</th>
                             <th class="border border-gray-200 px-6 py-3 text-left">Name</th>
                             <th class="border border-gray-200 px-6 py-3 text-left">Date Creation</th>
                             <th class="border border-gray-200 px-6 py-3 text-left">Status</th>
@@ -144,21 +145,11 @@ const goTo = (url) => {
                             class="border-b border-gray-200 hover:bg-gray-100">
                             <td class="border border-gray-200 px-6 py-4">{{ user.role }}</td>
                             <td class="border border-gray-200 px-6 py-4">
-                                <!-- Conditionally display the name based on role -->
-
-                                <template v-if="user.role === 'company'">
-                                    {{ user.company_name }}
-                                </template>
-                                <template v-else-if="user.role === 'institution'">
-                                    {{ user.institution_name }}
-                                </template>
-                                <template v-else-if="user.role === 'peso'">
-                                    {{ user.peso_first_name }} {{ user.peso_last_name }}
-
-                                </template>
-                             
+                                {{ user.organization_name }}
                             </td>
-
+                            <td class="border border-gray-200 px-6 py-4">
+                                {{ user.full_name }}
+                            </td>
                             <td class="border border-gray-200 px-6 py-4">
                                 {{ new Date(user.created_at).toLocaleDateString() }}
                             </td>

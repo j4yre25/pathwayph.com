@@ -70,6 +70,7 @@ const goTo = (url) => {
                     <thead>
                         <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
                             <th class="border border-gray-200 px-6 py-3 text-left">Role</th>
+                            <th class="border border-gray-200 px-6 py-3 text-left">Organization Name</th>
                             <th class="border border-gray-200 px-6 py-3 text-left">Name</th>
                             <th class="border border-gray-200 px-6 py-3 text-left">Email</th>
                             <th class="border border-gray-200 px-6 py-3 text-left">Status</th>
@@ -81,16 +82,10 @@ const goTo = (url) => {
                             class="border-b border-gray-200 hover:bg-gray-100">
                             <td class="border border-gray-200 px-6 py-4">{{ user.role }}</td>
                             <td class="border border-gray-200 px-6 py-4">
-                                <template v-if="user.role === 'company'">
-                                    {{ user.company_name }}
-                                </template>
-                                <template v-else-if="user.role === 'institution'">
-                                    {{ user.institution_career_officer_first_name }} {{
-                                        user.institution_career_officer_last_name }}
-                                </template>
-                                <template v-else>
-                                    {{ user.name }}
-                                </template>
+                                {{user.organization_name}}  
+                            </td>
+                            <td class="border border-gray-200 px-6 py-4">
+                                {{ user.full_name }}
                             </td>
                             <td class="border border-gray-200 px-6 py-4">{{ user.email }}</td>
                             <td class="border border-gray-200 px-6 py-4">

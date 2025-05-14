@@ -5,6 +5,7 @@ import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+import 'quill/dist/quill.snow.css';
 import * as lucide from 'lucide-vue-next';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
