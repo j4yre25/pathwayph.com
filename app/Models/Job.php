@@ -28,36 +28,30 @@ class Job extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'title',
-        'is_approved',
-        'company',
-        'location',
-        'description',
-        'min_salary',
-        'max_salary',
-        'work_type',
-        'sector',
-        'sector_category',
-        'posted_at',
-        'status',
         'user_id',
         'job_title',
         'location',
-        'vacancy',
-        'salary',
+        'branch_location',
+        'description',
+        'requirements',
+        'is_approved',
+        'min_salary',
+        'max_salary',
         'job_type',
         'experience_level',
-        'description',
+        'vacancy',
         'skills',
         'sector',
-        'category',
-        'requirements',
+        'posted_at',
         'posted_by',
-        'branch_location',
+        'status',
+        'program_id',
+        'company_id',
+        'sector',
+        'category',
         'status',
         'expiration_date',
         'applicants_limit',
-        'work_type',
     ];
 
     /**
@@ -126,7 +120,10 @@ class Job extends Model
     {
         return $this->belongsTo(Company::class);
     }
-
+    public function programs()
+    {
+        return $this->belongsToMany(Program::class);
+    }
 
     /**
      * Get the sector that the job belongs to.

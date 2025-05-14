@@ -6,8 +6,10 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
+
 
 
 class CreateNewHR implements CreatesNewUsers
@@ -22,6 +24,8 @@ class CreateNewHR implements CreatesNewUsers
     public function create(array $input): User
     {
         $currentUser = Auth::user(); 
+        Log::info(message: 'User created with company_id: ' . $currentUser->company_id);
+
         
         $messages = [
             'email.required' => 'The email field is required.',
