@@ -28,7 +28,7 @@ class CreateNewCareerOfficer implements CreatesNewUsers
             'password' => $this->passwordRules(),
             'dob' => ['required', 'date'],
             'is_approved' => ['boolean'],
-            'gender' => ['required', 'string', 'in:Male,Female,Other'],
+            'gender' => ['required', 'string', 'in:Male,Female'],
             'contact_number' => ['required', 'digits_between:10,15'],
         ];
 
