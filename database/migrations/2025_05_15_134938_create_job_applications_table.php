@@ -14,14 +14,12 @@ return new class extends Migration
         Schema::create('job_applications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('job_title');
-            $table->string('company');
-            $table->string('status')->default('applied'); // applied, interviewing, offered, rejected
-            $table->date('application_date');
-            $table->text('job_description')->nullable();
-            $table->string('job_location')->nullable();
-            $table->string('job_type')->nullable(); // full-time, part-time, contract
-            $table->json('salary_range')->nullable();
+            $table->foreignId('job_id')->constrained()->onDelete('cascade');
+            $table->string('status')->nullable();
+            $table->timestamp('applied_at')->nullable();
+            $table->foreignId('resume_id')->nullable()->constrained()->onDelete('set null');
+            $table->text('cover_letter')->nullable();
+            $table->json('additional_documents')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });

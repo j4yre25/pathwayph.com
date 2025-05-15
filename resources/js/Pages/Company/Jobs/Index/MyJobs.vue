@@ -42,7 +42,6 @@ const goToJob = (jobId) => {
           <th class="py-3 px-4 text-left border">Location</th>
           <th class="py-3 px-4 text-left border">Employment Type</th>
           <th class="py-3 px-4 text-left border">Experience Level</th>
-          <th class="py-3 px-4 text-left border">Applicants</th>
           <th class="py-3 px-4 text-left border">Status</th>
         </tr>
       </thead>
@@ -62,7 +61,6 @@ const goToJob = (jobId) => {
           <td class="border border-gray-300 px-6 py-4">{{ job.location }}</td>
           <td class="border border-gray-300 px-6 py-4">{{ job.job_type }}</td>
           <td class="border border-gray-300 px-6 py-4">{{ job.experience_level }}</td>
-          <td class="border border-gray-300 px-6 py-4">{{ job.applicants_count ?? 0 }}</td>
           <td class="border border-gray-300 px-6 py-4">
             <span v-if="job.is_approved === 1" class="text-green-600 font-semibold">Approved</span>
             <span v-else-if="job.is_approved === 0" class="text-red-600 font-semibold">Disapproved</span>
