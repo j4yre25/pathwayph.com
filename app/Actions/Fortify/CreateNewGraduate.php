@@ -29,7 +29,7 @@ Validator::make($input, [
         'employment_status' => ['required', 'in:Employed,Underemployed,Unemployed'],
         'current_job_title' => ['required_if:employment_status,Employed,Underemployed', 'nullable', 'string', 'max:255'],
         'graduate_year_graduated' => ['required', 'exists:school_years,school_year_range'],
-        'gender' => ['required', 'string', 'in:Male,Female,Other'], 
+        'gender' => ['required', 'string', 'in:Male,Female'], 
         'dob' => ['required', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')],
         'contact_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
  ])->validate();
@@ -59,6 +59,8 @@ Validator::make($input, [
         'middle_initial' => $input['graduate_middle_initial'],
         'institution_id' => $input['graduate_school_graduated_from'],
         'program_id' => $this->getProgramId($input['graduate_program_completed']),
+        'gender' => $input['gender'],
+        'dob' => $input['dob'], 
         'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
         'employment_status' => $input['employment_status'],
         'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],

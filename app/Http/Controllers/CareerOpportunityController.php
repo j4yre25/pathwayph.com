@@ -76,7 +76,8 @@ class CareerOpportunityController extends Controller
 
     public function create(User $user)
     {
-        $programs = $user->programs;
+        // Fetch only active programs (not archived)
+        $programs = $user->programs()->whereNull('deleted_at')->get();
 
         return Inertia::render('Institutions/CareerOpportunities/Create', [
             'programs' => $programs,

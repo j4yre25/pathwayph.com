@@ -71,7 +71,7 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['institution_career_officer_first_name'] = ['required', 'string', 'max:255'];
                 $rules['institution_career_officer_last_name'] = ['required', 'string', 'max:255'];
                 $rules['dob'] = ['nullable', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')];
-                $rules['gender'] = ['nullable', 'string', 'in:Male,Female,Other'];
+                $rules['gender'] = ['nullable', 'string', 'in:Male,Female'];
 
                 break;
             default:
@@ -90,7 +90,7 @@ class CreateNewUser implements CreatesNewUsers
             'gender.required' => 'The gender field is required.',
             'gender.in' => 'The selected gender is invalid.',
             'contact_number.required' => 'The contact number field is required.',
-            'contact_number.digits_between' =>  'The contact number must be in valid format (e.g., +63 912 345 6789).',
+            'contact_number.digits_between' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
             'contact_number.regex' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
             'telephone_number.regex' => 'The telephone number must be in valid format (e.g., (02) 123 4567 or (032) 123 1234).',
             'graduate_first_name.required' => 'The first name field is required.',
@@ -123,8 +123,8 @@ class CreateNewUser implements CreatesNewUsers
 
 
         Validator::make($input, $rules, $messages)->validate();
-        
-        
+
+
 
 
         $userData = [
@@ -135,7 +135,7 @@ class CreateNewUser implements CreatesNewUsers
             'gender' => $input['gender'],
             'contact_number' => $input['contact_number'],
             'telephone_number' => $input['telephone_number'],
-            
+
         ];
 
         // Add role-specific fields
@@ -150,7 +150,7 @@ class CreateNewUser implements CreatesNewUsers
                 $userData['institution_id'] = $input['graduate_school_graduated_from']; //Assign institution_id
                 $userData['is_approved'] = false; //Ensure graduates start as unapproved!
                 $userData['employment_status'] = $input['employment_status'];
-                $userData['current_job_title'] = ($input['employment_status'] === 'Unemployed') ?'N/A' : $input['current_job_title'];
+                $userData['current_job_title'] = ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'];
                 break;
             case 'company':
                 $userData['company_name'] = $input['company_name'];
@@ -186,6 +186,8 @@ class CreateNewUser implements CreatesNewUsers
                 'first_name' => $input['graduate_first_name'],
                 'last_name' => $input['graduate_last_name'],
                 'middle_initial' => $input['graduate_middle_initial'],
+                'gender' => $input['gender'],
+                'dob' => $input['dob'],
                 'institution_id' => $input['graduate_school_graduated_from'],
                 'program_id' => $this->getProgramId($input['graduate_program_completed']),
                 'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
@@ -196,11 +198,11 @@ class CreateNewUser implements CreatesNewUsers
             ]);
         }
 
-        
+
 
         // Kani siya kay para masulod sa Company table
         if ($role === 'company') {
-           $user->company()->create([
+            $user->company()->create([
                 'user_id' => $user->id,
                 'company_name' => $input['company_name'],
                 'company_street_address' => $input['company_street_address'],
@@ -234,12 +236,12 @@ class CreateNewUser implements CreatesNewUsers
         return 'user'; // Default role if none match
     }
     private function getProgramId($programName)
-{
-    return DB::table('programs')->where('name', $programName)->value('id');
-}
-private function getYearId($schoolYearRange)
-{
-    return DB::table('school_years')->where('school_year_range', $schoolYearRange)->value('id');
-}
+    {
+        return DB::table('programs')->where('name', $programName)->value('id');
+    }
+    private function getYearId($schoolYearRange)
+    {
+        return DB::table('school_years')->where('school_year_range', $schoolYearRange)->value('id');
+    }
 
 }
