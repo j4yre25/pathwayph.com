@@ -5,6 +5,7 @@ import { computed, ref } from "vue";
 import Welcome from "@/Components/Welcome.vue";
 import Modal from "../Components/Modal.vue";
 import CompanyDashboard from "../Pages/Company/CompanyDashboard.vue";
+import InstitutionDashboard from "./Institutions/Dashboard/InstitutionDashboard.vue";
 import { Inertia } from "@inertiajs/inertia";
 
 const page = usePage();
@@ -42,6 +43,24 @@ const handleLogout = () => {
                 </p>
             </div>
             <CompanyDashboard :summary="page.props.summary" />
+        </div>
+
+        <div v-if="page.props.roles?.isInstitution" class="py-12">
+            <Welcome v-if="!page.props.roles?.isInstitution" />
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Welcome to the Dashboard
+                </h3>
+                <p class="mt-2 text-gray-600">
+                    Here you can manage your account and view your statistics.
+                </p>
+            </div>
+            <InstitutionDashboard
+                :summary="page.props.summary"
+                :graduates="page.props.graduates"
+                :programs="page.props.programs"
+                :careerOpportunities="page.props.careerOpportunities"
+            />
         </div>
 
         <div class="py-12">

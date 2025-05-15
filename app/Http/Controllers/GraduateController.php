@@ -203,7 +203,7 @@ class GraduateController extends Controller
                 'year_graduated' => 'required|exists:school_years,school_year_range',
                 'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
                 'current_job_title' => 'required_if:employment_status,Employed,Underemployed|nullable|string|max:255',
-                'gender' => 'required|in:Male,Female,Other',
+                'gender' => 'required|in:Male,Female',
                 'dob' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
                 'contact_number' => 'required|digits_between:10,15|regex:/^9\d{9}$/',
             ]);

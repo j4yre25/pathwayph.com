@@ -22,7 +22,7 @@ class CreateNewGraduateController extends Controller
             'graduate_school_graduated_from' => 'required|integer|exists:users,id',
             'graduate_program_completed' => 'required|exists:programs,name',
             'dob' => 'required|date',
-            'gender' => 'required|in:Male,Female,Other',
+            'gender' => 'required|in:Male,Female',
             'contact_number' => 'nullable|string',
             'telephone_number' => 'nullable|string',
             'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
