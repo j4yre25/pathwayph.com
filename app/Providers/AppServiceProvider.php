@@ -21,13 +21,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
         Inertia::share([
-        'auth' => [
-            'user' => function () {
-                $user = Auth::user();
-                if ($user) {
-                    $user->load('company');  // Eager load the company relationship
-                    }
+            'app' => [
+                'currentUser' => function () {
+                    $user = Auth::check()
+                        ? \App\Models\User::with('company')->find(Auth::id())
+                        : null;
                     return $user;
                 },
             ],
