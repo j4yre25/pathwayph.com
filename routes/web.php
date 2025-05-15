@@ -22,7 +22,6 @@ use App\Http\Controllers\CareerOpportunityController;
 use App\Http\Controllers\ManageGraduatesApprovalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
-use App\Http\Controllers\InstiSkillController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\JobSearchController;
 // Company 
@@ -475,11 +474,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/graduates/manage', [ManageGraduatesApprovalController::class, 'index'])->name('graduates.manage');
     Route::get('/graduates/list', [ManageGraduatesApprovalController::class, 'list'])->name('graduates.list');
-    Route::get('/graduates/archived', [ManageGraduatesApprovalController::class, 'archivedList'])->name('graduates.archived');
     Route::put('/graduates/approve/{user}', [ManageGraduatesApprovalController::class, 'approve'])->name('graduates.approve');
     Route::put('/graduates/disapprove/{user}', [ManageGraduatesApprovalController::class, 'disapprove'])->name('graduates.disapprove');
-    Route::delete('/graduates/archive/{user}', [ManageGraduatesApprovalController::class, 'archive'])->name('graduates.archive');
-    Route::put('/graduates/restore/{user}', [ManageGraduatesApprovalController::class, 'restore'])->name('graduates.restore');
 });
 
 // Career Opportunities Routes
@@ -495,6 +491,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/careeropportunities/edit/{careeropportunity}', [CareerOpportunityController::class, 'restore'])->name('careeropportunities.restore');
 });
 
+//Manage Skills
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->prefix('skills')->group(function () {
+    Route::get('/{user}', [SkillController::class, 'index'])->name('instiskills');
+    Route::get('/{user}/list', [SkillController::class, 'list'])->name('instiskills.list');
+    Route::get('/{user}/create', [SkillController::class, 'create'])->name('instiskills.create');
+    Route::post('/{user}', [SkillController::class, 'store'])->name('instiskills.store');
+    Route::get('/edit/{id}', [SkillController::class, 'edit'])->name('instiskills.edit');
+    Route::put('/update/{id}', [SkillController::class, 'update'])->name('instiskills.update');
+    Route::delete('/archive/{id}', [SkillController::class, 'archive'])->name('instiskills.archive');
+    Route::get('/{user}/archivedlist', [SkillController::class, 'archivedlist'])->name('instiskills.archivedlist');
+    Route::post('/restore/{id}', [SkillController::class, 'restore'])->name('instiskills.restore');
+});
+
+
 // MAIN INSITUTION GRADUATE ROUTES
 Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
     
@@ -506,6 +517,8 @@ Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','c
     Route::delete('/graduates/{graduate}', [GraduateController::class, 'destroy'])->name('graduates.destroy');
     Route::post('/graduates/batch-upload', [GraduateController::class, 'batchUpload'])->name('graduates.batch.upload');
     Route::get('/graduates/template/download', [GraduateController::class, 'downloadTemplate'])->name('graduates.template.download');
+    Route::get('/graduates/archived', [GraduateController::class, 'archivedList'])->name('graduates.archived');
+    Route::put('/graduates/restore/{graduate}', [GraduateController::class, 'restore'])->name('graduates.restore');
 });
 
 

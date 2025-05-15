@@ -1,24 +1,17 @@
 <?php
 
 namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Skill extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
-    protected $fillable = [
-        'graduate_skills_name',
-        'graduate_skills_proficiency',
-        'graduate_skills_type',
-        'graduate_skills_years_experience',
-        'user_id',
-    ];
+    protected $fillable = ['name'];
 
-    public function user()
+    public function institutionSkills()
     {
-        return $this->belongsTo(User::class);
+        return $this->hasMany(InstitutionSkill::class);
     }
 }

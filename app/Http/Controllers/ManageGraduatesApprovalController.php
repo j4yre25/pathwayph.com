@@ -62,24 +62,6 @@ class ManageGraduatesApprovalController extends Controller
 
         return redirect()->back()->with('flash.banner', 'Graduate disapproved successfully.');
     }
-
-
-    /**
-     * Archive (soft delete) a graduate user.
-     */
-    public function archive(User $user)
-    {
-        if ($user->role !== 'graduate' || $user->institution_id !== Auth::user()->id) {
-            return redirect()->back()->with('flash.banner', 'You can only archive graduates from your institution.');
-        }
-
-        // Soft delete the graduate account
-        $user->delete();
-
-        return redirect()->back()->with('flash.banner', 'Graduate archived successfully.');
-    }
-
-
     public function list(Request $request)
 {
     // Fetch graduates joined with users and programs
@@ -119,21 +101,5 @@ class ManageGraduatesApprovalController extends Controller
 
     return Inertia::render('Institutions/ManageGraduatesApproval/List', compact('graduates', 'programs', 'filters'));
 }
-
-
-
-    public function archivedList()
-    {
-        $graduates = User::onlyTrashed()
-            ->where('role', 'graduate')
-            ->where('institution_id', Auth::user()->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-
-        return Inertia::render('Institutions/ManageGraduatesApproval/ArchivedList', [
-            'graduates' => $graduates,
-        ]);
-    }
 
 }

@@ -297,4 +297,9 @@ class User extends Authenticatable
         );
     }
 
+    public function institutionSkills()
+{
+    return $this->hasMany(InstitutionSkill::class, 'institution_id');
+}
+
 }

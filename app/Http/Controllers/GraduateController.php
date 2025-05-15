@@ -27,12 +27,24 @@ class GraduateController extends Controller
             ->where('users.role', 'graduate')
             ->where('users.institution_id', Auth::user()->id)
             ->where('users.is_approved', true)
+            ->whereNull('graduates.deleted_at') // <-- Only show non-archived graduates
             ->select(
                 'users.id as user_id',
-                DB::raw("CONCAT(users.graduate_first_name, ' ', users.graduate_middle_initial, ' ', users.graduate_last_name) as full_name"),
+                'users.email',
+                'users.graduate_first_name as first_name',
+                'users.graduate_last_name as last_name',
+                'users.graduate_middle_initial as middle_initial',
+                'users.gender',
+                'users.dob',
+                'users.contact_number',
+                'graduates.id as graduate_id',
+                'graduates.program_id',
+                'graduates.school_year_id',
                 'programs.name as program_name',
                 'school_years.school_year_range as year_graduated',
                 'graduates.current_job_title',
+                'graduates.employment_status',
+                DB::raw("CONCAT(users.graduate_first_name, ' ', IFNULL(users.graduate_middle_initial, ''), ' ', users.graduate_last_name) as full_name"),
                 DB::raw("'Yes' as graduated")
             )
             ->orderBy('users.created_at', 'desc')
@@ -77,11 +89,24 @@ class GraduateController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'middle_initial' => 'required|string|max:5',
+            'middle_initial' => 'nullable|string|max:5',
             'program_id' => 'required|exists:programs,id',
             'graduate_year_graduated' => 'required|exists:school_years,school_year_range',
             'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
-            'current_job_title' => 'nullable|string|max:255',
+            'current_job_title' => [
+                'nullable',
+                'string',
+                'max:255',
+                // Custom rule: if employed/underemployed, must not be N/A or n/a
+                function ($attribute, $value, $fail) use ($request) {
+                    if (
+                        in_array($request->employment_status, ['Employed', 'Underemployed']) &&
+                        strtolower(trim($value)) === 'n/a'
+                    ) {
+                        $fail('Current Job Title cannot be "N/A" when employed or underemployed.');
+                    }
+                },
+            ],
         ]);
 
         $schoolYearId = DB::table('school_years')
@@ -92,6 +117,7 @@ class GraduateController extends Controller
             $validated['current_job_title'] = 'N/A';
         }
 
+        // Update Graduate table
         $graduate->update([
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
@@ -100,6 +126,14 @@ class GraduateController extends Controller
             'school_year_id' => $schoolYearId,
             'employment_status' => $validated['employment_status'],
             'current_job_title' => $validated['current_job_title'],
+        ]);
+
+        // Update User table
+        $user = $graduate->user;
+        $user->update([
+            'graduate_first_name' => $validated['first_name'],
+            'graduate_last_name' => $validated['last_name'],
+            'graduate_middle_initial' => $validated['middle_initial'],
         ]);
 
         return redirect()->back()->with('flash.banner', 'Graduate updated successfully.');
@@ -160,8 +194,6 @@ class GraduateController extends Controller
             }
         }
 
-
-
             $validator = Validator::make($row, [
                 'email' => 'required|email|unique:users,email',
                 'first_name' => 'required|string|max:255',
@@ -175,6 +207,18 @@ class GraduateController extends Controller
                 'dob' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
                 'contact_number' => 'required|digits_between:10,15|regex:/^9\d{9}$/',
             ]);
+
+            if (
+                in_array($row['employment_status'], ['Employed', 'Underemployed']) &&
+                strtolower(trim($row['current_job_title'])) === 'n/a'
+            ) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'messages' => ['Current Job Title cannot be "N/A" when employed or underemployed.'],
+                ];
+                $rowNum++;
+                continue;
+            }
 
             if ($validator->fails()) {
                 $errors[] = [
@@ -240,6 +284,39 @@ class GraduateController extends Controller
     public function downloadTemplate()
     {
         return response()->download(public_path('templates/graduate_template.csv'));
+    }
+
+    public function archivedList()
+    {
+        $graduates = DB::table('graduates')
+            ->join('users', 'graduates.user_id', '=', 'users.id')
+            ->join('programs', 'graduates.program_id', '=', 'programs.id')
+            ->join('school_years', 'graduates.school_year_id', '=', 'school_years.id')
+            ->where('users.role', 'graduate')
+            ->where('users.institution_id', Auth::user()->id)
+            ->where('users.is_approved', true)
+            ->whereNotNull('graduates.deleted_at') // <-- Only show archived graduates
+            ->select(
+                'graduates.id',
+                'graduates.first_name',
+                'graduates.last_name',
+                'graduates.middle_initial',
+                'programs.name as graduate_program_completed',
+                'graduates.created_at'
+            )
+            ->orderBy('graduates.deleted_at', 'desc')
+            ->get();
+
+        return Inertia::render('Graduates/ArchivedList', [
+            'graduates' => $graduates,
+        ]);
+    }
+
+    public function restore($id)
+    {
+        $graduate = Graduate::withTrashed()->findOrFail($id);
+        $graduate->restore();
+        return redirect()->back()->with('flash.banner', 'Graduate restored successfully.');
     }
 
     private function getProgramId($programName)
