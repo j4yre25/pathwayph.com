@@ -45,32 +45,14 @@ const confirmArchive = (job) => {
 //   });
 // };
 
-const approveJob = (job) => {
 
-  router.post(route('company.jobs.approve', { job: job.id }), {
-    onSuccess: () => {
-      console.log("Job approved!");
-      location.reload(); // Reload the page to fetch updated data
-    }
-  });
-};
-
-
-const disapproveJob = (job) => {
-  router.post(route('company.jobs.disapprove', { job: job.id }), {}, {
-    onSuccess: () => {
-      console.log("Job disapproved!");
-      location.reload(); // Reload the page to fetch updated data
-    }
-  });
-};
 
 </script>
 
 <template>
   <AppLayout title="Jobs">
     <template #header>
-      Jobs
+      Manage Jobs
     </template>
 
     <Container class="py-4">
@@ -78,14 +60,14 @@ const disapproveJob = (job) => {
         <div class="mt-8">
 
           <Link :href="route('company.jobs', { user: page.props.auth.user.id })">
-          <PrimaryButton class="mr-2">List of Jobs</PrimaryButton>
+            <PrimaryButton class="mr-2">List of Jobs</PrimaryButton>
           </Link>
         </div>
       </div>
       <div class="overflow-x-auto">
         <table class="mt-8 min-w-full bg-white border border-gray-200">
           <thead>
-            <tr class="w-full bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+            <tr class="bg-blue-500 text-white uppercase text-sm leading-normal">
               <th class="py-2 px-4 text-left border">Job Title</th>
               <th class="py-2 px-4 text-left border">Location</th>
               <th class="py-2 px-4 text-left border">Employment Type</th>
@@ -95,7 +77,7 @@ const disapproveJob = (job) => {
             </tr>
           </thead>
           <tbody class="text-gray-600 text-sm font-light">
-            <tr v-for="job in jobs" :key="job.id" class="border-b border-gray-200 hover:bg-gray-100">
+            <tr v-for="job in jobs" :key="job.id" class="border-b border-gray-200 hover:bg-blue-100 even:bg-gray-50 odd:bg-white">
               <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
               <td class="border border-gray-200 px-6 py-4">{{ job.location }}</td>
               <td class="border border-gray-200 px-6 py-4">{{ job.job_type }}</td>
@@ -106,11 +88,6 @@ const disapproveJob = (job) => {
                 <span v-else class="text-yellow-600 font-semibold">Pending</span>
               </td>
               <td class="border border-gray-200 px-6 py-4">
-                <PrimaryButton class="mr-2 mb-2" @click="approveJob(job)" v-if="page.props.roles.isPeso && !job.is_approved">Approve
-                </PrimaryButton>
-                <DangerButton class="mr-2" @click="disapproveJob(job)" v-if="page.props.roles.isPeso && !job.is_approved">
-                  Disapprove
-                </DangerButton>
                 <Link :href="route('company.jobs.view', { job: job.id })">
                 <PrimaryButton class="mr-2">View</PrimaryButton>
                 </Link>

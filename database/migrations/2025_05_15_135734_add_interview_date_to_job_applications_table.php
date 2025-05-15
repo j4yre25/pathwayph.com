@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::table('jobs', function (Blueprint $table) {
-            $table->string('company_name')->nullable()->after('user_id'); // Add the company_name column
+        Schema::table('job_applications', function (Blueprint $table) {
+             $table->timestamp('interview_date')->nullable()->after('applied_at');
         });
     }
 
     /**
      * Reverse the migrations.
      */
-    public function down()
+    public function down(): void
     {
-        Schema::table('jobs', function (Blueprint $table) {
-            $table->dropColumn('company_name');
+        Schema::table('job_applications', function (Blueprint $table) {
+            //
         });
     }
 };

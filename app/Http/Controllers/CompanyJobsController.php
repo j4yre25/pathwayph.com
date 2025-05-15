@@ -24,10 +24,9 @@ class CompanyJobsController extends Controller
     public function index(User $user)
     {
 
-        // $jobs = $user->jobs()->withCount('applicant')->get();
-
-
-        $jobs = $user->jobs;
+       // Get all jobs belonging to the same company as the user
+         $jobs = Job::where('company_id', $user->company_id)
+                ->get();
         $sectors = Sector::pluck('name'); // Fetch all sector names
         $categories = \App\Models\Category::pluck('name'); // Fetch all category names
 

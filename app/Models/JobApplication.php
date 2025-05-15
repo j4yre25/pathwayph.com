@@ -22,6 +22,7 @@ class JobApplication extends Model
         'resume_id',
         'cover_letter',
         'additional_documents',
+        'interview_date',
         'notes'
     ];
 
@@ -36,6 +37,8 @@ class JobApplication extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    protected $table = 'job_applications';
 
     /**
      * Get the user that owns the job application.
