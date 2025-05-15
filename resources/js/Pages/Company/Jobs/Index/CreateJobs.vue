@@ -437,7 +437,6 @@ const createJob = () => {
                             <div class="col-span-6 sm:col-span-4 mt-5">
                                 <InputLabel for="posted_by" value="Posted By" />
                                 <TextInput id="posted_by" v-model="form.posted_by" class="w-full p-2 border rounded-lg mt-2" required disabled />
-                                <InputError :message="form.errors.posted_by" class="mt-2" />
                             </div>
 
                             <!-- Application Deadline -->

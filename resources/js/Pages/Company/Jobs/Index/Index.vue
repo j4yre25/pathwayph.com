@@ -75,42 +75,50 @@ console.log(route('company.jobs.manage', { user: page.props.auth.user.id }));
             Jobs
         </template>
 
-
-
         <Container class="py-4">
-
-
-            <!-- <PrimaryButton @click="createJob()" class="">Post Job</PrimaryButton> -->
             <div class="flex space-x-2">
+                <!-- Post Jobs Button -->
                 <div class="mt-8">
                     <Link :href="route('company.jobs.create', { user: page.props.auth.user.id })">
-                    <PrimaryButton class="mr-2">Post Jobs</PrimaryButton>
+                        <PrimaryButton class="mr-2 bg-blue-400 hover:bg-blue-700 text-white">
+                            Post Jobs
+                        </PrimaryButton>
                     </Link>
                 </div>
 
+                <!-- Manage Posted Jobs Button -->
                 <div class="mt-8">
-
                     <Link :href="route('company.jobs.manage', { user: page.props.auth.user.id })">
-                    <PrimaryButton class="mr-2">Manage Posted Jobs</PrimaryButton>
+                        <PrimaryButton class="mr-2 bg-green-500 hover:bg-green-600 text-white">
+                            Manage Posted Jobs
+                        </PrimaryButton>
                     </Link>
                 </div>
 
+                <!-- Archived Jobs Button -->
                 <div class="mt-8">
-
                     <Link :href="route('company.jobs.archivedlist', { user: page.props.auth.user.id })">
-                    <PrimaryButton class="mr-2">Archived Jobs</PrimaryButton>
+                        <PrimaryButton class="mr-2 bg-gray-700 hover:bg-gray-800 text-white">
+                            Archived Jobs
+                        </PrimaryButton>
                     </Link>
                 </div>
-
             </div>
 
-            <div class="flex items-center mt-4 mb-4 space-x-4">
+            <div class="flex items-center mt-6 mb-6 space-x-4">
                 <!-- Search Input -->
-                <input v-model="searchQuery" type="text" placeholder="Search jobs..."
-                    class="border border-gray-300 rounded px-4 py-2" />
+                <input
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Search jobs..."
+                    class="border border-gray-300 rounded-lg px-4 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500 w-64"
+                />
 
                 <!-- Date Dropdown -->
-                <select v-model="selectedDate" class="border border-gray-300 rounded px-4 py-2">
+                <select
+                    v-model="selectedDate"
+                    class="border border-gray-300 rounded-lg px-4 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
                     <option value="">All Dates</option>
                     <option v-for="(sector, index) in sectors" :key="index" :value="index + 1">
                         {{ sector }}
@@ -118,7 +126,10 @@ console.log(route('company.jobs.manage', { user: page.props.auth.user.id }));
                 </select>
 
                 <!-- Category Dropdown -->
-                <select v-model="selectedCategory" class="border border-gray-300 rounded px-4 py-2">
+                <select
+                    v-model="selectedCategory"
+                    class="border border-gray-300 rounded-lg px-4 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
                     <option value="">All Categories</option>
                     <option v-for="(category, index) in categories" :key="index" :value="index + 1">
                         {{ category }}
@@ -126,13 +137,9 @@ console.log(route('company.jobs.manage', { user: page.props.auth.user.id }));
                 </select>
             </div>
 
-
             <div class="mt-8">
                 <MyJobs :jobs="filteredJobs" />
             </div>
-
-
         </Container>
     </AppLayout>
-
 </template>

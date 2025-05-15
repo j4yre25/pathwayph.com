@@ -125,8 +125,7 @@ class CompanyJobsController extends Controller
 
         $new_job = new Job();
         $new_job->user_id = $user->id;
-        $new_job->company_id = $user->company_id; // <---- KANIII
-        $new_job->company_name = $user->company_name;
+        $new_job->company_id = $user->company_id; 
         $new_job->job_title = $validated['job_title'];
         $new_job->location = $validated['location'];
         $new_job->branch_location = $validated['branch_location'];
@@ -152,6 +151,7 @@ class CompanyJobsController extends Controller
         $new_job->category_id = $validated['category'];
         $new_job->expiration_date = Carbon::parse($validated['expiration_date'])->format('Y-m-d');
         $new_job->applicants_limit = $validated['applicants_limit'] ?? null;
+        $new_job->posted_by = $validated['posted_by'] ?? null;
         $new_job->save();
         $new_job->programs()->attach($validated['program_id']);
 
