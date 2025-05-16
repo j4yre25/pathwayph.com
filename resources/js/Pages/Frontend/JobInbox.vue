@@ -31,6 +31,8 @@ const opportunitiesForm = useForm({
     loading: false
 });
 
+console.log('Opportunities:', opportunitiesForm.opportunities);
+
 const applicationsForm = useForm({
     applications: props.jobApplications || [],
     loading: false

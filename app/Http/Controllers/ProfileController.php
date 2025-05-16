@@ -46,6 +46,8 @@ class ProfileController extends Controller
     // Update profile information
     public function updateProfile(Request $request)
     {
+        /** @var \App\Models\User $user */
+
         $validated = $request->validate([
             'graduate_first_name' => 'required|string|max:255',
             'graduate_middle_initial' => 'nullable|string|max:1',
@@ -60,6 +62,7 @@ class ProfileController extends Controller
             'graduate_address' => 'nullable|string|max:255',
             'graduate_about_me' => 'nullable|string|max:1000',
         ]);
+/** @var \App\Models\User $user */
 
         $user = Auth::user();
         $user->update($validated);
@@ -653,6 +656,8 @@ class ProfileController extends Controller
     // Update employment preferences
     public function getEmploymentReference()
     {
+        /** @var \App\Models\User $user */
+
         $user = Auth::user();
         $employmentReference = $user->employmentPreferences()->first();
 
@@ -684,6 +689,7 @@ class ProfileController extends Controller
             'additionalNotes' => 'nullable|string',
         ]);
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $employmentPreferences = $user->employmentPreferences()->firstOrNew(['user_id' => $user->id]);
 
@@ -711,7 +717,7 @@ class ProfileController extends Controller
             'industriesOfInterest' => 'required|array',
             'careerPath' => 'nullable|string',
         ]);
-
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $careerGoals = $user->careerGoals()->firstOrNew(['user_id' => $user->id]);
         $careerGoals->shortTermGoals = $request->shortTermGoals;
@@ -730,6 +736,7 @@ class ProfileController extends Controller
         $request->validate([
             'industriesOfInterest' => 'required|array',
         ]);
+        /** @var \App\Models\User $user */
 
         $user = Auth::user();
         $careerGoals = $user->careerGoals()->firstOrNew(['user_id' => $user->id]);
@@ -742,6 +749,8 @@ class ProfileController extends Controller
     public function getCareerGoals()
     {
         $user = Auth::user();
+        /** @var \App\Models\User $user */
+
         $careerGoals = $user->careerGoals()->first();
 
         return response()->json($careerGoals);
@@ -764,7 +773,8 @@ class ProfileController extends Controller
                 Storage::disk('public')->delete($user->resume->file);
                 $user->resume->delete();
             }
-    
+    /** @var \App\Models\User $user */
+
             $user->resume()->create([
                 'file' => $path,
                 'fileName' => $file->getClientOriginalName()
