@@ -24,7 +24,8 @@ class DashboardController extends Controller
             'total_applications' => 0,
             'total_hires' => 0,
         ];
-
+/** @var \App\Models\User $user */
+        
         // If user is institution, provide graduate stats
         if ($user->hasRole('institution')) {
             $institutionId = $user->id; // or $user->institution_id if that's your setup
@@ -48,10 +49,10 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'userNotApproved' => !$user->is_approved,
-            'roles' => [
-                'isCompany' => $user->hasRole('company'),
-                'isInstitution' => $user->hasRole('institution'),
-            ],
+            // 'roles' => [
+            //     'isCompany' => $user->hasRole('company'),
+            //     'isInstitution' => $user->hasRole('institution'),
+            // ],
             'summary' => $summary,
             'graduates' => $graduates ?? [],
             'programs' => $programs ?? [],

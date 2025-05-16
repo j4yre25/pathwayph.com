@@ -26,7 +26,6 @@ class JobInboxController extends Controller
     public function getJobOpportunities($user)
     {
         $jobs = Job::with(['sector', 'category'])
-            ->where('status', 'active')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($job) use ($user) {
@@ -71,8 +70,12 @@ class JobInboxController extends Controller
     }
 
     // Get notifications
-    public function getNotifications($user)
+    public function getNotifications()
     {
+                /** @var \App\Models\User $user */
+
+      $user = Auth::user();
+
         return $user->notifications()
             ->where('read_at', null)
             ->orderBy('created_at', 'desc')

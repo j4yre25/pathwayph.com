@@ -13,7 +13,7 @@ const props = defineProps({
     sectors: Array
 });
 
-
+// console.log('Role:', page.props.auth.user.role);
 
 const page = usePage()
 
