@@ -18,6 +18,7 @@ use App\Models\Achievement;
 use App\Models\EmploymentPreference;
 use App\Models\Testimonial;
 use App\Models\Project;
+use App\Models\Resume;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -60,16 +61,34 @@ class ProfileController extends Controller
             'gender' => 'nullable|string|max:50',
             'graduate_ethnicity' => 'nullable|string|max:255',
             'graduate_address' => 'nullable|string|max:255',
+            'graduate_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'graduate_about_me' => 'nullable|string|max:1000',
         ]);
-/** @var \App\Models\User $user */
+        /** @var \App\Models\User $user */
 
         $user = Auth::user();
-        $user->update($validated);
 
-        return redirect()->back()->with('success', 'Profile updated successfully.');
+        if ($request->hasFile('graduate_picture')) {
+            $file = $request->file('graduate_picture');
+            $originalName = $file->getClientOriginalName();
+            if (!$originalName) {
+                // fallback to a unique name if original is empty
+                $originalName = uniqid('profile_', true) . '.' . $file->getClientOriginalExtension();
+            }
+            $filename = time() . '_' . $originalName;
+            $path = $file->storeAs('profile_pictures', $filename, 'public');
+
+            $user->profile_picture = $path;
+        }
+
+        $user->save();
+
+        return redirect()->back()->with([
+            'success' => 'Profile updated!',
+            'user' => $user->fresh(),
+        ]);
     }
-    
+
     // Add education
     public function addEducation(Request $request)
     {
@@ -96,7 +115,7 @@ class ProfileController extends Controller
 
         return redirect()->back()->with('flash.banner', 'Education added successfully.');
     }
-    
+
     // Update education
     public function updateEducation(Request $request, $id)
     {
@@ -135,45 +154,8 @@ class ProfileController extends Controller
         return redirect()->back()->with('flash.banner', 'Education removed successfully.');
     }
 
-      // Add experience
-      public function addExperience(Request $request)
-      {
-          $request->validate([
-              'graduate_experience_title' => 'required|string|max:255',
-              'graduate_experience_company' => 'required|string|max:255',
-              'graduate_experience_start_date' => 'required|date',
-              'graduate_experience_end_date' => 'nullable|date',
-              'graduate_experience_address' => 'nullable|string|max:255',
-              'graduate_experience_description' => 'nullable|string',
-              'graduate_experience_employment_type' => 'nullable|string|max:255',
-              'is_current' => 'boolean',
-          ]);
-  
-          $data = $request->all();
-          
-          if ($request->is_current) {
-              $data['graduate_experience_end_date'] = null;
-          }
-
-          if (isset($data['graduate_experience_start_date'])) {
-              $data['graduate_experience_start_date'] = Carbon::parse($data['graduate_experience_start_date'])->format('Y-m-d H:i:s');
-          }
-      
-          if (isset($data['graduate_experience_end_date'])) {
-              $data['graduate_experience_end_date'] = Carbon::parse($data['graduate_experience_end_date'])->format('Y-m-d H:i:s');
-          }
-  
-          $data['graduate_experience_description'] = $data['graduate_experience_description'] ?? 'No description provided';
-  
-          $experience = new Experience($data);
-          $experience->user_id = Auth::id();
-  
-          $experience->save();
-          return redirect()->back()->with('flash.banner', 'Experience added successfully.');
-      }
-
-    // Update experience
-    public function updateExperience(Request $request, $id)
+    // Add experience
+    public function addExperience(Request $request)
     {
         $request->validate([
             'graduate_experience_title' => 'required|string|max:255',
@@ -182,7 +164,7 @@ class ProfileController extends Controller
             'graduate_experience_end_date' => 'nullable|date',
             'graduate_experience_address' => 'nullable|string|max:255',
             'graduate_experience_description' => 'nullable|string',
-            'graduate_experience_employment_type' => 'nullable|string|max:255', 
+            'graduate_experience_employment_type' => 'nullable|string|max:255',
             'is_current' => 'boolean',
         ]);
 
@@ -195,7 +177,44 @@ class ProfileController extends Controller
         if (isset($data['graduate_experience_start_date'])) {
             $data['graduate_experience_start_date'] = Carbon::parse($data['graduate_experience_start_date'])->format('Y-m-d H:i:s');
         }
-    
+
+        if (isset($data['graduate_experience_end_date'])) {
+            $data['graduate_experience_end_date'] = Carbon::parse($data['graduate_experience_end_date'])->format('Y-m-d H:i:s');
+        }
+
+        $data['graduate_experience_description'] = $data['graduate_experience_description'] ?? 'No description provided';
+
+        $experience = new Experience($data);
+        $experience->user_id = Auth::id();
+
+        $experience->save();
+        return redirect()->back()->with('flash.banner', 'Experience added successfully.');
+    }
+
+    // Update experience
+    public function updateExperience(Request $request, $id)
+    {
+        $request->validate([
+            'graduate_experience_title' => 'required|string|max:255',
+            'graduate_experience_company' => 'required|string|max:255',
+            'graduate_experience_start_date' => 'required|date',
+            'graduate_experience_end_date' => 'nullable|date',
+            'graduate_experience_address' => 'nullable|string|max:255',
+            'graduate_experience_description' => 'nullable|string',
+            'graduate_experience_employment_type' => 'nullable|string|max:255',
+            'is_current' => 'boolean',
+        ]);
+
+        $data = $request->all();
+
+        if ($request->is_current) {
+            $data['graduate_experience_end_date'] = null;
+        }
+
+        if (isset($data['graduate_experience_start_date'])) {
+            $data['graduate_experience_start_date'] = Carbon::parse($data['graduate_experience_start_date'])->format('Y-m-d H:i:s');
+        }
+
         if (isset($data['graduate_experience_end_date'])) {
             $data['graduate_experience_end_date'] = Carbon::parse($data['graduate_experience_end_date'])->format('Y-m-d H:i:s');
         }
@@ -204,7 +223,6 @@ class ProfileController extends Controller
         $experience->update($data);
 
         return redirect()->back()->with('flash.banner', 'Experience updated successfully.');
-
     }
 
     // Remove experience
@@ -220,7 +238,7 @@ class ProfileController extends Controller
     public function addSkill(Request $request)
     {
         Log::info('Request data:', $request->all());
-    
+
         $request->validate([
             'graduate_skills_name' => [
                 'required',
@@ -228,7 +246,7 @@ class ProfileController extends Controller
                 'max:255',
                 function ($attribute, $value, $fail) {
                     $exists = Skill::where('user_id', Auth::id())
-                        ->where ('graduate_skills_name', $value)
+                        ->where('graduate_skills_name', $value)
                         ->exists();
                     if ($exists) {
                         $fail('The skill "' . $value . '" already exists.');
@@ -239,7 +257,7 @@ class ProfileController extends Controller
             'graduate_skills_type' => 'required|string|max:255',
             'graduate_skills_years_experience' => 'required|integer|min:0',
         ]);
-    
+
         $skill = new Skill();
         $skill->graduate_skills_name = $request->graduate_skills_name;
         $skill->graduate_skills_proficiency_type = $request->graduate_skills_proficiency_type;
@@ -247,7 +265,7 @@ class ProfileController extends Controller
         $skill->graduate_skills_years_experience = $request->graduate_skills_years_experience;
         $skill->user_id = Auth::id();
         $skill->save();
-    
+
         return redirect()->back()->with('flash.banner', 'Skill added successfully.');
     }
 
@@ -276,7 +294,7 @@ class ProfileController extends Controller
             'graduate_skills_years_experience' => 'required|integer|min:0',
         ]);
 
-        $skill = Skill::findOrFail($id); 
+        $skill = Skill::findOrFail($id);
 
         $skill->graduate_skills_name = $request->graduate_skills_name;
         $skill->graduate_skills_proficiency_type = $request->graduate_skills_proficiency_type;
@@ -298,7 +316,7 @@ class ProfileController extends Controller
         return redirect()->back()->with('flash.banner', 'Skill removed successfully.');
     }
 
-     // Add Project
+    // Add Project
     public function addProject(Request $request)
     {
         try {
@@ -310,11 +328,12 @@ class ProfileController extends Controller
                 'graduate_projects_end_date' => 'nullable|date',
                 'graduate_projects_url' => 'nullable|string|max:255',
                 'graduate_projects_key_accomplishments' => 'nullable|string',
+                'graduate_project_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // <-- add this line
                 'is_current' => 'boolean'
             ]);
 
             $data = $request->all();
-            
+
             if ($request->is_current) {
                 $data['graduate_projects_end_date'] = null;
             }
@@ -322,29 +341,38 @@ class ProfileController extends Controller
             if (isset($data['graduate_projects_start_date'])) {
                 $data['graduate_projects_start_date'] = Carbon::parse($data['graduate_projects_start_date'])->format('Y-m-d');
             }
-        
+
             if (isset($data['graduate_projects_end_date'])) {
                 $data['graduate_projects_end_date'] = Carbon::parse($data['graduate_projects_end_date'])->format('Y-m-d');
             }
 
             $data['graduate_projects_description'] = $data['graduate_projects_description'] ?? 'No description provided';
-            
+
+            // Handle file upload
+            if ($request->hasFile('graduate_project_file')) {
+                $file = $request->file('graduate_project_file');
+                // dd($file);
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('project_files', $filename, 'public');
+                $data['graduate_project_file'] = $path;
+            }
+
             $project = new Project($data);
             $project->user_id = Auth::id();
             $project->save();
-            
+
             return redirect()->back()->with('flash.banner', 'Project added successfully.');
         } catch (\Exception $e) {
             Log::error('Error adding project: ' . $e->getMessage());
             return redirect()->back()->with('flash.banner', 'Failed to add project. Please try again.');
         }
     }
-    
+
     public function updateProject(Request $request, $id)
     {
         try {
             $project = Project::findOrFail($id);
-            
+
             if ($project->user_id !== Auth::id()) {
                 return redirect()->back()->with('flash.banner', 'Unauthorized access.');
             }
@@ -357,11 +385,12 @@ class ProfileController extends Controller
                 'graduate_projects_end_date' => 'nullable|date',
                 'graduate_projects_url' => 'nullable|string|max:255',
                 'graduate_projects_key_accomplishments' => 'nullable|string',
+                'graduate_project_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // <-- add this line
                 'is_current' => 'boolean'
             ]);
 
             $data = $request->all();
-            
+
             if ($request->is_current) {
                 $data['graduate_projects_end_date'] = null;
             }
@@ -369,33 +398,45 @@ class ProfileController extends Controller
             if (isset($data['graduate_projects_start_date'])) {
                 $data['graduate_projects_start_date'] = Carbon::parse($data['graduate_projects_start_date'])->format('Y-m-d');
             }
-        
+
             if (isset($data['graduate_projects_end_date'])) {
                 $data['graduate_projects_end_date'] = Carbon::parse($data['graduate_projects_end_date'])->format('Y-m-d');
             }
 
             $data['graduate_projects_description'] = $data['graduate_projects_description'] ?? 'No description provided';
-            
+
+            // Handle file upload
+            if ($request->hasFile('graduate_project_file')) {
+                // Optionally delete old file
+                if ($project->graduate_project_file) {
+                    Storage::disk('public')->delete($project->graduate_project_file);
+                }
+                $file = $request->file('graduate_project_file');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('project_files', $filename, 'public');
+                $data['graduate_project_file'] = $path;
+            }
+
             $project->update($data);
-            
+
             return redirect()->back()->with('flash.banner', 'Project updated successfully.');
         } catch (\Exception $e) {
             Log::error('Error updating project: ' . $e->getMessage());
             return redirect()->back()->with('flash.banner', 'Failed to update project. Please try again.');
         }
     }
-    
+
     public function removeProject($id)
     {
         try {
             $project = Project::findOrFail($id);
-            
+
             if ($project->user_id !== Auth::id()) {
                 return redirect()->back()->with('flash.banner', 'Unauthorized access.');
             }
-            
+
             $project->delete();
-            
+
             return redirect()->back()->with('flash.banner', 'Project removed successfully.');
         } catch (\Exception $e) {
             Log::error('Error removing project: ' . $e->getMessage());
@@ -420,11 +461,11 @@ class ProfileController extends Controller
             ]);
 
             $data = $request->all();
-            
+
             if ($request->noExpiryDate) {
                 $data['graduate_certification_expiry_date'] = null;
             }
-            
+
             if ($request->noCredentialUrl) {
                 $data['graduate_certification_credential_url'] = null;
             }
@@ -432,7 +473,7 @@ class ProfileController extends Controller
             if (isset($data['graduate_certification_issue_date'])) {
                 $data['graduate_certification_issue_date'] = Carbon::parse($data['graduate_certification_issue_date'])->format('Y-m-d');
             }
-        
+
             if (isset($data['graduate_certification_expiry_date'])) {
                 $data['graduate_certification_expiry_date'] = Carbon::parse($data['graduate_certification_expiry_date'])->format('Y-m-d');
             }
@@ -453,7 +494,7 @@ class ProfileController extends Controller
     {
         try {
             $certification = Certification::findOrFail($id);
-            
+
             if ($certification->user_id !== Auth::id()) {
                 return redirect()->back()->with('flash.banner', 'Unauthorized access.');
             }
@@ -470,11 +511,11 @@ class ProfileController extends Controller
             ]);
 
             $data = $request->all();
-            
+
             if ($request->noExpiryDate) {
                 $data['graduate_certification_expiry_date'] = null;
             }
-            
+
             if ($request->noCredentialUrl) {
                 $data['graduate_certification_credential_url'] = null;
             }
@@ -482,7 +523,7 @@ class ProfileController extends Controller
             if (isset($data['graduate_certification_issue_date'])) {
                 $data['graduate_certification_issue_date'] = Carbon::parse($data['graduate_certification_issue_date'])->format('Y-m-d');
             }
-        
+
             if (isset($data['graduate_certification_expiry_date'])) {
                 $data['graduate_certification_expiry_date'] = Carbon::parse($data['graduate_certification_expiry_date'])->format('Y-m-d');
             }
@@ -501,11 +542,11 @@ class ProfileController extends Controller
     {
         try {
             $certification = Certification::findOrFail($id);
-            
+
             if ($certification->user_id !== Auth::id()) {
                 return redirect()->back()->with('flash.banner', 'Unauthorized access.');
             }
-            
+
             $certification->delete();
 
             return redirect()->back()->with('flash.banner', 'Certification removed successfully.');
@@ -527,24 +568,24 @@ class ProfileController extends Controller
             'graduate_achievement_type' => 'required|string|in:Award,Recognition,Publication,Patent,Other',
             'credential_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
-    
+
         $achievement = new Achievement($request->all());
         $achievement->user_id = Auth::id();
         $achievement->graduate_achievement_description = $request->graduate_achievement_description ?? 'No description provided';
         $achievement->graduate_achievement_date = Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
-        
+
         if ($request->hasFile('credential_picture')) {
             $file = $request->file('credential_picture');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('achievements', $filename, 'public');
             $achievement->credential_picture_url = $path;
         }
-    
+
         $achievement->save();
-    
+
         return redirect()->back()->with('flash.banner', 'Achievement added successfully.');
     }
-    
+
     public function updateAchievement(Request $request, $id)
     {
         $request->validate([
@@ -556,33 +597,33 @@ class ProfileController extends Controller
             'graduate_achievement_type' => 'required|string|in:Award,Recognition,Publication,Patent,Other',
             'credential_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
-    
+
         $achievement = Achievement::findOrFail($id);
-        
+
         if ($achievement->user_id !== Auth::id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-    
+
         $achievement->graduate_achievement_title = $request->graduate_achievement_title;
         $achievement->graduate_achievement_issuer = $request->graduate_achievement_issuer;
         $achievement->graduate_achievement_date = Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
         $achievement->graduate_achievement_description = $request->graduate_achievement_description;
         $achievement->graduate_achievement_url = $request->graduate_achievement_url;
         $achievement->graduate_achievement_type = $request->graduate_achievement_type;
-    
+
         if ($request->hasFile('credential_picture')) {
             if ($achievement->credential_picture_url) {
                 Storage::disk('public')->delete($achievement->credential_picture_url);
             }
-            
+
             $file = $request->file('credential_picture');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('achievements', $filename, 'public');
             $achievement->credential_picture_url = $path;
         }
-    
+
         $achievement->save();
-    
+
         return redirect()->back()->with('flash.banner', 'Achievement updated successfully.');
     }
 
@@ -591,13 +632,13 @@ class ProfileController extends Controller
     {
         try {
             $achievement = Achievement::findOrFail($id);
-            
+
             if ($achievement->credential_picture_url) {
                 Storage::delete('public/' . $achievement->credential_picture_url);
             }
-            
+
             $achievement->delete();
-            
+
             return redirect()->back()->with('flash.banner', 'Achievement removed successfully.');
         } catch (\Exception $e) {
             Log::error('Error deleting achievement: ' . $e->getMessage());
@@ -615,8 +656,8 @@ class ProfileController extends Controller
             'graduate_testimonials_letters' => 'nullable|file|mimes:pdf,doc,docx|max:2048'
         ]);
 
-        $data = $request ->all();
-        
+        $data = $request->all();
+
         if ($request->hasFile('graduate_testimonials_letters')) {
             $path = $request->file('graduate_testimonials_letters')->store('testimonials', 'public');
             $data['graduate_testimonials_letters'] = $path;
@@ -641,7 +682,7 @@ class ProfileController extends Controller
         $testimonial = Testimonial::findOrFail($id);
         $testimonial->update($request->all());
 
-        return redirect()->back()->with('flash.banner', 'Testimonial updated successfully.'); 
+        return redirect()->back()->with('flash.banner', 'Testimonial updated successfully.');
     }
 
     // Remove testimonial
@@ -678,7 +719,7 @@ class ProfileController extends Controller
     // Save employment preferences
     public function saveEmploymentPreferences(Request $request)
     {
-        Log::info('Saving Employment Preferences:', $request->all()); 
+        Log::info('Saving Employment Preferences:', $request->all());
 
         $request->validate([
             'jobTypes' => 'nullable|string',
@@ -757,42 +798,43 @@ class ProfileController extends Controller
     }
 
     // Upload resume
-    public function uploadResume(Request $request)
-    {
-        $request->validate([
-            'resume' => 'required|mimes:pdf,doc,docx|max:2048'
-        ]);
-    
-        try {
-            $user = Auth::user();
-            $file = $request->file('resume');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('resumes', $fileName, 'public');
-    
-            if ($user->resume) {
-                Storage::disk('public')->delete($user->resume->file);
-                $user->resume->delete();
-            }
-    /** @var \App\Models\User $user */
+   public function uploadResume(Request $request)
+{
+    $request->validate([
+        'resume' => 'required|mimes:pdf,doc,docx|max:2048',
+    ]);
 
-            $user->resume()->create([
-                'file' => $path,
-                'fileName' => $file->getClientOriginalName()
-            ]);
-    
-            return response()->json([
-                'success' => true,
-                'message' => 'Resume uploaded successfully'
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Resume upload error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to upload resume'
-            ], 500);
+    try {
+        $user = Auth::user();
+        $file = $request->file('resume');
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $path = $file->storeAs('resumes', $fileName, 'public');
+
+        // Delete old file if exists
+        if ($user->resume) {
+            Storage::disk('public')->delete($user->resume->file);
         }
+        
+        /** @var \App\Models\User $user */
+
+        // Save or update resume record
+        $user->resume()->updateOrCreate(
+            [],
+            [
+                'file' => $path,
+                'fileName' => $file->getClientOriginalName(),
+                'user_id' => $user->id
+            ]
+        );
+
+        return redirect()->back()->with('success', 'Resume uploaded successfully!');
+    } catch (\Exception $e) {
+        Log::error('Resume upload error: ' . $e->getMessage());
+        return redirect()->back()->with('error', 'Failed to upload resume');
     }
-    
+}
+
+
     public function deleteResume()
     {
         try {
