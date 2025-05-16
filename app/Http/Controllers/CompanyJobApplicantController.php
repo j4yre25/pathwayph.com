@@ -56,34 +56,35 @@ class CompanyJobApplicantController extends Controller
 
     public function show(Job $job)
     {
-        $now = Carbon::now();
-
-        // Get all applications for this job
         $applicationsQuery = JobApplication::where('job_id', $job->id);
 
+        // Total applicants
         $totalApplicants = $applicationsQuery->count();
 
-        $applicationsThisMonth = (clone $applicationsQuery)
-            ->whereYear('created_at', $now->year)
-            ->whereMonth('created_at', $now->month)
-            ->count();
-
-        $startOfMonth = $now->copy()->startOfMonth()->format('F j');
-        $today = $now->format('j, Y');
-        $thisMonthLabel = "{$startOfMonth} – {$today}";
-
+        // Hired
         $hiredCount = (clone $applicationsQuery)
             ->where('status', 'hired')
             ->count();
 
+        // Rejected by employer
         $rejectedCount = (clone $applicationsQuery)
             ->where('status', 'rejected')
             ->count();
 
+        // Rejected by applicant (assuming you track this separately)
+        $declinedByGraduate = (clone $applicationsQuery)
+            ->where('status', 'declined') // or 'rejected_by_applicant' if you use that
+            ->count();
+
+        // Interviews scheduled
         $interviewsCount = (clone $applicationsQuery)
             ->whereNotNull('interview_date')
             ->count();
 
+        // Pending = total - (hired + rejected + declined)
+        $pendingCount = $totalApplicants - ($hiredCount + $rejectedCount + $declinedByGraduate);
+
+        // Get all applications with user relation
         $applications = $applicationsQuery->with('user')->get();
 
         return Inertia::render('Company/Applicants/ListOfApplicants/Index', [
@@ -91,11 +92,11 @@ class CompanyJobApplicantController extends Controller
             'applications' => $applications,
             'stats' => [
                 'total' => $totalApplicants,
-                'this_month' => $applicationsThisMonth,
-                'this_month_label' => $thisMonthLabel,
                 'hired' => $hiredCount,
                 'rejected' => $rejectedCount,
+                'declined' => $declinedByGraduate,
                 'interviews' => $interviewsCount,
+                'pending' => $pendingCount,
             ],
         ]);
     }

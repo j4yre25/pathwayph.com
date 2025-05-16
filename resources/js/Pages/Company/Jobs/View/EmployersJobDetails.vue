@@ -50,7 +50,7 @@ if (confirm("Invite all matched graduates for this job?")) {
   
             <!-- Job Info -->
             <div class="text-md gap-4 space-y-1">
-              <p><strong>Offered Salary:</strong> ₱ {{ job.salary_range }}</p>
+              <p><strong>Offered Salary:</strong> {{ job.salary_range }}</p>
               <p><strong>Posted By:</strong>  {{ job.posted_by}}</p>
               <p><strong>Posted Date:</strong> {{ job.posted_at }}</p>
               <p><strong>Application Deadline:</strong> {{ job.expiration_date }}</p>
@@ -93,12 +93,13 @@ if (confirm("Invite all matched graduates for this job?")) {
             
             <section>
               <h3 class="text-lg font-semibold mb-1">Job Description</h3>
-              <p class="text-gray-700">{{ job.description }}</p>
+             <div class="text-gray-700 prose max-w-none" v-html="job.description"></div>
             </section>
   
             <section>
               <h3 class="text-lg font-semibold mb-1">Job Requirements</h3>
-              <p class="text-gray-700">{{ job.requirements }}</p>
+              <div class="text-gray-700 prose max-w-none" v-html="job.requirements"></div>
+
             </section>
   
             <!-- <section>

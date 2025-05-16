@@ -163,8 +163,8 @@ class CompanyJobsController extends Controller
 
         // Combine min_salary and max_salary into a salary range string
         $salaryRange = $job->min_salary && $job->max_salary
-            ? $job->min_salary . ' - ' . $job->max_salary
-            : null;
+            ? "₱". $job->min_salary . ' - ' . $job->max_salary
+            : "Negotiable";
 
         $hrFirstName = $job->user->company_hr_first_name ?? '';
         $hrLastName = $job->user->company_hr_last_name ?? '';

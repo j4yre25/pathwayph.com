@@ -64,11 +64,4 @@ class JobApplication extends Model
         return $this->belongsTo(Resume::class);
     }
 
-    /**
-     * Get the user (applicant) that owns the application.
-     */
-    public function applicant()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
 }
