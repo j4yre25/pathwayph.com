@@ -18,6 +18,7 @@ class Project extends Model
         'graduate_projects_url',
         'graduate_projects_tech',
         'graduate_projects_key_accomplishments',
+        'graduate_project_file',
         'user_id',
     ];
 

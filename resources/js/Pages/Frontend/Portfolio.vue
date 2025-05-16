@@ -1,5 +1,5 @@
 <script setup>
-import Graduate from '@/Components/Graduate.vue';
+import Graduate from '@/Layouts/AppLayout.vue';
 import { usePage } from '@inertiajs/inertia-vue3';
 import { ref } from 'vue';
 

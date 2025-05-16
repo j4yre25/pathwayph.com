@@ -12,6 +12,7 @@ import axios from 'axios';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
+import '@fortawesome/fontawesome-free/css/all.css';
 import VueApexCharts from 'vue3-apexcharts';
 import SkillsChart from '@/Components/SkillsChart.vue';
 
@@ -24,211 +25,229 @@ const isPasswordUpdatedModalOpen = ref(false);
 const isDuplicateEducationModalOpen = ref(false);
 const isEducationAddedModalOpen = ref(false);
 const isEducationUpdatedModalOpen = ref(false);
+
 const modalState = ref({
- profile: false,
- password: false
+  profile: false,
+  password: false
 });
+
 const duplicateEducationMessage = ref('');
 const educationModalMessage = ref('');
- 
+
 // Modal Handlers
 const showSuccessModal = () => {
-isSuccessModalOpen.value = true;
- setTimeout(() => {
-   isSuccessModalOpen.value = false;
- }, 3000);
+  isSuccessModalOpen.value = true;
+  setTimeout(() => {
+    isSuccessModalOpen.value = false;
+  }, 3000);
 };
- 
+
 const showPasswordUpdatedModal = () => {
-isPasswordUpdatedModalOpen.value = true;
- setTimeout(() => {
-  isPasswordUpdatedModalOpen.value = false;
-  router.visit(route('logout'), { method: 'post' });
- }, 3000);
+  isPasswordUpdatedModalOpen.value = true;
+  setTimeout(() => {
+    isPasswordUpdatedModalOpen.value = false;
+    router.visit(route('logout'), { method: 'post' });
+  }, 3000);
 };
 
 // Profile Data
 const { props } = usePage();
 const user = ref(props?.user || {});
 const profile = ref({
- fullName: `${props.user?.graduate_first_name || ''} ${props.user?.graduate_middle_initial || ''} ${props.user?.graduate_last_name || ''}`.trim(),
- graduate_first_name: props.user?.graduate_first_name || '',
-graduate_middle_initial: props.user?.graduate_middle_initial || '',
- graduate_last_name: props.user?.graduate_last_name || '',
-graduate_professional_title: props.user?.graduate_professional_title || '',
- email: props.user?.email || '',
- graduate_phone: props.user?.contact_number || '',
- graduate_location: props.user?.graduate_location || '',
- graduate_birthdate: props.user?.dob ? new Date(props.user.dob) : null,
- graduate_gender: props.user?.gender || '',
- graduate_ethnicity: props.user?.graduate_ethnicity || '',
- graduate_address: props.user?.graduate_address || '',
- graduate_about_me: props.user?.graduate_about_me || '',
-graduate_picture_url: props.user?.profile_picture || 'path/to/default/image.jpg',
+  fullName: `${props.user?.graduate_first_name || ''} ${props.user?.graduate_middle_initial || ''} ${props.user?.graduate_last_name || ''}`.trim(),
+  graduate_first_name: props.user?.graduate_first_name || '',
+  graduate_middle_initial: props.user?.graduate_middle_initial || '',
+  graduate_last_name: props.user?.graduate_last_name || '',
+  graduate_professional_title: props.user?.graduate_professional_title || '',
+  email: props.user?.email || '',
+  graduate_phone: props.user?.contact_number || '',
+  graduate_location: props.user?.graduate_location || '',
+  graduate_birthdate: props.user?.dob ? new Date(props.user.dob) : null,
+  graduate_gender: props.user?.gender || '',
+  graduate_ethnicity: props.user?.graduate_ethnicity || '',
+  graduate_address: props.user?.graduate_address || '',
+  graduate_about_me: props.user?.graduate_about_me || '',
+  graduate_picture_url: props.user?.profile_picture || 'path/to/default/image.jpg',
+  graduate_picture_file: null,
 });
- 
+
 // Form for settings
 const settingsForm = useForm({
- current_password: '',
- password: '',
-password_confirmation: '',
- graduate_first_name: profile.value.graduate_first_name,
-graduate_middle_initial: profile.value.graduate_middle_initial,
- graduate_last_name: profile.value.graduate_last_name,
-graduate_professional_title: profile.value.graduate_professional_title,
- email: profile.value.email,
- graduate_phone: profile.value.graduate_phone,
- graduate_location: profile.value.graduate_location,
- dob: profile.value.dob,
- graduate_gender: profile.value.graduate_gender,
- graduate_ethnicity: profile.value.graduate_ethnicity,
- graduate_address: profile.value.graduate_address,
- graduate_about_me: profile.value.graduate_about_me,
-graduate_picture_url: profile.value.graduate_picture_url,
+  current_password: '',
+  password: '',
+  password_confirmation: '',
+  graduate_first_name: profile.value.graduate_first_name,
+  graduate_middle_initial: profile.value.graduate_middle_initial,
+  graduate_last_name: profile.value.graduate_last_name,
+  graduate_picture: profile.value.graduate_picture_file,
+
+  graduate_professional_title: profile.value.graduate_professional_title,
+  email: profile.value.email,
+  graduate_phone: profile.value.graduate_phone,
+  graduate_location: profile.value.graduate_location,
+  dob: profile.value.dob,
+  graduate_gender: profile.value.graduate_gender,
+  graduate_ethnicity: profile.value.graduate_ethnicity,
+  graduate_address: profile.value.graduate_address,
+  graduate_about_me: profile.value.graduate_about_me,
 });
- 
+
 // Profile Name Handling
 const parseFullName = () => {
- const fullName = profile.value.fullName.trim();
- const nameParts = fullName.split(' ');
- 
- if (nameParts.length >= 1) {
-  profile.value.graduate_first_name = nameParts[0];
- }
- if (nameParts.length >= 2) {
-  profile.value.graduate_last_name = nameParts[nameParts.length - 1];
- }
- if (nameParts.length > 2) {
-  profile.value.graduate_middle_initial = nameParts[1].charAt(0);
- }
+  const fullName = profile.value.fullName.trim();
+  const nameParts = fullName.split(' ');
+
+  if (nameParts.length >= 1) {
+    profile.value.graduate_first_name = nameParts[0];
+  }
+  if (nameParts.length >= 2) {
+    profile.value.graduate_last_name = nameParts[nameParts.length - 1];
+  }
+  if (nameParts.length > 2) {
+    profile.value.graduate_middle_initial = nameParts[1].charAt(0);
+  }
 };
- 
+
 // Watch for name changes
 watch(() => profile.value.fullName, (newFullName) => {
- const nameParts = newFullName.trim().split(' ');
- profile.value.graduate_first_name = nameParts[0] || '';
-profile.value.graduate_last_name = nameParts[nameParts.length - 1] || '';
-profile.value.graduate_middle_initial = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
+  const nameParts = newFullName.trim().split(' ');
+  profile.value.graduate_first_name = nameParts[0] || '';
+  profile.value.graduate_last_name = nameParts[nameParts.length - 1] || '';
+  profile.value.graduate_middle_initial = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
 });
- 
+
 watch(() => profile.value.fullName, () => {
- parseFullName();
+  parseFullName();
 });
- 
+
 // Profile Update Handler
 const saveProfile = () => {
- if (profile.value.graduate_birthdate) {
-   const date = new Date(profile.value.graduate_birthdate);
-   settingsForm.dob = date.toISOString().split('T')[0];
- } else {
-   settingsForm.dob = null;
- }
-settingsForm.graduate_first_name = profile.value.graduate_first_name;
-settingsForm.graduate_middle_initial = profile.value.graduate_middle_initial;
-settingsForm.graduate_last_name = profile.value.graduate_last_name;
- settingsForm.email = profile.value.email;
-settingsForm.graduate_phone = profile.value.graduate_phone;
-settingsForm.graduate_professional_title = profile.value.graduate_professional_title;
- settingsForm.graduate_location = profile.value.graduate_location;
-settingsForm.graduate_gender = profile.value.graduate_gender;
-settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
-settingsForm.graduate_address = profile.value.graduate_address;
-settingsForm.graduate_about_me = profile.value.graduate_about_me;
-settingsForm.graduate_picture_url = profile.value.graduate_picture_url;
- 
- const hasChanges = Object.keys(settingsForm.data()).some(
-   (key) => settingsForm[key] !== profile.value[key]
- );
- 
- if (!hasChanges) {
-  isNoChangesModalOpen.value = true;
-   return;
- }
- 
-settingsForm.post(route('profile.updateProfile'), {
-   onSuccess: (response) => {
-    Object.assign(profile.value, settingsForm.data());
-    modalState.value.profile = true;
-    showSuccessModal(); // Show success modal
-    
-    console.log('Profile saved successfully on the backend:', response.user);
-   },
-   onError: (errors) => {
-    console.error('Error updating profile:', errors);
-     alert('An error occurred while updating the profile. Please try again.');
-   },
- });
+  if (profile.value.graduate_birthdate) {
+    const date = new Date(profile.value.graduate_birthdate);
+    settingsForm.dob = date.toISOString().split('T')[0];
+  } else {
+    settingsForm.dob = null;
+  }
+  settingsForm.graduate_first_name = profile.value.graduate_first_name;
+  settingsForm.graduate_middle_initial = profile.value.graduate_middle_initial;
+  settingsForm.graduate_last_name = profile.value.graduate_last_name;
+  settingsForm.email = profile.value.email;
+  settingsForm.graduate_phone = profile.value.graduate_phone;
+  settingsForm.graduate_professional_title = profile.value.graduate_professional_title;
+  settingsForm.graduate_location = profile.value.graduate_location;
+  settingsForm.graduate_gender = profile.value.graduate_gender;
+  settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
+  settingsForm.graduate_address = profile.value.graduate_address;
+  settingsForm.graduate_about_me = profile.value.graduate_about_me;
+  if (profile.value.graduate_picture_file) {
+    settingsForm.graduate_picture = profile.value.graduate_picture_file; // File object
+  } else {
+    // Remove from form data so nothing is sent
+    if ('graduate_picture' in settingsForm) {
+      delete settingsForm.graduate_picture;
+    }
+  }
+
+  const hasChanges = Object.keys(settingsForm.data()).some(
+    (key) => settingsForm[key] !== profile.value[key]
+  );
+
+  if (!hasChanges) {
+    isNoChangesModalOpen.value = true;
+    return;
+  }
+
+  settingsForm.post(route('profile.updateProfile'), {
+    forceFormData: true,
+    onSuccess: (response) => {
+      if (response.props && response.props.user && response.props.user.profile_picture) {
+        profile.value.graduate_picture_url = `/storage/${response.props.user.profile_picture}`;
+      }
+
+      modalState.value.profile = true;
+      router.reload();
+
+      showSuccessModal();
+      console.log('Profile saved successfully on the backend:', response);
+
+    },
+    onError: (errors) => {
+      console.error('Error updating profile:', errors);
+      alert('An error occurred while updating the profile. Please try again.');
+    },
+  });
 };
- 
+
 // Profile Picture Handler
 const onFileChange = (event) => {
- const file = event.target.files[0];
- if (file) {
-   const reader = new FileReader();
-   reader.onload = (e) => {
-    profile.value.graduate_picture_url = e.target.result;
-    console.log('Profile picture updated:', file.name);
-   };
-  reader.readAsDataURL(file);
- }
+  const file = event.target.files[0];
+  if (file) {
+    profile.value.graduate_picture_file = file; // Store the file for upload
+    // Optionally, update preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      profile.value.graduate_picture_url = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
 };
- 
+
 // Password Management
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);
 const currentPassword = ref('');
 const newPassword = ref('');
 const confirmPassword = ref('');
- 
+
 const validatePassword = (password) => {
- const minLength = 8;
- const hasUpperCase = /[A-Z]/.test(password);
- const hasLowerCase = /[a-z]/.test(password);
- const hasNumber = /[0-9]/.test(password);
- const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
- return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
 };
- 
+
 const updatePassword = () => {
- if (!validatePassword(settingsForm.password)) {
-   alert('Password must be at least 8 characters long and contain uppercase, lowercase, number, and special characters.');
-   return;
- }
- if (settingsForm.password !== settingsForm.password_confirmation) {
-   alert('Password confirmation does not match.');
-   return;
- }
- 
-settingsForm.put(route('user-password.update'), {
-   errorBag: 'updatePassword',
-   preserveScroll: true,
-   onSuccess: () => {
-    settingsForm.reset();
-    showPasswordUpdatedModal();
-   },
-   onError: () => {
-    console.log('Form Data:', {
-      current_password: settingsForm.current_password,
-       password: settingsForm.password,
-      password_confirmation: settingsForm.password_confirmation,
-     });
- 
-     if (settingsForm.errors.password) {
-      settingsForm.reset('password', 'password_confirmation');
-      passwordInput.value.focus();
-     }
-     if (settingsForm.errors.current_password) {
-       settingsForm.reset('current_password');
-      currentPasswordInput.value.focus();
-     }
-   },
- });
+  if (!validatePassword(settingsForm.password)) {
+    alert('Password must be at least 8 characters long and contain uppercase, lowercase, number, and special characters.');
+    return;
+  }
+  if (settingsForm.password !== settingsForm.password_confirmation) {
+    alert('Password confirmation does not match.');
+    return;
+  }
+
+  settingsForm.put(route('user-password.update'), {
+    errorBag: 'updatePassword',
+    preserveScroll: true,
+    onSuccess: () => {
+      settingsForm.reset();
+      showPasswordUpdatedModal();
+    },
+    onError: () => {
+      console.log('Form Data:', {
+        current_password: settingsForm.current_password,
+        password: settingsForm.password,
+        password_confirmation: settingsForm.password_confirmation,
+      });
+
+      if (settingsForm.errors.password) {
+        settingsForm.reset('password', 'password_confirmation');
+        passwordInput.value.focus();
+      }
+      if (settingsForm.errors.current_password) {
+        settingsForm.reset('current_password');
+        currentPasswordInput.value.focus();
+      }
+    },
+  });
 };
- 
+
 const handleSubmit = () => {
- updatePassword();
+  updatePassword();
 };
- 
+
 //End
 
 const datepickerConfig = {
@@ -373,7 +392,7 @@ const validateExperience = () => {
   if (!experience.value.graduate_experience_company) errors.company = 'Company is required';
   if (!experience.value.graduate_experience_start_date) errors.startDate = 'Start date is required';
   if (!experience.value.graduate_experience_employment_type) errors.employmentType = 'Employment type is required';
-  
+
   // Handle end date validation
   if (!experience.value.is_current) {
     if (!experience.value.graduate_experience_end_date) {
@@ -381,7 +400,7 @@ const validateExperience = () => {
     } else {
       const startDate = new Date(experience.value.graduate_experience_start_date);
       const endDate = new Date(experience.value.graduate_experience_end_date);
-      
+
       if (isNaN(endDate.getTime())) {
         errors.endDate = 'Please enter a valid end date';
       } else if (startDate && !isNaN(startDate.getTime()) && endDate < startDate) {
@@ -389,12 +408,12 @@ const validateExperience = () => {
       }
     }
   }
-  
+
   // Validate description length
   if (experience.value.graduate_experience_description && experience.value.graduate_experience_description.length > 1000) {
     errors.description = 'Description cannot exceed 1000 characters';
   }
-  
+
   return Object.keys(errors).length === 0 ? null : errors;
 };
 
@@ -535,6 +554,8 @@ const projects = ref({
   graduate_projects_end_date: null,
   graduate_projects_url: '',
   graduate_projects_key_accomplishments: '',
+  graduate_project_file: null,
+
   is_current: false,
   id: null
 });
@@ -598,6 +619,7 @@ const resetProject = () => {
     graduate_projects_end_date: null,
     graduate_projects_url: '',
     graduate_projects_key_accomplishments: '',
+    graduate_project_file: null,
     is_current: false,
     id: null
   };
@@ -692,6 +714,7 @@ const updateProject = () => {
   const projectForm = useForm(projectData);
 
   projectForm.put(route('projects.update', projects.value.id), {
+    forceFormData: true,
     onSuccess: () => {
       const index = projectsEntries.value.findIndex(p => p.id === projects.value.id);
       if (index !== -1) {
@@ -729,18 +752,22 @@ const addProject = () => {
     graduate_projects_end_date: projects.value.is_current ? null : formatDate(projects.value.graduate_projects_end_date),
     graduate_projects_url: noProjectUrl.value ? '' : projects.value.graduate_projects_url,
     graduate_projects_key_accomplishments: projects.value.graduate_projects_key_accomplishments || 'No key accomplishments provided',
+    graduate_project_file: projects.value.graduate_project_file,
     is_current: projects.value.is_current
   };
 
   const projectForm = useForm(projectData);
 
   projectForm.post(route('projects.add'), {
+    forceFormData: true,
+
     onSuccess: (response) => {
       // Refresh the projects list from the updated page props
       const updatedProjects = response?.props?.projectsEntries;
       if (updatedProjects) {
         projectsEntries.value = updatedProjects;
       }
+      console.log('Project added successfully:', response);
       resetProject();
       isAddProjectModalOpen.value = false;
     },
@@ -799,11 +826,11 @@ const handleFileUpload = (event, type) => {
   if (!file) return;
 
   // Validate file type and size
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
   const maxSize = 2 * 1024 * 1024; // 2MB
 
   if (!allowedTypes.includes(file.type)) {
-    alert('Please upload only JPG, JPEG or PNG files');
+    alert('Please upload only JPG, JPEG, PNG, or PDF files');
     return;
   }
 
@@ -811,7 +838,7 @@ const handleFileUpload = (event, type) => {
     alert('File size should not exceed 2MB');
     return;
   }
-
+  projects.value.graduate_project_file = file;
   // Create preview URL
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -921,11 +948,7 @@ onMounted(() => {
 
 
 // Resume Data
-const resumeEntries = ref(props.resumeEntries || []);
-const resume = ref({
-  file: null,
-  fileName: ''
-});
+
 
 // Modal State
 const isProfileModalOpen = ref(false);
@@ -956,9 +979,9 @@ watch(() => profile.value.fullName, (newFullName) => {
 });
 
 watch(() => form.noExpiryDate, (newValue) => {
-    if (newValue) {
-        form.graduate_certification_expiry_date = null;
-    }
+  if (newValue) {
+    form.graduate_certification_expiry_date = null;
+  }
 });
 
 watch(() => education.value.graduate_education_start_date, (newValue) => {
@@ -1002,9 +1025,9 @@ watch(() => projects.value.is_current, (newValue) => {
 });
 
 watch(() => form.noCredentialUrl, (newValue) => {
-    if (newValue) {
-        form.graduate_certification_credential_url = '';
-    }
+  if (newValue) {
+    form.graduate_certification_credential_url = '';
+  }
 });
 
 watch(() => achievementForm.noCredentialUrl, (newValue) => {
@@ -1036,7 +1059,7 @@ const addEducation = () => {
   }
 
   // Check for duplicates
-  const isDuplicate = educationEntries.value.some(entry => 
+  const isDuplicate = educationEntries.value.some(entry =>
     entry.graduate_education_institution_id === education.value.graduate_education_institution_id &&
     entry.graduate_education_program === education.value.graduate_education_program &&
     entry.graduate_education_field_of_study === education.value.graduate_education_field_of_study
@@ -1214,7 +1237,7 @@ const updateSkill = () => {
 
   const skillForm = useForm({
     graduate_skills_name: skillName.value,
-    graduate_skills_proficiency_type: skillProficiencyType.value, 
+    graduate_skills_proficiency_type: skillProficiencyType.value,
     graduate_skills_type: skillType.value,
     graduate_skills_years_experience: yearsExperience.value,
   });
@@ -1346,56 +1369,57 @@ const closeUpdateCertificationModal = () => {
 };
 
 const resetForm = () => {
-    form.reset();
-    form.noExpiryDate = false;
-    const addAchievement = async () => {
-  try {
-    isSubmittingAchievement.value = true;
-    achievementErrors.value = {};
+  form.reset();
+  form.noExpiryDate = false;
+  const addAchievement = async () => {
+    try {
+      isSubmittingAchievement.value = true;
+      achievementErrors.value = {};
 
-    if (!achievementForm.value.graduate_achievement_title || 
-        !achievementForm.value.graduate_achievement_issuer || 
+      if (!achievementForm.value.graduate_achievement_title ||
+        !achievementForm.value.graduate_achievement_issuer ||
         !achievementForm.value.graduate_achievement_date) {
-      alert("Please fill in all required fields.");
-      return;
-    }
+        alert("Please fill in all required fields.");
+        return;
+      }
 
-    const formData = new FormData();
-    formData.append('graduate_achievement_title', achievementForm.value.graduate_achievement_title);
-    formData.append('graduate_achievement_issuer', achievementForm.value.graduate_achievement_issuer);
-    formData.append('graduate_achievement_date', achievementForm.value.graduate_achievement_date);
-    formData.append('graduate_achievement_description', 
-      achievementForm.value.graduate_achievement_description?.trim() || 'No description provided'
-    );
-    formData.append('graduate_achievement_url', achievementForm.value.graduate_achievement_url);
-    formData.append('graduate_achievement_type', achievementForm.value.graduate_achievement_type);
-    
-    if (achievementForm.value.credential_picture) {
-      formData.append('credential_picture', achievementForm.value.credential_picture);
-    }
+      const formData = new FormData();
+      formData.append('graduate_achievement_title', achievementForm.value.graduate_achievement_title);
+      formData.append('graduate_achievement_issuer', achievementForm.value.graduate_achievement_issuer);
+      formData.append('graduate_achievement_date', achievementForm.value.graduate_achievement_date);
+      formData.append('graduate_achievement_description',
+        achievementForm.value.graduate_achievement_description?.trim() || 'No description provided'
+      );
+      formData.append('graduate_achievement_url', achievementForm.value.graduate_achievement_url);
+      formData.append('graduate_achievement_type', achievementForm.value.graduate_achievement_type);
 
-    const form = useForm(Object.fromEntries(formData));
-    const response = await form.post(route('achievements.add'));
+      if (achievementForm.value.credential_picture) {
+        formData.append('credential_picture', achievementForm.value.credential_picture);
+      }
 
-    if (response.data) {
-      achievementEntries.value.push({
-        ...achievementForm.value,
-        id: response.data.id,
-        credential_picture_url: response.data.credential_picture_url,
-        graduate_achievement_date: response.data.graduate_achievement_date
-      });
-      
-      resetAchievementForm();
-      previewImage.value = null;
-      isAddAchievementModalOpen.value = false;
+      const form = useForm(Object.fromEntries(formData));
+      const response = await form.post(route('achievements.add'));
+
+      if (response.data) {
+        achievementEntries.value.push({
+          ...achievementForm.value,
+          id: response.data.id,
+          credential_picture_url: response.data.credential_picture_url,
+          graduate_achievement_date: response.data.graduate_achievement_date
+        });
+
+        resetAchievementForm();
+        previewImage.value = null;
+        isAddAchievementModalOpen.value = false;
+      }
+    } catch (error) {
+      console.error('Error adding achievement:', error);
+      achievementErrors.value = error.response?.data?.errors || {};
+    } finally {
+      isSubmittingAchievement.value = false;
     }
-  } catch (error) {
-    console.error('Error adding achievement:', error);
-    achievementErrors.value = error.response?.data?.errors || {};
-  } finally {
-    isSubmittingAchievement.value = false;
-  }
-};};
+  };
+};
 
 // Achievement Handlers
 const addAchievement = async () => {
@@ -1403,9 +1427,9 @@ const addAchievement = async () => {
     isSubmittingAchievement.value = true;
     achievementErrors.value = {};
 
-    if (!achievementForm.value.graduate_achievement_title || 
-        !achievementForm.value.graduate_achievement_issuer || 
-        !achievementForm.value.graduate_achievement_date) {
+    if (!achievementForm.value.graduate_achievement_title ||
+      !achievementForm.value.graduate_achievement_issuer ||
+      !achievementForm.value.graduate_achievement_date) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -1413,24 +1437,24 @@ const addAchievement = async () => {
     const formData = new FormData();
     formData.append('graduate_achievement_title', achievementForm.value.graduate_achievement_title);
     formData.append('graduate_achievement_issuer', achievementForm.value.graduate_achievement_issuer);
-    
+
     // Format the date to match Carbon's expected format
     const date = new Date(achievementForm.value.graduate_achievement_date);
     const formattedDate = date.toISOString().split('T')[0];
     formData.append('graduate_achievement_date', formattedDate);
-    
-    formData.append('graduate_achievement_description', 
+
+    formData.append('graduate_achievement_description',
       achievementForm.value.graduate_achievement_description?.trim() || 'No description provided'
     );
     formData.append('graduate_achievement_url', achievementForm.value.graduate_achievement_url);
     formData.append('graduate_achievement_type', achievementForm.value.graduate_achievement_type);
-    
+
     if (achievementForm.value.credential_picture) {
       formData.append('credential_picture', achievementForm.value.credential_picture);
     }
 
     const form = useForm(Object.fromEntries(formData));
-    
+
     form.post(route('achievements.add'), {
       onSuccess: (response) => {
         achievementEntries.value.push({
@@ -1439,7 +1463,7 @@ const addAchievement = async () => {
           credential_picture_url: response.credential_picture_url,
           graduate_achievement_date: formattedDate
         });
-        
+
         resetAchievementForm();
         previewImage.value = null;
         isAddAchievementModalOpen.value = false;
@@ -1461,14 +1485,14 @@ const addAchievement = async () => {
 const resetAchievementForm = () => {
   achievementForm.value = {
     graduate_achievement_title: '',
-      graduate_achievement_type: '',
-      graduate_achievement_issuer: '',
-      graduate_achievement_date: null,
-      graduate_achievement_description: '',
-      graduate_achievement_url: '',
-      noCredentialUrl: false,
-      credential_picture: null,
-      credential_picture_url: null
+    graduate_achievement_type: '',
+    graduate_achievement_issuer: '',
+    graduate_achievement_date: null,
+    graduate_achievement_description: '',
+    graduate_achievement_url: '',
+    noCredentialUrl: false,
+    credential_picture: null,
+    credential_picture_url: null
   };
 };
 
@@ -1521,12 +1545,12 @@ const updateAchievement = () => {
   formData.append('graduate_achievement_title', achievementForm.value.graduate_achievement_title.trim());
   formData.append('graduate_achievement_issuer', achievementForm.value.graduate_achievement_issuer.trim());
   formData.append('graduate_achievement_date', formatDate(achievementForm.value.graduate_achievement_date));
-  formData.append('graduate_achievement_description', 
+  formData.append('graduate_achievement_description',
     achievementForm.value.graduate_achievement_description?.trim() || 'No description provided'
   );
   formData.append('graduate_achievement_url', achievementForm.value.noCredentialUrl ? '' : (achievementForm.value.graduate_achievement_url || ''));
   formData.append('graduate_achievement_type', achievementForm.value.graduate_achievement_type.trim());
-  
+
   if (achievementForm.value.credential_picture) {
     formData.append('credential_picture', achievementForm.value.credential_picture);
   }
@@ -1570,7 +1594,7 @@ const deleteAchievement = async (id) => {
       alert('An error occurred while deleting the achievement');
     }
   }
-};''
+}; ''
 
 
 // Testimonials Handlers
@@ -1644,7 +1668,7 @@ const submitTestimonial = () => {
   formData.append('graduate_testimonials_file', testimonials.value.graduate_testimonials_file);
   const form = useForm(Object.fromEntries(formData));
   form.post(route('testimonials.add'), {
-    
+
   })
 }
 
@@ -1671,7 +1695,7 @@ const saveEmploymentPreferences = () => {
     workEnvironment: employmentPreferences.value.workEnvironment.join(', '),
     availability: employmentPreferences.value.availability.join(', '),
     additionalNotes: employmentPreferences.value.additionalNotes
-});
+  });
 
   console.log('Data sent to backend for employment preferences:', employmentForm.data());
 
@@ -1762,7 +1786,7 @@ const addPreferredIndustry = () => {
 
     console.log("Data being sent to backend:", careerGoalsForm.data());
 
-    careerGoalsForm.post(route('career.goals.add.industry'), { 
+    careerGoalsForm.post(route('career.goals.add.industry'), {
       onSuccess: (response) => {
         console.log("Backend response:", response);
       },
@@ -1780,7 +1804,7 @@ const addPreferredIndustry = () => {
 
 // Resume Handlers
 const resumeForm = useForm({
-  file: null,
+  resume: null,
   fileName: ''
 });
 
@@ -1788,33 +1812,38 @@ const uploadResume = (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-      .includes(file.type)) {
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
     alert('Please upload a PDF or Word document');
     return;
   }
 
-  resumeForm.file = file;
+  resumeForm.resume = file; // Use 'resume', not 'file'
   resumeForm.fileName = file.name;
-  resume.value.file = file;
-  resume.value.fileName = file.name;
+
 };
 
 const saveResume = () => {
-  if (!resumeForm.file) {
+  if (!resumeForm.resume) {
     alert('Please upload a resume before saving.');
     return;
   }
 
-  const formData = new FormData();
-  formData.append('resume', resumeForm.file);
-  formData.append('fileName', resumeForm.fileName);
+    console.log('Uploading file:', resumeForm.resume);
+  console.log('File name:', resumeForm.fileName);
 
   resumeForm.post(route('resume.upload'), {
     forceFormData: true,
     preserveScroll: true,
-    onSuccess: () => {
+    onSuccess: (page) => {
+      console.log('Upload success, server response:', page);
       alert('Resume saved successfully!');
+
     },
     onError: (errors) => {
       console.error('Error saving resume:', errors);
@@ -2104,7 +2133,7 @@ const openUpdateCertificationModal = (entry) => {
   form.graduate_certification_issue_date = entry.graduate_certification_issue_date;
   form.graduate_certification_expiry_date = entry.graduate_certification_expiry_date;
   form.graduate_certification_credential_url = entry.graduate_certification_credential_url;
-  form.avatar = null; 
+  form.avatar = null;
   form.noExpiryDate = !entry.graduate_certification_expiry_date;
   form.noCredentialUrl = !entry.graduate_certification_credential_url;
   isUpdateCertificationModalOpen.value = true;
@@ -2261,73 +2290,77 @@ onMounted(() => {
         <h1 class="text-3xl font-bold mb-4">Profile Settings</h1>
         <p class="text-gray-600 mb-6">Manage your personal information and account settings</p>
         <!-- Success Message Alert -->
-       <div v-if="isSuccessModalOpen" class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-         <strong class="font-bold">Success!</strong>
-         <span class="block sm:inline"> Your profile has been updated successfully.</span>
-         <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="isSuccessModalOpen = false">
-           <i class="fas fa-times"></i>
-        </span>
-       </div>
-      
-       <!-- Success Modal -->
-       <Modal :show="modalState.profile" @close="modalState.profile = false">
-         <div class="p-6">
-           <div class="flex items-center mb-4">
-             <div class="rounded-full bg-green-100 p-2 mr-3">
-               <i class="fas fa-check text-green-500 text-xl"></i>
+        <div v-if="isSuccessModalOpen"
+          class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+          <strong class="font-bold">Success!</strong>
+          <span class="block sm:inline"> Your profile has been updated successfully.</span>
+          <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="isSuccessModalOpen = false">
+            <i class="fas fa-times"></i>
+          </span>
+        </div>
+
+        <!-- Success Modal -->
+        <Modal :show="modalState.profile" @close="modalState.profile = false">
+          <div class="p-6">
+            <div class="flex items-center mb-4">
+              <div class="rounded-full bg-green-100 p-2 mr-3">
+                <i class="fas fa-check text-green-500 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900">Profile Updated Successfully</h3>
             </div>
-             <h3 class="text-lg font-medium text-gray-900">Profile Updated Successfully</h3>
-          </div>
-           <div class="mt-3 text-gray-600">
-            <p>Your profile information has been updated successfully.</p>
-          </div>
-           <div class="mt-6 flex justify-end">
-            <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md" @click="modalState.profile = false">
-               Close
-            </button>
-          </div>
-         </div>
-       </Modal>
-      
-       <!-- No Changes Modal -->
-       <Modal :show="isNoChangesModalOpen" @close="isNoChangesModalOpen = false">
-         <div class="p-6">
-           <div class="flex items-center mb-4">
-             <div class="rounded-full bg-blue-100 p-2 mr-3">
-               <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+            <div class="mt-3 text-gray-600">
+              <p>Your profile information has been updated successfully.</p>
             </div>
-             <h3 class="text-lg font-medium text-gray-900">No Changes Detected</h3>
-          </div>
-           <div class="mt-3 text-gray-600">
-            <p>No changes were detected in your profile information.</p>
-          </div>
-           <div class="mt-6 flex justify-end">
-            <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md" @click="isNoChangesModalOpen = false">
-               Close
-            </button>
-          </div>
-         </div>
-       </Modal>
-      
-       <!-- Password Updated Modal -->
-       <Modal :show="isPasswordUpdatedModalOpen" @close="isPasswordUpdatedModalOpen = false">
-         <div class="p-6">
-           <div class="flex items-center mb-4">
-             <div class="rounded-full bg-green-100 p-2 mr-3">
-               <i class="fas fa-check text-green-500 text-xl"></i>
+            <div class="mt-6 flex justify-end">
+              <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md"
+                @click="modalState.profile = false">
+                Close
+              </button>
             </div>
-             <h3 class="text-lg font-medium text-gray-900">Password Updated Successfully</h3>
           </div>
-           <div class="mt-3 text-gray-600">
-            <p>Your password has been updated successfully. You will be logged out for security reasons.</p>
+        </Modal>
+
+        <!-- No Changes Modal -->
+        <Modal :show="isNoChangesModalOpen" @close="isNoChangesModalOpen = false">
+          <div class="p-6">
+            <div class="flex items-center mb-4">
+              <div class="rounded-full bg-blue-100 p-2 mr-3">
+                <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900">No Changes Detected</h3>
+            </div>
+            <div class="mt-3 text-gray-600">
+              <p>No changes were detected in your profile information.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md"
+                @click="isNoChangesModalOpen = false">
+                Close
+              </button>
+            </div>
           </div>
-           <div class="mt-6 flex justify-end">
-            <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md" @click="isPasswordUpdatedModalOpen = false">
-               Close
-            </button>
+        </Modal>
+
+        <!-- Password Updated Modal -->
+        <Modal :show="isPasswordUpdatedModalOpen" @close="isPasswordUpdatedModalOpen = false">
+          <div class="p-6">
+            <div class="flex items-center mb-4">
+              <div class="rounded-full bg-green-100 p-2 mr-3">
+                <i class="fas fa-check text-green-500 text-xl"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900">Password Updated Successfully</h3>
+            </div>
+            <div class="mt-3 text-gray-600">
+              <p>Your password has been updated successfully. You will be logged out for security reasons.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button type="button" class="bg-indigo-600 text-white py-2 px-4 rounded-md"
+                @click="isPasswordUpdatedModalOpen = false">
+                Close
+              </button>
+            </div>
           </div>
-         </div>
-       </Modal>
+        </Modal>
         <div class="bg-white rounded-lg shadow-md p-6">
           <div class="flex border-b border-gray-200 mb-6">
             <button class="py-2 px-4"
@@ -2409,8 +2442,9 @@ onMounted(() => {
               <h2 class="text-xl font-semibold mb-4">Profile Picture</h2>
               <p class="text-gray-600 mb-4">Update your profile picture</p>
               <div class="flex flex-col items-center">
-                <img id="profile-picture" :src="profile.graduate_picture_url" alt="Profile picture"
-                  class="rounded-full mb-4 w-32 h-32 object-cover"/>
+                <img id="profile-picture"
+                  :src="profile.graduate_picture_url.startsWith('data:') ? profile.graduate_picture_url : `/storage/${profile.graduate_picture_url}`"
+                  alt="Profile picture" class="rounded-full mb-4 w-32 h-32 object-cover" />
                 <input type="file" id="file-input" class="hidden" accept="image/*" @change="onFileChange" />
                 <label for="file-input" class="text-indigo-600 cursor-pointer">Choose an image</label>
               </div>
@@ -2478,8 +2512,6 @@ onMounted(() => {
                       <option value="" disabled selected>Select gender</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
                     </select>
                   </div>
 
@@ -2629,25 +2661,29 @@ onMounted(() => {
                 <div class="max-h-96 overflow-y-auto">
                   <form @submit.prevent="addEducation">
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Institution <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Institution <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="education.graduate_education_institution_id"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Harvard University" required>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Degree <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="education.graduate_education_program"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Bachelor of Science" required>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Field of Study <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Field of Study <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="education.graduate_education_field_of_study"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Computer Science" required>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Start Date <span
+                          class="text-red-500">*</span></label>
                       <Datepicker v-model="education.graduate_education_start_date"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Select start date" required />
@@ -2706,28 +2742,32 @@ onMounted(() => {
                 <div class="max-h-96 overflow-y-auto">
                   <form @submit.prevent="updateEducation">
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Institution <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Institution <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="education.graduate_education_institution_id"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Harvard University" required>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Degree <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="education.graduate_education_program"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Bachelor of Science" required>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Field of Study <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Field of Study <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="education.graduate_education_field_of_study"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Computer Science" required>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Start Date <span
+                          class="text-red-500">*</span></label>
                       <Datepicker v-model="education.graduate_education_start_date" :config="datepickerConfig"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                        placeholder="Select start date" required/>
+                        placeholder="Select start date" required />
                     </div>
                     <div class="mb-4">
                       <label class="block text-gray-700 font-medium mb-2">End Date</label>
@@ -2782,7 +2822,8 @@ onMounted(() => {
                 <h1 class="text-2xl font-semibold text-gray-900">Skills</h1>
                 <p class="mt-2 text-gray-600">Showcase your professional expertise and competencies</p>
               </div>
-              <PrimaryButton @click="openAddSkillModal" class="inline-flex px-4 bg-indigo-600 text-white py-2 rounded-md items-center justify-center hover:bg-indigo-700">
+              <PrimaryButton @click="openAddSkillModal"
+                class="inline-flex px-4 bg-indigo-600 text-white py-2 rounded-md items-center justify-center hover:bg-indigo-700">
                 <i class="fas fa-plus mr-2"></i>
                 Add Skill
               </PrimaryButton>
@@ -2805,23 +2846,20 @@ onMounted(() => {
                           <div class="flex items-start justify-between mb-4">
                             <div class="flex-1">
                               <h3 class="text-lg font-medium text-gray-900">{{ skill.graduate_skills_name }}</h3>
-                              <span class="inline-flex mt-2 px-3 py-1 rounded-full text-sm font-medium"
-                                :class="{
-                                  'bg-blue-100 text-blue-800': skill.graduate_skills_proficiency_type === 'Beginner',
-                                  'bg-green-100 text-green-800': skill.graduate_skills_proficiency_type === 'Intermediate',
-                                  'bg-purple-100 text-purple-800': skill.graduate_skills_proficiency_type === 'Advanced',
-                                  'bg-indigo-100 text-indigo-800': skill.graduate_skills_proficiency_type === 'Expert'
-                                }">
+                              <span class="inline-flex mt-2 px-3 py-1 rounded-full text-sm font-medium" :class="{
+                                'bg-blue-100 text-blue-800': skill.graduate_skills_proficiency_type === 'Beginner',
+                                'bg-green-100 text-green-800': skill.graduate_skills_proficiency_type === 'Intermediate',
+                                'bg-purple-100 text-purple-800': skill.graduate_skills_proficiency_type === 'Advanced',
+                                'bg-indigo-100 text-indigo-800': skill.graduate_skills_proficiency_type === 'Expert'
+                              }">
                                 {{ skill.graduate_skills_proficiency_type }}
                               </span>
                             </div>
                             <div class="flex space-x-2">
-                              <button @click="editSkill(skill)"
-                                class="text-gray-600 hover:text-indigo-600">
+                              <button @click="editSkill(skill)" class="text-gray-600 hover:text-indigo-600">
                                 <i class="fas fa-pen"></i>
                               </button>
-                              <button @click="removeSkill(skill)"
-                                class="text-red-600 hover:text-red-800">
+                              <button @click="removeSkill(skill)" class="text-red-600 hover:text-red-800">
                                 <i class="fas fa-trash"></i>
                               </button>
                             </div>
@@ -2829,23 +2867,21 @@ onMounted(() => {
                           <!-- Proficiency Bar -->
                           <div class="space-y-4">
                             <div class="w-full bg-gray-200 rounded-full h-2">
-                              <div class="h-2 rounded-full transition-all duration-300"
-                                :class="{
-                                  'w-1/4 bg-blue-500': skill.graduate_skills_proficiency_type === 'Beginner',
-                                  'w-2/4 bg-green-500': skill.graduate_skills_proficiency_type === 'Intermediate',
-                                  'w-3/4 bg-purple-500': skill.graduate_skills_proficiency_type === 'Advanced',
-                                  'w-full bg-indigo-500': skill.graduate_skills_proficiency_type === 'Expert'
-                                }"></div>
+                              <div class="h-2 rounded-full transition-all duration-300" :class="{
+                                'w-1/4 bg-blue-500': skill.graduate_skills_proficiency_type === 'Beginner',
+                                'w-2/4 bg-green-500': skill.graduate_skills_proficiency_type === 'Intermediate',
+                                'w-3/4 bg-purple-500': skill.graduate_skills_proficiency_type === 'Advanced',
+                                'w-full bg-indigo-500': skill.graduate_skills_proficiency_type === 'Expert'
+                              }"></div>
                             </div>
-                            
+
                             <!-- Experience Level -->
                             <div class="flex items-center justify-between text-sm">
                               <span class="font-medium text-gray-700">Years of Experience</span>
                               <span class="text-gray-600">{{ skill.graduate_skills_years_experience }} year(s)</span>
                             </div>
                             <div class="flex space-x-2">
-                              <div v-for="n in 5" :key="n"
-                                class="flex-1 h-1.5 rounded transition-all duration-200"
+                              <div v-for="n in 5" :key="n" class="flex-1 h-1.5 rounded transition-all duration-200"
                                 :class="{
                                   'bg-indigo-500': n <= skill.graduate_skills_years_experience,
                                   'bg-gray-200': n > skill.graduate_skills_years_experience
@@ -2864,7 +2900,8 @@ onMounted(() => {
                     <i class="fas fa-lightbulb text-4xl"></i>
                   </div>
                   <h3 class="text-lg font-medium text-gray-900 mb-2">No skills added yet</h3>
-                  <p class="text-gray-600 mb-4">Start building your skill profile by adding your technical, soft, and language skills.</p>
+                  <p class="text-gray-600 mb-4">Start building your skill profile by adding your technical, soft, and
+                    language skills.</p>
                 </div>
               </div>
 
@@ -2889,12 +2926,14 @@ onMounted(() => {
                 <p class="text-gray-600 mb-4">Add a new skill to your profile</p>
                 <form @submit.prevent="saveSkill">
                   <div class="mb-4">
-                    <label for="skillName" class="block text-gray-700">Skill Name <span class="text-red-500">*</span></label>
+                    <label for="skillName" class="block text-gray-700">Skill Name <span
+                        class="text-red-500">*</span></label>
                     <input type="text" id="skillName" v-model="skillName"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                   </div>
                   <div class="mb-4">
-                    <label for="skillProficiencyType" class="block text-gray-700">Proficiency Type <span class="text-red-500">*</span></label>
+                    <label for="skillProficiencyType" class="block text-gray-700">Proficiency Type <span
+                        class="text-red-500">*</span></label>
                     <select id="skillProficiencyType" v-model="skillProficiencyType"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                       <option value="" disabled>Select proficiency type</option>
@@ -2905,7 +2944,8 @@ onMounted(() => {
                     </select>
                   </div>
                   <div class="mb-4">
-                    <label for="skillType" class="block text-gray-700">Skill Type <span class="text-red-500">*</span></label>
+                    <label for="skillType" class="block text-gray-700">Skill Type <span
+                        class="text-red-500">*</span></label>
                     <select id="skillType" v-model="skillType"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                       <option value="" disabled>Select skill type</option>
@@ -2917,7 +2957,8 @@ onMounted(() => {
                     </select>
                   </div>
                   <div class="mb-4">
-                    <label for="yearsExperience" class="block text-gray-700">Years of Experience <span class="text-red-500">*</span></label>
+                    <label for="yearsExperience" class="block text-gray-700">Years of Experience <span
+                        class="text-red-500">*</span></label>
                     <input type="number" id="yearsExperience" v-model="yearsExperience"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                   </div>
@@ -2943,12 +2984,14 @@ onMounted(() => {
                 <p class="text-gray-600 mb-4">Update the skill details</p>
                 <form @submit.prevent="updateSkill">
                   <div class="mb-4">
-                    <label for="skillName" class="block text-gray-700">Skill Name <span class="text-red-500">*</span></label>
+                    <label for="skillName" class="block text-gray-700">Skill Name <span
+                        class="text-red-500">*</span></label>
                     <input type="text" id="skillName" v-model="skillName"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                   </div>
                   <div class="mb-4">
-                    <label for="skillProficiencyType" class="block text-gray-700">Proficiency Type <span class="text-red-500">*</span></label>
+                    <label for="skillProficiencyType" class="block text-gray-700">Proficiency Type <span
+                        class="text-red-500">*</span></label>
                     <select id="skillProficiencyType" v-model="skillProficiencyType"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                       <option value="" disabled>Select proficiency type</option>
@@ -2959,7 +3002,8 @@ onMounted(() => {
                     </select>
                   </div>
                   <div class="mb-4">
-                    <label for="skillType" class="block text-gray-700">Skill Type <span class="text-red-500">*</span></label>
+                    <label for="skillType" class="block text-gray-700">Skill Type <span
+                        class="text-red-500">*</span></label>
                     <select id="skillType" v-model="skillType"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                       <option value="" disabled>Select skill type</option>
@@ -2970,7 +3014,8 @@ onMounted(() => {
                     </select>
                   </div>
                   <div class="mb-4">
-                    <label for="yearsExperience" class="block text-gray-700">Years of Experience <span class="text-red-500">*</span></label>
+                    <label for="yearsExperience" class="block text-gray-700">Years of Experience <span
+                        class="text-red-500">*</span></label>
                     <input type="number" id="yearsExperience" v-model="yearsExperience"
                       class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                   </div>
@@ -2996,12 +3041,11 @@ onMounted(() => {
               </div>
               <p class="text-gray-600 mb-6">Showcase your professional experience</p>
               <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div v-for="entry in experienceEntries" :key="entry.id"
-                  class="bg-white p-8 rounded-lg shadow relative">
+                <div v-for="entry in experienceEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
                   <div>
                     <div class="border-b pb-2">
-                    <h2 class="text-xl font-bold">{{ entry.graduate_experience_title }}</h2>
-                    <p class="text-gray-600">{{ entry.graduate_experience_company }}</p>
+                      <h2 class="text-xl font-bold">{{ entry.graduate_experience_title }}</h2>
+                      <p class="text-gray-600">{{ entry.graduate_experience_company }}</p>
                     </div>
                     <div class="flex items-center text-gray-600 mt-2">
                       <i class="fas fa-map-marker-alt mr-2"></i>
@@ -3010,8 +3054,8 @@ onMounted(() => {
                     <div class="flex items-center text-gray-600 mt-2">
                       <i class="far fa-calendar-alt mr-2"></i>
                       <span>
-                        {{ formatDate(entry.graduate_experience_start_date) }} - {{ entry.graduate_experience_end_date ? 
-                        formatDate(entry.graduate_experience_end_date) : 'present' }}
+                        {{ formatDate(entry.graduate_experience_start_date) }} - {{ entry.graduate_experience_end_date ?
+                          formatDate(entry.graduate_experience_end_date) : 'present' }}
                       </span>
                     </div>
                     <p class="text-gray-600 mt-2 flex items-center">
@@ -3026,8 +3070,7 @@ onMounted(() => {
                     </p>
                   </div>
                   <div class="absolute top-2 right-2 flex space-x-2">
-                    <button class="text-gray-600 hover:text-indigo-600"
-                      @click="openUpdateExperienceModal(entry)">
+                    <button class="text-gray-600 hover:text-indigo-600" @click="openUpdateExperienceModal(entry)">
                       <i class="fas fa-pen"></i>
                     </button>
                     <button class="text-red-600 hover:text-red-800" @click="removeExperience(entry)">
@@ -3056,25 +3099,29 @@ onMounted(() => {
                 <div class="max-h-96 overflow-y-auto">
                   <form @submit.prevent="addExperience">
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Job Title <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Job Title <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="experience.graduate_experience_title"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Software Engineer" required />
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Company <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="experience.graduate_experience_company"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Tech Corp" required />
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Location <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="experience.graduate_experience_address"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. New York, NY" required />
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Employment Type <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Employment Type <span
+                          class="text-red-500">*</span></label>
                       <select v-model="experience.graduate_experience_employment_type"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         required>
@@ -3087,7 +3134,8 @@ onMounted(() => {
                       </select>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Start Date <span
+                          class="text-red-500">*</span></label>
                       <Datepicker v-model="experience.graduate_experience_start_date"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Select start date" required />
@@ -3134,25 +3182,29 @@ onMounted(() => {
                 <div class="max-h-96 overflow-y-auto">
                   <form @submit.prevent="updateExperience">
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Job Title <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Job Title <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="experience.graduate_experience_title"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Software Engineer" required />
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Company <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="experience.graduate_experience_company"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. Tech Corp" required />
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Location <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="experience.graduate_experience_address"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="e.g. New York, NY" required />
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Employment Type <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Employment Type <span
+                          class="text-red-500">*</span></label>
                       <select v-model="experience.graduate_experience_employment_type"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         required>
@@ -3165,7 +3217,8 @@ onMounted(() => {
                       </select>
                     </div>
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Start Date <span
+                          class="text-red-500">*</span></label>
                       <Datepicker v-model="experience.graduate_experience_start_date"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Select start date" required />
@@ -3215,8 +3268,8 @@ onMounted(() => {
               <p class="text-gray-600 mb-6">Showcase your personal and professional projects</p>
 
               <div v-if="projectsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div v-for="entry  in projectsEntries" :key="entry.id" 
-                    class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                <div v-for="entry in projectsEntries" :key="entry.id"
+                  class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="p-6">
                     <div class="flex justify-between items-start mb-4">
                       <div>
@@ -3227,8 +3280,8 @@ onMounted(() => {
                         <button class="text-gray-600 hover:text-gray-800" @click="openUpdateProjectModal(entry)">
                           <i class="fas fa-pen"></i>
                         </button>
-                        <button class="text-red-600 hover:text-red-800 transition-colors" 
-                                @click="deleteProject(entry.id)">
+                        <button class="text-red-600 hover:text-red-800 transition-colors"
+                          @click="deleteProject(entry.id)">
                           <i class="fas fa-trash"></i>
                         </button>
                       </div>
@@ -3242,16 +3295,18 @@ onMounted(() => {
                       <div class="flex items-center text-gray-600">
                         <i class="far fa-calendar-alt mr-2 text-gray-500"></i>
                         <span>
-                        {{ formatDate(entry.graduate_projects_start_date) }} - 
-                        {{ entry.graduate_projects_end_date === null ? 'Present' : formatDate(entry.graduate_projects_end_date) }}
-                      </span>
+                          {{ formatDate(entry.graduate_projects_start_date) }} -
+                          {{ entry.graduate_projects_end_date === null ? 'Present' :
+                            formatDate(entry.graduate_projects_end_date) }}
+                        </span>
                       </div>
 
                       <div class="mt-3">
                         <h4 class="text-sm font-semibold text-gray-700 mb-1">Project URL:</h4>
                         <p class="text-gray-600">
                           <span v-if="entry.graduate_projects_url">
-                            <a :href="entry.graduate_projects_url" target="_blank" class="text-indigo-600 hover:underline break-all">
+                            <a :href="entry.graduate_projects_url" target="_blank"
+                              class="text-indigo-600 hover:underline break-all">
                               {{ entry.graduate_projects_url }}
                             </a>
                           </span>
@@ -3265,19 +3320,17 @@ onMounted(() => {
                           <span v-if="entry.graduate_projects_key_accomplishments">
                             {{ entry.graduate_projects_key_accomplishments }}
                           </span>
-                          <span v-else>No key accomplishment provided</span> 
+                          <span v-else>No key accomplishment provided</span>
                         </p>
                       </div>
 
                       <div v-if="projects.graduate_project_file" class="mt-3">
-                    <img :src="`/storage/${projects.graduate_project_file}`" 
-                        :alt="projects.graduate_projects_title"
-                        class="max-w-full h-auto rounded-lg shadow"
-                    />
+                        <img :src="`/storage/${projects.graduate_project_file}`" :alt="projects.graduate_projects_title"
+                          class="max-w-full h-auto rounded-lg shadow" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               </div>
 
               <div v-else class="bg-white p-8 rounded-lg shadow">
@@ -3285,7 +3338,8 @@ onMounted(() => {
               </div>
 
               <!-- Add Project Modal -->
-              <div v-if="isAddProjectModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+              <div v-if="isAddProjectModalOpen"
+                class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
                 <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                   <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">Add Project</h2>
@@ -3296,7 +3350,8 @@ onMounted(() => {
                   <div class="max-h-96 overflow-y-auto">
                     <form @submit.prevent="addProject">
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Project Title <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 font-medium mb-2">Project Title <span
+                            class="text-red-500">*</span></label>
                         <input type="text" v-model="projects.graduate_projects_title"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           placeholder="e.g. E-commerce Platform" required />
@@ -3308,13 +3363,15 @@ onMounted(() => {
                           rows="3" placeholder="Describe your project..."></textarea>
                       </div>
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 font-medium mb-2">Role <span
+                            class="text-red-500">*</span></label>
                         <input type="text" v-model="projects.graduate_projects_role"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           placeholder="Your role in the project" required />
                       </div>
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 font-medium mb-2">Start Date <span
+                            class="text-red-500">*</span></label>
                         <Datepicker v-model="projects.graduate_projects_start_date"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           placeholder="Select start date" required />
@@ -3326,7 +3383,8 @@ onMounted(() => {
                           placeholder="Select end date" :disabled="projects.is_current" />
                         <div class="mt-2">
                           <input type="checkbox" v-model="projects.is_current" id="isCurrentProject" />
-                          <label for="isCurrentProject" class="text-sm text-gray-700 ml-2">This is an ongoing project</label>
+                          <label for="isCurrentProject" class="text-sm text-gray-700 ml-2">This is an ongoing
+                            project</label>
                         </div>
                       </div>
                       <div class="mb-4">
@@ -3347,7 +3405,7 @@ onMounted(() => {
                       </div>
                       <div class="mb-4">
                         <label for="project-file" class="block text-sm font-medium text-gray-700">Upload File</label>
-                        <input type="file" id="project-file" @change="handleFileUpload"
+                        <input type="file" id="project-file" name="graduate_project_file" @change="handleFileUpload"
                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                       </div>
                       <button type="submit"
@@ -3369,7 +3427,8 @@ onMounted(() => {
                   <div class="max-h-96 overflow-y-auto">
                     <form @submit.prevent="updateProject">
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Project Title <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 font-medium mb-2">Project Title <span
+                            class="text-red-500">*</span></label>
                         <input type="text" v-model="projects.graduate_projects_title"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           placeholder="e.g. E-commerce Platform" required />
@@ -3381,13 +3440,15 @@ onMounted(() => {
                           rows="3" placeholder="Describe your personal or professional project..."></textarea>
                       </div>
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 font-medium mb-2">Role <span
+                            class="text-red-500">*</span></label>
                         <input type="text" v-model="projects.graduate_projects_role"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           placeholder="Your role in the project" required />
                       </div>
                       <div class="mb-4">
-                        <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                        <label class="block text-gray-700 font-medium mb-2">Start Date <span
+                            class="text-red-500">*</span></label>
                         <Datepicker v-model="projects.graduate_projects_start_date"
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           placeholder="Start Date" required />
@@ -3419,6 +3480,13 @@ onMounted(() => {
                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                           rows="3" placeholder="What did you achieve?"></textarea>
                       </div>
+
+                      <div class="mb-4">
+                        <label for="project-file" class="block text-sm font-medium text-gray-700">Upload File</label>
+                        <input type="file" id="project-file" name="graduate_project_file" @change="handleFileUpload"
+                          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                      </div>
+
                       <button type="submit"
                         class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Update
                         Project</button>
@@ -3441,27 +3509,31 @@ onMounted(() => {
               </div>
               <p class="text-gray-600 mb-6">Manage your professional certifications</p>
               <div v-if="certificationsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div v-for="entry in certificationsEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
+                <div v-for="entry in certificationsEntries" :key="entry.id"
+                  class="bg-white p-8 rounded-lg shadow relative">
                   <div>
                     <div class="border-b pb-2">
-                    <h2 class="text-xl font-bold">{{ entry.graduate_certification_name }}</h2>
-                    <p class="text-gray-600">{{ entry.graduate_certification_issuer }}</p>
-                  </div>
+                      <h2 class="text-xl font-bold">{{ entry.graduate_certification_name }}</h2>
+                      <p class="text-gray-600">{{ entry.graduate_certification_issuer }}</p>
+                    </div>
                     <div class="flex items-center text-gray-600 mt-2">
                       <i class="far fa-calendar-alt mr-2"></i>
-                      <span>{{ entry.graduate_certification_issue_date }} - {{ entry.graduate_certification_expiry_date || 'No expiry date' }}</span>
+                      <span>{{ entry.graduate_certification_issue_date }} - {{ entry.graduate_certification_expiry_date
+                        || 'No expiry date' }}</span>
                     </div>
                     <p class="mt-2">
-                      URL: 
+                      URL:
                       <span v-if="entry.graduate_certification_credential_url && !entry.noCredentialUrl">
-                        <a :href="entry.graduate_certification_credential_url" class="text-blue-600 hover:underline" target="_blank">
+                        <a :href="entry.graduate_certification_credential_url" class="text-blue-600 hover:underline"
+                          target="_blank">
                           {{ entry.graduate_certification_credential_url }}
                         </a>
                       </span>
                       <span v-else class="text-gray-500">No Credential URL</span>
                     </p>
                     <p class="mt-2" v-if="entry.file_path">
-                      Photo: <img :src="`/storage/${entry.file_path}`" class="w-24 h-24 object-cover rounded-md" alt="Certification Photo" />
+                      Photo: <img :src="`/storage/${entry.file_path}`" class="w-24 h-24 object-cover rounded-md"
+                        alt="Certification Photo" />
                     </p>
                   </div>
                   <div class="absolute top-2 right-2 flex space-x-2">
@@ -3482,7 +3554,8 @@ onMounted(() => {
             </div>
 
             <!-- Add Certification Modal -->
-            <div v-if="isAddCertificationModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div v-if="isAddCertificationModalOpen"
+              class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
                   <h2 class="text-xl font-semibold">Add Certification</h2>
@@ -3492,25 +3565,29 @@ onMounted(() => {
                 </div>
                 <form @submit.prevent="addCertification" novalidate>
                   <div class="mb-4">
-                    <label for="certification-name" class="block text-sm font-medium text-gray-700">Name <span class="text-red-500">*</span></label>
+                    <label for="certification-name" class="block text-sm font-medium text-gray-700">Name <span
+                        class="text-red-500">*</span></label>
                     <input type="text" id="certification-name" v-model="form.graduate_certification_name"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       required>
                   </div>
                   <div class="mb-4">
-                    <label for="certification-issuer" class="block text-sm font-medium text-gray-700">Issuer <span class="text-red-500">*</span></label>
+                    <label for="certification-issuer" class="block text-sm font-medium text-gray-700">Issuer <span
+                        class="text-red-500">*</span></label>
                     <input type="text" id="certification-issuer" v-model="form.graduate_certification_issuer"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       required>
                   </div>
                   <div class="mb-4">
-                    <label for="certification-issue-date" class="block text-sm font-medium text-gray-700">Issue Date <span class="text-red-500">*</span></label>
+                    <label for="certification-issue-date" class="block text-sm font-medium text-gray-700">Issue Date
+                      <span class="text-red-500">*</span></label>
                     <Datepicker v-model="form.graduate_certification_issue_date"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       placeholder="Select issue date" required />
                   </div>
                   <div class="mb-4">
-                    <label for="certification-expiry-date" class="block text-sm font-medium text-gray-700">Expiry Date</label>
+                    <label for="certification-expiry-date" class="block text-sm font-medium text-gray-700">Expiry
+                      Date</label>
                     <Datepicker v-model="form.graduate_certification_expiry_date"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       placeholder="Select expiry date" :required="!form.noExpiryDate" :disabled="form.noExpiryDate" />
@@ -3520,8 +3597,10 @@ onMounted(() => {
                     </div>
                   </div>
                   <div class="mb-4">
-                    <label for="certification-credential-url" class="block text-sm font-medium text-gray-700">Credential URL</label>
-                    <input type="url" id="certification-credential-url" v-model="form.graduate_certification_credential_url"
+                    <label for="certification-credential-url" class="block text-sm font-medium text-gray-700">Credential
+                      URL</label>
+                    <input type="url" id="certification-credential-url"
+                      v-model="form.graduate_certification_credential_url"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       :required="!form.noCredentialUrl" :disabled="form.noCredentialUrl" />
                     <div class="mt-2">
@@ -3535,7 +3614,8 @@ onMounted(() => {
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                   </div>
                   <div class="flex justify-end">
-                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
+                    <button type="submit"
+                      class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
                       <i class="fas fa-save mr-2"></i>
                       Save Certification
                     </button>
@@ -3545,7 +3625,8 @@ onMounted(() => {
             </div>
 
             <!-- Update Certification Modal -->
-            <div v-if="isUpdateCertificationModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div v-if="isUpdateCertificationModalOpen"
+              class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
                   <h2 class="text-xl font-semibold">Update Certification</h2>
@@ -3555,25 +3636,29 @@ onMounted(() => {
                 </div>
                 <form @submit.prevent="updateCertification" novalidate>
                   <div class="mb-4">
-                    <label for="update-certification-name" class="block text-sm font-medium text-gray-700">Name <span class="text-red-500">*</span></label>
+                    <label for="update-certification-name" class="block text-sm font-medium text-gray-700">Name <span
+                        class="text-red-500">*</span></label>
                     <input type="text" id="update-certification-name" v-model="form.graduate_certification_name"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       required>
                   </div>
                   <div class="mb-4">
-                    <label for="update-certification-issuer" class="block text-sm font-medium text-gray-700">Issuer <span class="text-red-500">*</span></label>
+                    <label for="update-certification-issuer" class="block text-sm font-medium text-gray-700">Issuer
+                      <span class="text-red-500">*</span></label>
                     <input type="text" id="update-certification-issuer" v-model="form.graduate_certification_issuer"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       required>
                   </div>
                   <div class="mb-4">
-                    <label for="update-certification-issue-date" class="block text-sm font-medium text-gray-700">Issue Date <span class="text-red-500">*</span></label>
+                    <label for="update-certification-issue-date" class="block text-sm font-medium text-gray-700">Issue
+                      Date <span class="text-red-500">*</span></label>
                     <Datepicker v-model="form.graduate_certification_issue_date"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       placeholder="Select issue date" required />
                   </div>
                   <div class="mb-4">
-                    <label for="update-certification-expiry-date" class="block text-sm font-medium text-gray-700">Expiry Date</label>
+                    <label for="update-certification-expiry-date" class="block text-sm font-medium text-gray-700">Expiry
+                      Date</label>
                     <Datepicker v-model="form.graduate_certification_expiry_date"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       placeholder="Select expiry date" :required="!form.noExpiryDate" :disabled="form.noExpiryDate" />
@@ -3583,29 +3668,34 @@ onMounted(() => {
                     </div>
                   </div>
                   <div class="mb-4">
-                    <label for="update-certification-credential-url" class="block text-sm font-medium text-gray-700">Credential URL</label>
-                    <input type="url" id="update-certification-credential-url" v-model="form.graduate_certification_credential_url"
+                    <label for="update-certification-credential-url"
+                      class="block text-sm font-medium text-gray-700">Credential URL</label>
+                    <input type="url" id="update-certification-credential-url"
+                      v-model="form.graduate_certification_credential_url"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                       :required="!form.noCredentialUrl" :disabled="form.noCredentialUrl" />
                     <div class="mt-2">
-                      <input type="checkbox" id="update-no-credential-url" v-model="form.noCredentialUrl" class="mr-2" />
+                      <input type="checkbox" id="update-no-credential-url" v-model="form.noCredentialUrl"
+                        class="mr-2" />
                       <label for="update-no-credential-url" class="text-sm text-gray-700">No Credential URL</label>
                     </div>
                   </div>
                   <div class="mb-4">
-                    <label for="update-certification-file" class="block text-sm font-medium text-gray-700">Upload File</label>
+                    <label for="update-certification-file" class="block text-sm font-medium text-gray-700">Upload
+                      File</label>
                     <input type="file" id="update-certification-file" @change="handleFileUpload"
                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                   </div>
                   <div class="flex justify-end">
-                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
+                    <button type="submit"
+                      class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
                       <i class="fas fa-save mr-2"></i>
                       Update Certification
                     </button>
                   </div>
                 </form>
               </div>
-            </div> 
+            </div>
           </div>
 
           <!-- Achievement Section -->
@@ -3613,7 +3703,8 @@ onMounted(() => {
             <div class="w-full lg:w-1/1 mb-6 lg:mb-0">
               <div class="flex justify-between items-center mb-4">
                 <h1 class="text-xl font-semibold mb-4">Achievements</h1>
-                <button class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center" @click="isAddAchievementModalOpen = true">
+                <button class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center"
+                  @click="isAddAchievementModalOpen = true">
                   <i class="fas fa-plus mr-2"></i>
                   Add Achievement
                 </button>
@@ -3622,50 +3713,50 @@ onMounted(() => {
 
               <!-- Achievement Entries -->
               <div v-if="achievementEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div v-for="achievement in achievementEntries" :key="achievement.id" class="bg-white rounded-lg shadow-md p-4 space-y-3">
+                <div v-for="achievement in achievementEntries" :key="achievement.id"
+                  class="bg-white rounded-lg shadow-md p-4 space-y-3">
                   <!-- Achievement Title and Type -->
                   <div class="border-b pb-2">
                     <h3 class="text-lg font-semibold">{{ achievement.graduate_achievement_title }}</h3>
                     <span class="text-sm text-gray-600">{{ achievement.graduate_achievement_type }}</span>
                   </div>
-                  
+
                   <!-- Issuer and Date -->
                   <div class="space-y-1">
-                    <p class="text-sm"><span class="font-medium">Issuer:</span> {{ achievement.graduate_achievement_issuer }}</p>
-                    <p class="text-sm"><span class="font-medium">Date:</span> {{ achievement.graduate_achievement_date }}</p>
+                    <p class="text-sm"><span class="font-medium">Issuer:</span> {{
+                      achievement.graduate_achievement_issuer }}</p>
+                    <p class="text-sm"><span class="font-medium">Date:</span> {{ achievement.graduate_achievement_date
+                    }}</p>
                   </div>
-                  
+
                   <!-- Description -->
                   <div class="text-sm">
-                    <p class="text-sm"><span class="font-medium">Description:</span>{{ achievement.graduate_achievement_description }}</p>
+                    <p class="text-sm"><span class="font-medium">Description:</span>{{
+                      achievement.graduate_achievement_description }}</p>
                   </div>
-                  
+
                   <!-- URL if available -->
                   <div v-if="achievement.graduate_achievement_url" class="text-sm">
-                    <a :href="achievement.graduate_achievement_url" 
-                      target="_blank" 
+                    <a :href="achievement.graduate_achievement_url" target="_blank"
                       class="text-blue-600 hover:text-blue-800">
                       View Certificate
                     </a>
                   </div>
-                  
+
                   <!-- Credential Picture -->
                   <div v-if="achievement.credential_picture_url" class="mt-3">
-                    <img :src="`/storage/${achievement.credential_picture_url}`" 
-                        :alt="achievement.graduate_achievement_title"
-                        class="max-w-full h-auto rounded-lg shadow"
-                    />
+                    <img :src="`/storage/${achievement.credential_picture_url}`"
+                      :alt="achievement.graduate_achievement_title" class="max-w-full h-auto rounded-lg shadow" />
                   </div>
-                  
+
                   <!-- Action Buttons -->
                   <div class="flex justify-end space-x-2 mt-3">
-                    <button @click="editAchievement(achievement)" 
-                            class="text-gray-600 hover:text-indigo-600">
+                    <button @click="editAchievement(achievement)" class="text-gray-600 hover:text-indigo-600">
                       <i class="fas fa-pen"></i>
                     </button>
                     <button @click="removeAchievement(achievement)" class="text-red-600 hover:text-red-800">
-                  <i class="fas fa-trash"></i>
-                </button>
+                      <i class="fas fa-trash"></i>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -3677,7 +3768,8 @@ onMounted(() => {
             </div>
 
             <!-- Update Project Modal -->
-            <div v-if="isUpdateProjectModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div v-if="isUpdateProjectModalOpen"
+              class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
                   <h2 class="text-xl font-semibold">Update Project</h2>
@@ -3689,14 +3781,16 @@ onMounted(() => {
                 <form @submit.prevent="updateProject">
                   <div class="max-h-96 overflow-y-auto">
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Project Title <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Project Title <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="projects.graduate_projects_title"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Enter project title" required />
                     </div>
 
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Role <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="projects.graduate_projects_role"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Your role in the project" required />
@@ -3710,7 +3804,8 @@ onMounted(() => {
                     </div>
 
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Start Date <span
+                          class="text-red-500">*</span></label>
                       <Datepicker v-model="projects.graduate_projects_start_date"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Select start date" required />
@@ -3723,7 +3818,8 @@ onMounted(() => {
                         placeholder="Select end date" :disabled="projects.is_current" />
                       <div class="mt-2">
                         <input type="checkbox" id="ongoing-project-update" v-model="ongoingProject" />
-                        <label for="ongoing-project-update" class="text-sm text-gray-700 ml-2">This is an ongoing project</label>
+                        <label for="ongoing-project-update" class="text-sm text-gray-700 ml-2">This is an ongoing
+                          project</label>
                       </div>
                     </div>
 
@@ -3731,8 +3827,7 @@ onMounted(() => {
                       <label class="block text-gray-700 font-medium mb-2">Project URL</label>
                       <input type="url" v-model="projects.graduate_projects_url"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                        placeholder="e.g. https://example.com"
-                        :disabled="noProjectUrl" />
+                        placeholder="e.g. https://example.com" :disabled="noProjectUrl" />
                       <div class="mt-2">
                         <input type="checkbox" id="no-project-url-update" v-model="noProjectUrl" />
                         <label for="no-project-url-update" class="text-sm text-gray-700 ml-2">No Project URL</label>
@@ -3759,7 +3854,8 @@ onMounted(() => {
             </div>
 
             <!-- Add Achievement Modal -->
-            <div v-if="isAddAchievementModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div v-if="isAddAchievementModalOpen"
+              class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
                   <h2 class="text-xl font-semibold">Add Achievement</h2>
@@ -3772,16 +3868,16 @@ onMounted(() => {
                   <div class="max-h-96 overflow-y-auto">
                     <div class="mb-4">
                       <label class="block text-gray-700 font-medium mb-2">Title</label>
-                      <input type="text" 
-                        v-model="achievementForm.graduate_achievement_title"
+                      <input type="text" v-model="achievementForm.graduate_achievement_title"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                        placeholder="Name of the Award or Certification" 
-                        required>
+                        placeholder="Name of the Award or Certification" required>
                     </div>
 
                     <div class="mb-4">
-                      <label for="achievementType" class="block text-gray-700">Achievement Type <span class="text-red-500">*</span></label>
-                      <select id="achievementType" name="graduate_achievement_type" v-model="achievementForm.graduate_achievement_type"
+                      <label for="achievementType" class="block text-gray-700">Achievement Type <span
+                          class="text-red-500">*</span></label>
+                      <select id="achievementType" name="graduate_achievement_type"
+                        v-model="achievementForm.graduate_achievement_type"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                         <option value="" disabled>Select achievement type</option>
                         <option value="Award">Award</option>
@@ -3792,14 +3888,17 @@ onMounted(() => {
                     </div>
 
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Issuer <span class="text-red-500">*</span></label>
-                      <input type="text" name="graduate_achievement_issuer" v-model="achievementForm.graduate_achievement_issuer"
+                      <label class="block text-gray-700 font-medium mb-2">Issuer <span
+                          class="text-red-500">*</span></label>
+                      <input type="text" name="graduate_achievement_issuer"
+                        v-model="achievementForm.graduate_achievement_issuer"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Name of the Organization or Institution" required>
                     </div>
 
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Date <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Date <span
+                          class="text-red-500">*</span></label>
                       <Datepicker name="graduate_achievement_date" v-model="achievementForm.graduate_achievement_date"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Select start date" required />
@@ -3807,7 +3906,8 @@ onMounted(() => {
 
                     <div class="mb-4">
                       <label class="block text-gray-700 font-medium mb-2">Description</label>
-                      <textarea name="graduate_achievement_description" v-model="achievementForm.graduate_achievement_description"
+                      <textarea name="graduate_achievement_description"
+                        v-model="achievementForm.graduate_achievement_description"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Describe your achievement"></textarea>
                     </div>
@@ -3816,33 +3916,26 @@ onMounted(() => {
                       <label class="block text-gray-700 font-medium mb-2">URL</label>
                       <input type="url" v-model="achievementForm.graduate_achievement_url"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                        placeholder="e.g. https://example.com" 
-                        :required="!achievementForm.noCredentialUrl"
+                        placeholder="e.g. https://example.com" :required="!achievementForm.noCredentialUrl"
                         :disabled="achievementForm.noCredentialUrl" />
                       <div class="mt-2">
-                        <input type="checkbox" id="no-credential-url" v-model="achievementForm.noCredentialUrl" class="mr-2" />
+                        <input type="checkbox" id="no-credential-url" v-model="achievementForm.noCredentialUrl"
+                          class="mr-2" />
                         <label for="no-credential-url" class="text-sm text-gray-700">No Credential URL</label>
                       </div>
                     </div>
 
                     <div class="mb-4">
                       <label class="block text-gray-700 mb-2">Credential Picture</label>
-                      <input
-                        type="file"
-                        name="credential_picture"
-                        accept="image/*"
+                      <input type="file" name="credential_picture" accept="image/*"
                         @change="handleCredentialPictureUpload"
-                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"/>
-                      <img
-                        v-if="previewImage"
-                        :src="previewImage"
-                        class="mt-2 max-w-xs rounded"
-                        alt="Credential Preview"/>
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600" />
+                      <img v-if="previewImage" :src="previewImage" class="mt-2 max-w-xs rounded"
+                        alt="Credential Preview" />
                     </div>
 
                     <div class="flex justify-end">
-                      <button 
-                        type="submit" 
+                      <button type="submit"
                         class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center"
                         :disabled="isSubmittingAchievement">
                         <i class="fas fa-spinner fa-spin mr-2" v-if="isSubmittingAchievement"></i>
@@ -3856,7 +3949,8 @@ onMounted(() => {
             </div>
 
             <!-- Update Achievement Modal -->
-            <div v-if="isUpdateAchievementModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div v-if="isUpdateAchievementModalOpen"
+              class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
                   <h2 class="text-xl font-semibold">Update Achievement</h2>
@@ -3868,7 +3962,8 @@ onMounted(() => {
                 <form @submit.prevent="updateAchievement">
                   <div class="max-h-96 overflow-y-auto">
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Title <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Title <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="achievementForm.graduate_achievement_title"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Name of the Award or Certification" required />
@@ -3887,14 +3982,16 @@ onMounted(() => {
                     </div>
 
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Issuer <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Issuer <span
+                          class="text-red-500">*</span></label>
                       <input type="text" v-model="achievementForm.graduate_achievement_issuer"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Name of the Organization or Institution" required />
                     </div>
 
                     <div class="mb-4">
-                      <label class="block text-gray-700 font-medium mb-2">Date <span class="text-red-500">*</span></label>
+                      <label class="block text-gray-700 font-medium mb-2">Date <span
+                          class="text-red-500">*</span></label>
                       <Datepicker v-model="achievementForm.graduate_achievement_date"
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                         placeholder="Select date" required />
@@ -3916,29 +4013,23 @@ onMounted(() => {
 
                     <div class="mb-4">
                       <label class="inline-flex items-center">
-                        <input type="checkbox" v-model="noCredentialUrl"
-                          class="form-checkbox h-5 w-5 text-indigo-600" @change="toggleUrlField" />
+                        <input type="checkbox" v-model="noCredentialUrl" class="form-checkbox h-5 w-5 text-indigo-600"
+                          @change="toggleUrlField" />
                         <span class="ml-2 text-gray-700">No Credential URL</span>
                       </label>
                     </div>
 
                     <div class="mb-4">
                       <label class="block text-gray-700 mb-2">Credential Picture</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        @change="handleCredentialPictureUpload"
-                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"/>
-                      <img
-                        v-if="achievementForm.credential_picture_url"
-                        :src="achievementForm.credential_picture_url"
-                        class="mt-2 max-w-xs rounded"
-                        alt="Credential Preview"/>
+                      <input type="file" accept="image/*" @change="handleCredentialPictureUpload"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600" />
+                      <img v-if="achievementForm.credential_picture_url" :src="achievementForm.credential_picture_url"
+                        class="mt-2 max-w-xs rounded" alt="Credential Preview" />
                     </div>
 
                     <div class="flex justify-end">
                       <button type="submit"
-                      class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
+                        class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
                         <i class="fas fa-save mr-2"></i>
                         Update Achievement
                       </button>
@@ -3957,7 +4048,8 @@ onMounted(() => {
                 <h1 class="text-xl font-semibold">Testimonials</h1>
                 <p class="text-gray-600 mt-2">Recommendations from colleagues and clients</p>
               </div>
-              <button class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center hover:bg-indigo-700 transition-colors"
+              <button
+                class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center hover:bg-indigo-700 transition-colors"
                 @click="isAddTestimonialsModalOpen = true">
                 <i class="fas fa-plus mr-2"></i>
                 Add Testimonials
@@ -3975,19 +4067,16 @@ onMounted(() => {
                     <p class="mt-3 text-gray-700 italic">"{{ entry.graduate_testimonials_testimonial }}"</p>
                   </div>
                   <div v-if="testimonials.graduate_testimonials_letters" class="md:w-1/3">
-                    <img :src="`/storage/${testimonials.graduate_testimonials_letters}`" 
-                        :alt="testimonials.graduate_testimonials_name"
-                        class="w-full h-auto rounded-lg shadow-sm"
-                    />
+                    <img :src="`/storage/${testimonials.graduate_testimonials_letters}`"
+                      :alt="testimonials.graduate_testimonials_name" class="w-full h-auto rounded-lg shadow-sm" />
                   </div>
                 </div>
                 <div class="absolute top-4 right-4 flex space-x-2">
-                  <button class="text-gray-600 hover:text-indigo-600" 
+                  <button class="text-gray-600 hover:text-indigo-600"
                     @click="openUpdateTestimonialsModal(entry, index)">
                     <i class="fas fa-pen"></i>
                   </button>
-                  <button class="text-red-600 hover:text-red-800" 
-                    @click="removeTestimonials(entry)">
+                  <button class="text-red-600 hover:text-red-800" @click="removeTestimonials(entry)">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
@@ -3999,7 +4088,7 @@ onMounted(() => {
               <p class="text-gray-600">No testimonial entries added yet.</p>
               <p class="text-sm text-gray-500 mt-2">Click the "Add Testimonials" button to get started.</p>
             </div>
-          
+
 
             <!-- Add Testimonials Modal -->
             <div v-if="isAddTestimonialsModalOpen"
@@ -4020,16 +4109,18 @@ onMounted(() => {
                       placeholder="e.g. John Doe" required />
                   </div>
                   <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">Role/Title <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 font-medium mb-2">Role/Title <span
+                        class="text-red-500">*</span></label>
                     <input type="text" v-model="testimonials.graduate_testimonials_role_title"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       placeholder="e.g. Manager" required />
                   </div>
                   <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">Testimonial <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 font-medium mb-2">Testimonial <span
+                        class="text-red-500">*</span></label>
                     <textarea v-model="testimonials.graduate_testimonials_testimonial"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-            rows="3" placeholder="Write the testimonial here..." required></textarea>
+                      rows="3" placeholder="Write the testimonial here..." required></textarea>
                   </div>
                   <div class="mb-4">
                     <label for="testimonial-file" class="block text-sm font-medium text-gray-700">Upload File</label>
@@ -4066,13 +4157,15 @@ onMounted(() => {
                       placeholder="e.g. John Doe" required />
                   </div>
                   <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">Role/Title <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 font-medium mb-2">Role/Title <span
+                        class="text-red-500">*</span></label>
                     <input type="text" v-model="testimonials.graduate_testimonials_role_title"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       placeholder="e.g. Manager" required />
                   </div>
                   <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">Testimonial <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 font-medium mb-2">Testimonial <span
+                        class="text-red-500">*</span></label>
                     <textarea v-model="testimonials.graduate_testimonials_testimonial"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       rows="3" placeholder="Write the testimonial here..." required></textarea>
@@ -4097,11 +4190,14 @@ onMounted(() => {
               </div>
               <p class="text-gray-600 mb-6">Set your job preferences and requirements</p>
               <!-- Saved Preferences Container -->
-              <div v-if="employmentPreferences.jobTypes.length || employmentPreferences.salaryExpectations.range || employmentPreferences.preferredLocations.length || employmentPreferences.workEnvironment.length || employmentPreferences.availability.length || employmentPreferences.additionalNotes" class="mb-6 p-4 border border-gray-300 rounded-lg bg-gray-50">
+              <div
+                v-if="employmentPreferences.jobTypes.length || employmentPreferences.salaryExpectations.range || employmentPreferences.preferredLocations.length || employmentPreferences.workEnvironment.length || employmentPreferences.availability.length || employmentPreferences.additionalNotes"
+                class="mb-6 p-4 border border-gray-300 rounded-lg bg-gray-50">
                 <h2 class="text-xl font-semibold mb-4">Saved Employment Preferences</h2>
                 <div class="space-y-3">
                   <p><strong>Job Types:</strong> {{ employmentPreferences.jobTypes.join(', ') }}</p>
-                  <p><strong>Salary Expectations:</strong> {{ employmentPreferences.salaryExpectations.range }} {{ employmentPreferences.salaryExpectations.frequency }}</p>
+                  <p><strong>Salary Expectations:</strong> {{ employmentPreferences.salaryExpectations.range }} {{
+                    employmentPreferences.salaryExpectations.frequency }}</p>
                   <p><strong>Preferred Locations:</strong> {{ employmentPreferences.preferredLocations.join(', ') }}</p>
                   <p><strong>Work Environment:</strong> {{ employmentPreferences.workEnvironment.join(', ') }}</p>
                   <p><strong>Availability:</strong> {{ employmentPreferences.availability.join(', ') }}</p>
@@ -4142,13 +4238,15 @@ onMounted(() => {
               <div class="mb-8">
                 <h2 class="text-xl font-semibold mb-4">Preferred Locations</h2>
                 <div class="flex flex-wrap gap-2">
-                  <span v-for="location in employmentPreferences.preferredLocations" :key="location" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full flex items-center">
+                  <span v-for="location in employmentPreferences.preferredLocations" :key="location"
+                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full flex items-center">
                     {{ location }}
                     <button @click="removePreferredLocation(location)" class="ml-2 text-red-500 hover:text-red-700">
                       &times; <!-- This is the "X" character -->
                     </button>
                   </span>
-                  <button class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700" @click="isAddLocationModalOpen = true">
+                  <button class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700"
+                    @click="isAddLocationModalOpen = true">
                     + Add Location
                   </button>
                 </div>
@@ -4187,7 +4285,7 @@ onMounted(() => {
                     <span class="ml-2 text-gray-700">2 weeks notice</span>
                   </label>
                   <label class="flex items-center">
-                    <input type="checkbox" value ="1 month notice" v-model="employmentPreferences.availability"
+                    <input type="checkbox" value="1 month notice" v-model="employmentPreferences.availability"
                       class="form-checkbox text-indigo-600 focus:ring-indigo-600" />
                     <span class="ml-2 text-gray-700">1 month notice</span>
                   </label>
@@ -4200,16 +4298,19 @@ onMounted(() => {
                   placeholder="Any other preferences or requirements..."></textarea>
               </div>
               <div class="flex space-x-4">
-                <button class="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center" @click="saveEmploymentPreferences">
+                <button class="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center"
+                  @click="saveEmploymentPreferences">
                   <i class="fas fa-save mr-2"></i> Save Preferences
                 </button>
-                <button class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg flex items-center hover:bg-gray-400" @click="resetEmploymentPreferences">
+                <button class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg flex items-center hover:bg-gray-400"
+                  @click="resetEmploymentPreferences">
                   <i class="fas fa-undo mr-2"></i> Reset Preferences
                 </button>
               </div>
             </div>
             <!-- Add Location Modal -->
-            <div v-if="isAddLocationModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div v-if="isAddLocationModalOpen"
+              class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
                   <h2 class="text-xl font-semibold">Add Location</h2>
@@ -4220,11 +4321,15 @@ onMounted(() => {
                 <p class="text-gray-600 mb-4">Add a preferred location for employment</p>
                 <form @submit.prevent="addPreferredLocation">
                   <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
-                    <input type="text" v-model="newLocation" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600" placeholder="e.g. New York, NY" required />
+                    <label class="block text-gray-700 font-medium mb-2">Location <span
+                        class="text-red-500">*</span></label>
+                    <input type="text" v-model="newLocation"
+                      class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                      placeholder="e.g. New York, NY" required />
                   </div>
                   <div class="flex justify-end">
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Add</button>
+                    <button type="submit"
+                      class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Add</button>
                   </div>
                 </form>
               </div>
@@ -4233,75 +4338,70 @@ onMounted(() => {
 
           <!-- Career Goals Section-->
           <div v-if="activeSection === 'career-goals'" class="flex flex-col lg:flex-row">
-          <div class="w-full lg:w-1/1 mb-6 lg:mb-0">
-            <div class="flex justify-between items-center mb-4">
-              <h1 class="text-xl font-semibold mb-4">Career Goals</h1>
-            </div>
-            <p class="text-gray-600 mb-6">Define your short and long-term career aspirations</p>
-            <!-- Saved Career Goals Container -->
-            <div v-if="careerGoals.shortTermGoals || careerGoals.longTermGoals" class="mb-6 p-4 border border-gray-300 rounded-lg bg-gray-50">
-              <h2 class="text-xl font-semibold mb-4">Saved Career Goals</h2>
-              <div class="space-y-3">
-                <p><strong>Short-term Goals:</strong> {{ careerGoals.shortTermGoals }}</p>
-                <p><strong>Long-term Goals:</strong> {{ careerGoals.longTermGoals }}</p>
-                <p><strong>Industries of Interest:</strong> 
-                  <span v-if="careerGoals.industriesOfInterest.length">
-                    {{ careerGoals.industriesOfInterest.join(', ') }}
-                  </span>
-                  <span v-else>No industries specified</span>
-                </p>
-                <p><strong>Career Path:</strong> {{ careerGoals.careerPath || 'Not specified' }}</p>
+            <div class="w-full lg:w-1/1 mb-6 lg:mb-0">
+              <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-semibold mb-4">Career Goals</h1>
               </div>
-            </div>
-            <!-- Form Fields -->
-            <div class="mb-6">
-              <h2 class="text-xl font-semibold mb-2">Short-term Goals (1-2 years)</h2>
-              <textarea 
-                class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600" 
-                rows="3"
-                v-model="careerGoals.shortTermGoals"
-                placeholder="Enter your short-term career goals...">
+              <p class="text-gray-600 mb-6">Define your short and long-term career aspirations</p>
+              <!-- Saved Career Goals Container -->
+              <div v-if="careerGoals.shortTermGoals || careerGoals.longTermGoals"
+                class="mb-6 p-4 border border-gray-300 rounded-lg bg-gray-50">
+                <h2 class="text-xl font-semibold mb-4">Saved Career Goals</h2>
+                <div class="space-y-3">
+                  <p><strong>Short-term Goals:</strong> {{ careerGoals.shortTermGoals }}</p>
+                  <p><strong>Long-term Goals:</strong> {{ careerGoals.longTermGoals }}</p>
+                  <p><strong>Industries of Interest:</strong>
+                    <span v-if="careerGoals.industriesOfInterest.length">
+                      {{ careerGoals.industriesOfInterest.join(', ') }}
+                    </span>
+                    <span v-else>No industries specified</span>
+                  </p>
+                  <p><strong>Career Path:</strong> {{ careerGoals.careerPath || 'Not specified' }}</p>
+                </div>
+              </div>
+              <!-- Form Fields -->
+              <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-2">Short-term Goals (1-2 years)</h2>
+                <textarea class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  rows="3" v-model="careerGoals.shortTermGoals" placeholder="Enter your short-term career goals...">
               </textarea>
-            </div>
-            <div class="mb-6">
-              <h2 class="text-xl font-semibold mb-2">Long-term Goals (3-5 years)</h2>
-              <textarea 
-                class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600" 
-                rows="3"
-                v-model="careerGoals.longTermGoals"
-                placeholder="Enter your long-term career goals...">
+              </div>
+              <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-2">Long-term Goals (3-5 years)</h2>
+                <textarea class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  rows="3" v-model="careerGoals.longTermGoals" placeholder="Enter your long-term career goals...">
               </textarea>
-            </div>
-            <div class="mb-6">
-              <h2 class="text-xl font-semibold mb-2">Industries of Interest</h2>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="industry in careerGoals.industriesOfInterest" :key="industry"
-                  class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full">
-                  {{ industry }}
-                </span>
-                <button class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700"
-                  @click="openAddIndustryModal">
-                  + Add Industry
+              </div>
+              <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-2">Industries of Interest</h2>
+                <div class="flex flex-wrap gap-2">
+                  <span v-for="industry in careerGoals.industriesOfInterest" :key="industry"
+                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full">
+                    {{ industry }}
+                  </span>
+                  <button class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700"
+                    @click="openAddIndustryModal">
+                    + Add Industry
+                  </button>
+                </div>
+              </div>
+              <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-2">Career Path</h2>
+                <input type="text"
+                  class="w-full border border-gray-300 rounded-md p-2 outline-none focus:ring-2 focus:ring-indigo-600"
+                  v-model="careerGoals.careerPath" placeholder="Enter your career path" />
+              </div>
+              <div class="flex space-x-4">
+                <button class="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center"
+                  @click="savedCareerGoals">
+                  <i class="fas fa-save mr-2"></i> Save Goals
+                </button>
+                <button class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg flex items-center hover:bg-gray-400"
+                  @click="resetCareerGoals">
+                  <i class="fas fa-undo mr-2"></i> Reset Goals
                 </button>
               </div>
             </div>
-            <div class="mb-6">
-              <h2 class="text-xl font-semibold mb-2">Career Path</h2>
-              <input type="text"
-                class="w-full border border-gray-300 rounded-md p-2 outline-none focus:ring-2 focus:ring-indigo-600"
-                v-model="careerGoals.careerPath" placeholder="Enter your career path" />
-            </div>
-            <div class="flex space-x-4">
-              <button class="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center"
-                @click="savedCareerGoals">
-                <i class="fas fa-save mr-2"></i> Save Goals
-              </button>
-              <button class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg flex items-center hover:bg-gray-400"
-                @click="resetCareerGoals">
-                <i class="fas fa-undo mr-2"></i> Reset Goals
-              </button>
-            </div>
-          </div>
 
             <!-- Add Industry Modal -->
             <div v-if="isAddIndustryModalOpen"
@@ -4316,7 +4416,8 @@ onMounted(() => {
                 <p class="text-gray-600 mb-4">Add a preferred industry of interest to your profile.</p>
                 <form @submit.prevent="addPreferredIndustry">
                   <div class="mb-4">
-                    <label class="block text-gray-700 font-medium mb-2">Industry <span class="text-red-500">*</span></label>
+                    <label class="block text-gray-700 font-medium mb-2">Industry <span
+                        class="text-red-500">*</span></label>
                     <input type="text" v-model="newIndustry"
                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                       placeholder="e.g. Technology, Healthcare" required />
@@ -4337,11 +4438,11 @@ onMounted(() => {
               <p class="text-gray-600 mb-4">Upload and manage your resume</p>
               <div class="bg-white p-6 rounded-lg shadow-md border border-gray-300">
                 <!-- Display Uploaded Resume -->
-                <div v-if="resume.file"
+                <div v-if="resumeForm.resume"
                   class="flex items-center justify-between border border-gray-300 rounded-lg p-8 mb-4">
                   <div class="flex items-center">
                     <i class="fas fa-file-alt text-gray-500 text-2xl mr-4"></i>
-                    <span class="text-gray-700 font-medium">{{ resume.fileName }}</span>
+                    <span class="text-gray-700 font-medium">{{ resumeForm.fileName }}</span>
                   </div>
                   <button class="text-red-600 hover:text-red-800" @click="removeResume">
                     <i class="fas fa-trash"></i>
@@ -4361,12 +4462,11 @@ onMounted(() => {
                   class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-center cursor-pointer block">
                   <i class="fas fa-upload mr-2"></i> Upload New Resume
                 </label>
-                <input type="file" id="resume-upload" class="hidden" accept=".pdf,.doc,.docx" @change="uploadResume" />
+                <input type="file" id="resume-upload" class="hidden" name="resume" accept=".pdf,.doc,.docx" @change="uploadResume" />
 
-                <button v-if="resume.file" @click="saveResume"
-                  class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 text-center mt-4">
-                  <i class="fas fa-save mr-2"></i> Save Resume
-                </button>
+                <div v-if="resumeForm.resume" class="mt-2">
+                  <PrimaryButton @click="saveResume">Save Resume</PrimaryButton>
+                </div>
               </div>
             </div>
           </div>
