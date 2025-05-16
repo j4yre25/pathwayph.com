@@ -729,27 +729,27 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->middleware($twoFactorMiddleware);
     }
 
-    Route::middleware('auth:sanctum')->group(function () {
-        // Fetch job opportunities
-        Route::get('/job-opportunities', [JobInboxController::class, 'getJobOpportunities']);
-
-        // Fetch job applications
-        Route::get('/job-applications', [JobInboxController::class, 'getJobApplications']);
-
-        // Fetch notifications
-        Route::get('/notifications', [JobInboxController::class, 'getNotifications']);
-
-        // Apply for a job
-        Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob']);
-
-        // Archive a job opportunity
-        Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity']);
-
-        // Mark notification as read
-        Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead']);
-    });
 });
 
+Route::middleware('auth:sanctum')->group(function () {
+    // Fetch job opportunities
+    Route::get('/job-opportunities', [JobInboxController::class, 'getJobOpportunities']);
+
+    // Fetch job applications
+    Route::get('/job-applications', [JobInboxController::class, 'getJobApplications']);
+
+    // Fetch notifications
+    Route::get('/notifications', [JobInboxController::class, 'getNotifications']);
+
+    // Apply for a job
+    Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob']);
+
+    // Archive a job opportunity
+    Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity']);
+
+    // Mark notification as read
+    Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead']);
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
