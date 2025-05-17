@@ -70,13 +70,8 @@ const goToJob = (jobId) => {
           <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
           <td class="border border-gray-200 px-6 py-4">
             <template v-if="job.user">
-              <template v-if="job.user.role === 'company'">
-                {{ job.user.company_name }}
-              </template>
-              <template v-else-if="job.user.role === 'institution'">
-                {{ job.user.institution_career_officer_first_name }} {{ job.user.institution_career_officer_last_name }}
-              </template>
-              <template v-else-if="job.user.role === 'peso'">
+
+              <template v-if="job.user.role === 'peso'">
                 {{ job.user.peso_first_name }} {{ job.user.peso_last_name }}
               </template>
               <template v-else>
