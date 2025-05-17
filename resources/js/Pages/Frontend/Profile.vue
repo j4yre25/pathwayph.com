@@ -53,14 +53,17 @@ const showPasswordUpdatedModal = () => {
 // Profile Data
 const { props } = usePage();
 const user = ref(props?.user || {});
+const graduate = ref(props?.graduate || {});
 const profile = ref({
   fullName: `${props.user?.graduate_first_name || ''} ${props.user?.graduate_middle_initial || ''} ${props.user?.graduate_last_name || ''}`.trim(),
   graduate_first_name: props.user?.graduate_first_name || '',
   graduate_middle_initial: props.user?.graduate_middle_initial || '',
   graduate_last_name: props.user?.graduate_last_name || '',
-  graduate_professional_title: props.user?.graduate_professional_title || '',
+  graduate_professional_title: user.value.graduate_professional_title || graduate.value.current_job_title || '',
   email: props.user?.email || '',
   graduate_phone: props.user?.contact_number || '',
+  employment_status: user.value.employment_status || graduate.value.employment_status || '',
+  current_job_title: graduate.value.current_job_title || '',
   graduate_location: props.user?.graduate_location || '',
   graduate_birthdate: props.user?.dob ? new Date(props.user.dob) : null,
   graduate_gender: props.user?.gender || '',
@@ -80,6 +83,7 @@ const settingsForm = useForm({
   graduate_middle_initial: profile.value.graduate_middle_initial,
   graduate_last_name: profile.value.graduate_last_name,
   graduate_picture: profile.value.graduate_picture_file,
+  employment_status: profile.value.employment_status,
 
   graduate_professional_title: profile.value.graduate_professional_title,
   email: profile.value.email,
@@ -108,6 +112,18 @@ const parseFullName = () => {
   }
 };
 
+function handleEmploymentStatus() {
+  if (profile.value.employment_status === 'Unemployed') {
+    profile.value.graduate_professional_title = 'N/A';
+    profile.value.current_job_title = 'N/A';
+  } else if (
+    profile.value.graduate_professional_title === 'N/A' ||
+    !profile.value.graduate_professional_title
+  ) {
+    profile.value.graduate_professional_title = profile.value.current_job_title || '';
+  }
+}
+
 // Watch for name changes
 watch(() => profile.value.fullName, (newFullName) => {
   const nameParts = newFullName.trim().split(' ');
@@ -120,34 +136,39 @@ watch(() => profile.value.fullName, () => {
   parseFullName();
 });
 
-// Profile Update Handler
 const saveProfile = () => {
+  // Format birthdate
   if (profile.value.graduate_birthdate) {
     const date = new Date(profile.value.graduate_birthdate);
     settingsForm.dob = date.toISOString().split('T')[0];
   } else {
     settingsForm.dob = null;
   }
+
+  // Map all required fields with correct names
   settingsForm.graduate_first_name = profile.value.graduate_first_name;
   settingsForm.graduate_middle_initial = profile.value.graduate_middle_initial;
   settingsForm.graduate_last_name = profile.value.graduate_last_name;
   settingsForm.email = profile.value.email;
-  settingsForm.graduate_phone = profile.value.graduate_phone;
+  settingsForm.contact_number = profile.value.graduate_phone; // <-- Use contact_number
   settingsForm.graduate_professional_title = profile.value.graduate_professional_title;
+  settingsForm.current_job_title = profile.value.graduate_professional_title;
+  settingsForm.employment_status = profile.value.employment_status;
   settingsForm.graduate_location = profile.value.graduate_location;
   settingsForm.graduate_gender = profile.value.graduate_gender;
   settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
   settingsForm.graduate_address = profile.value.graduate_address;
   settingsForm.graduate_about_me = profile.value.graduate_about_me;
+
   if (profile.value.graduate_picture_file) {
-    settingsForm.graduate_picture = profile.value.graduate_picture_file; // File object
+    settingsForm.graduate_picture = profile.value.graduate_picture_file;
   } else {
-    // Remove from form data so nothing is sent
     if ('graduate_picture' in settingsForm) {
       delete settingsForm.graduate_picture;
     }
   }
 
+  // Check for changes
   const hasChanges = Object.keys(settingsForm.data()).some(
     (key) => settingsForm[key] !== profile.value[key]
   );
@@ -163,13 +184,10 @@ const saveProfile = () => {
       if (response.props && response.props.user && response.props.user.profile_picture) {
         profile.value.graduate_picture_url = `/storage/${response.props.user.profile_picture}`;
       }
-
       modalState.value.profile = true;
       router.reload();
-
       showSuccessModal();
       console.log('Profile saved successfully on the backend:', response);
-
     },
     onError: (errors) => {
       console.error('Error updating profile:', errors);
@@ -1834,7 +1852,7 @@ const saveResume = () => {
     return;
   }
 
-    console.log('Uploading file:', resumeForm.resume);
+  console.log('Uploading file:', resumeForm.resume);
   console.log('File name:', resumeForm.fileName);
 
   resumeForm.post(route('resume.upload'), {
@@ -2463,13 +2481,29 @@ onMounted(() => {
                       v-model="profile.fullName" placeholder="Enter your full name" />
                   </div>
 
+                  <!-- Place this inside your General section form -->
                   <div class="relative">
-                    <label for="professional-title" class="block text-gray-700 mb-1">Professional Title</label>
+                    <label for="employment-status" class="block text-gray-700 mb-1">Employment Status</label>
                     <i class="fas fa-briefcase absolute left-3 top-10 text-gray-400"></i>
-                    <input type="text" id="graduate_professional-title"
+                    <select id="employment-status"
                       class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-2 focus:ring-indigo-600"
-                      v-model="profile.graduate_professional_title" placeholder="Enter your professional title" />
+                      v-model="profile.employment_status" @change="handleEmploymentStatus" required>
+                      <option value="" disabled>Select employment status</option>
+                      <option value="Employed">Employed</option>
+                      <option value="Underemployed">Underemployed</option>
+                      <option value="Unemployed">Unemployed</option>
+                    </select>
                   </div>
+
+                  <div class="relative" v-if="profile.employment_status !== 'Unemployed'">
+                    <label for="professional-title" class="block text-gray-700 mb-1">Professional Title</label>
+                    <i class="fas fa-user-tie absolute left-3 top-10 text-gray-400"></i>
+                    <input type="text" id="professional-title"
+                      class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-2 focus:ring-indigo-600"
+                      v-model="profile.graduate_professional_title" placeholder="Enter your professional title"
+                      required />
+                  </div>
+                  <input v-else type="hidden" v-model="profile.graduate_professional_title" />
 
                   <div class="relative">
                     <label for="email-address" class="block text-gray-700 mb-1">Email Address</label>
@@ -3726,7 +3760,7 @@ onMounted(() => {
                     <p class="text-sm"><span class="font-medium">Issuer:</span> {{
                       achievement.graduate_achievement_issuer }}</p>
                     <p class="text-sm"><span class="font-medium">Date:</span> {{ achievement.graduate_achievement_date
-                    }}</p>
+                      }}</p>
                   </div>
 
                   <!-- Description -->
@@ -4462,7 +4496,8 @@ onMounted(() => {
                   class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-center cursor-pointer block">
                   <i class="fas fa-upload mr-2"></i> Upload New Resume
                 </label>
-                <input type="file" id="resume-upload" class="hidden" name="resume" accept=".pdf,.doc,.docx" @change="uploadResume" />
+                <input type="file" id="resume-upload" class="hidden" name="resume" accept=".pdf,.doc,.docx"
+                  @change="uploadResume" />
 
                 <div v-if="resumeForm.resume" class="mt-2">
                   <PrimaryButton @click="saveResume">Save Resume</PrimaryButton>

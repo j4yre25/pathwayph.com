@@ -21,6 +21,7 @@ use App\Models\Project;
 use App\Models\Resume;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends Controller
 {
@@ -28,9 +29,11 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
+        $graduate = DB::table('graduates')->where('user_id', $user->id)->first();
 
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
+            'graduate' => $graduate, // <-- Add this
             'educationEntries' => Education::where('user_id', $user->id)->get(),
             'experienceEntries' => Experience::where('user_id', $user->id)->get(),
             'skillEntries' => Skill::where('user_id', $user->id)->get(),
@@ -45,25 +48,25 @@ class ProfileController extends Controller
     }
 
     // Update profile information
-    public function updateProfile(Request $request)
-    {
-        /** @var \App\Models\User $user */
-
-        $validated = $request->validate([
-            'graduate_first_name' => 'required|string|max:255',
-            'graduate_middle_initial' => 'nullable|string|max:1',
-            'graduate_last_name' => 'required|string|max:255',
-            'graduate_professional_title' => 'required|string|max:255',
-            'graduate_location' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
-            'contact_number' => 'nullable|string|max:15',
-            'dob' => 'nullable|date',
-            'gender' => 'nullable|string|max:50',
-            'graduate_ethnicity' => 'nullable|string|max:255',
-            'graduate_address' => 'nullable|string|max:255',
-            'graduate_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'graduate_about_me' => 'nullable|string|max:1000',
-        ]);
+   public function updateProfile(Request $request)
+{
+    $validated = $request->validate([
+        'graduate_first_name' => 'required|string|max:255',
+        'graduate_middle_initial' => 'nullable|string|max:1',
+        'graduate_last_name' => 'required|string|max:255',
+        'graduate_professional_title' => 'required|string|max:255',
+        'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
+        'current_job_title' => 'nullable|string|max:255',
+        'graduate_location' => 'nullable|string|max:255',
+        'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
+        'contact_number' => 'nullable|string|max:15',
+        'dob' => 'nullable|date',
+        'gender' => 'nullable|string|max:50',
+        'graduate_ethnicity' => 'nullable|string|max:255',
+        'graduate_address' => 'nullable|string|max:255',
+        'graduate_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        'graduate_about_me' => 'nullable|string|max:1000',
+    ]);
         /** @var \App\Models\User $user */
 
         $user = Auth::user();
@@ -80,6 +83,16 @@ class ProfileController extends Controller
 
             $user->profile_picture = $path;
         }
+
+        $user->graduate_professional_title = $request->graduate_professional_title;
+
+        // Sync to graduates table
+        DB::table('graduates')
+            ->where('user_id', $user->id)
+            ->update([
+                'current_job_title' => $request->graduate_professional_title,
+                'employment_status' => $request->employment_status,
+            ]);
 
         $user->save();
 
