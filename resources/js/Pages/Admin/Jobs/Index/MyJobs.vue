@@ -14,6 +14,7 @@ const props = defineProps({
   categories: Array,
 });
 
+
 console.log(props.jobs)
 const goTo = (url) => {
   if (url) {
@@ -72,13 +73,14 @@ const goToJob = (jobId) => {
           <td class="border border-gray-200 px-6 py-4">
             <template v-if="job.user">
               <template v-if="job.user.role === 'company'">
-                {{ job.company.company_name }}
+                {{ job.posted_by }}
               </template>
               <template v-else-if="job.user.role === 'institution'">
                 {{ job.user.institution_career_officer_first_name }} {{ job.user.institution_career_officer_last_name }}
               </template>
               <template v-else-if="job.user.role === 'peso'">
                 {{ job.user.peso_first_name }} {{ job.user.peso_last_name }}
+                
               </template>
               <template v-else>
                 {{ job.user.name }}

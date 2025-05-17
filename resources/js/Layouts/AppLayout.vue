@@ -21,7 +21,7 @@ const sector = page.props.sectors
 const showingNavigationDropdown = ref(false);
 console.log('Sector:', sector);
 console.log(props)
-console.log(page.props.auth.user);
+console.log('Role', page.props.auth.user.role);
 
 console.log(page.props.app.currentUser.company?.company_name)
 
@@ -73,7 +73,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
 
                                 <!-- Job Inbox for Graduates -->
-                                <NavLink v-if="page.props.roles.isGraduate" :href="route('job.inbox')"
+                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
                                     :active="route().current('job.inbox')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Job Inbox
@@ -116,12 +116,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     Dashboard
                                 </NavLink>
 
-                                <!-- Job Inbox for Graduates -->
-                                <NavLink v-if="page.props.roles.isGraduate" :href="route('job.inbox')"
-                                    :active="route().current('job.inbox')"
-                                    :disabled="!page.props.auth.user.is_approved">
-                                    Job Inbox
-                                </NavLink>
+                  
 
                                 <NavLink v-if="page.props.roles.isPeso"
                                     :href="route('admin.manage_users', { user: page.props.auth.user.id })"
