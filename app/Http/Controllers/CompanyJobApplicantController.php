@@ -58,38 +58,31 @@ class CompanyJobApplicantController extends Controller
     {
         $applicationsQuery = JobApplication::where('job_id', $job->id);
 
-        // Total applicants
+        // Stats
         $totalApplicants = $applicationsQuery->count();
-
-        // Hired
-        $hiredCount = (clone $applicationsQuery)
-            ->where('status', 'hired')
-            ->count();
-
-        // Rejected by employer
-        $rejectedCount = (clone $applicationsQuery)
-            ->where('status', 'rejected')
-            ->count();
-
-        // Rejected by applicant (assuming you track this separately)
-        $declinedByGraduate = (clone $applicationsQuery)
-            ->where('status', 'declined') // or 'rejected_by_applicant' if you use that
-            ->count();
-
-        // Interviews scheduled
-        $interviewsCount = (clone $applicationsQuery)
-            ->whereNotNull('interview_date')
-            ->count();
-
-        // Pending = total - (hired + rejected + declined)
+        $hiredCount = (clone $applicationsQuery)->where('status', 'hired')->count();
+        $rejectedCount = (clone $applicationsQuery)->where('status', 'rejected')->count();
+        $declinedByGraduate = (clone $applicationsQuery)->where('status', 'declined')->count();
+        $interviewsCount = (clone $applicationsQuery)->whereNotNull('interview_date')->count();
         $pendingCount = $totalApplicants - ($hiredCount + $rejectedCount + $declinedByGraduate);
 
-        // Get all applications with user relation
-        $applications = $applicationsQuery->with('user')->get();
+        // Applications with user info
+        $applicants = $applicationsQuery->with('user', 'job')->get()->map(function ($application) {
+            return [
+                'id' => $application->id,
+                'name' => $application->user->graduate_first_name. ' ' . $application->user->graduate_last_name,
+                'job_title' => $application->job->job_title,
+                'email' => $application->user->email,
+                'status' => $application->status,
+                'notes' => $application->notes,
+                'applied_at' => $application->applied_at ? $application->applied_at->format('M d, Y') : null,
+                'interview_date' => $application->interview_date ? $application->interview_date->format('M d, Y') : null,
+            ];
+        });
 
         return Inertia::render('Company/Applicants/ListOfApplicants/Index', [
             'job' => $job,
-            'applications' => $applications,
+            'applicants' => $applicants,
             'stats' => [
                 'total' => $totalApplicants,
                 'hired' => $hiredCount,
@@ -100,4 +93,5 @@ class CompanyJobApplicantController extends Controller
             ],
         ]);
     }
+
 }

@@ -42,7 +42,10 @@ const goToJob = (jobId) => {
           <td class="border border-gray-300 px-6 py-4">{{ job.job_title }}</td>
           <td class="border border-gray-300 px-6 py-4">{{ job.job_type }}</td>
           <td class="border border-gray-300 px-6 py-4">{{ job.vacancy }}</td>
-          <td class="border border-gray-300 px-6 py-4">{{ job.status }}</td>
+          <td class="border border-gray-300 px-6 py-4"> 
+            <span v-if="job.is_approved === 1" class="text-green-600 font-semibold">Open</span>
+            <span v-else-if="job.is_approved === 0" class="text-red-600 font-semibold">Closed</span>
+            <span v-else class="text-yellow-600 font-semibold">Pending</span></td>
           <td class="border border-gray-300 px-6 py-4">{{ job.applications_count ?? 0 }}</td>
           <td class="border border-gray-300 px-6 py-4">
             <Link :href="`/jobs/${job.id}/applicants`" class="text-blue-600 hover:underline">
