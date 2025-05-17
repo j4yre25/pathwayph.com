@@ -28,6 +28,7 @@ class JobInboxController extends Controller
     public function getJobOpportunities($user)
     {
         $jobs = Job::with(['sector', 'category'])
+            ->where('is_approved', 1)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($job) use ($user) {
@@ -131,6 +132,7 @@ class JobInboxController extends Controller
             'cover_letter' => $validated['cover_letter'] ?? null,
             'additional_documents' => $validated['additional_documents'] ?? null,
             'status' => 'applied',
+            'stage' => 'Applying',
             'applied_at' => now(),
         ]);
 
