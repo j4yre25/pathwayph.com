@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('testimonials', function (Blueprint $table) {
-            $table->dropColumn('graduate_testimonials_relationship');
+        Schema::create('degrees', function (Blueprint $table) {
+            $table->id();
+            $table->enum('type', ['Bachelor', 'Associate', 'Master', 'Doctoral', 'Diploma']);
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -21,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('testimonials', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('degrees');
     }
 };
