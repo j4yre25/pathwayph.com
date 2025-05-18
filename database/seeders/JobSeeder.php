@@ -276,7 +276,8 @@ class JobSeeder extends Seeder
                     'applicants_limit' => Arr::random([null, 50, 100]),
                 ]);
 
-                $job->programs()->attach(Arr::random($programs, rand(1, min(3, count($programs)))));
+                $selectedPrograms = Arr::random($programs, rand(1, min(3, count($programs))));
+                $job->programs()->attach($selectedPrograms);
 
             }
         }

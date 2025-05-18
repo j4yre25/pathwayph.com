@@ -34,63 +34,12 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'email',
         'id',
+        'email',
         'password',
         'role',
         'is_approved',
-        'dob',
-        'gender',
-        'telephone_number',
-        'contact_number',
-
-        // PESO
-        'peso_first_name',
-        'peso_last_name',
-
-        // Company
-        'company_id',
-        'company_hr_first_name',
-        'company_hr_last_name',
-
-        //Graduate
-        'institution_id',
-        'graduate_first_name',
-        'graduate_last_name',
-        'graduate_middle_initial',
-        'graduate_professional_title',
-        'graduate_email',
-        'graduate_phone',
-        'graduate_location',
-        'graduate_birthdate',
-        'graduate_gender',
-        'graduate_ethnicity',
-        'graduate_address',
-        'graduate_about_me',
-        'graduate_picture_url',
-
-        'graduate_education_institution_id',
-        'graduate_education_program',
-        'graduate_education_field_of_study',
-        'graduate_education_start_date',
-        'graduate_education_end_date',
-        'graduate_education_description',
-
-        'graduate_skills_name',
-        'graduate_skills_proficiency',
-        'graduate_skills_type',
-        'graduate_skills_years_experience',
-
         
-
-        // Institution
-        'institution_type',
-        'institution_name',
-        'institution_address',
-        'institution_president_last_name',
-        'institution_president_first_name',
-        'institution_career_officer_first_name',
-        'institution_career_officer_last_name',
     ];
 
     /**
@@ -142,12 +91,18 @@ class User extends Authenticatable
 
     public function jobs() {
 
-        return $this->hasMany(Job::class);
+        return $this->hasMany(Job::class, 'user_id');
     }
 
-    public function company() {
-        return $this->belongsTo(Company::class, 'company_id'); 
+    public function hrProfile() {
+        return $this->hasOne(HumanResource::class);
     }
+
+    public function company()
+    {
+        return $this->hasOne(Company::class);
+    }
+
 
 
     public function sectors() {

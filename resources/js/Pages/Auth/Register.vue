@@ -38,7 +38,7 @@ const form = useForm({
     role: '',
     gender: '',
     dob: '',
-    contact_number: '',
+    mobile_number: '',
     telephone_number: '',
     company_name: '',
     company_street_address: '',
@@ -48,8 +48,9 @@ const form = useForm({
     company_zip_code: '',
     company_email: '',
     company_mobile_phone: '',
-    company_hr_first_name: '',
-    company_hr_last_name: '',
+    first_name: '',
+    last_name: '',
+    middle_name: '',
     institution_type: '',
     institution_name: '',
     institution_address: '',
@@ -101,7 +102,7 @@ const filteredSchoolYears = computed(() => {
 });
 
 // Utility functions
-const { formattedMobileNumber: contactNumber } = useFormattedMobileNumber(form, 'contact_number');
+const { formattedMobileNumber: contactNumber } = useFormattedMobileNumber(form, 'mobile_number');
 const { formattedMobileNumber: companyContactNumber } = useFormattedMobileNumber(form, 'company_mobile_phone');
 const { formattedTelephoneNumber } = useFormattedTelephoneNumber(form, 'telephone_number');
 const { passwordCriteria } = usePasswordCriteria(form);
@@ -351,30 +352,45 @@ const resendCode = () => {
                                 <!-- First Name -->
                                 <div>
                                     <div class="flex items-center gap-1">
-                                        <InputLabel for="company_hr_first_name" value="First Name" />
+                                        <InputLabel for="first_name" value="First Name" />
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
-                                        <TextInput id="company_hr_first_name" v-model="form.company_hr_first_name"
+                                        <TextInput id="first_name" v-model="form.first_name"
                                             placeholder="Juan"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
-                                        <InputError class="mt-2" :message="form.errors.company_hr_first_name" />
+                                        <InputError class="mt-2" :message="form.errors.first_name" />
                                     </div>
                                 </div>
                                 <div> <!-- Last Name -->
                                     <div class="flex items-center gap-1">
-                                        <InputLabel for="company_hr_last_name" value="Last Name" />
+                                        <InputLabel for="last_name" value="Last Name" />
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
-                                        <TextInput id="company_hr_last_name" v-model="form.company_hr_last_name"
+                                        <TextInput id="last_name" v-model="form.last_name"
                                             placeholder="Dela Cruz"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
-                                        <InputError class="mt-2" :message="form.errors.company_hr_last_name" />
+                                        <InputError class="mt-2" :message="form.errors.last_name" />
+                                    </div>
+                                </div>
+
+                                <div> <!-- Middle Name -->
+                                    <div class="flex items-center gap-1">
+                                        <InputLabel for="middle_name" value="Middle Name" />
+                                        <span class="text-red-500">*</span>
+                                    </div>
+                                    <div>
+                                        <TextInput id="middle_name" v-model="form.middle_name"
+                                            placeholder="Dela Cruz"
+                                            type="text"
+                                            class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
+                                            required />
+                                        <InputError class="mt-2" :message="form.errors.middle_name" />
                                     </div>
                                 </div>
                             </div>
@@ -430,16 +446,16 @@ const resendCode = () => {
                                 <!-- HR Contact Number -->
                                 <div>
                                     <div class="flex items-center gap-1">
-                                        <InputLabel for="contact_number" value="Mobile Number" />
+                                        <InputLabel for="mobile_number" value="Mobile Number" />
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
-                                        <TextInput id="contact_number" v-model="contactNumber"
+                                        <TextInput id="mobile_number" v-model="contactNumber"
                                             placeholder="+63 912 345 6789"
                                             type="text"
                                             class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
-                                        <InputError class="mt-2" :message="form.errors.contact_number" />
+                                        <InputError class="mt-2" :message="form.errors.mobile_number" />
                                     </div>
                                 </div>
                             </div>

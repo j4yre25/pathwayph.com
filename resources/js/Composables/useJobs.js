@@ -18,28 +18,29 @@ export function useJobs(initialOpportunities = [], initialApplications = []) {
   const hasApplied = (jobId) => {
     return applications.value.some(app => app.job_id === jobId);
   };
+  
 
   // Apply for job
-const applyForJob = async (jobId) => {
-  applyForm.job_id = jobId;
+  const applyForJob = async (jobId) => {
+    applyForm.job_id = jobId;
 
-  try {
-    const response = await axios.post(route('apply-for-job'), applyForm);
+    try {
+      const response = await axios.post(route('apply-for-job'), applyForm);
 
-    if (response.data?.success && response.data?.application) {
-      applications.value.push(response.data.application);
-    } else {
-      // Fallback if response is successful but doesn't contain full application
-      applications.value.push({
-        job_id: jobId,
-        status: 'applied',
-      });
+      if (response.data?.success && response.data?.application) {
+        applications.value.push(response.data.application);
+      } else {
+        // Fallback if response is successful but doesn't contain full application
+        applications.value.push({
+          job_id: jobId,
+          status: 'applied',
+        });
+      }
+    } catch (error) {
+      console.error('Application failed:', error.response?.data || error);
+      alert('Failed to apply. Please try again.');
     }
-  } catch (error) {
-    console.error('Application failed:', error.response?.data || error);
-    alert('Failed to apply. Please try again.');
-  }
-};
+  };
 
   // Archive job opportunity
   const archiveJobOpportunity = (jobId) => {

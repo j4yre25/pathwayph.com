@@ -114,8 +114,9 @@ class ManageUsersController extends Controller
     {
         $user->is_approved = true;
 
-        if ($user->role === 'company') {
-            $user->is_main_hr = true;
+        if ($user->role === 'company' && $user->hrProfile) {
+            $user->hrProfile->is_main_hr = true;
+            $user->hrProfile->save();
         }
         
         $user->save();
