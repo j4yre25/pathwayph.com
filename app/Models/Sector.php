@@ -16,11 +16,17 @@ class Sector extends Model
     public function categories() {
         return $this->hasMany(Category::class);
     }
+    public function companies() {
+        return $this->hasMany(Company::class);
+    }
 
 
     protected $fillable = [
         'name',
         'user_id',
+        'sector_id',
+        'sector_code',
+        'division_codes',
    
         
     ];

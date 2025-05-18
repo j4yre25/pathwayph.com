@@ -12,7 +12,6 @@ import axios from 'axios';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
-import '@fortawesome/fontawesome-free/css/all.css';
 import VueApexCharts from 'vue3-apexcharts';
 import SkillsChart from '@/Components/SkillsChart.vue';
 
@@ -2493,7 +2492,7 @@ onMounted(() => {
               <p class="text-gray-600 mb-4">Update your profile picture</p>
               <div class="flex flex-col items-center">
                 <img id="profile-picture"
-                  :src="profile.graduate_picture_url.startsWith('data:') ? profile.graduate_picture_url : `/storage/${profile.graduate_picture_url}`"
+                  :src="profile.graduate_picture_url.startsWith('data:') ? profile.graduate_picture_url : `/storage/app/public/${profile.graduate_picture_url}`"
                   alt="Profile picture" class="rounded-full mb-4 w-32 h-32 object-cover" />
                 <input type="file" id="file-input" class="hidden" accept="image/*" @change="onFileChange" />
                 <label for="file-input" class="text-indigo-600 cursor-pointer">Choose an image</label>

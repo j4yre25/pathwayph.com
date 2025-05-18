@@ -50,6 +50,7 @@ const form = useForm({
     company_zip_code: '',
     company_email: '',
     company_mobile_phone: '',
+    sector: '',
     first_name: '',
     last_name: '',
     middle_name: '',
@@ -89,9 +90,9 @@ onMounted(() => {
 
 
 function handleEmploymentStatus() {
-  if(form.employment_status === 'Unemployed') {
-    form.current_job_title = 'N/A';
-  }
+    if (form.employment_status === 'Unemployed') {
+        form.current_job_title = 'N/A';
+    }
 }
 
 
@@ -198,13 +199,13 @@ const resendCode = () => {
                 <div v-if="form.role === 'company'" class="flex space-x-12  ">
                     <div
                         class="flex-1 flex flex-col items-start justify-center p-6 bg-gradient-to-r from-purple-600 to-blue-500 rounded-lg shadow-lg text-white ">
-                            <AuthenticationCardLogo class="mx-20 fill-white-100" />
-                            <h2 class="text-6xl font-bold">Welcome to</h2>
-                            <h1 class="text-7xl font-extrabold">Pathway</h1>
-                            <p class="mt-4 text-sm">
-                                Join us in shaping the future of education. We are excited to partner with you in this
-                                journey.
-                            </p>
+                        <AuthenticationCardLogo class="mx-20 fill-white-100" />
+                        <h2 class="text-6xl font-bold">Welcome to</h2>
+                        <h1 class="text-7xl font-extrabold">Pathway</h1>
+                        <p class="mt-4 text-sm">
+                            Join us in shaping the future of education. We are excited to partner with you in this
+                            journey.
+                        </p>
                     </div>
 
                     <div class="flex-1 space-y-2">
@@ -227,6 +228,17 @@ const resendCode = () => {
                                 </div>
                             </div>
 
+                                <InputLabel for="sector" value="Sectors" />
+                                <select id="sector" v-model="form.sector"
+                                    class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                    required>
+                                    <option value="">Select Sector</option>
+                                    <option v-for="sector in sectors" :key="sector.id" :value="sector.name">
+                                        {{ sector.name }}
+                                    </option>
+                                </select>
+                                <InputError class="mt-2" :message="form.errors.sector" />
+
                             <!-- Company Address -->
                             <div class="grid grid-cols-3 gap-4">
                                 <div class="col-span-2">
@@ -236,8 +248,7 @@ const resendCode = () => {
                                     </div>
                                     <div>
                                         <TextInput id="company_street_address" v-model="form.company_street_address"
-                                            placeholder="123 Main St"
-                                            type="text"
+                                            placeholder="123 Main St" type="text"
                                             class="mt-1 mb-4 block w-full l border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-1" :message="form.errors.company_street_address" />
@@ -331,8 +342,7 @@ const resendCode = () => {
                                             <span class="text-red-500">*</span>
                                         </div>
                                         <TextInput id="company_mobile_phone" v-model="companyContactNumber"
-                                            placeholder="+63 912 345 6789"
-                                            type="text"
+                                            placeholder="+63 912 345 6789" type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-2" :message="form.errors.company_mobile_phone" />
@@ -363,8 +373,7 @@ const resendCode = () => {
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
-                                        <TextInput id="first_name" v-model="form.first_name"
-                                            placeholder="Juan"
+                                        <TextInput id="first_name" v-model="form.first_name" placeholder="Juan"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
@@ -377,8 +386,7 @@ const resendCode = () => {
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
-                                        <TextInput id="last_name" v-model="form.last_name"
-                                            placeholder="Dela Cruz"
+                                        <TextInput id="last_name" v-model="form.last_name" placeholder="Dela Cruz"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
@@ -392,8 +400,7 @@ const resendCode = () => {
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
-                                        <TextInput id="middle_name" v-model="form.middle_name"
-                                            placeholder="Dela Cruz"
+                                        <TextInput id="middle_name" v-model="form.middle_name" placeholder="Dela Cruz"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
@@ -458,8 +465,7 @@ const resendCode = () => {
                                     </div>
                                     <div>
                                         <TextInput id="mobile_number" v-model="contactNumber"
-                                            placeholder="+63 912 345 6789"
-                                            type="text"
+                                            placeholder="+63 912 345 6789" type="text"
                                             class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
                                             required />
                                         <InputError class="mt-2" :message="form.errors.mobile_number" />
@@ -616,7 +622,7 @@ const resendCode = () => {
                                     <InputError class="mt-2" :message="form.errors.telephone_number" />
                                 </div>
                             </div>
-                            
+
 
                             <!-- President's First and Last Name -->
                             <div class="grid grid-cols-2 gap-4">
@@ -874,38 +880,38 @@ const resendCode = () => {
                             </div>
                         </div>
 
-                    <div>
-                        <!-- Employment Status -->
-                        <div class="flex items-center gap-1">
-                            <InputLabel for="employment_status" value="Employment Status" />
-                            <span class="text-red-500">*</span>
-                        </div>
                         <div>
-                            <select id="employment_status" v-model="form.employment_status"
-                                @change="handleEmploymentStatus" required class="w-full border rounded px-3 py-2">
-                                <option value="" disabled>Select Employment Status</option>
-                                <option value="Employed">Employed</option>
-                                <option value="Underemployed">Underemployed</option>
-                                <option value="Unemployed">Unemployed</option>
-                            </select>
-                            <InputError :message="form.errors.employment_status" class="mt-1" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <!-- Current Job Title – conditionally shown -->
-                        <div v-if="form.employment_status !== 'Unemployed'">
+                            <!-- Employment Status -->
                             <div class="flex items-center gap-1">
-                                <InputLabel for="current_job_title" value="Current Job Title" />
+                                <InputLabel for="employment_status" value="Employment Status" />
                                 <span class="text-red-500">*</span>
                             </div>
                             <div>
-                            <TextInput id="current_job_title" v-model="form.current_job_title" type="text" required
-                                class="w-full border rounded px-3 py-2" />
-                            <InputError :message="form.errors.current_job_title" class="mt-1" />
+                                <select id="employment_status" v-model="form.employment_status"
+                                    @change="handleEmploymentStatus" required class="w-full border rounded px-3 py-2">
+                                    <option value="" disabled>Select Employment Status</option>
+                                    <option value="Employed">Employed</option>
+                                    <option value="Underemployed">Underemployed</option>
+                                    <option value="Unemployed">Unemployed</option>
+                                </select>
+                                <InputError :message="form.errors.employment_status" class="mt-1" />
                             </div>
                         </div>
-                    </div>
+
+                        <div>
+                            <!-- Current Job Title – conditionally shown -->
+                            <div v-if="form.employment_status !== 'Unemployed'">
+                                <div class="flex items-center gap-1">
+                                    <InputLabel for="current_job_title" value="Current Job Title" />
+                                    <span class="text-red-500">*</span>
+                                </div>
+                                <div>
+                                    <TextInput id="current_job_title" v-model="form.current_job_title" type="text"
+                                        required class="w-full border rounded px-3 py-2" />
+                                    <InputError :message="form.errors.current_job_title" class="mt-1" />
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Set Password -->
                         <h3 class="mt-6 mb-2 font-semibold">Set Password</h3>
@@ -972,35 +978,35 @@ const resendCode = () => {
     </AuthenticationCard>
 
 
-   <Modal v-if="showVerificationModal" :show="showVerificationModal" @close="redirectToLogin">
-    <template #default>
-        <div class="text-center">
-            <h2 class="text-lg font-semibold">Verify Your Email</h2>
-            <p class="mt-2 text-gray-600">
-                A verification code has been sent to your email. Please enter the code below to verify your email address.
-                The code will expire in 10 minutes.
-            </p>
-            <form @submit.prevent="verifyCode" class="mt-4">
-                <div>
-                    <InputLabel for="verification_code" value="Verification Code" />
-                    <TextInput id="verification_code" v-model="verificationForm.verification_code" type="text" required />
-                    <InputError :message="verificationForm.errors.verification_code" class="mt-2" />
-                </div>
-                <div class="mt-4 flex items-center justify-between">
-                    <PrimaryButton :class="{ 'opacity-25': verificationForm.processing }" :disabled="verificationForm.processing">
-                        Verify
-                    </PrimaryButton>
-                    <button
-                        type="button"
-                        @click="resendCode"
-                        class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                        Resend Verification Code
-                    </button>
-                </div>
-            </form>
-        </div>
-    </template>
-</Modal>
+    <Modal v-if="showVerificationModal" :show="showVerificationModal" @close="redirectToLogin">
+        <template #default>
+            <div class="text-center">
+                <h2 class="text-lg font-semibold">Verify Your Email</h2>
+                <p class="mt-2 text-gray-600">
+                    A verification code has been sent to your email. Please enter the code below to verify your email
+                    address.
+                    The code will expire in 10 minutes.
+                </p>
+                <form @submit.prevent="verifyCode" class="mt-4">
+                    <div>
+                        <InputLabel for="verification_code" value="Verification Code" />
+                        <TextInput id="verification_code" v-model="verificationForm.verification_code" type="text"
+                            required />
+                        <InputError :message="verificationForm.errors.verification_code" class="mt-2" />
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <PrimaryButton :class="{ 'opacity-25': verificationForm.processing }"
+                            :disabled="verificationForm.processing">
+                            Verify
+                        </PrimaryButton>
+                        <button type="button" @click="resendCode"
+                            class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Resend Verification Code
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </template>
+    </Modal>
 
 </template>
