@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('graduates', function (Blueprint $table) {
-            $table->string('gender')->nullable()->after('school_year_id');
-            $table->date('dob')->nullable()->after('gender');
+        Schema::create('school_years', function (Blueprint $table) {
+            $table->id();
+            $table->string('school_year_range');
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -22,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('graduates', function (Blueprint $table) {
-            $table->dropColumn(['gender', 'dob']);
-        });
+        Schema::dropIfExists('school_years');
     }
 };
