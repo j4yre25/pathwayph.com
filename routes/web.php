@@ -520,8 +520,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 
 // MAIN INSITUTION GRADUATE ROUTES
-Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
-    
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
+
     Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
     Route::get('/graduates/create', [GraduateController::class, 'create'])->name('graduates.create');
     Route::post('/graduates', [GraduateController::class, 'store'])->name('institution.graduate.store');
@@ -608,14 +608,16 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
                 ->name('register.showGraduateDetails');
 
 
-
-            Route::get('/register/company', [CustomRegisteredUserController::class, 'create'])
+            Route::get('/register/company', [CustomRegisteredUserController::class, 'showCompanyDetails'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.company');
-
+                
             Route::get('/register/institution', [CustomRegisteredUserController::class, 'create'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.institution');
+
+            Route::get('/register/institution', [CustomRegisteredUserController::class, 'showGraduateDetails'])
+                ->name('register.showGraduateDetails');
         }
 
         // Default registration submission
@@ -728,7 +730,6 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
         Route::post(RoutePath::for('two-factor.recovery-codes', '/user/two-factor-recovery-codes'), [RecoveryCodeController::class, 'store'])
             ->middleware($twoFactorMiddleware);
     }
-
 });
 
 Route::middleware('auth:sanctum')->group(function () {

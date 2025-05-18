@@ -23,6 +23,7 @@ class Company extends Model
         'company_email',
         'company_mobile_phone',
         'company_tel_phone',
+        'sector_id', 
     ];
 
     /**
@@ -31,6 +32,12 @@ class Company extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    
+    public function sector()
+    {
+        return $this->belongsTo(Sector::class, 'sector_id');
     }
 
     /**

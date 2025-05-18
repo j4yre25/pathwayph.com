@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SchoolYear;
 use App\Models\Program;
+use App\Models\Sector;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
@@ -82,10 +83,19 @@ class CustomRegisteredUserController extends Controller
     // Retrieve school years per institution instead of globally
     $school_years = SchoolYear::whereIn('institution_id', $insti_users->pluck('id'))->get();
 
+
     return Inertia::render('Auth/Register', [
         'insti_users' => $insti_users,
         'programs' => $programs,
-        'school_years' => $school_years
+        'school_years' => $school_years,
+    ]);
+}
+
+public function showCompanyDetails()
+{
+    $sectors = Sector::all();
+    return Inertia::render('Auth/Register', [
+        'sectors' => $sectors,
     ]);
 }
 
