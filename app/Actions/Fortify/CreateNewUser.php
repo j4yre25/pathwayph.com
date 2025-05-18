@@ -78,7 +78,6 @@ class CreateNewUser implements CreatesNewUsers
         $messages = [
             'first_name.required' => 'The first name field is required.',
             'last_name.required' => 'The last name field is required.',
-            'middle_name.required' => 'The middle initial field is required.',
             'email.required' => 'The email field is required.',
             'email.email' => 'The email must be a valid email address.',
             'email.unique' => 'The email has already been taken.',
@@ -207,7 +206,7 @@ class CreateNewUser implements CreatesNewUsers
             ]);
 
             // Create main HR record associated with this company and user
-            $user->hrProfile()->create([
+            $user->hr()->create([
                 'first_name' => $input['first_name'],
                 'middle_name' => $input['middle_name'],
                 'last_name' => $input['last_name'],
@@ -215,6 +214,7 @@ class CreateNewUser implements CreatesNewUsers
                 'dob' => $input['dob'],
                 'gender' => $input['gender'],
                 'company_id' => $company->id,
+                'is_main_hr' => false, // Set this HR as the main HR
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

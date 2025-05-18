@@ -176,7 +176,7 @@ const createJob = () => {
         <Container class="py-15">
             <div class="mt-8">
                 <FormSection @submitted="createJob()">
-                    <template #title>
+                    <template #title>m
                         Post a New Job
                     </template>
 

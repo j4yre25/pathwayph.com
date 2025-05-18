@@ -22,7 +22,7 @@ class CompanyHRRegisterController extends Controller
         $this->middleware(function ($request, $next) {
             $user = Auth::user();
 
-            if (!($user->role === 'company' && $user->is_main_hr)) {
+            if (!($user->role === 'company' && $user->hr->is_main_hr)) {
                 abort(403, 'Only main HR can register other HRs.');
             }
 
@@ -45,6 +45,9 @@ class CompanyHRRegisterController extends Controller
     {
         $creator->create($request->all());
 
-        return redirect()->route('dashboard')->with('success', 'Registration successful!');
+       return redirect()
+            ->route('company.manage-hrs')
+            ->with('flash.banner', 'HR account successfully registered.');
+
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\HumanResource;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Support\ServiceProvider;
@@ -21,16 +22,29 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-
-         Inertia::share([
-
+            Inertia::share([
+            'auth' => function() {
+                return [
+                    'user' => Auth::user() ? Auth::user()->load('hr') : null,
+                ];
+            },
+            'roles' => function () {
+                $user = Auth::user()?->load('hr');;
+                return [
+                    'isCompany' => $user?->role === 'company',
+                    'is_main_hr' => $user?->hr?->is_main_hr === true,
+                ];
+            },
+            'hrCount' => function () {
+                $user = Auth::user();
+                return $user && $user->hr
+                    ? HumanResource::where('company_id', $user->hr->company_id)->count()
+                    : 0;
+            },
             'app' => [
-                'currentUser' => function () {
-                    $user = Auth::check()
-                        ? \App\Models\User::with('company')->find(Auth::id())
-                        : null;
-                    return $user;
-                },
+                'currentUser' => fn () => Auth::check()
+                    ? \App\Models\User::with('company')->find(Auth::id())
+                    : null,
             ],
         ]);
     }
