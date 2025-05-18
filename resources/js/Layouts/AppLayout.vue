@@ -8,23 +8,30 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
+const page = usePage();
 const props = defineProps({
-    title: String,
-    sectors: Array,
-    hrCount: {
-        type: Number,
-        default: 0,
-    },
-     user: Object,
-   
+  auth: Object,
+  roles: Object,
+  hrCount: Number,
+  title: String,
+
 });
 
-// console.log('Role:', page.props.auth.user.role);
+const auth = page.props.auth
+const roles = page.props.roles
+const hrCount = page.props.hrCount
 
-const page = usePage()
+const showingNavigationDropdown = ref(false);
+
+// Safe logging
+console.log('Auth:', page.props.auth);
+console.log('Role:', page.props.roles);
+console.log('HR Count:', page.props.hrCount);
+console.log('Company Name:', page.props.app?.currentUser?.company?.company_name);
+console.log('Sector:', page.props.sectors ?? 'No sectors found');
+console.log('Permission to manage:', page.props.permissions?.canManageInstitution);
 
 const sector = page.props.sectors
-const showingNavigationDropdown = ref(false);
 console.log('Sector:', sector);
 console.log(props)
 console.log('Role', page.props.auth.user.role);
@@ -92,12 +99,14 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Applicants
                                 </NavLink>
 
-                                <NavLink v-if="page.props.roles.isCompany && page.props.user?.hrProfile?.is_main_hr && page.props.hrCount > 1"
-                                    :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
+                               <NavLink
+                                    v-if="roles?.isCompany && auth.user.hr?.is_main_hr && hrCount > 1"
+                                    :href="route('company.manage-hrs', { user:page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')"
-                                    :disabled="!page.props.auth.user.is_approved">
+                                    :disabled="!auth.user.is_approved"
+                                    >
                                     Manage HR Accounts
-                                </NavLink>
+                                    </NavLink>
 
                                 <NavLink v-if="page.props.roles.isCompany"
                                     :href="route('dashboard', { user: page.props.auth.user.id })"

@@ -1,12 +1,14 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
 import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { ref, computed } from 'vue';
+import { ref,  watchEffect } from 'vue';
+import { Inertia } from '@inertiajs/inertia';
+import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { useFormattedMobileNumber } from '@/Composables/useFormattedMobileNumber';
 import { usePasswordCriteria } from '@/Composables/usePasswordCriteria';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -17,11 +19,12 @@ const isPasswordFocused = ref(false);
 
 // Define the form with additional fields for user types
 const form = useForm({
-    company_hr_first_name: '',
-    company_hr_last_name: '',
+    first_name: '',
+    middle_name: '',
+    last_name: '',
     gender: '',
     dob: '',
-    contact_number: null,
+    mobile_number: null,
     email: '',
     password: '',
     password_confirmation: '',
@@ -30,11 +33,21 @@ const form = useForm({
 });
 
 
-const { formattedMobileNumber} = useFormattedMobileNumber(form, 'contact_number');
+const { formattedMobileNumber} = useFormattedMobileNumber(form, 'mobile_number');
 const { passwordCriteria } = usePasswordCriteria(form);
 
 const maxDate = ref(new Date().toISOString().split('T')[0]);
 const minDate = ref('1900-01-01');
+
+const page = usePage();
+const showModal = ref(false);
+const message = ref('');
+
+watchEffect(() => {
+    if (page.props.flash?.banner) {
+        showModal.value = true;
+    }
+});
 
 
 
@@ -47,7 +60,7 @@ const submit = () => {
             form.reset('password', 'password_confirmation');
         },
         onSuccess: () => {
-            Inertia.visit(route('dashboard'));
+            Inertia.reload({ only: ['hrCount'] });
         },
     });
 };
@@ -77,44 +90,64 @@ const submit = () => {
             <div class="w-full border-t border-gray-300 mb-6"></div>
             <form @submit.prevent="submit" class="max-w-2xl mx-auto px-4">
                 <div >
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-3 gap-4">
                         <div> <!-- First Name -->
                             <div class="flex items-center gap-1">
-                                <InputLabel for="company_hr_first_name" value= "First Name" />
+                                <InputLabel for="first_name" value= "First Name" />
                                 <span class="text-red-500">*</span>
                             </div>
                             <div class="relative">
                                 <i class="fa-solid fa-user absolute left-3 top-4 text-gray-400"></i>
                                 <TextInput
-                                    id="company_hr_first_name"
+                                    id="first_name"
                                     type="text"
                                     class="mb-4 mt-1 w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600"
                                     placeholder="Enter first name"
-                                    v-model="form.company_hr_first_name"
+                                    v-model="form.first_name"
                                     required
                                     @keydown.enter.prevent
                                 />
-                                <InputError class="mt-2" :message="form.errors.company_hr_first_name" />
+                                <InputError class="mt-2" :message="form.errors.first_name" />
                             </div>
                         </div>
                             
                         <div > <!-- Last Name -->
                             <div class="flex items-center gap-1">
-                                <InputLabel for="company_hr_last_name" value= "Last Name" />
+                                <InputLabel for="last_name" value= "Last Name" />
                                 <span class="text-red-500">*</span>
                             </div>
                             <div class="relative">
                                 <i class="fa-solid fa-user absolute left-3 top-4 text-gray-400"></i>
                                 <TextInput 
-                                    id="company_hr_last_name" 
+                                    id="last_name" 
                                     type="text" 
                                     class="mb-4 mt-1 w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600 "
                                     placeholder="Enter last name"
-                                    v-model="form.company_hr_last_name" 
+                                    v-model="form.last_name" 
                                     required
                                     @keydown.enter.prevent
                                     />
-                                <InputError class="mt-2" :message="form.errors.company_hr_last_name" />
+                                <InputError class="mt-2" :message="form.errors.last_name" />
+                            </div>
+                        </div>
+
+                         <div > <!-- Miidle Name -->
+                            <div class="flex items-center gap-1">
+                                <InputLabel for="middle_name" value= "Middle Name" />
+                                <span class="text-red-500">*</span>
+                            </div>
+                            <div class="relative">
+                                <i class="fa-solid fa-user absolute left-3 top-4 text-gray-400"></i>
+                                <TextInput 
+                                    id="middle_name" 
+                                    type="text" 
+                                    class="mb-4 mt-1 w-full border border-gray-300 rounded-md p-2 pl-10  outline-none focus:ring-2 focus:ring-indigo-600 "
+                                    placeholder="Enter middle name"
+                                    v-model="form.middle_name" 
+                                    required
+                                    @keydown.enter.prevent
+                                    />
+                                <InputError class="mt-2" :message="form.errors.middle_name" />
                             </div>
                         </div>
                     </div>
@@ -265,6 +298,14 @@ const submit = () => {
                     </PrimaryButton>
                 </div>
             </form>
+
+            <ConfirmationModal :show="showModal" @close="showModal = false">
+                <template #title>Success</template>
+                <template #content>{{ message }}</template>
+                <template #footer>
+                <button @click="showModal = false" class="bg-green-600 text-white px-4 py-2 rounded">OK</button>
+                </template>
+            </ConfirmationModal>
         </template>
     </AuthenticationCard>
 </template>

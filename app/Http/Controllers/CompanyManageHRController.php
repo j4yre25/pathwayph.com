@@ -20,27 +20,24 @@ class CompanyManageHRController extends Controller
     {
         $user = Auth::user();
 
-        $user->load('hrProfile');
+        $user->load('hr');
 
         // Fetch HRs linked to the same company (filter via human_resources table)
-        $companyId = $user->hrProfile ? $user->hrProfile->company_id : null;
+        $companyId = $user->hr->company_id;
 
         $hrs = User::where('role', 'company')
-            ->whereHas('hrProfile', function ($query) use ($companyId) {
+            ->whereHas('hr', function ($query) use ($companyId) {
                 $query->where('company_id', $companyId)
                     ->where('is_main_hr', false);
             })
             ->get();
 
-        $hrCount = $companyId ? HumanResource::where('company_id', $companyId)->count() : 0;
 
        
 
         return inertia('Company/ManageHR/Index/Index', [
             'hrs' => $hrs,
-            'hrCount' => $hrCount,
-            'user' => $user,
-                
+
         ]);
     }
 

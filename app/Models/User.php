@@ -94,7 +94,7 @@ class User extends Authenticatable
         return $this->hasMany(Job::class, 'user_id');
     }
 
-    public function hrProfile() {
+    public function hr() {
         return $this->hasOne(HumanResource::class);
     }
 
