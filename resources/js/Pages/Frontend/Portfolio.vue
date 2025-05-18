@@ -1,90 +1,3 @@
-<script setup>
-import Graduate from '@/Layouts/AppLayout.vue';
-import { usePage } from '@inertiajs/inertia-vue3';
-import { ref } from 'vue';
-
-const profile = ref({
-  fullName: 'John Doe',
-  graduate_professional_title: 'Software Engineer',
-  graduate_email: 'john.doe@example.com',
-  graduate_phone: '123-456-7890',
-  graduate_location: 'New York, NY',
-  graduate_birthdate: '1990-01-01',
-  graduate_gender: 'Male',
-  graduate_ethnicity: 'Caucasian',
-  graduate_address: '123 Main St, New York, NY',
-  graduate_about_me: 'Passionate software engineer with 5 years of experience.'
-});
-
-const educationEntries = ref([
-  {
-    id: 1,
-    graduate_education_institution_id: 'Harvard University',
-    graduate_education_program: 'Bachelor of Science',
-    graduate_education_field_of_study: 'Computer Science',
-    graduate_education_start_date: '2010-09-01',
-    graduate_education_end_date: '2014-05-01',
-    graduate_education_description: 'Studied computer science and software engineering.'
-  }
-]);
-
-const skills = ref([
-  {
-    graduate_skills_name: 'JavaScript',
-    graduate_skills_proficiency: 90
-  },
-  {
-    graduate_skills_name: 'Vue.js',
-    graduate_skills_proficiency: 85
-  }
-]);
-
-const experienceEntries = ref([
-  {
-    id: 1,
-    graduate_experience_title: 'Frontend Developer',
-    graduate_experience_company: 'Tech Corp',
-    graduate_experience_start_date: '2015-06-01',
-    graduate_experience_end_date: '2018-12-01',
-    graduate_experience_address: 'New York, NY',
-    graduate_experience_achievements: 'Developed multiple web applications.'
-  }
-]);
-
-const certificationEntries = ref([
-  {
-    id: 1,
-    graduate_certification_name: 'AWS Certified Solutions Architect',
-    graduate_certification_issuer: 'Amazon',
-    graduate_certification_date: '2020-01-01'
-  }
-]);
-
-const sections = ref([
-  {
-    title: 'General Information',
-    type: 'general'
-  },
-  {
-    title: 'Education',
-    type: 'education'
-  },
-  {
-    title: 'Skills',
-    type: 'skills'
-  },
-  {
-    title: 'Experience',
-    type: 'experience'
-  },
-  {
-    title: 'Certifications',
-    type: 'certifications'
-  }
-]);
-</script>
-
-
 <template>
   <Graduate>
     <div class="bg-gray-100 min-h-screen p-6">
@@ -186,3 +99,86 @@ const sections = ref([
   </Graduate>
 </template>
 
+<script setup>
+import { ref } from 'vue';
+
+const profile = ref({
+  fullName: 'John Doe',
+  graduate_professional_title: 'Software Engineer',
+  graduate_email: 'john.doe@example.com',
+  graduate_phone: '123-456-7890',
+  graduate_location: 'New York, NY',
+  graduate_birthdate: '1990-01-01',
+  graduate_gender: 'Male',
+  graduate_ethnicity: 'Caucasian',
+  graduate_address: '123 Main St, New York, NY',
+  graduate_about_me: 'Passionate software engineer with 5 years of experience.'
+});
+
+const educationEntries = ref([
+  {
+    id: 1,
+    graduate_education_institution_id: 'Harvard University',
+    graduate_education_program: 'Bachelor of Science',
+    graduate_education_field_of_study: 'Computer Science',
+    graduate_education_start_date: '2010-09-01',
+    graduate_education_end_date: '2014-05-01',
+    graduate_education_description: 'Studied computer science and software engineering.'
+  }
+]);
+
+const skills = ref([
+  {
+    graduate_skills_name: 'JavaScript',
+    graduate_skills_proficiency: 90
+  },
+  {
+    graduate_skills_name: 'Vue.js',
+    graduate_skills_proficiency: 85
+  }
+]);
+
+const experienceEntries = ref([
+  {
+    id: 1,
+    graduate_experience_title: 'Frontend Developer',
+    graduate_experience_company: 'Tech Corp',
+    graduate_experience_start_date: '2015-06-01',
+    graduate_experience_end_date: '2018-12-01',
+    graduate_experience_address: 'New York, NY',
+    graduate_experience_achievements: 'Developed multiple web applications.'
+  }
+]);
+
+const certificationEntries = ref([
+  {
+    id: 1,
+    graduate_certification_name: 'AWS Certified Solutions Architect',
+    graduate_certification_issuer: 'Amazon',
+    graduate_certification_date: '2020-01-01'
+  }
+]);
+
+const sections = ref([
+  {
+    title: 'General Information',
+    type: 'general'
+  },
+  {
+    title: 'Education',
+    type: 'education'
+  },
+  {
+    title: 'Skills',
+    type: 'skills'
+  },
+  {
+    title: 'Experience',
+    type: 'experience'
+  },
+  {
+    title: 'Certifications',
+    type: 'certifications'
+  }
+]);
+</script>
