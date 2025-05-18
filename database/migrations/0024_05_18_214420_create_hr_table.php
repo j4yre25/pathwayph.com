@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('hr', function (Blueprint $table) {
+        Schema::create('human_resources', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
             $table->string('first_name');
-            $table->string('middle_initial', 1)->nullable();
+            $table->string('middle_name')->nullable();
             $table->string('last_name');
             $table->string('mobile_number');
             $table->date('dob');
