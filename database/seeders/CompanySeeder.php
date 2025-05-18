@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Company;
+use App\Models\HumanResource;
 use Illuminate\Support\Facades\Hash;
 use Faker\Factory as Faker;
 
@@ -33,31 +34,27 @@ class CompanySeeder extends Seeder
         ];
 
         foreach ($companies as $index => $comp) {
+            // Generate fake personal info for HR user
+
             $firstName = $faker->firstName;
+            $middleName = ($index < 10) ? $faker->firstName : '';
             $lastName = $faker->lastName;
             $gender = $faker->randomElement(['Male', 'Female']);
             $dob = $faker->date('Y-m-d', '2000-01-01');
             $email = strtolower($firstName . '.' . $lastName . $index . '@example.com');
-            $contact = '9' . $faker->randomNumber(9, true);
+            $mobileNumber = '9' . $faker->randomNumber(9, true);
             $companyEmail = 'info' . $index . '@' . preg_replace('/[^a-z]/', '', strtolower(explode(' ', $comp['name'])[0])) . '.com';
-            $companyContact = '9' . $faker->randomNumber(9, true);
-            $companyTel = '083' . $faker->randomNumber(7, true);
+            $companyMobile = '9' . $faker->randomNumber(9, true);
+            $companyTel = '083' . str_pad($faker->numberBetween(0, 9999999), 7, '0', STR_PAD_LEFT);
 
-            // 1. Create HR User (temporarily without company_id)
+            // 1. Create the User for the HR
             $user = User::create([
-                'company_hr_first_name' => $firstName,
-                'company_hr_last_name' => $lastName,
                 'email' => $email,
-                'contact_number'=> $contact,
                 'password' => Hash::make('zxc.BNM1'),
-                'gender' => $gender,
-                'dob' => $dob,
-                'telephone_number' => $companyTel,
                 'role' => 'company',
-                'is_main_hr' => true,
             ]);
 
-            // 2. Create Company and link HR user to it
+            // 2. Create the Company and assign user_id (owner)
             $company = Company::create([
                 'user_id' => $user->id,
                 'company_name' => $comp['name'],
@@ -67,16 +64,24 @@ class CompanySeeder extends Seeder
                 'company_province' => 'South Cotabato',
                 'company_zip_code' => '9500',
                 'company_email' => $companyEmail,
-                'company_mobile_phone' => $companyContact,
-                'company_tel_phone' => $user->telephone_number,
+                'company_mobile_phone' => $companyMobile,
+                'company_tel_phone' => $companyTel,
             ]);
 
-            // 3. Update HR user with company_id
-            $user->update([
+            // 3. Create the HumanResource record linked to user and company
+            HumanResource::create([
+                'user_id' => $user->id,
                 'company_id' => $company->id,
+                'first_name' => $firstName,
+                'middle_name' => $middleName, 
+                'last_name' => $lastName,
+                'mobile_number' => $mobileNumber,
+                'dob' => $dob,
+                'gender' => $gender,
+                'is_main_hr' => false,
             ]);
 
-            // Optional: assign role (if using Spatie or similar)
+            // 4. Optional: assign role using permissions package if needed
             $user->assignRole('company');
         }
     }

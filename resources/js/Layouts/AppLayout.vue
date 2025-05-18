@@ -10,7 +10,13 @@ import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
 const props = defineProps({
     title: String,
-    sectors: Array
+    sectors: Array,
+    hrCount: {
+        type: Number,
+        default: 0,
+    },
+     user: Object,
+   
 });
 
 // console.log('Role:', page.props.auth.user.role);
@@ -72,15 +78,9 @@ console.log(page.props.permissions.canManageInstitution)
                                     Dashboard
                                 </NavLink>
 
-                                <!-- Job Inbox for Graduates -->
-                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
-                                    :active="route().current('job.inbox')"
-                                    :disabled="!page.props.auth.user.is_approved">
-                                    Job Inbox
-                                </NavLink>
-
+                                
                                 <NavLink v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
-                                    :href="route('company.jobs', { user: page.props.auth.user.id })"
+                                :href="route('company.jobs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.jobs')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Job Listing
@@ -92,7 +92,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Applicants
                                 </NavLink>
 
-                                <NavLink v-if="page.props.roles.isCompany && page.props.auth.user.is_main_hr"
+                                <NavLink v-if="page.props.roles.isCompany && page.props.user?.hrProfile?.is_main_hr && page.props.hrCount > 1"
                                     :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')"
                                     :disabled="!page.props.auth.user.is_approved">
@@ -116,6 +116,12 @@ console.log(page.props.permissions.canManageInstitution)
                                     Dashboard
                                 </NavLink>
 
+                                <!-- Job Inbox for Graduates -->
+                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
+                                    :active="route().current('job.inbox')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Job Inbox
+                                </NavLink>
                   
 
                                 <NavLink v-if="page.props.roles.isPeso"

@@ -4,8 +4,10 @@ namespace App\Actions\Fortify;
 
 use App\Models\User;
 use App\Models\Company;
+use App\Models\HumanResource;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
 use Carbon\Carbon;
@@ -30,20 +32,20 @@ class CreateNewUser implements CreatesNewUsers
         $role = $this->determineRole(request());
 
         $rules = [
+            'first_name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'mobile_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
             'password' => $this->passwordRules(),
             'dob' => ['required', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')],
             'gender' => ['required', 'string', 'in:Male,Female'],
-            'contact_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
             'telephone_number' => ['nullable', 'regex:/^(02\d{7}|0\d{2}\d{7})$/'],
         ];
 
         // Add role-specific validation rules
         switch ($role) {
             case 'graduate':
-                $rules['graduate_first_name'] = ['required', 'string', 'max:255'];
-                $rules['graduate_last_name'] = ['required', 'string', 'max:255'];
-                $rules['graduate_middle_initial'] = ['required', 'string', 'max:255'];
                 $rules['graduate_school_graduated_from'] = ['required', 'integer', 'exists:users,id'];
                 $rules['graduate_program_completed'] = ['required', 'exists:programs,name']; // ✅ Ensure it matches a valid program name
                 $rules['employment_status'] = ['required', 'in:Employed,Underemployed,Unemployed'];
@@ -59,8 +61,6 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['company_zip_code'] = ['required', 'string', 'max:4'];
                 $rules['company_email'] = ['required', 'string', 'email', 'max:255'];
                 $rules['company_mobile_phone'] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
-                $rules['company_hr_first_name'] = ['required', 'string', 'max:255'];
-                $rules['company_hr_last_name'] = ['required', 'string', 'max:255'];
                 break;
             case 'institution':
                 $rules['institution_type'] = ['required', 'string'];
@@ -68,10 +68,6 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['institution_address'] = ['required', 'string'];
                 $rules['institution_president_last_name'] = ['required', 'string', 'max:255'];
                 $rules['institution_president_first_name'] = ['required', 'string', 'max:255'];
-                $rules['institution_career_officer_first_name'] = ['required', 'string', 'max:255'];
-                $rules['institution_career_officer_last_name'] = ['required', 'string', 'max:255'];
-                $rules['dob'] = ['nullable', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')];
-                $rules['gender'] = ['nullable', 'string', 'in:Male,Female'];
 
                 break;
             default:
@@ -80,6 +76,9 @@ class CreateNewUser implements CreatesNewUsers
 
         // Custom validation messages
         $messages = [
+            'first_name.required' => 'The first name field is required.',
+            'last_name.required' => 'The last name field is required.',
+            'middle_name.required' => 'The middle initial field is required.',
             'email.required' => 'The email field is required.',
             'email.email' => 'The email must be a valid email address.',
             'email.unique' => 'The email has already been taken.',
@@ -89,9 +88,9 @@ class CreateNewUser implements CreatesNewUsers
             'dob.before_or_equal' => 'You must be at least 18 years old to register.',
             'gender.required' => 'The gender field is required.',
             'gender.in' => 'The selected gender is invalid.',
-            'contact_number.required' => 'The contact number field is required.',
-            'contact_number.digits_between' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
-            'contact_number.regex' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
+            'mobile_number.required' => 'The contact number field is required.',
+            'mobile_number.digits_between' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
+            'mobile_number.regex' => 'The contact number must be in valid format (e.g., +63 912 345 6789).',
             'telephone_number.regex' => 'The telephone number must be in valid format (e.g., (02) 123 4567 or (032) 123 1234).',
             'graduate_first_name.required' => 'The first name field is required.',
             'graduate_last_name.required' => 'The last name field is required.',
@@ -128,13 +127,16 @@ class CreateNewUser implements CreatesNewUsers
 
 
         $userData = [
+            'first_name' => $input['first_name'],
+            'middle_name' => $input['middle_name'],
+            'last_name' => $input['last_name'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
             'role' => $role,
             'dob' => $input['dob'],
             'gender' => $input['gender'],
-            'contact_number' => $input['contact_number'],
-            'telephone_number' => $input['telephone_number'],
+            'mobile_number' => $input['mobile_number'],
+            
 
         ];
 
@@ -152,27 +154,12 @@ class CreateNewUser implements CreatesNewUsers
                 $userData['employment_status'] = $input['employment_status'];
                 $userData['current_job_title'] = ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'];
                 break;
-            case 'company':
-                $userData['company_name'] = $input['company_name'];
-                $userData['company_street_address'] = $input['company_street_address'];
-                $userData['company_brgy'] = $input['company_brgy'];
-                $userData['company_city'] = $input['company_city'];
-                $userData['company_province'] = $input['company_province'];
-                $userData['company_zip_code'] = $input['company_zip_code'];
-                $userData['company_email'] = $input['company_email'];
-                $userData['company_mobile_phone'] = $input['company_mobile_phone'];
-                $userData['company_hr_first_name'] = $input['company_hr_first_name'];
-                $userData['company_hr_last_name'] = $input['company_hr_last_name'];
-                break;
             case 'institution':
                 $userData['institution_type'] = $input['institution_type'];
                 $userData['institution_name'] = $input['institution_name'];
                 $userData['institution_address'] = $input['institution_address'];
                 $userData['institution_president_last_name'] = $input['institution_president_last_name'];
                 $userData['institution_president_first_name'] = $input['institution_president_first_name'];
-                $userData['institution_career_officer_first_name'] = $input['institution_career_officer_first_name'];
-                $userData['institution_career_officer_last_name'] = $input['institution_career_officer_last_name'];
-
                 break;
             default:
                 // Handle the guest role by not adding any additional fields to the user data
@@ -180,6 +167,7 @@ class CreateNewUser implements CreatesNewUsers
         }
         // Kani siya kay para masulod sa Graduates table
         $user = User::create($userData);
+
         if ($role === 'graduate') {
             DB::table('graduates')->insert([
                 'user_id' => $user->id, // Use the same ID from `users`
@@ -201,9 +189,10 @@ class CreateNewUser implements CreatesNewUsers
 
 
         // Kani siya kay para masulod sa Company table
-        if ($role === 'company') {
-            $user->company()->create([
-                'user_id' => $user->id,
+       if ($role === 'company') {
+            // Create the company now that we have $user->id
+            $company = Company::create([
+                'user_id' => $user->id, 
                 'company_name' => $input['company_name'],
                 'company_street_address' => $input['company_street_address'],
                 'company_brgy' => $input['company_brgy'],
@@ -213,6 +202,19 @@ class CreateNewUser implements CreatesNewUsers
                 'company_email' => $input['company_email'],
                 'company_mobile_phone' => $input['company_mobile_phone'],
                 'company_tel_phone' => $input['telephone_number'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Create main HR record associated with this company and user
+            $user->hrProfile()->create([
+                'first_name' => $input['first_name'],
+                'middle_name' => $input['middle_name'],
+                'last_name' => $input['last_name'],
+                'mobile_number' => $input['mobile_number'],
+                'dob' => $input['dob'],
+                'gender' => $input['gender'],
+                'company_id' => $company->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

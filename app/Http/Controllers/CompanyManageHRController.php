@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\HumanResource;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
@@ -17,30 +18,34 @@ class CompanyManageHRController extends Controller
      */
     public function index()
     {
-        $user = Auth::user(); // Get the logged-in user (company)
+        $user = Auth::user();
 
-        // Ensure only main HR can manage HRs
-        if ($user->role !== 'company' || !$user->is_main_hr) {
-            abort(403, 'Unauthorized access.');
-        }
+        $user->load('hrProfile');
 
-       // Fetch HRs linked to the same company
+        // Fetch HRs linked to the same company (filter via human_resources table)
+        $companyId = $user->hrProfile ? $user->hrProfile->company_id : null;
+
         $hrs = User::where('role', 'company')
-            ->where('company_id', $user->company_id)
-            ->where('is_main_hr', false)
+            ->whereHas('hrProfile', function ($query) use ($companyId) {
+                $query->where('company_id', $companyId)
+                    ->where('is_main_hr', false);
+            })
             ->get();
+
+        $hrCount = $companyId ? HumanResource::where('company_id', $companyId)->count() : 0;
+
+       
 
         return inertia('Company/ManageHR/Index/Index', [
             'hrs' => $hrs,
+            'hrCount' => $hrCount,
+            'user' => $user,
+                
         ]);
     }
 
-    /**
-     * Show the form to edit an HR.
-     *
-     * @param  int  $id
-     * @return \Inertia\Response
-     */
+
+
     public function edit($id)
     {
         $user = Auth::user();// Get the logged-in user (company)

@@ -13,6 +13,7 @@ class Company extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'user_id',
         'company_name',
         'company_street_address',
         'company_brgy',
