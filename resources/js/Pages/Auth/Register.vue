@@ -12,14 +12,16 @@ import { usePasswordCriteria } from '@/Composables/usePasswordCriteria';
 import { defineProps, onMounted, ref, computed } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { Inertia } from '@inertiajs/inertia';
+import SectionBorder from '@/Components/SectionBorder.vue';
 
 const props = defineProps({
     insti_users: Array,
     school_years: Array,
     programs: Array,
+    sectors: Array,
 });
 
-console.log(props);
+console.log(props.sectors);
 
 const isPasswordFocused = ref(false);
 const showModal = ref(false);
@@ -74,11 +76,16 @@ onMounted(() => {
         form.role = 'institution';
     } else if (path.includes('graduate')) {
         form.role = 'graduate';
-    } else {
+    } else if (path.includes('company')) {
         form.role = 'company';
+    } else {
+        console.error('Unknown role:', path);
     }
     console.log('Current Role:', form.role);
+    console.log(path);
+
 });
+
 
 function handleEmploymentStatus() {
   if(form.employment_status === 'Unemployed') {
