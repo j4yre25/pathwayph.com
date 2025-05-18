@@ -78,22 +78,23 @@ console.log(page.props.permissions.canManageInstitution)
 
                             <!-- Company Navigation Links -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
-                                v-if="page.props.roles.isCompany && page.props.auth.user.is_approved">
+                                v-if="page.props.auth.user.role === 'company' && page.props.auth.user.is_approved">
 
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Dashboard
                                 </NavLink>
+       
 
-                                
-                                <NavLink v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
-                                :href="route('company.jobs', { user: page.props.auth.user.id })"
+                                <NavLink v-if="page.props.auth.user.role === 'company' && page.props.auth.user.is_approved"
+                                    :href="route('company.jobs', { user: page.props.auth.user.id })"
+
                                     :active="route().current('company.jobs')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Job Listing
                                 </NavLink>
 
-                                <NavLink v-if="page.props.roles.isCompany"
+                                <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.job.applicants.index', { user: page.props.auth.user.id })"
                                     :active="route().current('company.job.applicants.index')" :disabled="!page.props.auth.user.is_approved">
                                     Manage Applicants
@@ -108,7 +109,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage HR Accounts
                                     </NavLink>
 
-                                <NavLink v-if="page.props.roles.isCompany"
+                                <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('dashboard', { user: page.props.auth.user.id })"
                                     :active="route().current('jdashboard')"
                                     :disabled="!page.props.auth.user.is_approved">
@@ -125,8 +126,10 @@ console.log(page.props.permissions.canManageInstitution)
                                     Dashboard
                                 </NavLink>
 
+
                                 <!-- Job Inbox for Graduates -->
                                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
+
                                     :active="route().current('job.inbox')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Job Inbox
@@ -363,7 +366,7 @@ console.log(page.props.permissions.canManageInstitution)
                                         </DropdownLink>
 
 
-                                        <DropdownLink v-if="page.props.roles.isGraduate"
+                                        <DropdownLink v-if="page.props.auth.user.role === 'graduate' "
                                             :href="route('profile.index', { user: page.props.auth.user.id })"
                                             :active="route().current('profile.index')">
                                             Profile Settings </DropdownLink>
@@ -387,14 +390,14 @@ console.log(page.props.permissions.canManageInstitution)
 
 
                                         <DropdownLink
-                                            v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
+                                            v-if="page.props.auth.user.role === 'company' && page.props.auth.user.is_approved"
                                             :disabled="!page.props.auth.user.is_approved"
                                             :href="route('company.profile')">
                                             Profile
                                         </DropdownLink>
 
                                         <DropdownLink
-                                            v-if="page.props.roles.isCompany && page.props.auth.user.is_approved"
+                                            v-if="page.props.auth.user.role === 'company' && page.props.auth.user.is_approved"
                                             :disabled="!page.props.auth.user.is_approved" :href="route('hr.register')">
                                             Add Human Resource Officer (HRO)
 

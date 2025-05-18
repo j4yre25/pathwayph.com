@@ -50,6 +50,38 @@ const showPasswordUpdatedModal = () => {
   }, 3000);
 };
 
+//
+const page = usePage();
+const graduateInstitutionName = computed(() => {
+  if (graduate.value && graduate.value.institution_name) return graduate.value.institution_name;
+  const instiUsers = page.props.instiUsers || [];
+  const found = instiUsers.find(i => i.id === graduate.value?.institution_id);
+  return found ? found.institution_name : 'N/A';
+});
+
+const graduateDegree = computed(() => {
+  return graduate.value && graduate.value.program && graduate.value.program.degree
+    ? graduate.value.program.degree.type
+    : 'N/A';
+});
+
+const graduateProgram = computed(() => {
+  return graduate.value && graduate.value.program
+    ? graduate.value.program.name
+    : 'N/A';
+});
+
+const graduateSchoolYear = computed(() => {
+  // Try both camelCase and snake_case
+  if (graduate.value && graduate.value.schoolYear && graduate.value.schoolYear.school_year_range) {
+    return graduate.value.schoolYear.school_year_range;
+  }
+  if (graduate.value && graduate.value.school_year && graduate.value.school_year.school_year_range) {
+    return graduate.value.school_year.school_year_range;
+  }
+  return 'N/A';
+});
+
 // Profile Data
 const { props } = usePage();
 const user = ref(props?.user || {});
@@ -2616,6 +2648,37 @@ onMounted(() => {
           <!-- Education Section -->
           <div v-if="activeSection === 'education'" class="flex flex-col lg:flex-row">
             <div class="w-full lg:w-1/1 mb-6 lg:mb-0">
+              <!-- College Graduated From Section -->
+              <div class="bg-indigo-50 border-l-4 border-indigo-600 p-4 mb-6 rounded">
+                <h2 class="text-lg font-semibold mb-2 text-indigo-700">College Graduated From</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span class="font-medium text-gray-700">Institution:</span>
+                    <span class="ml-2 text-gray-900">
+                      {{ graduateInstitutionName }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="font-medium text-gray-700">Degree:</span>
+                    <span class="ml-2 text-gray-900">
+                      {{ graduateDegree }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="font-medium text-gray-700">Program:</span>
+                    <span class="ml-2 text-gray-900">
+                      {{ graduateProgram }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="font-medium text-gray-700">School Year:</span>
+                    <span class="ml-2 text-gray-900">
+                      {{ graduateSchoolYear }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <!-- Add Education Button -->
               <div class="flex justify-between items-center mb-4">
                 <h1 class="text-xl font-semibold mb-4">Education</h1>
                 <button class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center"
@@ -3760,7 +3823,7 @@ onMounted(() => {
                     <p class="text-sm"><span class="font-medium">Issuer:</span> {{
                       achievement.graduate_achievement_issuer }}</p>
                     <p class="text-sm"><span class="font-medium">Date:</span> {{ achievement.graduate_achievement_date
-                      }}</p>
+                    }}</p>
                   </div>
 
                   <!-- Description -->

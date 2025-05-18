@@ -29,11 +29,17 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $graduate = DB::table('graduates')->where('user_id', $user->id)->first();
+        $graduate = \App\Models\Graduate::with(['program.degree', 'schoolYear'])
+    ->where('user_id', $user->id)
+    ->first();
+
+        // Fetch all institution users (adjust as needed)
+        $instiUsers = User::where('role', 'institution')->get();
 
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
-            'graduate' => $graduate, // <-- Add this
+            'graduate' => $graduate,
+            'instiUsers' => $instiUsers,
             'educationEntries' => Education::where('user_id', $user->id)->get(),
             'experienceEntries' => Experience::where('user_id', $user->id)->get(),
             'skillEntries' => Skill::where('user_id', $user->id)->get(),
@@ -85,6 +91,7 @@ class ProfileController extends Controller
         }
 
         $user->graduate_professional_title = $request->graduate_professional_title;
+
 
         // Sync to graduates table
         DB::table('graduates')

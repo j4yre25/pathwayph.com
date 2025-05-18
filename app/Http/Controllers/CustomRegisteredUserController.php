@@ -131,6 +131,7 @@ public function verifyCode(Request $request)
 
     $user->email_verified_at = now();
     $user->verification_code = null; // Clear the verification code
+    $user->is_approved = true;
     $user->save();
 
     return redirect()->route('login')->with('message', 'Email verified successfully! You can now log in.');
