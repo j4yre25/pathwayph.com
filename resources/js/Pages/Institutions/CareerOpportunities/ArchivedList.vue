@@ -8,7 +8,7 @@ import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import { ref } from 'vue';
 
 const props = defineProps({
-  opportunities: Array, // Updated to match the controller's return key
+  opportunities: Array,
 });
 
 const showModal = ref(false);

@@ -448,7 +448,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/institutions/school-years/{user}', [SchoolYearController::class, 'index'])->name('school-years');
     Route::get('/institutions/school-years/{user}/list', [SchoolYearController::class, 'list'])->name('school-years.list');
     Route::get('/institutions/school-years/{user}/create', [SchoolYearController::class, 'create'])->name('school-years.create');
-    Route::post('/institutions/school-years/{user}', [SchoolYearController::class, 'store'])->name('school-years.store');
+    Route::post('/institutions/school-years', [SchoolYearController::class, 'store'])->name('school-years.store');
     Route::get('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'edit'])->name('school-years.edit');
     Route::put('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'update'])->name('school-years.update');
     Route::delete('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'delete'])->name('school-years.delete');
@@ -520,8 +520,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 
 // MAIN INSITUTION GRADUATE ROUTES
-Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
-    
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
+
     Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
     Route::get('/graduates/create', [GraduateController::class, 'create'])->name('graduates.create');
     Route::post('/graduates', [GraduateController::class, 'store'])->name('institution.graduate.store');

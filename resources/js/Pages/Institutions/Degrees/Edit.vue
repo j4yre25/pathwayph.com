@@ -3,7 +3,6 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import FormSection from '@/Components/FormSection.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import SelectInput from '@/Components/SelectInput.vue'; // Or native select
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { useForm } from '@inertiajs/vue3';
@@ -13,11 +12,11 @@ const props = defineProps({
 });
 
 const form = useForm({
-    type: props.degree.type,
+    type: props.degree.degree?.type,
 });
 
 const updateDegree = () => {
-    form.put(route('degrees.update', { degree: props.degree.id }), {
+    form.put(route('degrees.update', { institutionDegree: props.degree.id }), {
         preserveScroll: true,
     });
 };
@@ -42,14 +41,10 @@ const updateDegree = () => {
                 <template #form>
                     <div class="col-span-6 sm:col-span-4">
                         <InputLabel for="type" value="Degree Type" />
-                        <select
-                            id="type"
-                            v-model="form.type"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
-                        >
-                            <option disabled value="">Select Degree Type</option>
-                            <option value="Associate">Associate</option>
+                        <select id="type" v-model="form.type" class="mt-1 block w-full">
+                            <option value="">Select Degree</option>
                             <option value="Bachelor">Bachelor</option>
+                            <option value="Associate">Associate</option>
                             <option value="Master">Master</option>
                             <option value="Doctoral">Doctoral</option>
                             <option value="Diploma">Diploma</option>

@@ -5,35 +5,52 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
 const page = usePage();
 const userId = page.props.auth.user.id;
 
 const opportunities = page.props.opportunities ?? [];
-const programs = page.props.programs;
+const programs = page.props.programs ?? [];
 
 const selectedProgram = ref('');
+const showConfirmModal = ref(false);
+const opportunityToArchive = ref(null);
 
 const filteredOpportunities = computed(() => {
   return opportunities.filter((opp) => {
-    return !selectedProgram.value || opp.program_id === selectedProgram.value;
+    return !selectedProgram.value || String(opp.program_id) === String(selectedProgram.value);
   });
 });
 
 function applyFilter() {
   router.get(route('careeropportunities.index', { user: userId }), {
+    program_id: selectedProgram.value,
     preserveState: true,
     preserveScroll: true,
-    program_id: selectedProgram.value,
   });
 }
 
-function archive(id) {
-  if (confirm('Are you sure you want to archive this career opportunity?')) {
-    router.delete(route('careeropportunities.delete', id), {
-      preserveScroll: true,
-    });
-  }
+function confirmArchive(opp) {
+  opportunityToArchive.value = opp;
+  showConfirmModal.value = true;
+}
+
+function archiveConfirmed() {
+  router.delete(route('careeropportunities.delete', opportunityToArchive.value.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      showConfirmModal.value = false;
+      opportunityToArchive.value = null;
+      // No flashBanner logic here; rely on global flash banner
+    }
+  });
+}
+
+function cancelArchive() {
+  showConfirmModal.value = false;
+  opportunityToArchive.value = null;
 }
 </script>
 
@@ -64,7 +81,7 @@ function archive(id) {
           <select v-model="selectedProgram" class="mt-1 border-gray-300 rounded-md">
             <option value="">All Programs</option>
             <option v-for="program in programs" :key="program.id" :value="program.id">
-              {{ program.name }}
+              {{ program.program?.name }}
             </option>
           </select>
         </div>
@@ -93,7 +110,7 @@ function archive(id) {
                 <Link :href="route('careeropportunities.edit', opp.id)">
                   <PrimaryButton>Edit</PrimaryButton>
                 </Link>
-                <DangerButton @click="archive(opp.id)">Archive</DangerButton>
+                <DangerButton @click="() => confirmArchive(opp)">Archive</DangerButton>
               </td>
             </tr>
             <tr v-if="filteredOpportunities.length === 0">
@@ -104,6 +121,19 @@ function archive(id) {
           </tbody>
         </table>
       </div>
+
+      <!-- Confirmation Modal (same style as Programs) -->
+      <ConfirmationModal :show="showConfirmModal" @close="cancelArchive">
+        <template #title>Are you sure?</template>
+        <template #content>
+          Are you sure you want to archive the career opportunity
+          <strong>"{{ opportunityToArchive?.career_opportunity?.title }}"</strong>?
+        </template>
+        <template #footer>
+          <DangerButton @click="archiveConfirmed" class="mr-2">Archive</DangerButton>
+          <SecondaryButton @click="cancelArchive">Cancel</SecondaryButton>
+        </template>
+      </ConfirmationModal>
     </Container>
   </AppLayout>
 </template>

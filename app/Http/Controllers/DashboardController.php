@@ -2,33 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use App\Models\Sector;
-use App\Models\User;
 use App\Models\Graduate;
-use App\Models\Program;
+use App\Models\InstitutionProgram;
+use App\Models\Institution;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-
         $summary = [
             'total_jobs' => 0,
             'total_applications' => 0,
             'total_hires' => 0,
         ];
-/** @var \App\Models\User $user */
-        
-        // If user is institution, provide graduate stats
+
+        $graduates = [];
+        $programs = [];
+        $careerOpportunities = [];
+
         if ($user->hasRole('institution')) {
-            $institutionId = $user->id; // or $user->institution_id if that's your setup
+            $institutionId = $user->id;
 
             $summary = [
                 'total_graduates' => Graduate::where('institution_id', $institutionId)->count(),
@@ -37,9 +34,24 @@ class DashboardController extends Controller
                 'unemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'unemployed')->count(),
             ];
 
+            // Get institution-specific programs
+            $programs = InstitutionProgram::with('program')
+                ->where('institution_id', $institutionId)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->program->id,
+                        'name' => $item->program->name,
+                        'code' => $item->program_code,
+                        'degree' => $item->degree->type ?? null,
+                    ];
+                });
+
+            // Graduates
             $graduates = Graduate::where('institution_id', $institutionId)->get();
-            $programs = Program::where('institution_id', $institutionId)->get();
-            $careerOpportunities = Graduate::where('institution_id', $institutionId)
+
+            // Career Opportunities
+            $careerOpportunities = $graduates
                 ->whereNotNull('current_job_title')
                 ->where('current_job_title', '!=', 'N/A')
                 ->pluck('current_job_title')
@@ -49,16 +61,14 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'userNotApproved' => !$user->is_approved,
-            // 'roles' => [
-            //     'isCompany' => $user->hasRole('company'),
-            //     'isInstitution' => $user->hasRole('institution'),
-            // ],
+            'roles' => [
+                'isCompany' => $user->hasRole('company'),
+                'isInstitution' => $user->hasRole('institution'),
+            ],
             'summary' => $summary,
-            'graduates' => $graduates ?? [],
-            'programs' => $programs ?? [],
-            'careerOpportunities' => $careerOpportunities ?? [],
+            'graduates' => $graduates,
+            'programs' => $programs,
+            'careerOpportunities' => $careerOpportunities,
         ]);
     }
 }
-
-
