@@ -74,11 +74,19 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\CareerOfficerRegisterController;
 
 
-
 Route::get('/', function () {
-    return Inertia::render('Auth/Login');
-});
+    return Inertia::render('Auth/LandingPage');
+})->name('landing-page.index');
+ 
+// Route::get('/', function () {
+//     return Inertia::render('Auth/Login');
+// });
 
+
+Route::get('/register', function () {
+    return Inertia::render('Auth/PathwayRegister');
+})->name('pathway.register');
+ 
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/peso/register', [AdminRegisterController::class, 'showRegistrationForm'])->name('admin.register');
