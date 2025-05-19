@@ -8,32 +8,35 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
+// const props = defineProps({
+//     auth: Object,
+//     roles: Object,
+//     main: Boolean,
+//     hrCount: Number,
+//     title: String,
+    
+// });
 const page = usePage();
-const props = defineProps({
-  auth: Object,
-  roles: Object,
-  hrCount: Number,
-  title: String,
 
-});
-
-const auth = page.props.auth
-const roles = page.props.roles
-const hrCount = page.props.hrCount
+const auth = page.props.auth;
+const roles = page.props.roles;
+const hrCount = page.props.hrCount;
+const main = page.props.main;
+const title = page.props.title;
 
 const showingNavigationDropdown = ref(false);
 
 // Safe logging
-console.log('Auth:', page.props.auth);
-console.log('Role:', page.props.roles);
-console.log('HR Count:', page.props.hrCount);
+console.log('Auth:', auth);
+console.log('Role:', roles);
+console.log('HR Count:', hrCount);
+console.log('isMainHR:', main);
 console.log('Company Name:', page.props.app?.currentUser?.company?.company_name);
 console.log('Sector:', page.props.sectors ?? 'No sectors found');
 console.log('Permission to manage:', page.props.permissions?.canManageInstitution);
 
 const sector = page.props.sectors
 console.log('Sector:', sector);
-console.log(props)
 console.log('Role', page.props.auth.user.role);
 
 console.log(page.props.app.currentUser.company?.company_name)
@@ -101,7 +104,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
 
                                <NavLink
-                                    v-if="roles?.isCompany && auth.user.hr?.is_main_hr && hrCount > 1"
+                                    v-if="roles.isCompany&& main.is_main_hr && hrCount > 1"
                                     :href="route('company.manage-hrs', { user:page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')"
                                     :disabled="!auth.user.is_approved"

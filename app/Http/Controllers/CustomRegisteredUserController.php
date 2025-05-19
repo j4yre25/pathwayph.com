@@ -54,6 +54,22 @@ class CustomRegisteredUserController extends Controller
     // Send the verification code via email
         $user->notify(new VerifyEmailWithCode($verificationCode));
 
+        // 🔽 Place the custom ID logic **here**, after HR and company are created
+        if ($role === 'company') {
+            $hr = $user->hr; // Assuming hr() relationship exists on User model
+
+            if ($hr && $hr->company_id) {
+                $company = Company::find($hr->company_id);
+
+                if ($company) {
+                    $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
+                    $sectorCode = 'S' . str_pad($company->sector_id, 2, '0', STR_PAD_LEFT);
+                    $company->custom_id = "C-{$paddedCompanyId}-{$sectorCode}";
+                    $company->save();
+                }
+            }
+        }
+
         
         event(new Registered($user));
 

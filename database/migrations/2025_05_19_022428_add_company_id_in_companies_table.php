@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('degrees', function (Blueprint $table) {
-            $table->id();
-            $table->enum('type', ['Bachelor', 'Associate', 'Master', 'Doctoral', 'Diploma']);
-            $table->timestamps();
-            $table->softDeletes();
+        Schema::table('companies', function (Blueprint $table) {
+             $table->string('company_id')->unique()->nullable();
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('degrees');
+        Schema::table('companies', function (Blueprint $table) {
+            $table->dropColumn('company_id');
+        });
     }
 };
