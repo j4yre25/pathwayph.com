@@ -17,7 +17,7 @@ const form = useForm({
 });
 
 const createSchoolYear = () => {
-    form.post(route('school-years.store', { user: form.user }), { // Pass the user parameter
+    form.post(route('school-years.store'), {
         onSuccess: () => form.reset()
     });
 };

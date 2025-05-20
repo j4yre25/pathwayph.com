@@ -12,6 +12,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\InstitutionProgram;
+use App\Models\Institution;
 
 
 
@@ -34,12 +36,63 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'id',
         'email',
+        'id',
         'password',
         'role',
         'is_approved',
-        
+        'dob',
+        'gender',
+        'telephone_number',
+        'contact_number',
+
+        // PESO
+        'peso_first_name',
+        'peso_last_name',
+
+        // Company
+        'company_id',
+        'company_hr_first_name',
+        'company_hr_last_name',
+
+        //Graduate
+        'institution_id',
+        'graduate_first_name',
+        'graduate_last_name',
+        'graduate_middle_initial',
+        'graduate_current_job_title', //changed this
+        'graduate_email',
+        'graduate_phone',
+        'graduate_location',
+        'graduate_birthdate',
+        'graduate_gender',
+        'graduate_ethnicity',
+        'graduate_address',
+        'graduate_about_me',
+        'graduate_picture_url',
+
+        'graduate_education_institution_id',
+        'graduate_education_program',
+        'graduate_education_field_of_study',
+        'graduate_education_start_date',
+        'graduate_education_end_date',
+        'graduate_education_description',
+
+        'graduate_skills_name',
+        'graduate_skills_proficiency',
+        'graduate_skills_type',
+        'graduate_skills_years_experience',
+
+
+
+        // Institution
+        'institution_type',
+        'institution_name',
+        'institution_address',
+        'institution_president_last_name',
+        'institution_president_first_name',
+        'institution_career_officer_first_name',
+        'institution_career_officer_last_name',
     ];
 
     /**
@@ -50,7 +103,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_co4des',
+        'two_factor_recovery_codes',
         'two_factor_secret',
     ];
 
@@ -89,23 +142,23 @@ class User extends Authenticatable
     }
 
 
-    public function jobs() {
-
-        return $this->hasMany(Job::class, 'user_id');
+    public function jobs()
+    {
+        return $this->hasMany(Job::class);
     }
-
+  
     public function hr() {
         return $this->hasOne(HumanResource::class);
     }
 
     public function company()
     {
-        return $this->hasOne(Company::class);
+        return $this->belongsTo(Company::class, 'company_id');
     }
 
 
-
-    public function sectors() {
+    public function sectors()
+    {
 
         return $this->hasMany(Sector::class);
     }
@@ -116,9 +169,9 @@ class User extends Authenticatable
 
     }
     public function programs()
-{
-    return $this->hasMany(Program::class, 'institution_id', 'id');
-}
+    {
+        return $this->hasMany(InstitutionProgram::class, 'institution_id');
+    }
 
     public function degrees()
     {
@@ -127,7 +180,7 @@ class User extends Authenticatable
 
     public function school_years()
     {
-        return $this->hasMany(SchoolYear::class);
+        return $this->hasMany(SchoolYear::class, 'user_id');
     }
 
 
@@ -253,8 +306,31 @@ class User extends Authenticatable
     }
 
     public function institutionSkills()
-{
-    return $this->hasMany(InstitutionSkill::class, 'institution_id');
-}
+    {
+        return $this->hasMany(InstitutionSkill::class, 'institution_id');
+    }
+
+    public function institution()
+    {
+        return $this->hasOne(Institution::class, 'user_id', 'id');
+    }
+
+
+    public function institutionPrograms()
+    {
+        return $this->hasManyThrough(
+            InstitutionProgram::class,
+            Institution::class,
+            'institution_id', // Foreign key on institutions table (users.id)
+            'institution_id', // Foreign key on institution_programs table (institutions.id)
+            'id',             // Local key on users table
+            'id'              // Local key on institutions table
+        );
+    }
+
+    public function graduate()
+    {
+        return $this->hasOne(Graduate::class, 'user_id');
+    }
 
 }

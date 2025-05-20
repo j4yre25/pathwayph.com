@@ -13,11 +13,10 @@ const props = defineProps({
     schoolYear: Object,
 });
 
-console.log(props.schoolYear);
 const page = usePage();
 
 const form = useForm({
-    school_year_range: props.schoolYear.school_year_range,
+    school_year_range: props.schoolYear.school_year?.school_year_range,
     term: props.schoolYear.term,
 });
 

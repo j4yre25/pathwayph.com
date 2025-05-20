@@ -1,13 +1,11 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { usePage, useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import Container from '@/Components/Container.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import FormSection from '@/Components/FormSection.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
-
-const page = usePage();
 
 const props = defineProps({
     degrees: Array,
@@ -16,11 +14,12 @@ const props = defineProps({
 const form = useForm({
     name: '',
     degree_id: '',
-    user: page.props.auth.user.id,
 });
 
+const page = usePage();
+
 const createProgram = () => {
-    form.post(route('programs.store', { user: form.user }), {
+    form.post(route('programs.store', { user: page.props.auth.user.id }), {
         onSuccess: () => form.reset()
     });
 };
@@ -45,7 +44,7 @@ const createProgram = () => {
 
                         <div class="col-span-6 sm:col-span-4 mt-4">
                             <InputLabel for="degree_id" value="Degree" />
-                            <select id="degree_id" v-model="form.degree_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200">
+                            <select id="degree_id" v-model="form.degree_id">
                                 <option disabled value="">Select Degree</option>
                                 <option v-for="degree in degrees" :key="degree.id" :value="degree.id">
                                     {{ degree.type }}

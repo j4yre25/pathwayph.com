@@ -9,7 +9,7 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
 const page = usePage();
-const programs = ref([...page.props.programs]); // Make reactive
+const programs = ref([...page.props.programs]);
 
 const selectedProgram = ref(null);
 const open = ref(false);
@@ -19,7 +19,6 @@ const archiveProgram = () => {
     router.delete(route('programs.delete', { id: selectedProgram.value.id }), {
       preserveScroll: true,
       onSuccess: () => {
-        // Remove archived program from list
         programs.value = programs.value.filter(p => p.id !== selectedProgram.value.id);
         open.value = false;
         selectedProgram.value = null;
@@ -41,7 +40,6 @@ const confirmArchive = (program) => {
     </template>
 
     <Container class="py-6 space-y-6">
-      <!-- Action Buttons -->
       <div class="flex flex-wrap gap-4">
         <Link :href="route('programs.create', { user: page.props.auth.user.id })">
           <PrimaryButton>Add Program</PrimaryButton>
@@ -57,7 +55,6 @@ const confirmArchive = (program) => {
         </Link>
       </div>
 
-      <!-- Programs Table -->
       <div class="bg-white shadow-md rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-full text-sm text-left text-gray-700">
@@ -74,8 +71,8 @@ const confirmArchive = (program) => {
                 :key="prog.id"
                 class="border-t hover:bg-gray-50 transition-colors"
               >
-                <td class="px-6 py-4">{{ prog.name }}</td>
-                <td class="px-6 py-4">{{ prog.degree?.type }}</td>
+                <td class="px-6 py-4">{{ prog.program?.name }}</td>
+                <td class="px-6 py-4">{{ prog.program?.degree?.type }}</td>
                 <td class="px-6 py-4 flex gap-2">
                   <Link :href="route('programs.edit', { id: prog.id })">
                     <PrimaryButton>Edit</PrimaryButton>
@@ -93,12 +90,11 @@ const confirmArchive = (program) => {
         </div>
       </div>
 
-      <!-- Confirmation Modal -->
       <ConfirmationModal :show="open" @close="open = false">
         <template #title>Are you sure?</template>
         <template #content>
           Are you sure you want to archive the program
-          <strong>"{{ selectedProgram?.name }}"</strong>?
+          <strong>"{{ selectedProgram?.program?.name }}"</strong>?
         </template>
         <template #footer>
           <DangerButton @click="archiveProgram" class="mr-2">Archive</DangerButton>
