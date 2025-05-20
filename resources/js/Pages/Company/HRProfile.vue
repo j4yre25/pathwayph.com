@@ -2,7 +2,7 @@
 export default {
     data() {
         return {
-            hrProfile: {
+            hr: {
                 name: '',
                 email: '',
                 phone: '',
@@ -12,7 +12,7 @@ export default {
     methods: {
         updateProfile() {
             // Logic to handle profile update (e.g., API call)
-            console.log('Profile updated:', this.hrProfile);
+            console.log('Profile updated:', this.hr);
         },
     },
 };
@@ -27,7 +27,7 @@ export default {
                 <input
                     type="text"
                     id="name"
-                    v-model="hrProfile.name"
+                    v-model="hr.name"
                     placeholder="Enter your name"
                 />
             </div>
@@ -36,7 +36,7 @@ export default {
                 <input
                     type="email"
                     id="email"
-                    v-model="hrProfile.email"
+                    v-model="hr.email"
                     placeholder="Enter your email"
                 />
             </div>
@@ -45,7 +45,7 @@ export default {
                 <input
                     type="tel"
                     id="phone"
-                    v-model="hrProfile.phone"
+                    v-model="hr.phone"
                     placeholder="Enter your phone number"
                 />
             </div>

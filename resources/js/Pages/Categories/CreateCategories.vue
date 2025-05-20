@@ -6,17 +6,17 @@ import PrimaryButton from '@/Components/PrimaryButton.vue'
 import FormSection from '@/Components/FormSection.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
- import InputError from '@/Components/InputError.vue';
+import InputError from '@/Components/InputError.vue';
 import { useForm } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 
 
 const page = usePage()
 
-const props = defineProps ({
-   categories: Array,
-   sectors: Array,
-   sector: Object
+const props = defineProps({
+    categories: Array,
+    sectors: Array,
+    sector: Object,
 
 })
 
@@ -31,6 +31,8 @@ console.log('User ID:', page.props);
 const form = useForm({
     name: '',
     sector_id: props.sector.id,
+    division_code: '',
+
 });
 
 const createCategory = () => {
@@ -41,28 +43,28 @@ const createCategory = () => {
             form.reset();
         }
     });
-    
+
 }
 
 </script>
 
 
 <template>
-   <AppLayout>
-        <template >
+    <AppLayout>
+        <template>
             Categories
         </template>
-        
+
 
 
         <Container class="py-16">
 
 
-            <!-- <PrimaryButton @click="createJob()" class="">Post Job</PrimaryButton> --> 
+            <!-- <PrimaryButton @click="createJob()" class="">Post Job</PrimaryButton> -->
             <div class="mt-8">
                 <FormSection @submitted="createCategory()">
                     <template #title>
-                       Add a New Category
+                        Add a New Category
                     </template>
 
                     <template #description>
@@ -70,30 +72,39 @@ const createCategory = () => {
                     </template>
 
                     <template #form>
-                        
+
 
                         <div class="col-span-6 sm:col-span-4">
-                        <InputLabel for="sector" value="Sector" />
-                        <select
-                            id="sector"
-                            v-model="form.sector_id"
-                            class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                        >
-                            <option value="" disabled>Select a sector</option>
-                            <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
-                                {{ sector.name }}
-                            </option>
-                        </select>
-                        <InputError :message="form.errors.sector_id" class="mt-2" />
-                    </div>
+                            <InputLabel for="sector" value="Sector" />
+                            <select id="sector" v-model="form.sector_id"
+                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                <option value="" disabled>Select a sector</option>
+                                <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
+                                    {{ sector.name }}
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.sector_id" class="mt-2" />
+                        </div>
 
                         <div class="col-span-6 sm:col-span-4">
                             <InputLabel for="name" value="Category Name" />
                             <TextInput id="name" v-model="form.name" type="text" class="mt-1 block w-full" />
                             <InputError :message="form.errors.name" class="mt-2" />
                         </div>
-                       
-                
+
+                        <div class="col-span-6 sm:col-span-4">
+                            <InputLabel for="division_code" value="Division Code" />
+                            <select id="division_code" v-model="form.division_code"
+                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                                <option value="" disabled>Select a division code</option>
+                                <option v-for="n in 100" :key="n" :value="n">
+                                    {{ n }}
+                                </option>
+                            </select>
+                            <InputError :message="form.errors.division_code" class="mt-2" />
+                        </div>
+
+
 
                         <!-- <div class="col-span-6 sm:col-span-4">
                             <InputLabel for="from_datetime" value="From Date and Time" />
@@ -114,7 +125,8 @@ const createCategory = () => {
                         </div> -->
                     </template>
                     <template #actions>
-                        <PrimaryButton type="submit" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                        <PrimaryButton type="submit" :class="{ 'opacity-25': form.processing }"
+                            :disabled="form.processing">
                             Add Category
                         </PrimaryButton>
                     </template>
@@ -122,13 +134,13 @@ const createCategory = () => {
 
 
             </div>
- 
+
         </Container>
 
-  
 
-     
 
-   
+
+
+
     </AppLayout>
 </template>
