@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SchoolYear;
 use App\Models\Program;
 use App\Models\Sector;
+use App\Models\Company;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
@@ -63,8 +64,8 @@ class CustomRegisteredUserController extends Controller
 
                 if ($company) {
                     $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
-                    $sectorCode = 'S' . str_pad($company->sector_id, 2, '0', STR_PAD_LEFT);
-                    $company->custom_id = "C-{$paddedCompanyId}-{$sectorCode}";
+                    $sectorCode = $company->sector->sector_id?? '000'; // Default to '000' if sector_code is not set
+                    $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}";
                     $company->save();
                 }
             }

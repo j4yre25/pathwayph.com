@@ -217,32 +217,8 @@ const createJob = () => {
 
                             <div class="grid grid-cols-3 gap-4 mx-6 mt-4">
                                 
-                                <div class="col-span-1">
-                                    <div class="flex items-center mb-2">
-                                        <InputLabel for="program_id" value="Program Graduated" class="mb-0" />
-                                        <div class="relative ml-2 group cursor-pointer">
-                                            <span class="text-blue-500 font-bold">?</span>
-                                            <div
-                                                class="absolute z-10 w-64 p-2 text-sm text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -top-2 left-6"
-                                            >
-                                                Select the degree or program related to the job. (e.g., BSIT, BEED, BSA).
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <MultiSelect
-                                        v-model="form.program_id"
-                                        :options="programs"
-                                        :multiple="true"
-                                        label="name"
-                                        track-by="id"
-                                        placeholder="Select programs"
-                                    />
-  
-                                    <InputError :message="form.errors.program_id" class="mt-2" />
-                                </div>
-
-
+                                
+                                
                                 <div class="col-span-1">
                                     <InputLabel for="job_type" value="Job Type" class="mb-2"/>
                                     <select v-model="form.job_type" id="job_type" class="w-full mt-1 mb-2 p-2 border rounded-lg">
@@ -266,7 +242,31 @@ const createJob = () => {
                                 </div>
                             </div>
                             
-                            <div class="grid grid-cols-3 gap-4 mx-6 mt-4">
+                            <div class="grid grid-cols-4 gap-4 mx-6 mt-4">
+                                <div class="col-span-1">
+                                    <div class="flex items-center mb-2">
+                                        <InputLabel for="program_id" value="Program Graduated" class="mb-0" />
+                                        <div class="relative ml-2 group cursor-pointer">
+                                            <span class="text-blue-500 font-bold">?</span>
+                                            <div
+                                                class="absolute z-10 w-64 p-2 text-sm text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -top-2 left-6"
+                                            >
+                                                Select the degree or program related to the job. (e.g., BSIT, BEED, BSA).
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <MultiSelect
+                                        v-model="form.program_id"
+                                        :options="programs"
+                                        :multiple="true"
+                                        label="name"
+                                        track-by="id"
+                                        placeholder="Select programs"
+                                    />
+    
+                                    <InputError :message="form.errors.program_id" class="mt-2" />
+                                </div>
                                 <div class="col-span-1">
                                     <InputLabel for="sector" value="Sector" class="mb-2"/>
                                     <select v-model="form.sector" id="sector" class="w-full mt-1 mb-2 p-2 border rounded-lg" required>
