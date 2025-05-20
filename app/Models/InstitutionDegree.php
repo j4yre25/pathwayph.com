@@ -5,16 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class SchoolYear extends Model
+class InstitutionDegree extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['school_year_range'];
+    protected $fillable = [
+        'degree_id',
+        'degree_code',
+        'institution_id',
+    ];
 
-    public function user()
+    public function degree()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Degree::class);
     }
+
 
     public function institution()
     {

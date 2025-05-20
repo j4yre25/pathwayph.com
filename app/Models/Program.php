@@ -9,6 +9,8 @@ class Program extends Model
 {
     use SoftDeletes;
 
+    protected $fillable = ['name', 'degree_id'];
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -35,7 +37,6 @@ class Program extends Model
         $prefix = match ($this->degree->type) {
             'Bachelor' => 'BS in',
             'Associate' => 'AS in',
-            'Diploma' => 'Diploma in',
             'Master' => 'Master in',
             'Doctoral' => 'Doctor in',
             default => '',
@@ -43,6 +44,5 @@ class Program extends Model
 
         return $prefix . ' ' . $this->name;
     }
-    protected $fillable = ['name', 'user_id', 'institution_id', 'degree_id'];
 
 }
