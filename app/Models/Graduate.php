@@ -13,22 +13,38 @@ class Graduate extends Model
         'user_id',
         'graduate_first_name',
         'graduate_last_name',
-        'graduate_middle_initial',
-        'graduate_current_job_title',
-        'graduate_school_graduated_from',
-        'graduate_program_completed',
-        'graduate_degree_completed',
-        'graduate_skills',
-        'graduate_location',
-        'graduate_ethnicity',
-        'graduate_address',
-        'graduate_about_me',
-        'graduate_picture_url',
+        'graduate_middle_name',
+        'current_job_title',
         'employment_status',
-        'gender',
-        'dob',
-        'email',
+        'contact_number',
+        'location',
+        'ethnicity',
+        'address',
+        'about_me',
         'institution_id',
+        'degree_id',
+        'program_id',
+        'school_year_id',
+        'linkedin_url',
+        'github_url',
+        'personal_website',
+        'other_social_links',
+    ];
+
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+    public function program()
+    {
+        return $this->belongsTo(Program::class);
+    }
+
+    public function schoolYear()
+    {
+        return $this->belongsTo(SchoolYear::class);
+
     ];
 
     public function user()
@@ -41,5 +57,3 @@ class Graduate extends Model
         return $this->belongsTo(Institution::class, 'institution_id');
     }
 }
-
-

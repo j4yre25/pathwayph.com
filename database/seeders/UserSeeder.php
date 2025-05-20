@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Peso;
 
 class UserSeeder extends Seeder
 {
@@ -16,64 +16,49 @@ class UserSeeder extends Seeder
     public function run()
     {
         $users = [
-       
             [
                 'email' => 'peso@example.com',
                 'password' => 'password123',
                 'role' => 'peso',
-                'peso_first_name'  => 'Peso ',
-                'peso_last_name'  => 'Admin',
+                'peso_first_name' => 'Peso',
+                'peso_last_name' => 'Admin',
+                'peso_middle_name' => 'M.',
+                'description' => 'Main PESO officer for General Santos City.',
+                'contact_number' => '09123456789',
+                'telephone_number' => '0831234567',
+                'address' => '123 Gensan Street, Barangay Lagao, General Santos City',
             ],
         ];
 
         foreach ($users as $input) {
             $rules = [
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-                'password' => ['required', 'string', 'min:8'], // Adjust password rules as needed
+                'password' => ['required', 'string', 'min:8'],
                 'role' => ['required', 'string', 'in:peso,graduate,company,institution'],
             ];
 
-            switch ($input['role']) {
-                case 'graduate':
-                    $rules['graduate_first_name'] = ['required', 'string', 'max:255'];
-                    $rules['graduate_last_name'] = ['required', 'string', 'max:255'];
-                    $rules['graduate_school_graduated_from'] = ['required', 'string'];
-                    $rules['graduate_program_completed'] = ['required', 'string'];
-                    $rules['graduate_year_graduated'] = ['required', 'string'];
-                    $rules['graduate_skills'] = ['required', 'string'];
-                    break;
-                case 'company':
-                    $rules['company_name'] = ['required', 'string'];
-                    $rules['company_address'] = ['required', 'string'];
-                    $rules['company_sector'] = ['required', 'string'];
-                    $rules['company_category'] = ['required', 'string'];
-                    $rules['company_contact_number'] = ['required', 'string'];
-                    $rules['company_hr_last_name'] = ['required', 'string', 'max:255'];
-                    $rules['company_hr_first_name'] = ['required', 'string', 'max:255'];
-                    $rules['company_hr_middle_initial'] = ['required', 'string'];
-                    break;
-                case 'institution':
-                    $rules['institution_type'] = ['required', 'string'];
-                    $rules['institution_address'] = ['required', 'string'];
-                    $rules['institution_contact_number'] = ['required', 'string'];
-                    $rules['institution_president_last_name'] = ['required', 'string', 'max:255'];
-                    $rules['institution_president_first_name'] = ['required', 'string', 'max:255'];
-                    $rules['institution_career_officer_first_name'] = ['required', 'string', 'max:255'];
-                    break;
-            }
-
-            // Validate the input
             Validator::make($input, $rules)->validate();
 
-            // Create the user
-            User::create([
+            // Create user
+            $user = User::create([
                 'email' => $input['email'],
                 'password' => Hash::make($input['password']),
                 'role' => $input['role'],
-                'peso_first_name' => $input['role'] === 'peso' && isset($input['peso_first_name']) ? $input['peso_first_name'] : '',
-                'peso_last_name' => $input['role'] === 'peso' && isset($input['peso_last_name']) ? $input['peso_last_name'] : '',
-
             ]);
+
+            // If user is peso, create corresponding peso record
+            if ($user->role === 'peso') {
+                Peso::create([
+                    'user_id' => $user->id,
+                    'peso_first_name' => $input['peso_first_name'],
+                    'peso_middle_name' => $input['peso_middle_name'],
+                    'peso_last_name' => $input['peso_last_name'],
+                    'description' => $input['description'],
+                    'contact_number' => $input['contact_number'],
+                    'telephone_number' => $input['telephone_number'],
+                    'address' => $input['address'],
+                ]);
+            }
         }
     }
 }
