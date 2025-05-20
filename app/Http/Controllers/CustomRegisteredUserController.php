@@ -81,18 +81,29 @@ class CustomRegisteredUserController extends Controller
             ->select('institutions.id', 'institutions.institution_name')
             ->get();
 
-
-        // Fetch programs via InstitutionProgram
-        $programs = InstitutionProgram::with('program')
+        // Fetch programs with institution_id
+        $programs = \App\Models\InstitutionProgram::with('program')
             ->whereIn('institution_id', $insti_users->pluck('id'))
             ->get()
-            ->pluck('program');
+            ->map(function ($ip) {
+                return [
+                    'id' => $ip->program->id,
+                    'name' => $ip->program->name,
+                    'institution_id' => $ip->institution_id,
+                ];
+            });
 
-        // Fetch school years via InstitutionSchoolYear
-        $school_years = InstitutionSchoolYear::with('schoolYear')
+        // Fetch school years with institution_id
+        $school_years = \App\Models\InstitutionSchoolYear::with('schoolYear')
             ->whereIn('institution_id', $insti_users->pluck('id'))
             ->get()
-            ->pluck('schoolYear');
+            ->map(function ($isy) {
+                return [
+                    'id' => $isy->schoolYear->id,
+                    'school_year_range' => $isy->schoolYear->school_year_range,
+                    'institution_id' => $isy->institution_id,
+                ];
+            });
 
 
         return Inertia::render('Auth/Register', [
