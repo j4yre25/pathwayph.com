@@ -74,11 +74,19 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\CareerOfficerRegisterController;
 
 
-
 Route::get('/', function () {
-    return Inertia::render('Auth/Login');
-});
+    return Inertia::render('Auth/LandingPage');
+})->name('landing-page.index');
+ 
+// Route::get('/', function () {
+//     return Inertia::render('Auth/Login');
+// });
 
+
+Route::get('/register', function () {
+    return Inertia::render('Auth/PathwayRegister');
+})->name('pathway.register');
+ 
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/peso/register', [AdminRegisterController::class, 'showRegistrationForm'])->name('admin.register');
@@ -608,14 +616,16 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
                 ->name('register.showGraduateDetails');
 
 
-
-            Route::get('/register/company', [CustomRegisteredUserController::class, 'create'])
+            Route::get('/register/company', [CustomRegisteredUserController::class, 'showCompanyDetails'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.company');
-
+                
             Route::get('/register/institution', [CustomRegisteredUserController::class, 'create'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.institution');
+
+            Route::get('/register/institution', [CustomRegisteredUserController::class, 'showGraduateDetails'])
+                ->name('register.showGraduateDetails');
         }
 
         // Default registration submission
@@ -728,7 +738,6 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
         Route::post(RoutePath::for('two-factor.recovery-codes', '/user/two-factor-recovery-codes'), [RecoveryCodeController::class, 'store'])
             ->middleware($twoFactorMiddleware);
     }
-
 });
 
 Route::middleware('auth:sanctum')->group(function () {

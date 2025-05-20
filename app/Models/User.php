@@ -144,8 +144,11 @@ class User extends Authenticatable
 
     public function jobs()
     {
-
         return $this->hasMany(Job::class);
+    }
+  
+    public function hr() {
+        return $this->hasOne(HumanResource::class);
     }
 
     public function company()

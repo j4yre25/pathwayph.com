@@ -61,6 +61,8 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['company_zip_code'] = ['required', 'string', 'max:4'];
                 $rules['company_email'] = ['required', 'string', 'email', 'max:255'];
                 $rules['company_mobile_phone'] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
+                $rules['sector'] = 'required|exists:sectors,name';
+
                 break;
             case 'institution':
                 $rules['institution_type'] = ['required', 'string'];
@@ -78,7 +80,6 @@ class CreateNewUser implements CreatesNewUsers
         $messages = [
             'first_name.required' => 'The first name field is required.',
             'last_name.required' => 'The last name field is required.',
-            'middle_name.required' => 'The middle initial field is required.',
             'email.required' => 'The email field is required.',
             'email.email' => 'The email must be a valid email address.',
             'email.unique' => 'The email has already been taken.',
@@ -99,6 +100,7 @@ class CreateNewUser implements CreatesNewUsers
             'graduate_program_completed.required' => 'The program completed field is required.',
             'graduate_year_graduated.required' => 'The school year field is required.',
             'company_name.required' => 'The company name field is required.',
+            
             'company_street_address.required' => 'The street address field is required.',
             'company_brgy.required' => 'The barangay field is required.',
             'company_city.required' => 'The city field is required.',
@@ -136,7 +138,7 @@ class CreateNewUser implements CreatesNewUsers
             'dob' => $input['dob'],
             'gender' => $input['gender'],
             'mobile_number' => $input['mobile_number'],
-            
+
 
         ];
 
@@ -189,14 +191,15 @@ class CreateNewUser implements CreatesNewUsers
 
 
         // Kani siya kay para masulod sa Company table
-       if ($role === 'company') {
+        if ($role === 'company') {
             // Create the company now that we have $user->id
             $company = Company::create([
-                'user_id' => $user->id, 
+                'user_id' => $user->id,
                 'company_name' => $input['company_name'],
                 'company_street_address' => $input['company_street_address'],
                 'company_brgy' => $input['company_brgy'],
                 'company_city' => $input['company_city'],
+                'sector_id' => \App\Models\Sector::where('name', $input['sector'])->value('id'),
                 'company_province' => $input['company_province'],
                 'company_zip_code' => $input['company_zip_code'],
                 'company_email' => $input['company_email'],
@@ -207,7 +210,7 @@ class CreateNewUser implements CreatesNewUsers
             ]);
 
             // Create main HR record associated with this company and user
-            $user->hrProfile()->create([
+            $user->hr()->create([
                 'first_name' => $input['first_name'],
                 'middle_name' => $input['middle_name'],
                 'last_name' => $input['last_name'],
@@ -215,6 +218,7 @@ class CreateNewUser implements CreatesNewUsers
                 'dob' => $input['dob'],
                 'gender' => $input['gender'],
                 'company_id' => $company->id,
+                'is_main_hr' => false, // Set this HR as the main HR
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -245,5 +249,6 @@ class CreateNewUser implements CreatesNewUsers
     {
         return DB::table('school_years')->where('school_year_range', $schoolYearRange)->value('id');
     }
+
 
 }
