@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Models\Institution;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\HumanResource;
@@ -39,8 +40,6 @@ class CreateNewUser implements CreatesNewUsers
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'mobile_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
             'password' => $this->passwordRules(),
-            'dob' => ['required', 'date', 'before_or_equal:' . Carbon::now()->subYears(18)->format('Y-m-d')],
-            'gender' => ['required', 'string', 'in:Male,Female'],
             'telephone_number' => ['nullable', 'regex:/^(02\d{7}|0\d{2}\d{7})$/'],
         ];
 
@@ -71,6 +70,8 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['institution_address'] = ['required', 'string'];
                 $rules['institution_president_last_name'] = ['required', 'string', 'max:255'];
                 $rules['institution_president_first_name'] = ['required', 'string', 'max:255'];
+                $rules['first_name'] = ['nullable', 'string', 'max:255'];
+                $rules['last_name'] = ['nullable', 'string', 'max:255'];
 
                 break;
             default:
@@ -136,42 +137,35 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
             'role' => $role,
-            'dob' => $input['dob'],
-            'gender' => $input['gender'],
             'mobile_number' => $input['mobile_number'],
 
 
         ];
 
-        // Add role-specific fields
-        switch ($role) {
-            case 'graduate':
-                $userData['graduate_first_name'] = $input['graduate_first_name'];
-                $userData['graduate_last_name'] = $input['graduate_last_name'];
-                $userData['graduate_middle_initial'] = $input['graduate_middle_initial'];
-                $userData['graduate_school_graduated_from'] = $input['graduate_school_graduated_from'];
-                $userData['graduate_program_completed'] = $this->getProgramId($input['graduate_program_completed']); // ✅ Store as ID
-                $userData['graduate_year_graduated'] = $this->getYearId($input['graduate_year_graduated']); // ✅ Store as ID
-                $userData['institution_id'] = $input['graduate_school_graduated_from']; //Assign institution_id
-                $userData['is_approved'] = false; //Ensure graduates start as unapproved!
-                $userData['employment_status'] = $input['employment_status'];
-                $userData['current_job_title'] = ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'];
-                break;
-            case 'institution':
-                $userData['institution_type'] = $input['institution_type'];
-                $userData['institution_name'] = $input['institution_name'];
-                $userData['institution_address'] = $input['institution_address'];
-                $userData['institution_president_last_name'] = $input['institution_president_last_name'];
-                $userData['institution_president_first_name'] = $input['institution_president_first_name'];
-                break;
-            default:
-                // Handle the guest role by not adding any additional fields to the user data
-                break;
-        }
         // Kani siya kay para masulod sa Graduates table
         $user = User::create($userData);
 
+        // Store in Graduates table (already present)
+ 
 
+        // Store in Institutions table
+        if ($role === 'institution') {
+             DB::table('institutions')->insert([
+                'user_id' => $user->id,
+                'institution_name' => $input['institution_name'],
+                'institution_type' => $input['institution_type'],
+                'institution_address' => $input['institution_address'],
+                'address' => $input['institution_address'], // <-- add this line
+                'email' => $input['email'],
+                'website' => $input['website'] ?? null,
+                'contact_number' => $input['mobile_number'],
+                'institution_president_first_name' => $input['institution_president_first_name'],
+                'institution_president_last_name' => $input['institution_president_last_name'],
+                'telephone_number' => $input['telephone_number'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
 
         // Kani siya kay para masulod sa Company table
@@ -194,7 +188,7 @@ class CreateNewUser implements CreatesNewUsers
             ]);
             if ($role === 'graduate') {
                 // Create the graduate now that we have $user->id
-                $graduate = Graduate::create([
+            DB::table('graduates')->insert([
                     'user_id' => $user->id,
                     'graduate_first_name' => $input['first_name'],
                     'graduate_last_name' => $input['last_name'],

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\SchoolYear;
-use App\Models\Institution;
 use App\Models\InstitutionSchoolYear;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -15,7 +14,7 @@ class SchoolYearController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
         $schoolYears = InstitutionSchoolYear::with('schoolYear')
             ->where('institution_id', $institution?->id)
             ->get();
@@ -28,7 +27,7 @@ class SchoolYearController extends Controller
     public function list(Request $request)
     {
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
         $status = $request->input('status', 'all');
 
         $query = InstitutionSchoolYear::with('schoolYear')
@@ -52,7 +51,7 @@ class SchoolYearController extends Controller
     public function archivedList()
     {
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
         $archived = InstitutionSchoolYear::with('schoolYear')
             ->onlyTrashed()
             ->where('institution_id', $institution?->id)
@@ -70,9 +69,8 @@ class SchoolYearController extends Controller
 
     public function store(Request $request)
     {
-        
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
         if (!$institution) {
             return back()->withErrors(['institution' => 'Institution not found for this user.']);
         }
@@ -101,7 +99,7 @@ class SchoolYearController extends Controller
         // Check if this institution already has this school year/term
         $exists = InstitutionSchoolYear::withTrashed()
             ->where('institution_id', $institution->id)
-            ->where('school_year_id', $schoolYear->id)
+            ->where('school_year_range_id', $schoolYear->id)
             ->where('term', $request->term)
             ->exists();
 
@@ -110,7 +108,7 @@ class SchoolYearController extends Controller
         }
 
         InstitutionSchoolYear::create([
-            'school_year_id' => $schoolYear->id,
+            'school_year_range_id' => $schoolYear->id,
             'term' => $request->term,
             'institution_id' => $institution->id,
         ]);
@@ -121,7 +119,7 @@ class SchoolYearController extends Controller
     public function edit($id)
     {
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
         $schoolYear = InstitutionSchoolYear::with('schoolYear')
             ->where('institution_id', $institution?->id)
             ->findOrFail($id);
@@ -134,7 +132,7 @@ class SchoolYearController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
 
         $request->validate([
             'school_year_range' => ['required', 'regex:/^\d{4}-\d{4}$/'],
@@ -158,7 +156,7 @@ class SchoolYearController extends Controller
 
         $exists = InstitutionSchoolYear::withTrashed()
             ->where('institution_id', $institution->id)
-            ->where('school_year_id', $schoolYear->id)
+            ->where('school_year_range_id', $schoolYear->id)
             ->where('term', $request->term)
             ->where('id', '!=', $id)
             ->exists();
@@ -170,7 +168,7 @@ class SchoolYearController extends Controller
         $institutionSchoolYear = InstitutionSchoolYear::where('institution_id', $institution->id)->findOrFail($id);
 
         $institutionSchoolYear->update([
-            'school_year_id' => $schoolYear->id,
+            'school_year_range_id' => $schoolYear->id,
             'term' => $request->term,
         ]);
 
@@ -180,7 +178,7 @@ class SchoolYearController extends Controller
     public function delete(Request $request, $id)
     {
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
         $schoolYear = InstitutionSchoolYear::where('institution_id', $institution?->id)->findOrFail($id);
         $schoolYear->delete();
 
@@ -190,7 +188,7 @@ class SchoolYearController extends Controller
     public function restore($id)
     {
         $user = Auth::user();
-        $institution = Institution::where('user_id', $user->id)->first();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
         $schoolYear = InstitutionSchoolYear::withTrashed()
             ->where('institution_id', $institution?->id)
             ->findOrFail($id);

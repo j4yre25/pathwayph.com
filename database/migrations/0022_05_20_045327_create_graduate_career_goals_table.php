@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('graduate_skills', function (Blueprint $table) {
+        Schema::create('career_goals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('graduate_id')->constrained('graduates')->onDelete('cascade');
-            $table->foreignId('skill_id')->constrained('skills')->onDelete('cascade');
-            $table->enum('proficiency_type', ['Beginner', 'Intermediate', 'Advanced', 'Expert']);
-            $table->string('type');
-            $table->integer('years_experience');
+            $table->text('short_term_goals')->nullable();
+            $table->text('long_term_goals')->nullable();
+            $table->text('industries_of_interest')->nullable();
+            $table->text('career_path')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('graduate_skills');
+        Schema::dropIfExists('career_goals');
     }
 };

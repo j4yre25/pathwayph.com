@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('employment_preferences', function (Blueprint $table) {
+        Schema::create('graduate_skills', function (Blueprint $table) {
             $table->id();
             $table->foreignId('graduate_id')->constrained('graduates')->onDelete('cascade');
-            $table->string('job_types');
-            $table->string('salary_expectations')->nullable();
-            $table->text('preferred_locations')->nullable();
-            $table->string('work_environment')->nullable();
-            $table->string('availability');
-            $table->text('additional_notes')->nullable();
+            $table->foreignId('skill_id')->constrained('skills')->onDelete('cascade');
+            $table->enum('proficiency_type', ['Beginner', 'Intermediate', 'Advanced', 'Expert']);
+            $table->string('type');
+            $table->integer('years_experience');
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('employment_preferences');
+        Schema::dropIfExists('graduate_skills');
     }
 };

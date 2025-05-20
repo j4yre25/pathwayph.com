@@ -11,13 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('career_goals', function (Blueprint $table) {
+        Schema::create('graduate_certifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('graduate_id')->constrained('graduates')->onDelete('cascade');
-            $table->text('short_term_goals')->nullable();
-            $table->text('long_term_goals')->nullable();
-            $table->text('industries_of_interest')->nullable();
-            $table->text('career_path')->nullable();
+            $table->string('name');
+            $table->string('issuer');
+            $table->date('issue_date');
+            $table->date('expiry_date')->nullable();
+            $table->string('credential_url')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 
@@ -26,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('career_goals');
+        Schema::dropIfExists('graduate_certifications');
     }
 };

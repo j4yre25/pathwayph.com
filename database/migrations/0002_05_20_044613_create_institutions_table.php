@@ -25,6 +25,8 @@ return new class extends Migration
             $table->string('telephone_number');
             $table->string('institution_president_first_name');
             $table->string('institution_president_last_name');
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 

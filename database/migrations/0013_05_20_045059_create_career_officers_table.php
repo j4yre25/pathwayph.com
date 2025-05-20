@@ -23,6 +23,8 @@ return new class extends Migration
             $table->date('dob')->nullable();
             $table->string('gender')->nullable();
             $table->boolean('is_main_officer')->default(false);
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 
