@@ -21,6 +21,8 @@ return new class extends Migration
             $table->string('contact_number');
             $table->string('telephone_number');
             $table->string('address');
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 

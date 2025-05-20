@@ -11,9 +11,6 @@ class Degree extends Model
 
     protected $fillable = ['type'];
     
-    public function user() {
-        return $this->belongsTo(User::class);
-    }
     public function programs()
     {
         return $this->hasMany(Program::class);

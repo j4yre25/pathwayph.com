@@ -11,13 +11,8 @@ class SchoolYear extends Model
 
     protected $fillable = ['school_year_range'];
 
-    public function user()
+    public function institutionSchoolYears()
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function institution()
-    {
-        return $this->belongsTo(Institution::class, 'institution_id');
+        return $this->hasMany(InstitutionSchoolYear::class, 'school_year_range_id');
     }
 }

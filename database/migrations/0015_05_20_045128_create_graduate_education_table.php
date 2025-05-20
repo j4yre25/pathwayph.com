@@ -11,16 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('graduate_achievements', function (Blueprint $table) {
+        Schema::create('graduate_educations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('graduate_id')->constrained('graduates')->onDelete('cascade');
-            $table->string('title');
-            $table->string('type');
-            $table->string('issuer')->nullable();
-            $table->date('date');
+            $table->foreignId('institution_id')->constrained('institutions')->onDelete('cascade');
+            $table->string('program');
+            $table->string('field_of_study');
+            $table->date('start_date');
+            $table->date('end_date');
             $table->text('description')->nullable();
-            $table->string('url')->nullable();
-            $table->string('credential_picture')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
         });
     }
 
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('graduate_achievements');
+        Schema::dropIfExists('graduate_educations');
     }
 };

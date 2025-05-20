@@ -15,7 +15,8 @@ class Institution extends Model
         'institution_type',
         'institution_address',
         'email',
-        'role',
+        'website',
+        'contact_number',
         'institution_contact_number',
         'telephone_number',
         'institution_president_first_name',
@@ -27,6 +28,15 @@ class Institution extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+      public function schoolYears()
+    {
+        return $this->hasMany(SchoolYear::class, 'institution_id');
+    }
+     public function institutionSchoolYears()
+    {
+        return $this->hasMany(InstitutionSchoolYear::class, 'institution_id');
+    }
+    
     public function graduates()
     {
         return $this->hasMany(Graduate::class, 'institution_id');
@@ -37,11 +47,6 @@ class Institution extends Model
         return $this->hasMany(Program::class, 'institution_id');
     }
 
-    public function schoolYears()
-    {
-        return $this->hasMany(SchoolYear::class, 'institution_id');
-    }
-
     public function institutionPrograms()
     {
         return $this->hasMany(InstitutionProgram::class, 'institution_id');
@@ -50,11 +55,6 @@ class Institution extends Model
     public function institutionDegrees()
     {
         return $this->hasMany(InstitutionDegree::class, 'institution_id');
-    }
-
-    public function institutionSchoolYears()
-    {
-        return $this->hasMany(InstitutionSchoolYear::class, 'institution_id');
     }
 
     public function institutionSkills()

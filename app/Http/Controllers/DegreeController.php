@@ -14,7 +14,7 @@ class DegreeController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $degrees = InstitutionDegree::with('degree')
             ->where('institution_id', $institution?->id)
             ->get();
@@ -27,7 +27,7 @@ class DegreeController extends Controller
     public function list(Request $request)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $status = $request->input('status', 'all');
 
         $query = InstitutionDegree::with('degree')
@@ -51,7 +51,7 @@ class DegreeController extends Controller
     public function archivedList()
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $all_degrees = InstitutionDegree::with('degree')
             ->onlyTrashed()
             ->where('institution_id', $institution?->id)
@@ -70,7 +70,7 @@ class DegreeController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         if (!$institution) {
             return back()->withErrors(['institution' => 'Institution not found for this user.']);
         }
@@ -111,7 +111,7 @@ class DegreeController extends Controller
     public function edit($id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $degree = InstitutionDegree::with('degree')
             ->where('institution_id', $institution?->id)
             ->findOrFail($id);
@@ -124,7 +124,7 @@ class DegreeController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
 
         $request->validate([
             'type' => ['required', 'in:Bachelor,Associate,Master,Doctoral,Diploma'],
@@ -162,7 +162,7 @@ class DegreeController extends Controller
     public function delete(Request $request, $id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $degree = InstitutionDegree::where('institution_id', $institution?->id)->findOrFail($id);
         $degree->delete();
 
@@ -172,7 +172,7 @@ class DegreeController extends Controller
     public function restore($id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $degree = InstitutionDegree::withTrashed()
             ->where('institution_id', $institution?->id)
             ->findOrFail($id);

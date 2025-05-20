@@ -10,14 +10,14 @@ class InstitutionSchoolYear extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'school_year_id',
+        'school_year_range_id',
         'term',
         'institution_id',
     ];
 
     public function schoolYear()
     {
-        return $this->belongsTo(SchoolYear::class, 'school_year_id');
+        return $this->belongsTo(SchoolYear::class, 'school_year_range_id');
     }
 
 

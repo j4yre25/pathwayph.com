@@ -32,6 +32,7 @@ return new class extends Migration
             $table->string('github_url')->nullable();
             $table->string('personal_website')->nullable();
             $table->text('other_social_links')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

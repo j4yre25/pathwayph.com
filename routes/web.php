@@ -29,8 +29,6 @@ use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyManageHRController;
-use App\Http\Controllers\CompanyJobApplicantController;
-use App\Http\Controllers\CompanyApplicationController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -208,6 +206,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 // Company Jobs Routes
+// Route::prefix('user')->group(function () {
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}', [CompanyJobsController::class, 'index'])
     ->name('company.jobs');
 
@@ -248,29 +247,17 @@ Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'dis
 
 //Manage Applicants Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    // View all applicants for a specific job
+    Route::get('/jobs/{job}/applicants', [ApplicantController::class, 'index'])->name('applicants');
 
-    // Job-level applicant management (JobApplicantController)
-    Route::prefix('/company')->group(function () {
-        //View all jobs
-        Route::get('jobs', [CompanyJobApplicantController::class, 'index'])->name('company.job.applicants.index');
-        // View all applicants for a specific job
-        Route::get('{job}/applicants', [CompanyJobApplicantController::class, 'show'])->name('company.job.applicants.show');
-    });
+    // View details of a specific applicant
+    Route::get('/applicants/{applicant}', [ApplicantController::class, 'show'])->name('applicants.show');
 
-    // Individual application management (ApplicationController)
-    Route::prefix('/applicants')->group(function () {
-        // View details of a specific applicant/application
-        Route::get('{application}', [CompanyApplicationController::class, 'show'])->name('applicants.show');
+    // Update an applicant's status (e.g., mark as hired)
+    Route::put('/applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
 
-        // Update an applicant's status (e.g., mark as hired)
-        Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
-
-        // Soft Delete an applicant
-        Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
-
-        // Schedule interview
-        Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
-    });
+    // Delete an applicant
+    Route::delete('/applicants/{applicant}', [ApplicantController::class, 'delete'])->name('applicants.delete');
 });
 
 // Manage HR Accounts 
@@ -448,7 +435,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/institutions/school-years/{user}', [SchoolYearController::class, 'index'])->name('school-years');
     Route::get('/institutions/school-years/{user}/list', [SchoolYearController::class, 'list'])->name('school-years.list');
     Route::get('/institutions/school-years/{user}/create', [SchoolYearController::class, 'create'])->name('school-years.create');
-    Route::post('/institutions/school-years', [SchoolYearController::class, 'store'])->name('school-years.store');
+    Route::post('/institutions/school-years/{user}', [SchoolYearController::class, 'store'])->name('school-years.store');
     Route::get('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'edit'])->name('school-years.edit');
     Route::put('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'update'])->name('school-years.update');
     Route::delete('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'delete'])->name('school-years.delete');
@@ -462,11 +449,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/institutions/degrees/{user}/list', [DegreeController::class, 'list'])->name('degrees.list');
     Route::get('/institutions/degrees/{user}/create', [DegreeController::class, 'create'])->name('degrees.create');
     Route::post('/institutions/degrees/{user}', [DegreeController::class, 'store'])->name('degrees.store');
-    Route::get('/institutions/degrees/edit/{degree}', [DegreeController::class, 'edit'])->name('degrees.edit');
-    Route::put('/institutions/degrees/edit/{degree}', [DegreeController::class, 'update'])->name('degrees.update');
-    Route::delete('/institutions/degrees/edit/{degree}', [DegreeController::class, 'delete'])->name('degrees.delete');
+    Route::get('/institutions/degrees/edit/{institutionDegree}', [DegreeController::class, 'edit'])->name('degrees.edit');
+    Route::put('/institutions/degrees/edit/{institutionDegree}', [DegreeController::class, 'update'])->name('degrees.update');
+    Route::delete('/institutions/degrees/edit/{institutionDegree}', [DegreeController::class, 'delete'])->name('degrees.delete');
     Route::get('/institutions/degrees/{user}/archivedlist', [DegreeController::class, 'archivedlist'])->name('degrees.archivedlist');
     Route::post('/institutions/degrees/edit/{degree}', [DegreeController::class, 'restore'])->name('degrees.restore');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/degrees', [DegreeController::class, 'index'])->name('degrees.index');
+    Route::get('/degrees/create', [DegreeController::class, 'create'])->name('degrees.create');
+    Route::post('/degrees', [DegreeController::class, 'store'])->name('degrees.store');
+    Route::get('/degrees/{institutionDegree}/edit', [DegreeController::class, 'edit'])->name('degrees.edit');
+    Route::put('/degrees/{institutionDegree}', [DegreeController::class, 'update'])->name('degrees.update');
+    Route::delete('/degrees/{institutionDegree}', [DegreeController::class, 'delete'])->name('degrees.delete');
+    Route::post('/degrees/{id}/restore', [DegreeController::class, 'restore'])->name('degrees.restore');
 });
 
 // PROGRAM ROUTES
@@ -520,8 +517,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 
 // MAIN INSITUTION GRADUATE ROUTES
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
-
+Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
+    
     Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
     Route::get('/graduates/create', [GraduateController::class, 'create'])->name('graduates.create');
     Route::post('/graduates', [GraduateController::class, 'store'])->name('institution.graduate.store');
@@ -729,27 +726,27 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->middleware($twoFactorMiddleware);
     }
 
+    Route::middleware('auth:sanctum')->group(function () {
+        // Fetch job opportunities
+        Route::get('/job-opportunities', [JobInboxController::class, 'getJobOpportunities']);
+
+        // Fetch job applications
+        Route::get('/job-applications', [JobInboxController::class, 'getJobApplications']);
+
+        // Fetch notifications
+        Route::get('/notifications', [JobInboxController::class, 'getNotifications']);
+
+        // Apply for a job
+        Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob']);
+
+        // Archive a job opportunity
+        Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity']);
+
+        // Mark notification as read
+        Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead']);
+    });
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    // Fetch job opportunities
-    Route::get('/job-opportunities', [JobInboxController::class, 'getJobOpportunities']);
-
-    // Fetch job applications
-    Route::get('/job-applications', [JobInboxController::class, 'getJobApplications']);
-
-    // Fetch notifications
-    Route::get('/notifications', [JobInboxController::class, 'getNotifications']);
-
-    // Apply for a job
-    Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob']);
-
-    // Archive a job opportunity
-    Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity']);
-
-    // Mark notification as read
-    Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead']);
-});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -803,8 +800,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('education.remove');
 
     // Experience Routes
-    Route::post('/profile/experiences', [ProfileController::class, 'addExperience'])->name('experience.addExperience');
-    Route::put('/profile/experiences/{id}', [ProfileController::class, 'updateExperience'])->name('experience.updateExperience');
+    Route::post('/profile/experiences', [ProfileController::class, 'addExperience'])->name('experience.add');
+    Route::put('/profile/experiences/{id}', [ProfileController::class, 'updateExperience'])->name('experience.update');
     Route::delete('/profile/experiences/{id}', [ProfileController::class, 'removeExperience'])->name('experience.remove c');
 
     // Project Routes
