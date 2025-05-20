@@ -16,7 +16,7 @@ class ProgramController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $programs = InstitutionProgram::with('program.degree')
             ->where('institution_id', $institution?->id)
             ->get();
@@ -29,7 +29,7 @@ class ProgramController extends Controller
     public function list(Request $request)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $status = $request->input('status', 'all');
 
         $query = InstitutionProgram::with('program.degree')
@@ -53,7 +53,7 @@ class ProgramController extends Controller
     public function archivedList()
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $all_programs = InstitutionProgram::with('program.degree')
             ->onlyTrashed()
             ->where('institution_id', $institution?->id)
@@ -67,7 +67,7 @@ class ProgramController extends Controller
     public function create()
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
 
         // Fetch only degrees linked to this institution
         $degrees = [];
@@ -87,7 +87,7 @@ class ProgramController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
 
         $request->validate([
             'name' => ['required', 'string'],
@@ -129,7 +129,7 @@ class ProgramController extends Controller
     public function edit($id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $institutionProgram = InstitutionProgram::with('program.degree')
             ->where('institution_id', $institution?->id)
             ->findOrFail($id);
@@ -145,7 +145,7 @@ class ProgramController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
 
         $request->validate([
             'name' => ['required', 'string'],
@@ -189,7 +189,7 @@ class ProgramController extends Controller
     public function delete($id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $institutionProgram = InstitutionProgram::where('institution_id', $institution?->id)->findOrFail($id);
         $institutionProgram->delete();
 
@@ -199,7 +199,7 @@ class ProgramController extends Controller
     public function restore($id)
     {
         $user = Auth::user();
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         $institutionProgram = InstitutionProgram::withTrashed()
             ->where('institution_id', $institution?->id)
             ->findOrFail($id);

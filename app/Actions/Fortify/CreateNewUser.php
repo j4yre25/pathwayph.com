@@ -138,24 +138,18 @@ class CreateNewUser implements CreatesNewUsers
             'password' => Hash::make($input['password']),
             'role' => $role,
             'mobile_number' => $input['mobile_number'],
-
-
         ];
 
-        // Kani siya kay para masulod sa Graduates table
         $user = User::create($userData);
-
-        // Store in Graduates table (already present)
- 
 
         // Store in Institutions table
         if ($role === 'institution') {
-             DB::table('institutions')->insert([
+            DB::table('institutions')->insert([
                 'user_id' => $user->id,
                 'institution_name' => $input['institution_name'],
                 'institution_type' => $input['institution_type'],
                 'institution_address' => $input['institution_address'],
-                'address' => $input['institution_address'], // <-- add this line
+                'address' => $input['institution_address'],
                 'email' => $input['email'],
                 'website' => $input['website'] ?? null,
                 'contact_number' => $input['mobile_number'],
@@ -165,12 +159,12 @@ class CreateNewUser implements CreatesNewUsers
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $user->assignRole($role);
+            return $user; // <-- Ensure return here
         }
 
-
-        // Kani siya kay para masulod sa Company table
+        // Store in Companies table
         if ($role === 'company') {
-            // Create the company now that we have $user->id
             $company = Company::create([
                 'user_id' => $user->id,
                 'company_name' => $input['company_name'],
@@ -186,49 +180,39 @@ class CreateNewUser implements CreatesNewUsers
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            if ($role === 'graduate') {
-                // Create the graduate now that we have $user->id
-            DB::table('graduates')->insert([
-                    'user_id' => $user->id,
-                    'graduate_first_name' => $input['first_name'],
-                    'graduate_last_name' => $input['last_name'],
-                    'graduate_middle_name' => $input['middle_name'],
-                    'current_job_title' =>  ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
-                    'employment_status' => $input['employment_status'] ,
-                    'contact_number' => $input['contact_number'] ,
-                    'location' => $input['location'] ,
-                    'ethnicity' => $input['ethnicity'] ,
-                    'address' => $input['address'] ,
-                    'about_me' => $input['about_me'] ,
-                    'institution_id' => $input['institution_id'] ,
-                    'degree_id' => $input['degree_id'] ,
-                    'program_id' => $this->getProgramId($input['graduate_program_completed']),
-                    'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
-                    'linkedin_url' => $input['linkedin_url'] ,
-                    'github_url' => $input['github_url'] ,
-                    'personal_website' => $input['personal_website'] ,
-                    'other_social_links' => $input['other_social_links'] ,
-                    
-                ]);
-
-                // Create main HR record associated with this company and user
-                $user->hr()->create([
-                    'first_name' => $input['first_name'],
-                    'middle_name' => $input['middle_name'],
-                    'last_name' => $input['last_name'],
-                    'mobile_number' => $input['mobile_number'],
-                    'dob' => $input['dob'],
-                    'gender' => $input['gender'],
-                    'company_id' => $company->id,
-                    'is_main_hr' => false, // Set this HR as the main HR
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
             $user->assignRole($role);
-            return $user;
+            return $user; // <-- Ensure return here
         }
+
+        // Store in Graduates table
+        if ($role === 'graduate') {
+            DB::table('graduates')->insert([
+                'user_id' => $user->id,
+                'graduate_first_name' => $input['first_name'],
+                'graduate_last_name' => $input['last_name'],
+                'graduate_middle_name' => $input['middle_name'],
+                'current_job_title' =>  ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
+                'employment_status' => $input['employment_status'] ,
+                'contact_number' => $input['contact_number'] ,
+                'location' => $input['location'] ,
+                'ethnicity' => $input['ethnicity'] ,
+                'address' => $input['address'] ,
+                'about_me' => $input['about_me'] ,
+                'institution_id' => $input['institution_id'] ,
+                'degree_id' => $input['degree_id'] ,
+                'program_id' => $this->getProgramId($input['graduate_program_completed']),
+                'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
+                'linkedin_url' => $input['linkedin_url'] ,
+                'github_url' => $input['github_url'] ,
+                'personal_website' => $input['personal_website'] ,
+                'other_social_links' => $input['other_social_links'] ,
+            ]);
+            $user->assignRole($role);
+            return $user; // <-- Ensure return here
+        }
+
+        $user->assignRole($role);
+        return $user; // Fallback return for any other role
     }
 
     protected function determineRole(Request $request): string

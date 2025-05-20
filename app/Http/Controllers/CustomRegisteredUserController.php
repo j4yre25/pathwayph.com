@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Institution;
-use App\Models\SchoolYear;
-use App\Models\Program;
+use App\Models\InstitutionSchoolYear;
+use App\Models\InstitutionProgram;
 use App\Models\Sector;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\StatefulGuard;
@@ -82,11 +82,17 @@ class CustomRegisteredUserController extends Controller
             ->get();
 
 
-        // Retrieve programs per institution instead of globally
-        $programs = Program::whereIn('institution_id', $insti_users->pluck('id'))->get();
+        // Fetch programs via InstitutionProgram
+        $programs = InstitutionProgram::with('program')
+            ->whereIn('institution_id', $insti_users->pluck('id'))
+            ->get()
+            ->pluck('program');
 
-        // Retrieve school years per institution instead of globally
-        $school_years = SchoolYear::whereIn('institution_id', $insti_users->pluck('id'))->get();
+        // Fetch school years via InstitutionSchoolYear
+        $school_years = InstitutionSchoolYear::with('schoolYear')
+            ->whereIn('institution_id', $insti_users->pluck('id'))
+            ->get()
+            ->pluck('schoolYear');
 
 
         return Inertia::render('Auth/Register', [
