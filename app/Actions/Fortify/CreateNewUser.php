@@ -188,24 +188,15 @@ class CreateNewUser implements CreatesNewUsers
         if ($role === 'graduate') {
             DB::table('graduates')->insert([
                 'user_id' => $user->id,
-                'graduate_first_name' => $input['first_name'],
-                'graduate_last_name' => $input['last_name'],
-                'graduate_middle_name' => $input['middle_name'],
-                'current_job_title' =>  ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
-                'employment_status' => $input['employment_status'] ,
-                'contact_number' => $input['contact_number'] ,
-                'location' => $input['location'] ,
-                'ethnicity' => $input['ethnicity'] ,
-                'address' => $input['address'] ,
-                'about_me' => $input['about_me'] ,
-                'institution_id' => $input['institution_id'] ,
-                'degree_id' => $input['degree_id'] ,
+                'first_name' => $input['first_name'],
+                'last_name' => $input['last_name'],
+                'middle_name' => $input['middle_name'],
+                'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
+                'employment_status' => $input['employment_status'],
+                'contact_number' => $input['mobile_number'],
+                'institution_id' => $input['graduate_school_graduated_from'],
                 'program_id' => $this->getProgramId($input['graduate_program_completed']),
                 'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
-                'linkedin_url' => $input['linkedin_url'] ,
-                'github_url' => $input['github_url'] ,
-                'personal_website' => $input['personal_website'] ,
-                'other_social_links' => $input['other_social_links'] ,
             ]);
             $user->assignRole($role);
             return $user; // <-- Ensure return here
@@ -231,6 +222,13 @@ class CreateNewUser implements CreatesNewUsers
     private function getProgramId($programName)
     {
         return DB::table('programs')->where('name', $programName)->value('id');
+    }
+
+    private function getInstitutionId($institutionName)
+    {
+        return DB::table('institutions')
+            ->whereRaw('LOWER(TRIM(institution_name)) = ?', [strtolower(trim($institutionName))])
+            ->value('id');
     }
     private function getYearId($schoolYearRange)
     {

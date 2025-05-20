@@ -14,6 +14,9 @@ class Education extends Model
      *
      * @var array
      */
+
+         protected $table = 'graduate_educations';
+
     protected $fillable = [
         'user_id',
         'institution_id',
@@ -24,12 +27,11 @@ class Education extends Model
         'grade',
         'activities',
         'description',
-        'graduate_education_institution_id',
-        'graduate_education_program',
-        'graduate_education_field_of_study',
-        'graduate_education_start_date',
-        'graduate_education_end_date',
-        'graduate_education_description',
+        'program',
+        'field_of_study',
+        'start_date',
+        'end_date',
+        'description',
     ];
 
     /**
@@ -50,6 +52,12 @@ class Education extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
     }
 
     /**
