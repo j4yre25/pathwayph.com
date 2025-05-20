@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\CareerOpportunity;
+use App\Models\Institution;
 use App\Models\InstitutionCareerOpportunity;
 use App\Models\Program;
+use App\Models\InstitutionProgram;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,11 +17,28 @@ class CareerOpportunityController extends Controller
 {
     public function index(User $user, Request $request)
     {
-        $programs = $user->programs;
+        // Get the institution for this user
+        $institution = Institution::where('institution_id', $user->id)->first();
+        if (!$institution) {
+            return Inertia::render('Institutions/CareerOpportunities/Index', [
+                'programs' => [],
+                'opportunities' => [],
+            ]);
+        }
+
+        $programs = $user->institutionPrograms()
+            ->whereNull('institution_programs.deleted_at')
+            ->whereNull('institutions.deleted_at')
+            ->with('program')
+            ->get();
+
         $filterProgramId = $request->input('program_id');
 
-        $query = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
-            ->where('institution_id', $user->id);
+        $query = InstitutionCareerOpportunity::with([
+            'careerOpportunity',
+            'program'
+        ])
+        ->where('institution_id', $institution->id);
 
         if ($filterProgramId) {
             $query->where('program_id', $filterProgramId);
@@ -35,12 +54,21 @@ class CareerOpportunityController extends Controller
 
     public function list(Request $request, User $user)
     {
+        $institution = Institution::where('institution_id', $user->id)->first();
+        if (!$institution) {
+            return Inertia::render('Institutions/CareerOpportunities/List', [
+                'opportunities' => [],
+                'programs' => [],
+                'status' => $request->input('status', 'all'),
+            ]);
+        }
+
         $status = $request->input('status', 'all');
         $filterProgramId = $request->input('program_id');
 
-        $query = InstitutionCareerOpportunity::with(['careerOpportunity', 'program']) // Eager loading
+        $query = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
             ->withTrashed()
-            ->where('institution_id', $user->id);
+            ->where('institution_id', $institution->id);
 
         if ($filterProgramId) {
             $query->where('program_id', $filterProgramId);
@@ -53,7 +81,12 @@ class CareerOpportunityController extends Controller
         }
 
         $opportunities = $query->get();
-        $programs = $user->programs;
+
+        $programs = $user->institutionPrograms()
+            ->whereNull('institution_programs.deleted_at')
+            ->whereNull('institutions.deleted_at')
+            ->with('program')
+            ->get();
 
         return Inertia::render('Institutions/CareerOpportunities/List', [
             'opportunities' => $opportunities,
@@ -64,9 +97,16 @@ class CareerOpportunityController extends Controller
 
     public function archivedList(User $user)
     {
-        $archived = InstitutionCareerOpportunity::with(['careerOpportunity', 'program']) // Eager loading
+        $institution = Institution::where('institution_id', $user->id)->first();
+        if (!$institution) {
+            return Inertia::render('Institutions/CareerOpportunities/ArchivedList', [
+                'opportunities' => [],
+            ]);
+        }
+
+        $archived = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
             ->onlyTrashed()
-            ->where('institution_id', $user->id)
+            ->where('institution_id', $institution->id)
             ->get();
 
         return Inertia::render('Institutions/CareerOpportunities/ArchivedList', [
@@ -76,8 +116,11 @@ class CareerOpportunityController extends Controller
 
     public function create(User $user)
     {
-        // Fetch only active programs (not archived)
-        $programs = $user->programs()->whereNull('deleted_at')->get();
+        $programs = $user->institutionPrograms()
+            ->whereNull('institution_programs.deleted_at')
+            ->whereNull('institutions.deleted_at')
+            ->with('program')
+            ->get();
 
         return Inertia::render('Institutions/CareerOpportunities/Create', [
             'programs' => $programs,
@@ -86,21 +129,15 @@ class CareerOpportunityController extends Controller
 
     public function store(Request $request, User $user)
     {
-        logger()->info('Received form data:', $request->all());
-
         $request->validate([
             'program_ids' => 'required|array|min:1',
-            'program_ids.*' => 'required|integer|exists:programs,id',
+            'program_ids.*' => 'required|integer|exists:institution_programs,id',
             'titles' => 'required|string',
         ]);
 
-        // 🔒 Filter only programs that belong to this institution
-        $validProgramIds = Program::whereIn('id', $request->program_ids)
-            ->where('institution_id', $user->id)
-            ->pluck('id')
-            ->toArray();
+        $institutionPrograms = InstitutionProgram::whereIn('id', $request->program_ids)->get();
 
-        if (count($validProgramIds) !== count($request->program_ids)) {
+        if (count($institutionPrograms) !== count($request->program_ids)) {
             return back()->withErrors([
                 'flash.banner' => 'Invalid program selection. Please only use your own programs.',
             ]);
@@ -121,19 +158,18 @@ class CareerOpportunityController extends Controller
                 $existing = CareerOpportunity::create(['title' => $title]);
             }
 
-            foreach ($validProgramIds as $programId) {
-                // Check for duplicates
+            foreach ($institutionPrograms as $instProg) {
                 $duplicate = InstitutionCareerOpportunity::where([
                     'career_opportunity_id' => $existing->id,
-                    'program_id' => $programId,
-                    'institution_id' => $user->id,
+                    'program_id' => $instProg->program_id,
+                    'institution_id' => $instProg->institution_id,
                 ])->exists();
 
                 if (!$duplicate) {
                     InstitutionCareerOpportunity::create([
                         'career_opportunity_id' => $existing->id,
-                        'program_id' => $programId,
-                        'institution_id' => $user->id,
+                        'program_id' => $instProg->program_id,
+                        'institution_id' => $instProg->institution_id,
                     ]);
                     $created[] = $existing->title;
                 } else {
@@ -155,10 +191,28 @@ class CareerOpportunityController extends Controller
 
     public function edit($id)
     {
-        $link = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])->findOrFail($id);
+        $link = InstitutionCareerOpportunity::with(['careerOpportunity'])->findOrFail($id);
+
+        // Get the institution from the link
+        $institutionId = $link->institution_id;
+        $institution = Institution::find($institutionId);
+
+        // Get all programs for this institution
+        $programs = [];
+        if ($institution) {
+            $user = User::where('id', $institution->institution_id)->first();
+            if ($user) {
+                $programs = $user->institutionPrograms()
+                    ->whereNull('institution_programs.deleted_at')
+                    ->whereNull('institutions.deleted_at')
+                    ->with('program')
+                    ->get();
+            }
+        }
 
         return Inertia::render('Institutions/CareerOpportunities/Edit', [
             'link' => $link,
+            'programs' => $programs,
         ]);
     }
 
@@ -166,21 +220,26 @@ class CareerOpportunityController extends Controller
     {
         $request->validate([
             'title' => ['required', 'string'],
+            'program_id' => ['required', 'integer', 'exists:institution_programs,id'],
         ]);
 
-        // Find the InstitutionCareerOpportunity entry
         $link = InstitutionCareerOpportunity::with('careerOpportunity')->findOrFail($id);
 
-        // Check if the title already exists in the career_opportunities table
+        // Update or create the career opportunity title
         $existingCareerOpportunity = CareerOpportunity::whereRaw('LOWER(title) = ?', [Str::lower($request->title)])->first();
-
         if (!$existingCareerOpportunity) {
-            // If the title does not exist, create a new entry in career_opportunities
             $existingCareerOpportunity = CareerOpportunity::create(['title' => $request->title]);
         }
 
-        // Update the institution_career_opportunities table to reference the new or existing career_opportunity
-        $link->update(['career_opportunity_id' => $existingCareerOpportunity->id]);
+        // Get the selected institution program
+        $institutionProgram = InstitutionProgram::findOrFail($request->program_id);
+
+        // Update the link
+        $link->update([
+            'career_opportunity_id' => $existingCareerOpportunity->id,
+            'program_id' => $institutionProgram->program_id,
+            'institution_id' => $institutionProgram->institution_id,
+        ]);
 
         return redirect()->back()->with('flash.banner', 'Career opportunity updated successfully.');
     }

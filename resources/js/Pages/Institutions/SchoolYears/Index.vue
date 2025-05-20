@@ -74,7 +74,7 @@ const confirmArchive = (schoolYear) => {
                 :key="sy.id"
                 class="border-t hover:bg-gray-50 transition-colors"
               >
-                <td class="px-6 py-4">{{ sy.school_year_range }}</td>
+                <td class="px-6 py-4">{{ sy.school_year?.school_year_range }}</td>
                 <td class="px-6 py-4">{{ sy.term }}</td>
                 <td class="px-6 py-4 flex gap-2">
                   <Link :href="route('school-years.edit', { id: sy.id })">
@@ -98,7 +98,7 @@ const confirmArchive = (schoolYear) => {
 
         <template #content>
           Are you sure you want to archive the school year
-          <strong>"{{ selectedSchoolYear?.school_year_range }}"</strong>?
+          <strong>"{{ selectedSchoolYear?.school_year?.school_year_range }}"</strong>?
         </template>
 
         <template #footer>

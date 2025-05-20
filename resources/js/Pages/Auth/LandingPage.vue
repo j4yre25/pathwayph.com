@@ -66,7 +66,7 @@ onMounted(() => {
     <div class="relative min-h-screen">
         <!-- Landing Section -->
         <div id="home" class="relative">
-            <img src="/public/images/LandingPage.jpg" alt="Graduates throwing graduation caps"
+            <img src="storage/app/public/images/LandingPage.jpg" alt="Graduates throwing graduation caps"
                 class="w-full h-[800px] object-cover" width="1920" height="1080" />
             <div class="absolute inset-0 bg-black bg-opacity-60"></div>
             <header class="fixed top-0 left-0 right-0 flex items-center justify-between px-6 py-4 z-50 transition-all duration-300" 

@@ -3,125 +3,179 @@
 namespace App\Http\Controllers;
 
 use App\Models\Degree;
-use App\Models\User;
+use App\Models\InstitutionDegree;
+use App\Models\Institution;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class DegreeController extends Controller
 {
-    public function index(User $user)
+    public function index()
     {
-        $degrees = $user->degrees;
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
+        $degrees = InstitutionDegree::with('degree')
+            ->where('institution_id', $institution?->id)
+            ->get();
 
         return Inertia::render('Institutions/Degrees/Index', [
-            'degrees' => $degrees
+            'degrees' => $degrees,
         ]);
     }
 
     public function list(Request $request)
-{
-    $user = Auth::user();
-    $status = $request->input('status', 'all');
+    {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
+        $status = $request->input('status', 'all');
 
-    $degrees = Degree::with('user')
-        ->withTrashed()
-        ->where('user_id', $user->id) // Only get degrees for the current institution.
-        ->when($status === 'active', function ($query) {
+        $query = InstitutionDegree::with('degree')
+            ->withTrashed()
+            ->where('institution_id', $institution?->id);
+
+        if ($status === 'active') {
             $query->whereNull('deleted_at');
-        })
-        ->when($status === 'inactive', function ($query) {
+        } elseif ($status === 'inactive') {
             $query->whereNotNull('deleted_at');
-        })
-        ->get();
+        }
 
-    return Inertia::render('Institutions/Degrees/List', [
-        'degrees' => $degrees,
-        'status' => $status,
-    ]);
-}
+        $degrees = $query->get();
+
+        return Inertia::render('Institutions/Degrees/List', [
+            'degrees' => $degrees,
+            'status' => $status,
+        ]);
+    }
 
     public function archivedList()
     {
-        $all_degrees = Degree::with('user')->onlyTrashed()->get();
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
+        $all_degrees = InstitutionDegree::with('degree')
+            ->onlyTrashed()
+            ->where('institution_id', $institution?->id)
+            ->get();
 
         return Inertia::render('Institutions/Degrees/ArchivedList', [
             'all_degrees' => $all_degrees
         ]);
     }
 
-    public function create(User $user)
+    public function create()
     {
         return Inertia::render('Institutions/Degrees/Create');
     }
 
-    public function store(Request $request, User $user)
+    public function store(Request $request)
     {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
+        if (!$institution) {
+            return back()->withErrors(['institution' => 'Institution not found for this user.']);
+        }
+
         $request->validate([
             'type' => ['required', 'in:Bachelor,Associate,Master,Doctoral,Diploma'],
         ]);
 
-        $exists = Degree::withTrashed()
-            ->where('user_id', $user->id)
+        // Check if degree exists globally
+        $degree = Degree::withTrashed()
             ->where('type', $request->type)
+            ->first();
+
+        if (!$degree) {
+            $degree = Degree::create([
+                'type' => $request->type,
+            ]);
+        }
+
+        // Check if this institution already has this degree
+        $exists = InstitutionDegree::withTrashed()
+            ->where('institution_id', $institution->id)
+            ->where('degree_id', $degree->id)
             ->exists();
 
         if ($exists) {
-            return back()->withErrors(['flash.banner' => 'This degree type already exists.']);
+            return back()->withErrors(['flash.banner' => 'This degree already exists for your institution.']);
         }
 
-        Degree::create([
-            'type' => $request->type,
-            'user_id' => $user->id,
-            'institution_id' => $user->id, // Ensure institution_id is set
+        InstitutionDegree::create([
+            'degree_id' => $degree->id,
+            'institution_id' => $institution->id,
         ]);
 
         return redirect()->back()->with('flash.banner', 'Degree added.');
     }
 
-    public function edit(Degree $degree)
+    public function edit($id)
     {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
+        $degree = InstitutionDegree::with('degree')
+            ->where('institution_id', $institution?->id)
+            ->findOrFail($id);
+
         return Inertia::render('Institutions/Degrees/Edit', [
             'degree' => $degree
         ]);
     }
 
-    public function update(Request $request, Degree $degree)
+    public function update(Request $request, $id)
     {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
 
         $request->validate([
             'type' => ['required', 'in:Bachelor,Associate,Master,Doctoral,Diploma'],
         ]);
 
-        $exists = Degree::withTrashed()
-            ->where('user_id', $degree->user_id)
+        $degree = Degree::withTrashed()
             ->where('type', $request->type)
-            ->where('id', '!=', $degree->id)
+            ->first();
+
+        if (!$degree) {
+            $degree = Degree::create([
+                'type' => $request->type,
+            ]);
+        }
+
+        $exists = InstitutionDegree::withTrashed()
+            ->where('institution_id', $institution->id)
+            ->where('degree_id', $degree->id)
+            ->where('id', '!=', $id)
             ->exists();
 
         if ($exists) {
-            return back()->withErrors(['flash.banner' => 'This degree type already exists.']);
+            return back()->withErrors(['flash.banner' => 'This degree already exists for your institution.']);
         }
 
-        $degree->update([
-            'type' => $request->type
+        $institutionDegree = InstitutionDegree::where('institution_id', $institution->id)->findOrFail($id);
+
+        $institutionDegree->update([
+            'degree_id' => $degree->id,
         ]);
 
         return redirect()->back()->with('flash.banner', 'Degree updated.');
     }
 
-    public function delete(Request $request, Degree $degree)
+    public function delete(Request $request, $id)
     {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
+        $degree = InstitutionDegree::where('institution_id', $institution?->id)->findOrFail($id);
         $degree->delete();
 
-    return redirect()->route('degrees', ['user' => $degree->user_id])
-        ->with('flash.banner', 'Degree archived.');
+        return back()->with('flash.banner', 'Degree archived.');
     }
 
     public function restore($id)
     {
-        $degree = Degree::withTrashed()->findOrFail($id);
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->first();
+        $degree = InstitutionDegree::withTrashed()
+            ->where('institution_id', $institution?->id)
+            ->findOrFail($id);
         $degree->restore();
 
         return redirect()->back()->with('flash.banner', 'Degree restored.');

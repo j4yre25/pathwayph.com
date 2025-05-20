@@ -13,13 +13,19 @@ const page = usePage();
 const form = useForm({
     school_year_range: '',
     term: '',
-    user: page.props.auth.user.id, // Add the user parameter here
 });
 
 const createSchoolYear = () => {
-    form.post(route('school-years.store', { user: form.user }), { // Pass the user parameter
-        onSuccess: () => form.reset()
-    });
+    console.log('Submitting form:', form);
+    form.post(
+        route('school-years.store', { user: page.props.auth.user.id }),
+        {
+            onSuccess: () => form.reset(),
+            onError: (errors) => {
+                console.log('Validation errors:', errors);
+            }
+        }
+    );
 };
 </script>
 
@@ -41,17 +47,19 @@ const createSchoolYear = () => {
                     </template>
 
                     <template #form>
-                        <div class="col-span-6 sm:col-span-4">
-                            <InputLabel for="school_year_range" value="School Year (e.g., 2023-2024)" />
-                            <TextInput id="school_year_range" v-model="form.school_year_range" type="text" class="mt-1 block w-full" />
-                            <InputError :message="form.errors.school_year_range" class="mt-2" />
-                        </div>
+                        <form @submit.prevent="$emit('submitted')">
+                            <div class="col-span-6 sm:col-span-4">
+                                <InputLabel for="school_year_range" value="School Year (e.g., 2023-2024)" />
+                                <TextInput id="school_year_range" v-model="form.school_year_range" type="text" class="mt-1 block w-full" />
+                                <InputError :message="form.errors.school_year_range" class="mt-2" />
+                            </div>
 
-                        <div class="col-span-6 sm:col-span-4">
-                            <InputLabel for="term" value="Term" />
-                            <TextInput id="term" v-model="form.term" type="number" class="mt-1 block w-full" min="1" max="5" />
-                            <InputError :message="form.errors.term" class="mt-2" />
-                        </div>
+                            <div class="col-span-6 sm:col-span-4">
+                                <InputLabel for="term" value="Term" />
+                                <TextInput id="term" v-model="form.term" type="number" class="mt-1 block w-full" min="1" max="5" />
+                                <InputError :message="form.errors.term" class="mt-2" />
+                            </div>
+                        </form>
                     </template>
 
                     <template #actions>

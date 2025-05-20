@@ -111,7 +111,7 @@ const profile = ref({
   graduate_ethnicity: props.user?.graduate_ethnicity || '',
   graduate_address: props.user?.graduate_address || '',
   graduate_about_me: props.user?.graduate_about_me || '',
-  graduate_picture_url: props.user?.profile_picture || 'path/to/default/image.jpg',
+  graduate_picture_url: props.user?.P || 'path/to/default/image.jpg',
 });
 
 const settingsForm = useForm({

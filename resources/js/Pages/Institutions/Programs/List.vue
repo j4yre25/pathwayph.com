@@ -69,8 +69,8 @@ function applyFilter() {
                 :key="prog.id"
                 class="border-t hover:bg-gray-50 transition-colors"
               >
-                <td class="px-6 py-4 whitespace-nowrap">{{ prog.name }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ prog.degree?.type }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ prog.program?.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ prog.program?.degree?.type }}</td>
                 <td
                   class="px-6 py-4 font-semibold whitespace-nowrap"
                   :class="prog.deleted_at ? 'text-red-600' : 'text-green-600'"

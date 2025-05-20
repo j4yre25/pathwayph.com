@@ -29,8 +29,6 @@ use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyManageHRController;
-use App\Http\Controllers\CompanyJobApplicantController;
-use App\Http\Controllers\CompanyApplicationController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -147,30 +145,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 });
 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    // Education routes
-    Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('profile.education.store');
-    Route::put('/education/{id}', [ProfileController::class, 'updateEducation'])->name('education.update');
-    Route::delete('/education/{id}', [ProfileController::class, 'removeEducation'])->name('education.remove');
-
-    // Experience routes
-    Route::post('/profile/experience', [ProfileController::class, 'addExperience'])->name('profile.experience.store');
-    Route::put('/experience/{id}', [ProfileController::class, 'updateExperience'])->name('experience.update');
-    Route::delete('/experience/{id}', [ProfileController::class, 'removeExperience'])->name('experience.remove');
-
-    // Certification routes
-    Route::post('/profile/certification', [ProfileController::class, 'addCertification'])->name('profile.certification.store');
-    Route::put('/certification/{id}', [ProfileController::class, 'updateCertification'])->name('certification.update');
-    Route::delete('/certification/{id}', [ProfileController::class, 'removeCertification'])->name('certification.remove');
-
-    // Achievement routes
-    Route::delete('/achievement/{id}', [ProfileController::class, 'removeAchievement'])->name('achievement.remove');
-
-    // Project routes
-    Route::post('/profile/project', [ProfileController::class, 'addProject'])->name('profile.project.store');
-    Route::put('/project/{id}', [ProfileController::class, 'updateProject'])->name('project.update');
-    Route::delete('/project/{id}', [ProfileController::class, 'removeProject'])->name('project.delete');
-});
 
 
 // Admin Routes
@@ -216,6 +190,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 // Company Jobs Routes
+// Route::prefix('user')->group(function () {
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}', [CompanyJobsController::class, 'index'])
     ->name('company.jobs');
 
@@ -256,29 +231,17 @@ Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'dis
 
 //Manage Applicants Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    // View all applicants for a specific job
+    Route::get('/jobs/{job}/applicants', [ApplicantController::class, 'index'])->name('applicants');
 
-    // Job-level applicant management (JobApplicantController)
-    Route::prefix('/company')->group(function () {
-        //View all jobs
-        Route::get('jobs', [CompanyJobApplicantController::class, 'index'])->name('company.job.applicants.index');
-        // View all applicants for a specific job
-        Route::get('{job}/applicants', [CompanyJobApplicantController::class, 'show'])->name('company.job.applicants.show');
-    });
+    // View details of a specific applicant
+    Route::get('/applicants/{applicant}', [ApplicantController::class, 'show'])->name('applicants.show');
 
-    // Individual application management (ApplicationController)
-    Route::prefix('/applicants')->group(function () {
-        // View details of a specific applicant/application
-        Route::get('{application}', [CompanyApplicationController::class, 'show'])->name('applicants.show');
+    // Update an applicant's status (e.g., mark as hired)
+    Route::put('/applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
 
-        // Update an applicant's status (e.g., mark as hired)
-        Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
-
-        // Soft Delete an applicant
-        Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
-
-        // Schedule interview
-        Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
-    });
+    // Delete an applicant
+    Route::delete('/applicants/{applicant}', [ApplicantController::class, 'delete'])->name('applicants.delete');
 });
 
 // Manage HR Accounts 
@@ -470,11 +433,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/institutions/degrees/{user}/list', [DegreeController::class, 'list'])->name('degrees.list');
     Route::get('/institutions/degrees/{user}/create', [DegreeController::class, 'create'])->name('degrees.create');
     Route::post('/institutions/degrees/{user}', [DegreeController::class, 'store'])->name('degrees.store');
-    Route::get('/institutions/degrees/edit/{degree}', [DegreeController::class, 'edit'])->name('degrees.edit');
-    Route::put('/institutions/degrees/edit/{degree}', [DegreeController::class, 'update'])->name('degrees.update');
-    Route::delete('/institutions/degrees/edit/{degree}', [DegreeController::class, 'delete'])->name('degrees.delete');
+    Route::get('/institutions/degrees/edit/{institutionDegree}', [DegreeController::class, 'edit'])->name('degrees.edit');
+    Route::put('/institutions/degrees/edit/{institutionDegree}', [DegreeController::class, 'update'])->name('degrees.update');
+    Route::delete('/institutions/degrees/edit/{institutionDegree}', [DegreeController::class, 'delete'])->name('degrees.delete');
     Route::get('/institutions/degrees/{user}/archivedlist', [DegreeController::class, 'archivedlist'])->name('degrees.archivedlist');
     Route::post('/institutions/degrees/edit/{degree}', [DegreeController::class, 'restore'])->name('degrees.restore');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/degrees', [DegreeController::class, 'index'])->name('degrees.index');
+    Route::get('/degrees/create', [DegreeController::class, 'create'])->name('degrees.create');
+    Route::post('/degrees', [DegreeController::class, 'store'])->name('degrees.store');
+    Route::get('/degrees/{institutionDegree}/edit', [DegreeController::class, 'edit'])->name('degrees.edit');
+    Route::put('/degrees/{institutionDegree}', [DegreeController::class, 'update'])->name('degrees.update');
+    Route::delete('/degrees/{institutionDegree}', [DegreeController::class, 'delete'])->name('degrees.delete');
+    Route::post('/degrees/{id}/restore', [DegreeController::class, 'restore'])->name('degrees.restore');
 });
 
 // PROGRAM ROUTES
@@ -528,8 +501,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 
 // MAIN INSITUTION GRADUATE ROUTES
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
-
+Route::middleware(['auth:sanctum',config('jetstream.auth_session'),'verified','can:manage institution'])->group(function () {
+    
     Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
     Route::get('/graduates/create', [GraduateController::class, 'create'])->name('graduates.create');
     Route::post('/graduates', [GraduateController::class, 'store'])->name('institution.graduate.store');
@@ -740,37 +713,9 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
     }
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    // Fetch job opportunities
-    Route::get('/job-opportunities', [JobInboxController::class, 'getJobOpportunities']);
-
-    // Fetch job applications
-    Route::get('/job-applications', [JobInboxController::class, 'getJobApplications']);
-
-    // Fetch notifications
-    Route::get('/notifications', [JobInboxController::class, 'getNotifications']);
-
-    // Apply for a job
-    Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob']);
-
-    // Archive a job opportunity
-    Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity']);
-
-    // Mark notification as read
-    Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead']);
-});
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
-    Route::get('/job-search', [JobSearchController::class, 'index'])->name('job-search.index');
-    Route::post('/job-search/results', [JobSearchController::class, 'search'])->name('jobs.search.results');
-
-    // Portfolio Routes
-    Route::get('/portfolio', [ProfileController::class, 'showPortfolio'])->name('portfolio');
-    Route::get('/portfolio/{id}', [PortfolioController::class, 'show']);
-    Route::put('/portfolio/{id}', [PortfolioController::class, 'update']);
 
     // JobInbox Routes - Updated to use JobInboxController
     Route::middleware('auth:sanctum')->group(function () {
@@ -786,76 +731,88 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-// Profile Settings Routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::put('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar');
-    Route::put('/profile/education', [ProfileController::class, 'updateEducation'])->name('profile.education');
-    Route::put('/profile/skills', [ProfileController::class, 'updateSkills'])->name('profile.skills');
-    Route::put('/profile/projects', [ProfileController::class, 'updateProjects'])->name('profile.projects');
-    Route::put('/profile/certifications', [ProfileController::class, 'updateCertifications'])->name('profile.certifications');
-    Route::put('/profile/achievements', [ProfileController::class, 'updateAchievements'])->name('profile.achievements');
-    Route::put('/profile/testimonials', [ProfileController::class, 'updateTestimonials'])->name('profile.testimonials');
-    Route::put('/profile/career-goals', [ProfileController::class, 'updateCareerGoals'])->name('profile.career-goals');
-    Route::put('/profile/resume', [ProfileController::class, 'updateResume'])->name('profile.resume');
-});
+
 
 // Profile Routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
-
+ 
     // Education Routes
-    Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('education.add');
-    Route::put('/profile/education/{id}', [ProfileController::class, 'updateEducation'])->name('education.update');
-    Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('education.remove');
-
-    // Experience Routes
-    Route::post('/profile/experiences', [ProfileController::class, 'addExperience'])->name('experience.addExperience');
-    Route::put('/profile/experiences/{id}', [ProfileController::class, 'updateExperience'])->name('experience.updateExperience');
-    Route::delete('/profile/experiences/{id}', [ProfileController::class, 'removeExperience'])->name('experience.remove c');
-
-    // Project Routes
-    Route::prefix('profile/projects')->group(function () {
-        // Add these project routes
-        Route::post('/projects/add', [ProfileController::class, 'addProject'])->name('projects.add');
-        Route::put('/projects/{id}', [ProfileController::class, 'updateProject'])->name('projects.update');
-        Route::delete('/projects/{id}', [ProfileController::class, 'removeProject'])->name('projects.remove');
-    });
-
+    Route::get('/profile/education', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('profile.education.add');
+    Route::put('/profile/education/{id}', [ProfileController::class, 'updateEducation'])->name('profile.education.update');
+    Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('profile.education.delete');
+    Route::put('/profile/education/{id}/archive', [ProfileController::class, 'archiveEducation'])->name('profile.education.archive');
+    Route::put('/profile/education/{id}/unarchive', [ProfileController::class, 'unarchiveEducation'])->name('profile.education.unarchive');
+    Route::put('/profile/education/{id}/archived', [ProfileController::class, 'archivedEducation'])->name('profile.education.archived');
+ 
     // Skill Routes
-    Route::post('/profile/skills', [ProfileController::class, 'addSkill'])->name('skills.add');
-    Route::put('/profile/skills/{id}', [ProfileController::class, 'updateSkill'])->name('skills.update');
-    Route::delete('/profile/skills/{id}', [ProfileController::class, 'removeSkill'])->name('skills.remove');
-
+    Route::get('/profile/skills', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/skills', [ProfileController::class, 'addSkill'])->name('profile.skills.add');
+    Route::put('/profile/skills/{id}', [ProfileController::class, 'updateSkill'])->name('profile.skills.update');
+    Route::delete('/profile/skills/{id}', [ProfileController::class, 'deleteSkill'])->name('profile.skills.remove');
+    Route::put('/profile/skills/{id}/archive', [ProfileController::class, 'archiveSkill'])->name('profile.skills.archive');
+    Route::put('/profile/skills/{id}/unarchive', [ProfileController::class, 'unarchiveSkill'])->name('profile.skills.unarchive');
+    Route::put('/profile/skills/{id}/archived', [ProfileController::class, 'archivedSkill'])->name('profile.skills.archived');
+ 
+    // Experience Routes
+    Route::get('/profile/experiences', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/experiences', [ProfileController::class, 'addExperience'])->name('profile.experience.add');
+    Route::put('/profile/experiences/{id}', [ProfileController::class, 'updateExperience'])->name('profile.experience.update');
+    Route::delete('/profile/experiences/{id}', [ProfileController::class, 'removeExperience'])->name('profile.experience.remove');
+    Route::put('/profile/experiences/{id}/archive', [ProfileController::class, 'archiveExperience'])->name('profile.experience.archive');
+    Route::put('/profile/experiences/{id}/unarchive', [ProfileController::class, 'unarchiveExperience'])->name('profile.experience.unarchive');
+    Route::put('/profile/experiences/{id}/archived', [ProfileController::class, 'archivedExperience'])->name('profile.experience.archived');
+ 
+    // Project Routes
+    Route::get('/profile/projects', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/projects', [ProfileController::class, 'addProject'])->name('profile.projects.add');
+    Route::put('/profile/projects/{id}', [ProfileController::class, 'updateProject'])->name('profile.projects.update');
+    Route::delete('/profile/projects/{id}', [ProfileController::class, 'removeProject'])->name('profile.projects.remove');
+    Route::put('/profile/projects/{id}/archive', [ProfileController::class, 'archiveProject'])->name('profile.projects.archive');
+    Route::post('/profile/projects/{id}/unarchive', [ProfileController::class, 'unarchiveProject'])->name('profile.projects.unarchive');
+    Route::put('/profile/projects/{id}/archived', [ProfileController::class, 'archivedProject'])->name('profile.projects.archived');
+ 
     // Certification Routes
-    Route::post('/profile/certifications', [ProfileController::class, 'addCertification'])->name('certifications.add');
-    Route::put('/profile/certifications/{id}', [ProfileController::class, 'updateCertification'])->name('certifications.update');
-    Route::delete('/profile/certifications/{id}', [ProfileController::class, 'removeCertification'])->name('certifications.remove');
-
+    Route::get('/profile/certifications', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/certifications', [ProfileController::class, 'addCertification'])->name('profile.certifications.add');
+    Route::put('/profile/certifications/{id}', [ProfileController::class, 'updateCertification'])->name('profile.certifications.update');
+    Route::delete('/profile/certifications/{id}', [ProfileController::class, 'removeCertification'])->name('profile.certifications.remove');
+    Route::put('/profile/certifications/{id}/archive', [ProfileController::class, 'archiveCertification'])->name('profile.certifications.archive');
+    Route::post('/profile/certifications/{id}/unarchive', [ProfileController::class, 'unarchiveCertification'])->name('profile.certifications.unarchive');
+    Route::put('/profile/certifications/{id}/archived', [ProfileController::class, 'archivedCertification'])->name('profile.certifications.archived');
+ 
     // Achievement Routes
-    Route::post('/profile/achievements', [ProfileController::class, 'addAchievement'])->name('achievements.add');
-    Route::put('/profile/achievements/{id}', [ProfileController::class, 'updateAchievement'])->name('achievements.update');
-    Route::delete('/profile/achievements/{id}', [ProfileController::class, 'deleteAchievement'])->name('achievements.delete');
-
+    Route::get('/profile/achievements', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/achievements', [ProfileController::class, 'addAchievement'])->name('profile.achievements.add');
+    Route::put('/profile/achievements/{id}', [ProfileController::class, 'updateAchievement'])->name('profile.achievements.update');
+    Route::delete('/profile/achievements/{id}', [ProfileController::class, 'removeAchievement'])->name('profile.achievements.remove');
+    Route::put('/profile/achievements/{id}/archive', [ProfileController::class, 'archiveAchievement'])->name('profile.achievements.archive');
+    Route::post('/profile/achievements/{id}/unarchive', [ProfileController::class, 'unarchiveAchievement'])->name('profile.achievements.unarchive');
+    Route::put('/profile/achievements/{id}/archived', [ProfileController::class, 'archivedAchievement'])->name('profile.achievements.archived');
+ 
     // Testimonial Routes
-    Route::post('/profile/testimonials', [ProfileController::class, 'addTestimonial'])->name('testimonials.add');
-    Route::put('/profile/testimonials/{id}', [ProfileController::class, 'updateTestimonial'])->name('testimonials.update');
-    Route::delete('/profile/testimonials/{id}', [ProfileController::class, 'removeTestimonial'])->name('testimonials.remove');
-
+    Route::get('/profile/testimonials', [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/testimonials', [ProfileController::class, 'addTestimonials'])->name('profile.testimonials.add');
+    Route::put('/profile/testimonials/{id}', [ProfileController::class, 'updateTestimonials'])->name('profile.testimonials.update');
+    Route::delete('/profile/testimonials/{id}', [ProfileController::class, 'removeTestimonials'])->name('profile.testimonials.remove');
+    Route::put('/profile/testimonials/{id}/archive', [ProfileController::class, 'archiveTestimonials'])->name('profile.testimonials.archive');
+    Route::post('/profile/testimonials/{id}/unarchive', [ProfileController::class, 'unarchiveTestimonials'])->name('profile.testimonials.unarchive');
+    Route::put('/profile/testimonials/{id}/archived', [ProfileController::class, 'archivedTestimonials'])->name('profile.testimonials.archived');
+ 
     // Employment Preferences Routes
     Route::post('/profile/employment-preferences', [ProfileController::class, 'updateEmploymentPreferences'])->name('employment.preferences.updateEmploymentPreferences');
-    Route::post('/employment-preferences/save', [ProfileController::class, 'saveEmploymentPreferences'])->name('employment.preferences.save');
+    Route::post('/employment-preferences/save', [ProfileController::class, 'saveEmploymentPreferences'])->name('profile.employment.preferences.save');
     Route::post('/employment-references/save', [ProfileController::class, 'saveEmploymentReference'])->name('employment.references.save');
-    Route::get('/employment-references', [ProfileController::class, 'getEmploymentReference'])->name('employment.references.get');
-
+    Route::get('/employment-preferences', [ProfileController::class, 'getEmploymentPreference'])->name('employment.preferences.get');
+ 
     // Career Goals Routes
     Route::post('/profile/career-goals', [ProfileController::class, 'saveCareerGoals'])->name('career.goals.save');
     Route::post('/career-goals/add-industry', [ProfileController::class, 'addIndustry'])->name('career.goals.add.industry');
     Route::post('/career-goals/save', [ProfileController::class, 'saveCareerGoals'])->name('career.goals.save');
     Route::get('/career-goals', [ProfileController::class, 'getCareerGoals'])->name('career.goals.get');
-
+ 
     // Resume Routes
     Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
@@ -863,3 +820,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/file/{filename}', [ProfileController::class, 'getFile']);
     Route::delete('/file/{filename}', [ProfileController::class, 'deleteFile']);
 });
+ 
+ 

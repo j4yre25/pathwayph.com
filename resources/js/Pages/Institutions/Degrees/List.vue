@@ -10,10 +10,9 @@ const props = defineProps({
   degrees: Array
 });
 
-const selectedStatus = ref('all');  // Filter for degree status (all, active, inactive)
-const appliedStatus = ref('all');   // Track the applied filter status
+const selectedStatus = ref('all');
+const appliedStatus = ref('all');
 
-// Compute the filtered degrees based on the selected status
 const filteredDegrees = computed(() => {
   if (appliedStatus.value === 'all') return props.degrees;
   return props.degrees.filter(degree =>
@@ -21,7 +20,6 @@ const filteredDegrees = computed(() => {
   );
 });
 
-// Apply the selected filter
 function applyFilter() {
   appliedStatus.value = selectedStatus.value;
 }
@@ -30,11 +28,10 @@ function applyFilter() {
 <template>
   <AppLayout title="Manage Degrees">
     <template #header>
-      <h2 class="text-3xl font-semibold text-gray-900">List of Degrees</h2>
+      <h2 class="text-2xl font-semibold text-gray-800">Manage Degrees</h2>
     </template>
 
-    <Container class="py-8 space-y-6">
-      <!-- Filter Section -->
+    <Container class="py-6 space-y-6">
       <div class="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-4">
         <label for="statusFilter" class="font-medium text-gray-700">Filter by Status:</label>
         <select
@@ -46,36 +43,35 @@ function applyFilter() {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-        <button
-          @click="applyFilter"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm transition"
-        >
-          Apply Filter
-        </button>
+        <button @click="applyFilter" class="bg-indigo-600 text-white px-4 py-2 rounded-md">Apply Filter</button>
       </div>
 
-      <!-- Degrees Table -->
-      <div class="overflow-x-auto bg-white shadow-lg rounded-lg">
-        <table class="min-w-full text-sm text-gray-700">
-          <thead>
-            <tr class="bg-gray-200 text-gray-600 uppercase text-xs font-medium">
-              <th class="px-6 py-4 text-left">Degree</th>
-              <th class="px-6 py-4 text-left">Status</th>
-            </tr>
-          </thead>
-          <tbody class="text-gray-600">
-            <tr
-              v-for="degree in filteredDegrees"
-              :key="degree.id"
-              class="border-t hover:bg-gray-50 transition-all"
-            >
-              <td class="px-6 py-4">{{ degree.type }}</td>
-              <td class="px-6 py-4 text-sm font-semibold" :class="degree.deleted_at ? 'text-red-500' : 'text-green-500'">
-                {{ degree.deleted_at ? 'Inactive' : 'Active' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left text-gray-700">
+            <thead class="bg-gray-100 text-xs uppercase tracking-wider text-gray-600">
+              <tr>
+                <th class="px-6 py-4">Degree</th>
+                <th class="px-6 py-4">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="degree in filteredDegrees"
+                :key="degree.id"
+                class="border-t hover:bg-gray-50 transition-colors"
+              >
+                <td class="px-6 py-4">{{ degree.degree?.type }}</td>
+                <td
+                  class="px-6 py-4 font-semibold"
+                  :class="degree.deleted_at ? 'text-red-600' : 'text-green-600'"
+                >
+                  {{ degree.deleted_at ? 'Inactive' : 'Active' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </Container>
   </AppLayout>

@@ -22,13 +22,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+                /** @var \App\Models\User $user */
+
             Inertia::share([
             'auth' => function() {
                 return [
+                    
                     'user' => Auth::user() ? Auth::user()->load('hr') : null,
                 ];
             },
             'roles' => function () {
+                
                 $user = Auth::user()?->load('hr');;
                 return [
                     'isCompany' => $user->role === 'company',
@@ -43,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
                 $user = Auth::user();
                 return $user && $user->hr
                     ? HumanResource::where('company_id', $user->hr->company_id)->count()
-                    : 0;
+                    : 3;
             },
             'app' => [
                 'currentUser' => fn () => Auth::check()

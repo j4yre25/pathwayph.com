@@ -9,6 +9,9 @@ class Achievement extends Model
 {
     use HasFactory;
 
+    protected $table = 'graduate_achievements';
+
+
     protected $fillable = [
         'graduate_achievement_title',
         'graduate_achievement_issuer',

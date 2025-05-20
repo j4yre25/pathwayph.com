@@ -9,13 +9,16 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use App\Models\Education;
 use App\Models\Skill;
+use App\Models\GraduateSkill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\Experience;
 use App\Models\Certification;
 use App\Models\Achievement;
+use App\Models\CareerGoal;
 use App\Models\EmploymentPreference;
+use App\Models\Institution;
 use App\Models\Testimonial;
 use App\Models\Project;
 use App\Models\Resume;
@@ -29,108 +32,127 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $graduate = \App\Models\Graduate::with(['program.degree', 'schoolYear'])
-    ->where('user_id', $user->id)
-    ->first();
+        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'institution'])
+            ->where('user_id', $user->id)
+            ->first();
 
         // Fetch all institution users (adjust as needed)
         $instiUsers = User::where('role', 'institution')->get();
 
+        $educationEntries = Education::with('institution')->where('graduate_id', $graduates->id)->get();
+
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
-            'graduate' => $graduate,
+            'graduate' => $graduates,
             'instiUsers' => $instiUsers,
-            'educationEntries' => Education::where('user_id', $user->id)->get(),
-            'experienceEntries' => Experience::where('user_id', $user->id)->get(),
-            'skillEntries' => Skill::where('user_id', $user->id)->get(),
-            'certificationsEntries' => Certification::where('user_id', $user->id)->get(),
-            'projectsEntries' => Project::where('user_id', $user->id)->get(),
-            'achievementEntries' => Achievement::where('user_id', $user->id)->get(),
-            'testimonialsEntries' => Testimonial::where('user_id', $user->id)->get(),
-            'employmentPreferences' => EmploymentPreference::where('user_id', $user->id)->first(),
-            'careerGoals' => $user->careerGoals,
-            'resume' => $user->resume,
+            'educationEntries' => $educationEntries,
+            'experienceEntries' => Experience::where('graduate_id', $graduates->id)->get(),
+            'skillEntries' => GraduateSkill::where('graduate_id', $graduates->id)->get(),
+            'certificationsEntries' => Certification::where('graduate_id', $graduates->id)->get(),
+            'projectsEntries' => Project::where('graduate_id', $graduates->id)->get(),
+            'achievementEntries' => Achievement::where('graduate_id', $graduates->id)->get(),
+            'testimonialsEntries' => Testimonial::where('graduate_id', $graduates->id)->get(),
+            'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduates->id)->first(),
+            'careerGoals' => CareerGoal::where('graduate_id', $graduates->id)->first(),
+            'resume' => Resume::where('graduate_id', $graduates->id)->first(),
         ]);
     }
 
     // Update profile information
-   public function updateProfile(Request $request)
-{
-    $validated = $request->validate([
-        'graduate_first_name' => 'required|string|max:255',
-        'graduate_middle_initial' => 'nullable|string|max:1',
-        'graduate_last_name' => 'required|string|max:255',
-        'graduate_professional_title' => 'required|string|max:255',
-        'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
-        'current_job_title' => 'nullable|string|max:255',
-        'graduate_location' => 'nullable|string|max:255',
-        'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
-        'contact_number' => 'nullable|string|max:15',
-        'dob' => 'nullable|date',
-        'gender' => 'nullable|string|max:50',
-        'graduate_ethnicity' => 'nullable|string|max:255',
-        'graduate_address' => 'nullable|string|max:255',
-        'graduate_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        'graduate_about_me' => 'nullable|string|max:1000',
-    ]);
+    public function updateProfile(Request $request)
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:1',
+            'last_name' => 'required|string|max:255',
+            'current_job_title' => 'required|string|max:255',
+            'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
+            'current_job_title' => 'nullable|string|max:255',
+            'graduate_location' => 'nullable|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
+            'contact_number' => 'nullable|string|max:15',
+            'dob' => 'nullable|date',
+            'gender' => 'nullable|string|max:50',
+            'graduate_ethnicity' => 'nullable|string|max:255',
+            'graduate_address' => 'nullable|string|max:255',
+            'graduate_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'graduate_about_me' => 'nullable|string|max:1000',
+        ]);
         /** @var \App\Models\User $user */
 
         $user = Auth::user();
 
+
+
+        // Handle profile picture upload
         if ($request->hasFile('graduate_picture')) {
             $file = $request->file('graduate_picture');
             $originalName = $file->getClientOriginalName();
             if (!$originalName) {
-                // fallback to a unique name if original is empty
                 $originalName = uniqid('profile_', true) . '.' . $file->getClientOriginalExtension();
             }
             $filename = time() . '_' . $originalName;
             $path = $file->storeAs('profile_pictures', $filename, 'public');
-
             $user->profile_picture = $path;
+
+            // Also update graduates table with the picture path
+            DB::table('graduates')
+                ->where('user_id', $user->id)
+                ->update([
+                    'graduate_picture' => $path,
+                ]);
         }
 
-        $user->graduate_professional_title = $request->graduate_professional_title;
-
+        $user->save();
 
         // Sync to graduates table
         DB::table('graduates')
             ->where('user_id', $user->id)
             ->update([
+                'first_name' => $request->first_name,
+                'middle_name' => $request->middle_name,
+                'last_name' => $request->last_name,
+                'dob' => $request->dob,
                 'current_job_title' => $request->graduate_professional_title,
                 'employment_status' => $request->employment_status,
+                'location' => $request->graduate_location,
+                'ethnicity' => $request->graduate_ethnicity,
+                'address' => $request->graduate_address,
+                'about_me' => $request->graduate_about_me,
+                'linkedin_url' => $request->linkedin_url,
+                'github_url' => $request->github_url,
+                'personal_website' => $request->personal_website,
+                'other_social_links' => $request->other_social_links,
             ]);
-
-        $user->save();
-
-        return redirect()->back()->with([
-            'success' => 'Profile updated!',
-            'user' => $user->fresh(),
-        ]);
     }
 
     // Add education
     public function addEducation(Request $request)
     {
+
+
         $request->validate([
-            'graduate_education_institution_id' => 'required|string|max:255',
-            'graduate_education_program' => 'required|string|max:255',
-            'graduate_education_field_of_study' => 'required|string|max:255',
-            'graduate_education_start_date' => 'required|date',
-            'graduate_education_end_date' => 'nullable|date',
-            'graduate_education_description' => 'nullable|string',
+            'program' => 'required|string|max:255',
+            'field_of_study' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date',
+            'description' => 'nullable|string',
             'is_current' => 'boolean',
             'achievements' => 'nullable|string',
             'no_achievements' => 'nullable|boolean',
         ]);
 
+        $graduates = \App\Models\Graduate::where('user_id', Auth::id())->first();
+
+
         $data = $request->all();
+        $data['institution_id'] = $request->institution_id;
         if ($request->is_current) {
-            $data['graduate_education_end_date'] = null;
+            $data['end_date'] = null;
         }
 
         $education = new Education($data);
-        $education->user_id = Auth::id();
+        $education->graduate_id = $graduates->id; // ADD THIS LINE (make sure $graduates is available)
         $education->save();
 
         return redirect()->back()->with('flash.banner', 'Education added successfully.');
@@ -140,12 +162,12 @@ class ProfileController extends Controller
     public function updateEducation(Request $request, $id)
     {
         $request->validate([
-            'graduate_education_institution_id' => 'required|string|max:255',
-            'graduate_education_program' => 'required|string|max:255',
-            'graduate_education_field_of_study' => 'required|string|max:255',
-            'graduate_education_start_date' => 'required|date',
-            'graduate_education_end_date' => 'nullable|date',
-            'graduate_education_description' => 'nullable|string',
+            'institution_id' => 'required|string|max:255',
+            'program' => 'required|string|max:255',
+            'field_of_study' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date',
+            'description' => 'nullable|string',
             'is_current' => 'boolean',
             'achievements' => 'nullable|string',
             'no_achievements' => 'nullable|boolean',
@@ -154,9 +176,9 @@ class ProfileController extends Controller
         $data = $request->all();
 
         if ($request->is_current) {
-            $data['graduate_education_end_date'] = null;
-        } elseif (isset($data['graduate_education_end_date'])) {
-            $data['graduate_education_end_date'] = Carbon::parse($data['graduate_education_end_date'])->format('Y-m-d');
+            $data['end_date'] = null;
+        } elseif (isset($data['end_date'])) {
+            $data['end_date'] = Carbon::parse($data['end_date'])->format('Y-m-d');
         }
 
         $education = Education::findOrFail($id);
@@ -818,41 +840,41 @@ class ProfileController extends Controller
     }
 
     // Upload resume
-   public function uploadResume(Request $request)
-{
-    $request->validate([
-        'resume' => 'required|mimes:pdf,doc,docx|max:2048',
-    ]);
+    public function uploadResume(Request $request)
+    {
+        $request->validate([
+            'resume' => 'required|mimes:pdf,doc,docx|max:2048',
+        ]);
 
-    try {
-        $user = Auth::user();
-        $file = $request->file('resume');
-        $fileName = time() . '_' . $file->getClientOriginalName();
-        $path = $file->storeAs('resumes', $fileName, 'public');
+        try {
+            $user = Auth::user();
+            $file = $request->file('resume');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('resumes', $fileName, 'public');
 
-        // Delete old file if exists
-        if ($user->resume) {
-            Storage::disk('public')->delete($user->resume->file);
+            // Delete old file if exists
+            if ($user->resume) {
+                Storage::disk('public')->delete($user->resume->file);
+            }
+
+            /** @var \App\Models\User $user */
+
+            // Save or update resume record
+            $user->resume()->updateOrCreate(
+                [],
+                [
+                    'file' => $path,
+                    'fileName' => $file->getClientOriginalName(),
+                    'user_id' => $user->id
+                ]
+            );
+
+            return redirect()->back()->with('success', 'Resume uploaded successfully!');
+        } catch (\Exception $e) {
+            Log::error('Resume upload error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to upload resume');
         }
-        
-        /** @var \App\Models\User $user */
-
-        // Save or update resume record
-        $user->resume()->updateOrCreate(
-            [],
-            [
-                'file' => $path,
-                'fileName' => $file->getClientOriginalName(),
-                'user_id' => $user->id
-            ]
-        );
-
-        return redirect()->back()->with('success', 'Resume uploaded successfully!');
-    } catch (\Exception $e) {
-        Log::error('Resume upload error: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Failed to upload resume');
     }
-}
 
 
     public function deleteResume()

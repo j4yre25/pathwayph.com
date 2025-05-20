@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SchoolYear;
-use App\Models\Program;
+use App\Models\Institution;
+use App\Models\InstitutionSchoolYear;
+use App\Models\InstitutionProgram;
 use App\Models\Sector;
 use App\Models\Company;
 use Illuminate\Auth\Events\Registered;
@@ -45,14 +46,14 @@ class CustomRegisteredUserController extends Controller
         $user = $creator->create(array_merge($request->all(), ['role' => $role]));
 
 
-         // Generate a verification code
-         $verificationCode = rand(100000, 999999);
+        // Generate a verification code
+        $verificationCode = rand(100000, 999999);
 
-    // Store the verification code in the database (e.g., in a `verification_code` column)
+        // Store the verification code in the database (e.g., in a `verification_code` column)
         $user->verification_code = $verificationCode;
         $user->save();
 
-    // Send the verification code via email
+        // Send the verification code via email
         $user->notify(new VerifyEmailWithCode($verificationCode));
 
         // 🔽 Place the custom ID logic **here**, after HR and company are created
@@ -71,7 +72,23 @@ class CustomRegisteredUserController extends Controller
             }
         }
 
-        
+        // 🔽 Place the custom ID logic **here**, after HR and company are created
+        if ($role === 'company') {
+            $hr = $user->hr; // Assuming hr() relationship exists on User model
+
+            if ($hr && $hr->company_id) {
+                $company = Company::find($hr->company_id);
+
+                if ($company) {
+                    $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
+                    $sectorCode = $company->sector->sector_id?? '000'; // Default to '000' if sector_code is not set
+                    $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}";
+                    $company->save();
+                }
+            }
+        }
+
+
         event(new Registered($user));
 
         return redirect()->back()->with('flash.banner', 'Registered Successfully!');
@@ -91,90 +108,111 @@ class CustomRegisteredUserController extends Controller
     }
 
     public function showGraduateDetails()
-{
-    $insti_users = User::where('role', 'institution')->get(['id', 'institution_name']);
-    
-    // Retrieve programs per institution instead of globally
-    $programs = Program::whereIn('institution_id', $insti_users->pluck('id'))->get();
+    {
+        $insti_users = Institution::join('users', 'institutions.user_id', '=', 'users.id')
+            ->where('users.role', 'institution')
+            ->select('institutions.id', 'institutions.institution_name')
+            ->get();
 
-    // Retrieve school years per institution instead of globally
-    $school_years = SchoolYear::whereIn('institution_id', $insti_users->pluck('id'))->get();
+        // Fetch programs with institution_id
+        $programs = \App\Models\InstitutionProgram::with('program')
+            ->whereIn('institution_id', $insti_users->pluck('id'))
+            ->get()
+            ->map(function ($ip) {
+                return [
+                    'id' => $ip->program->id,
+                    'name' => $ip->program->name,
+                    'institution_id' => $ip->institution_id,
+                ];
+            });
+
+        // Fetch school years with institution_id
+        $school_years = \App\Models\InstitutionSchoolYear::with('schoolYear')
+            ->whereIn('institution_id', $insti_users->pluck('id'))
+            ->get()
+            ->map(function ($isy) {
+                return [
+                    'id' => $isy->schoolYear->id,
+                    'school_year_range' => $isy->schoolYear->school_year_range,
+                    'institution_id' => $isy->institution_id,
+                ];
+            });
 
 
-    return Inertia::render('Auth/Register', [
-        'insti_users' => $insti_users,
-        'programs' => $programs,
-        'school_years' => $school_years,
-    ]);
-}
-
-public function showCompanyDetails()
-{
-    $sectors = Sector::all();
-    return Inertia::render('Auth/Register', [
-        'sectors' => $sectors,
-    ]);
-}
-
-public function verifyEmail(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email',
-    ]);
-
-    $user = User::where('email', $request->email)->first();
-
-    if (!$user) {
-        return redirect()->back()->withErrors(['email' => 'Email not found.']);
+        return Inertia::render('Auth/Register', [
+            'insti_users' => $insti_users,
+            'programs' => $programs,
+            'school_years' => $school_years,
+        ]);
     }
 
-    // Generate a verification code
-    $verificationCode = rand(100000, 999999);
-
-    // Save the verification code to the user
-    $user->verification_code = $verificationCode;
-    $user->save();
-
-    // Send the verification code via email
-    $user->notify(new VerifyEmailWithCode($verificationCode));
-
-    return back()->with('message', 'Verification code sent to your email.');
-}
-
-public function verifyCode(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email',
-        'verification_code' => 'required|numeric',
-    ]);
-
-    $user = User::where('email', $request->email)
-        ->where('verification_code', $request->verification_code)
-        ->first();
-
-    if (!$user) {
-        return redirect()->back()->withErrors(['verification_code' => 'Invalid verification code.']);
+    public function showCompanyDetails()
+    {
+        $sectors = Sector::all();
+        return Inertia::render('Auth/Register', [
+            'sectors' => $sectors,
+        ]);
     }
 
-    $user->email_verified_at = now();
-    $user->verification_code = null; // Clear the verification code
-    $user->is_approved = true;
-    $user->save();
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
 
-    return redirect()->route('login')->with('message', 'Email verified successfully! You can now log in.');
-}
-public function resendVerificationCode(Request $request)
-{
-    $user = $request->user();
+        $user = User::where('email', $request->email)->first();
 
-    // Generate a new verification code
-    $verificationCode = rand(100000, 999999);
-    $user->verification_code = $verificationCode;
-    $user->save();
+        if (!$user) {
+            return redirect()->back()->withErrors(['email' => 'Email not found.']);
+        }
 
-    // Send the verification code via email
-    $user->notify(new VerifyEmailWithCode($verificationCode));
+        // Generate a verification code
+        $verificationCode = rand(100000, 999999);
 
-    return back()->with('message', 'Verification code sent!');
-}
+        // Save the verification code to the user
+        $user->verification_code = $verificationCode;
+        $user->save();
+
+        // Send the verification code via email
+        $user->notify(new VerifyEmailWithCode($verificationCode));
+
+        return back()->with('message', 'Verification code sent to your email.');
+    }
+
+    public function verifyCode(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'verification_code' => 'required|numeric',
+        ]);
+
+        $user = User::where('email', $request->email)
+            ->where('verification_code', $request->verification_code)
+            ->first();
+
+        if (!$user) {
+            return redirect()->back()->withErrors(['verification_code' => 'Invalid verification code.']);
+        }
+
+        $user->email_verified_at = now();
+        $user->verification_code = null; // Clear the verification code
+        $user->is_approved = true;
+        $user->save();
+
+        return redirect()->route('login')->with('message', 'Email verified successfully! You can now log in.');
+    }
+    public function resendVerificationCode(Request $request)
+    {
+        $user = $request->user();
+
+        // Generate a new verification code
+        $verificationCode = rand(100000, 999999);
+        $user->verification_code = $verificationCode;
+        $user->save();
+
+        // Send the verification code via email
+        $user->notify(new VerifyEmailWithCode($verificationCode));
+
+        return back()->with('message', 'Verification code sent!');
+    }
 }

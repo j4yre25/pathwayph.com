@@ -9,6 +9,8 @@ class Certification extends Model
 {
     use HasFactory;
 
+    protected $table = 'graduate_certifications';
+
     protected $fillable = [
         'graduate_certification_name',
         'graduate_certification_issuer',

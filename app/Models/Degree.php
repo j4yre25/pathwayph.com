@@ -9,13 +9,12 @@ class Degree extends Model
 {
     use SoftDeletes;
 
-    public function user() {
-        return $this->belongsTo(User::class);
-    }
+    protected $fillable = ['type'];
+    
     public function programs()
     {
         return $this->hasMany(Program::class);
     }
 
-    protected $fillable = ['user_id', 'type','institution_id'];
+
 }

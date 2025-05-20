@@ -8,7 +8,7 @@ class Skill extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name','career_opportunity_id'];
 
     public function institutionSkills()
     {

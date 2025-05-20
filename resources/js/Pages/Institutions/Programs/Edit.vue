@@ -8,17 +8,17 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
-    program: Object,
+    institutionProgram: Object,
     degrees: Array,
 });
 
 const form = useForm({
-    name: props.program.name,
-    degree_id: props.program.degree_id,
+    name: props.institutionProgram.program?.name,
+    degree_id: props.institutionProgram.program?.degree_id,
 });
 
 const updateProgram = () => {
-    form.put(route('programs.update', { program: props.program.id }), {
+    form.put(route('programs.update', { id: props.institutionProgram.id }), {
         preserveScroll: true,
     });
 };
@@ -31,7 +31,7 @@ const updateProgram = () => {
         <Container class="py-8">
             <FormSection @submitted="updateProgram">
                 <template #title>Program Details</template>
-                <template #description>Update the program name and its associated degree.</template>
+                <template #description>Update the program name or degree.</template>
 
                 <template #form>
                     <div class="col-span-6 sm:col-span-4">
