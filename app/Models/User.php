@@ -45,6 +45,7 @@ class User extends Authenticatable
         'gender',
         'telephone_number',
         'contact_number',
+        'profile_picture',
 
         // PESO
         'peso_first_name',

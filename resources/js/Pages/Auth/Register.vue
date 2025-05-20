@@ -64,9 +64,7 @@ const form = useForm({
     graduate_school_graduated_from: '',
     graduate_program_completed: '',
     graduate_year_graduated: '',
-    graduate_first_name: '',
-    graduate_middle_initial: '',
-    graduate_last_name: '',
+
     employment_status: '',
     current_job_title: '',
 });
@@ -755,23 +753,23 @@ const resendCode = () => {
                         <!-- Graduate First Name -->
                         <div class="grid grid-cols-1 gap-4">
 
-                            <InputLabel for="graduate_first_name" value="First Name" />
-                            <TextInput id="graduate_first_name" v-model="form.graduate_first_name" type="text"
+                            <InputLabel for="first_name" value="First Name" />
+                            <TextInput id="first_name" v-model="form.first_name" type="text"
                                 class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.graduate_first_name" />
+                            <InputError class="mt-2" :message="form.errors.first_name" />
                         </div>
 
                         <!-- Graduate Middle Initial -->
-                        <InputLabel for="graduate_middle_initial" value="GMiddle Initial" />
-                        <TextInput id="graduate_middle_initial" v-model="form.graduate_middle_initial" type="text"
+                        <InputLabel for="middle_name" value="Middle Name" />
+                        <TextInput id="middle_name" v-model="form.middle_name" type="text"
                             class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.graduate_middle_initial" />
+                        <InputError class="mt-2" :message="form.errors.middle_name" />
 
                         <!-- Graduate Last Name -->
-                        <InputLabel for="graduate_last_name" value="Last Name" />
-                        <TextInput id="graduate_last_name" v-model="form.graduate_last_name" type="text"
+                        <InputLabel for="last_name" value="Last Name" />
+                        <TextInput id="last_name" v-model="form.last_name" type="text"
                             class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.graduate_last_name" />
+                        <InputError class="mt-2" :message="form.errors.last_name" />
 
                         <!-- Graduate Graduated From -->
                         <div class="mt-4">

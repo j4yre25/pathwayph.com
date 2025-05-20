@@ -14,12 +14,12 @@ class CareerGoal extends Model
         'longTermGoals',
         'industriesOfInterest',
         'careerPath',
-        'user_id', // Foreign key
+        'graduate_id', // Foreign key
     ];
 
     // Relationship with User
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Graduate::class);
     }
 }

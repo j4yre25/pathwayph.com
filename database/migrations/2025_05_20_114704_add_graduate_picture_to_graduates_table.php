@@ -12,15 +12,13 @@ return new class extends Migration
    public function up()
 {
     Schema::table('graduates', function (Blueprint $table) {
-        $table->softDeletes();
+        $table->string('graduate_picture')->nullable();
     });
 }
-
 public function down()
 {
     Schema::table('graduates', function (Blueprint $table) {
-        $table->dropSoftDeletes();
+        $table->dropColumn('graduate_picture');
     });
 }
-
 };
