@@ -138,7 +138,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
                   
 
-                                <NavLink v-if="page.props.roles.isPeso"
+                                <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('admin.manage_users', { user: page.props.auth.user.id })"
                                     :active="route().current('admin.manage_users')">
                                     Manage Users
@@ -148,14 +148,14 @@ console.log(page.props.permissions.canManageInstitution)
 
 
 
-                                <NavLink v-if="page.props.roles.isPeso"
+                                <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('sectors', { user: page.props.auth.user.id })"
                                     :active="route().current('sectors')">
                                     Manage Sectors
                                 </NavLink>
 
                                 <NavLink :href="route('categories.index', { user: page.props.auth.user.id })"
-                                    v-if="page.props.roles.isPeso" Categories
+                                    v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('categories.index')">
                                     Manage Categories
                                 </NavLink>
@@ -164,7 +164,7 @@ console.log(page.props.permissions.canManageInstitution)
 
 
 
-                                <NavLink v-if="page.props.roles.isPeso && page.props.auth.user.is_approved"
+                                <NavLink v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
                                     :href="route('peso.jobs', { user: page.props.auth.user.id })"
                                     :active="route().current('peso.jobs')" :disabled="!page.props.auth.user.is_approved">
                                     PESO Job Posting
@@ -174,12 +174,12 @@ console.log(page.props.permissions.canManageInstitution)
 
 
 
-                                <NavLink :href="route('dashboard')" v-if="page.props.roles.isPeso" Categories
+                                <NavLink :href="route('dashboard')" v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('dashboard')">
                                     Manage Job Referrals
                                 </NavLink>
                                 <!-- 
-                                <NavLink :href="route('jobs.list')" v-if="page.props.roles.isPeso" Categories
+                                <NavLink :href="route('jobs.list')" v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('job.list')">
                                     Reports
                                 </NavLink> -->
@@ -356,7 +356,7 @@ console.log(page.props.permissions.canManageInstitution)
                                         </div>
 
 
-                                        <DropdownLink v-if="page.props.roles.isPeso && page.props.auth.user.is_approved"
+                                        <DropdownLink v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
                                             :disabled="!page.props.auth.user.is_approved" :href="route('peso.profile')">
                                             Profile
                                         </DropdownLink>
@@ -373,7 +373,7 @@ console.log(page.props.permissions.canManageInstitution)
                                             :active="route().current('profile.index')">
                                             Profile Settings </DropdownLink>
 
-                                        <DropdownLink v-if="page.props.roles.isPeso" :href="route('admin.register')">
+                                        <DropdownLink v-if="page.props.auth.user.role === 'peso'" :href="route('admin.register')">
                                             Admin Registration
                                         </DropdownLink>
 
