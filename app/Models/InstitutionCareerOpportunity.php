@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\InstitutionProgram;
 
 class InstitutionCareerOpportunity extends Model
 {
@@ -24,6 +25,14 @@ class InstitutionCareerOpportunity extends Model
     public function institution()
     {
         return $this->belongsTo(User::class, 'institution_id');
+    }
+
+    public function getInstitutionProgramAttribute()
+    {
+        return InstitutionProgram::where('program_id', $this->program_id)
+            ->where('institution_id', $this->institution_id)
+            ->whereNull('deleted_at')
+            ->first();
     }
 }
 

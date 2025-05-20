@@ -456,7 +456,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/institutions/school-years/{user}', [SchoolYearController::class, 'index'])->name('school-years');
     Route::get('/institutions/school-years/{user}/list', [SchoolYearController::class, 'list'])->name('school-years.list');
     Route::get('/institutions/school-years/{user}/create', [SchoolYearController::class, 'create'])->name('school-years.create');
-    Route::post('/institutions/school-years/{user}', [SchoolYearController::class, 'store'])->name('school-years.store');
+    Route::post('/institutions/school-years', [SchoolYearController::class, 'store'])->name('school-years.store');
     Route::get('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'edit'])->name('school-years.edit');
     Route::put('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'update'])->name('school-years.update');
     Route::delete('/institutions/school-years/edit/{schoolYear}', [SchoolYearController::class, 'delete'])->name('school-years.delete');

@@ -5,15 +5,17 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import FormSection from '@/Components/FormSection.vue';
-
 import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
-  link: Object, // Contains institution_career_opportunity + career_opportunity + program
+  link: Object, // Contains institution_career_opportunity + career_opportunity + institution_program
+  programs: Array,
 });
 
+// Use institution_program for the pre-selected value
 const form = useForm({
   title: props.link.career_opportunity?.title ?? '',
+  program_id: props.link.institution_program?.id ?? '', // institution_programs.id
 });
 
 const submit = () => {
@@ -33,20 +35,25 @@ const submit = () => {
       <FormSection @submitted="submit">
         <template #title>Edit Career Title</template>
         <template #description>
-          Update the title of this career opportunity. You cannot change the program.
+          Update the title and program of this career opportunity.
         </template>
 
         <template #form>
-          <!-- Program (Read-only) -->
+          <!-- Program (Editable) -->
           <div class="col-span-6">
-            <InputLabel for="program" value="Program" />
-            <input
-              id="program"
-              type="text"
-              :value="props.link.program?.name"
-              disabled
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 text-gray-600"
-            />
+            <InputLabel for="program_id" value="Program" />
+            <select
+              id="program_id"
+              v-model="form.program_id"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              required
+            >
+              <option value="" disabled>Select a program</option>
+              <option v-for="program in programs" :key="program.id" :value="program.id">
+                {{ program.program?.name }}
+              </option>
+            </select>
+            <InputError :message="form.errors.program_id" class="mt-2" />
           </div>
 
           <!-- Editable Title -->

@@ -5,7 +5,6 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import FormSection from '@/Components/FormSection.vue';
-
 import { useForm, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -61,7 +60,7 @@ const submit = () => {
                     :checked="form.program_ids.includes(program.id)"
                     @change="() => toggleProgram(program.id)"
                   />
-                  {{ program.name }}
+                  {{ program.program?.name }}
                 </label>
               </div>
             </div>

@@ -55,8 +55,8 @@ const confirmRestore = (program) => {
               :key="program.id"
               class="border-t hover:bg-gray-50 transition"
             >
-              <td class="px-6 py-4">{{ program.name }}</td>
-              <td class="px-6 py-4">{{ program.degree?.type }}</td>
+              <td class="px-6 py-4">{{ program.program?.name }}</td>
+              <td class="px-6 py-4">{{ program.program?.degree?.type }}</td>
               <td class="px-6 py-4">
                 <span class="text-red-600 font-semibold">Archived</span>
               </td>

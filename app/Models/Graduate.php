@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Graduate extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -45,5 +44,16 @@ class Graduate extends Model
     public function schoolYear()
     {
         return $this->belongsTo(SchoolYear::class);
+
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class, 'institution_id');
     }
 }

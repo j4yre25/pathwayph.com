@@ -14,9 +14,10 @@ const props = defineProps({
 
 const selectedProgram = ref('');
 const selectedStatus = ref(props.status || 'all');
+
 const filteredOpportunities = computed(() => {
   return props.opportunities.filter((opp) => {
-    const matchesProgram = !selectedProgram.value || opp.program_id === selectedProgram.value;
+    const matchesProgram = !selectedProgram.value || String(opp.program_id) === String(selectedProgram.value);
     const isActive = !opp.deleted_at;
     const matchesStatus =
       selectedStatus.value === 'all' ||
@@ -48,7 +49,7 @@ function applyFilter() {
           <select v-model="selectedProgram" class="mt-1 border-gray-300 rounded-md">
             <option value="">All Programs</option>
             <option v-for="program in programs" :key="program.id" :value="program.id">
-              {{ program.name }}
+              {{ program.program?.name }}
             </option>
           </select>
         </div>

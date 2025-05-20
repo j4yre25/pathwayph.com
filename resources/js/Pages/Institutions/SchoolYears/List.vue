@@ -71,7 +71,7 @@ function applyFilter() {
                 :key="sy.id"
                 class="border-t hover:bg-gray-50 transition-colors"
               >
-                <td class="px-6 py-4">{{ sy.school_year_range }}</td>
+                <td class="px-6 py-4">{{ sy.school_year?.school_year_range }}</td>
                 <td class="px-6 py-4">{{ sy.term }}</td>
                 <td
                   class="px-6 py-4 font-semibold"
