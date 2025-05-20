@@ -13,6 +13,7 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
 use Carbon\Carbon;
 use App\Actions\Fortify\PasswordValidationRules;
+use App\Models\Graduate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -101,7 +102,7 @@ class CreateNewUser implements CreatesNewUsers
             'graduate_program_completed.required' => 'The program completed field is required.',
             'graduate_year_graduated.required' => 'The school year field is required.',
             'company_name.required' => 'The company name field is required.',
-            
+
             'company_street_address.required' => 'The street address field is required.',
             'company_brgy.required' => 'The barangay field is required.',
             'company_city.required' => 'The city field is required.',
@@ -145,23 +146,7 @@ class CreateNewUser implements CreatesNewUsers
         $user = User::create($userData);
 
         // Store in Graduates table (already present)
-        if ($role === 'graduate') {
-            DB::table('graduates')->insert([
-                'user_id' => $user->id, // Use the same ID from `users`
-                'first_name' => $input['graduate_first_name'],
-                'last_name' => $input['graduate_last_name'],
-                'middle_initial' => $input['graduate_middle_initial'],
-                'gender' => $input['gender'],
-                'dob' => $input['dob'],
-                'institution_id' => $input['graduate_school_graduated_from'],
-                'program_id' => $this->getProgramId($input['graduate_program_completed']),
-                'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
-                'employment_status' => $input['employment_status'],
-                'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+ 
 
         // Store in Institutions table
         if ($role === 'institution') {
@@ -201,24 +186,49 @@ class CreateNewUser implements CreatesNewUsers
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            if ($role === 'graduate') {
+                // Create the graduate now that we have $user->id
+            DB::table('graduates')->insert([
+                    'user_id' => $user->id,
+                    'graduate_first_name' => $input['first_name'],
+                    'graduate_last_name' => $input['last_name'],
+                    'graduate_middle_name' => $input['middle_name'],
+                    'current_job_title' =>  ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
+                    'employment_status' => $input['employment_status'] ,
+                    'contact_number' => $input['contact_number'] ,
+                    'location' => $input['location'] ,
+                    'ethnicity' => $input['ethnicity'] ,
+                    'address' => $input['address'] ,
+                    'about_me' => $input['about_me'] ,
+                    'institution_id' => $input['institution_id'] ,
+                    'degree_id' => $input['degree_id'] ,
+                    'program_id' => $this->getProgramId($input['graduate_program_completed']),
+                    'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
+                    'linkedin_url' => $input['linkedin_url'] ,
+                    'github_url' => $input['github_url'] ,
+                    'personal_website' => $input['personal_website'] ,
+                    'other_social_links' => $input['other_social_links'] ,
+                    
+                ]);
 
-            // Create main HR record associated with this company and user
-            $user->hr()->create([
-                'first_name' => $input['first_name'],
-                'middle_name' => $input['middle_name'],
-                'last_name' => $input['last_name'],
-                'mobile_number' => $input['mobile_number'],
-                'dob' => $input['dob'],
-                'gender' => $input['gender'],
-                'company_id' => $company->id,
-                'is_main_hr' => false, // Set this HR as the main HR
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+                // Create main HR record associated with this company and user
+                $user->hr()->create([
+                    'first_name' => $input['first_name'],
+                    'middle_name' => $input['middle_name'],
+                    'last_name' => $input['last_name'],
+                    'mobile_number' => $input['mobile_number'],
+                    'dob' => $input['dob'],
+                    'gender' => $input['gender'],
+                    'company_id' => $company->id,
+                    'is_main_hr' => false, // Set this HR as the main HR
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $user->assignRole($role);
+            return $user;
         }
-
-        $user->assignRole($role);
-        return $user;
     }
 
     protected function determineRole(Request $request): string
@@ -242,6 +252,4 @@ class CreateNewUser implements CreatesNewUsers
     {
         return DB::table('school_years')->where('school_year_range', $schoolYearRange)->value('id');
     }
-
-
 }
