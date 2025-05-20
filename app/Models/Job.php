@@ -29,29 +29,27 @@ class Job extends Model
      */
     protected $fillable = [
         'user_id',
-        'job_title',
-        'location',
-        'branch_location',
-        'description',
-        'requirements',
-        'is_approved',
-        'min_salary',
-        'max_salary',
-        'job_type',
-        'experience_level',
-        'vacancy',
-        'skills',
-        'sector',
-        'posted_at',
-        'posted_by',
-        'status',
-        'program_id',
         'company_id',
+        'program_id',
+        'status',
         'sector',
         'category',
-        'status',
-        'expiration_date',
-        'applicants_limit',
+        'job_title',
+        'job_location',
+        'job_description',
+        'job_requirements',
+        'job_salary_type',
+        'job_min_salary',
+        'job_max_salary',
+        'job_employment_type',
+        'job_experience_level',
+        'job_vacancies',
+        'related_skills',
+        'job_posted_at',
+        'job_deadline',
+        'job_application_limit',
+        'is_approved',
+        'posted_by'
     ];
 
     /**
@@ -60,9 +58,8 @@ class Job extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'posted_at' => 'datetime',
-        'application_deadline' => 'date',
-        'skills' => 'array',
+        'job_deadline' => 'date',
+        'related_skills' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

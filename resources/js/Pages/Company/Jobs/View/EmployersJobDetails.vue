@@ -53,9 +53,9 @@ if (confirm("Invite all matched graduates for this job?")) {
               <p><strong>Offered Salary:</strong> {{ job.salary_range }}</p>
               <p><strong>Posted By:</strong>  {{ job.posted_by}}</p>
               <p><strong>Posted Date:</strong> {{ job.posted_at }}</p>
-              <p><strong>Application Deadline:</strong> {{ job.expiration_date }}</p>
-              <p><strong>Location:</strong> {{ job.location }}</p>
-              <p><strong>No. Vacancy:</strong> {{ job.vacancy }}</p>
+              <p><strong>Application Deadline:</strong> {{ job.job_deadline}}</p>
+              <p><strong>Location:</strong> {{ job.job_location }}</p>
+              <p><strong>No. Vacancy:</strong> {{ job.job_vacancies }}</p>
               <p><strong>Status:</strong> 
                 <span :class="{
                   'text-green-600': job.is_approved === 1,
@@ -84,21 +84,21 @@ if (confirm("Invite all matched graduates for this job?")) {
             <h1 class="text-2xl font-bold">{{ job.job_title }}</h1>
             <div class="flex flex-wrap gap-2 mt-4">
                 <span class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
-                    {{ job.job_type }}
+                    {{ job.job_employment_type }}
                 </span>
                 <span class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
-                    {{ job.experience_level }}
+                    {{ job.job_experience_level }}
                 </span>
             </div>
             
             <section>
               <h3 class="text-lg font-semibold mb-1">Job Description</h3>
-             <div class="text-gray-700 prose max-w-none" v-html="job.description"></div>
+             <div class="text-gray-700 prose max-w-none" v-html="job.job_description"></div>
             </section>
   
             <section>
               <h3 class="text-lg font-semibold mb-1">Job Requirements</h3>
-              <div class="text-gray-700 prose max-w-none" v-html="job.requirements"></div>
+              <div class="text-gray-700 prose max-w-none" v-html="job.job_requirements"></div>
 
             </section>
   
