@@ -103,6 +103,10 @@ class User extends Authenticatable
         return $this->hasOne(Company::class);
     }
 
+    public function peso()
+{
+    return $this->hasMany(Peso::class);
+}
 
 
     public function sectors() {

@@ -12,29 +12,38 @@ class Graduate extends Model
 
     protected $fillable = [
         'user_id',
-        'first_name',           // <-- add this
-        'last_name',            // <-- add this
-        'middle_initial',       // <-- add this
+        'graduate_first_name',
+        'graduate_last_name',
+        'graduate_middle_name',
+        'current_job_title',
+        'employment_status',
+        'contact_number',
+        'location',
+        'ethnicity',
+        'address',
+        'about_me',
+        'institution_id',
+        'degree_id',
         'program_id',
         'school_year_id',
-        'gender',
-        'dob',
-        'employment_status',
-        'current_job_title',
-        'institution_id',       // if you use this in your update/store
+        'linkedin_url',
+        'github_url',
+        'personal_website',
+        'other_social_links',
     ];
 
-    public function user() {
+
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
-    public function program() {
+    public function program()
+    {
         return $this->belongsTo(Program::class);
     }
 
-    public function schoolYear() {
+    public function schoolYear()
+    {
         return $this->belongsTo(SchoolYear::class);
     }
-
 }
-
-

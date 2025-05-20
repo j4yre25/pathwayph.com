@@ -27,6 +27,8 @@ const showingNavigationDropdown = ref(false);
 console.log('Auth:', page.props.auth);
 console.log('Role:', page.props.roles);
 console.log('HR Count:', page.props.hrCount);
+console.log('Is Main HR:', page.props.auth);
+
 console.log('Company Name:', page.props.app?.currentUser?.company?.company_name);
 console.log('Sector:', page.props.sectors ?? 'No sectors found');
 console.log('Permission to manage:', page.props.permissions?.canManageInstitution);
@@ -101,7 +103,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
 
                                <NavLink
-                                    v-if="roles?.isCompany && auth.user.hr?.is_main_hr && hrCount > 1"
+                                    v-if="roles?.isCompany && hrCount > 1"
                                     :href="route('company.manage-hrs', { user:page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')"
                                     :disabled="!auth.user.is_approved"
