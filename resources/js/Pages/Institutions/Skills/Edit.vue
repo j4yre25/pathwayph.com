@@ -30,15 +30,8 @@ const uniqueCareerOpportunities = computed(() => {
 });
 
 function submit() {
-  console.log('Submitting form:', form);
   form.put(route('instiskills.update', props.link.id), {
     preserveScroll: true,
-    onSuccess: () => {
-      console.log('Skill updated successfully');
-    },
-    onError: (errors) => {
-      console.error('Update failed:', errors);
-    },
   });
 }
 </script>
@@ -52,7 +45,9 @@ function submit() {
     <Container class="py-6">
       <FormSection @submitted="submit">
         <template #title>Edit Skill Entry</template>
-        <template #description>Update the skill name or assigned career opportunity.</template>
+        <template #description>
+          Update the skill name or assigned career opportunity.
+        </template>
 
         <template #form>
           <!-- Skill Name -->
@@ -63,6 +58,7 @@ function submit() {
               v-model="form.skill_name"
               type="text"
               class="w-full rounded border-gray-300 shadow-sm mt-1"
+              autocomplete="off"
             />
             <InputError :message="form.errors.skill_name" class="mt-2" />
           </div>
@@ -74,6 +70,7 @@ function submit() {
               id="career_opportunity_id"
               v-model="form.career_opportunity_id"
               class="w-full border-gray-300 rounded mt-1"
+              required
             >
               <option disabled value="">Select one</option>
               <option

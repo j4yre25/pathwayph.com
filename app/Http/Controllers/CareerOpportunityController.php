@@ -18,7 +18,7 @@ class CareerOpportunityController extends Controller
     public function index(User $user, Request $request)
     {
         // Get the institution for this user
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         if (!$institution) {
             return Inertia::render('Institutions/CareerOpportunities/Index', [
                 'programs' => [],
@@ -26,9 +26,8 @@ class CareerOpportunityController extends Controller
             ]);
         }
 
-        $programs = $user->institutionPrograms()
-            ->whereNull('institution_programs.deleted_at')
-            ->whereNull('institutions.deleted_at')
+        $programs = $institution->institutionPrograms()
+            ->whereNull('deleted_at')
             ->with('program')
             ->get();
 
@@ -54,7 +53,7 @@ class CareerOpportunityController extends Controller
 
     public function list(Request $request, User $user)
     {
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         if (!$institution) {
             return Inertia::render('Institutions/CareerOpportunities/List', [
                 'opportunities' => [],
@@ -82,9 +81,8 @@ class CareerOpportunityController extends Controller
 
         $opportunities = $query->get();
 
-        $programs = $user->institutionPrograms()
-            ->whereNull('institution_programs.deleted_at')
-            ->whereNull('institutions.deleted_at')
+        $programs = $institution->institutionPrograms()
+            ->whereNull('deleted_at')
             ->with('program')
             ->get();
 
@@ -97,7 +95,7 @@ class CareerOpportunityController extends Controller
 
     public function archivedList(User $user)
     {
-        $institution = Institution::where('institution_id', $user->id)->first();
+        $institution = Institution::where('user_id', $user->id)->first();
         if (!$institution) {
             return Inertia::render('Institutions/CareerOpportunities/ArchivedList', [
                 'opportunities' => [],
@@ -116,11 +114,14 @@ class CareerOpportunityController extends Controller
 
     public function create(User $user)
     {
-        $programs = $user->institutionPrograms()
-            ->whereNull('institution_programs.deleted_at')
-            ->whereNull('institutions.deleted_at')
-            ->with('program')
-            ->get();
+        $institution = Institution::where('user_id', $user->id)->first();
+        $programs = [];
+        if ($institution) {
+            $programs = $institution->institutionPrograms()
+                ->whereNull('deleted_at')
+                ->with('program')
+                ->get();
+        }
 
         return Inertia::render('Institutions/CareerOpportunities/Create', [
             'programs' => $programs,
@@ -135,7 +136,14 @@ class CareerOpportunityController extends Controller
             'titles' => 'required|string',
         ]);
 
-        $institutionPrograms = InstitutionProgram::whereIn('id', $request->program_ids)->get();
+        $institution = Institution::where('user_id', $user->id)->first();
+        if (!$institution) {
+            return back()->withErrors(['flash.banner' => 'Institution not found.']);
+        }
+
+        $institutionPrograms = InstitutionProgram::whereIn('id', $request->program_ids)
+            ->where('institution_id', $institution->id)
+            ->get();
 
         if (count($institutionPrograms) !== count($request->program_ids)) {
             return back()->withErrors([
@@ -200,14 +208,10 @@ class CareerOpportunityController extends Controller
         // Get all programs for this institution
         $programs = [];
         if ($institution) {
-            $user = User::where('id', $institution->institution_id)->first();
-            if ($user) {
-                $programs = $user->institutionPrograms()
-                    ->whereNull('institution_programs.deleted_at')
-                    ->whereNull('institutions.deleted_at')
-                    ->with('program')
-                    ->get();
-            }
+            $programs = $institution->institutionPrograms()
+                ->whereNull('deleted_at')
+                ->with('program')
+                ->get();
         }
 
         return Inertia::render('Institutions/CareerOpportunities/Edit', [
