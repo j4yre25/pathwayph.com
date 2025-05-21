@@ -258,6 +258,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     });
 });
 
+// Company Reports
+
 // Manage HR Accounts 
 Route::middleware(['auth'])->group(function () {
     Route::get('/company/manage-hrs', [CompanyManageHRController::class, 'index'])->name('company.manage-hrs');

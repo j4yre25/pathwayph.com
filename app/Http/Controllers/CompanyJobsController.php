@@ -25,7 +25,7 @@ class CompanyJobsController extends Controller
     {
 
        // Get all jobs belonging to the same company as the user
-        $jobs = Job::where('company_id', $user->company_id)
+        $jobs = Job::where('company_id', $user->hr->company_id)
                 ->get();
         $sectors = Sector::pluck('name'); // Fetch all sector names
         $categories = \App\Models\Category::pluck('name'); // Fetch all category names
@@ -161,7 +161,7 @@ class CompanyJobsController extends Controller
         $new_job->category_id = $validated['category'];
         $new_job->job_deadline = Carbon::parse($validated['job_deadline'])->format('Y-m-d');
         $new_job->job_application_limit = $validated['job_application_limit'] ?? null;
-        $new_job->is_approved = 0; 
+        
 
          // Generate job code
         $sector = Sector::find($validated['sector']);
@@ -273,6 +273,7 @@ class CompanyJobsController extends Controller
     public function approve(Job $job)
     {
         $job->is_approved = 1;
+        $job->status = 'open'; // Set status to approved
         $job->save();
 
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');
@@ -281,6 +282,7 @@ class CompanyJobsController extends Controller
     public function disapprove(Job $job)
     {
         $job->is_approved = 0;
+        $job->status = 'closed'; // Set status to disapproved
         $job->save();
 
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job disapproved successfully.');

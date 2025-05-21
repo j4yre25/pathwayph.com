@@ -79,7 +79,7 @@ class PesoJobsController extends Controller
     }
 
     public function manage(User $user) {
-        $jobs = Job::with('user')
+        $jobs = Job::with('user','company')
             ->orderBy('created_at', 'desc') // Sort by created_at in descending order
             ->paginate(10); // Paginate the results
         return Inertia::render('Admin/Jobs/Index/ManageJobs', [
@@ -252,6 +252,7 @@ class PesoJobsController extends Controller
     public function approve(Job $job)
     {
         $job->is_approved = 1; 
+        $job->status = 'open'; 
         $job->save();
     
         return redirect()->route('peso.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');    }
@@ -259,6 +260,7 @@ class PesoJobsController extends Controller
     public function disapprove(Job $job)
     {
         $job->is_approved = 0; 
+        $job->status = 'closed';
         $job->save();
 
         return redirect()->route('peso.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job disapproved successfully.');

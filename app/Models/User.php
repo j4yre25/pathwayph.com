@@ -51,10 +51,6 @@ class User extends Authenticatable
         'peso_first_name',
         'peso_last_name',
 
-        // Company
-        'company_id',
-        'company_hr_first_name',
-        'company_hr_last_name',
 
         //Graduate
         'institution_id',

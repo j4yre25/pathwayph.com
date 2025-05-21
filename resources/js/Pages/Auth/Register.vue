@@ -116,6 +116,7 @@ const { passwordCriteria } = usePasswordCriteria(form);
 const maxDate = ref(new Date().toISOString().split('T')[0]);
 const minDate = ref('1900-01-01');
 
+console.log('Form Data:', form);
 // Handle form submission
 const submit = () => {
     let routeName;
@@ -129,8 +130,7 @@ const submit = () => {
         console.error('Unknown role:', form.role);
         return;
     }
-
-    console.log('Form Data:', form);
+    
     form.post(route(routeName), {
         onFinish: () => {
             console.log("Form submission finished");
@@ -401,7 +401,7 @@ const resendCode = () => {
                                         <TextInput id="middle_name" v-model="form.middle_name" placeholder="Dela Cruz"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
-                                            required />
+                                            />
                                         <InputError class="mt-2" :message="form.errors.middle_name" />
                                     </div>
                                 </div>
@@ -960,18 +960,12 @@ const resendCode = () => {
                     </div>
                 </div>
 
-
                 <div class="flex items-center justify-end mt-8 border-t border-gray-200 pt-12">
                     <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                         Register
                     </PrimaryButton>
                 </div>
-
-
-
             </form>
-
-
         </template>
     </AuthenticationCard>
 
