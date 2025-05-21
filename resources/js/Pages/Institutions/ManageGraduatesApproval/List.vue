@@ -150,8 +150,7 @@ const formatDate = (dateString) => {
                         <tr v-for="graduate in filteredGraduates" :key="graduate.id"
                             class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4">
-                                {{ graduate.graduate_first_name }} {{ graduate.graduate_middle_initial }} {{
-                                graduate.graduate_last_name }}
+                                {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
                             </td>
                             <td class="px-6 py-4">{{ graduate.program_name }}</td>
                             <td class="px-6 py-4">{{ formatDate(graduate.created_at) }}</td>

@@ -6,6 +6,7 @@ use App\Models\Institution;
 use App\Models\InstitutionSchoolYear;
 use App\Models\InstitutionProgram;
 use App\Models\Sector;
+use App\Models\Degree;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
@@ -82,7 +83,7 @@ class CustomRegisteredUserController extends Controller
             ->get();
 
         // Fetch programs with institution_id
-        $programs = \App\Models\InstitutionProgram::with('program')
+        $programs = InstitutionProgram::with('program')
             ->whereIn('institution_id', $insti_users->pluck('id'))
             ->get()
             ->map(function ($ip) {
@@ -90,11 +91,12 @@ class CustomRegisteredUserController extends Controller
                     'id' => $ip->program->id,
                     'name' => $ip->program->name,
                     'institution_id' => $ip->institution_id,
+                    'degree_id' => $ip->program->degree_id, // <-- ADD THIS LINE
                 ];
             });
 
         // Fetch school years with institution_id
-        $school_years = \App\Models\InstitutionSchoolYear::with('schoolYear')
+        $school_years = InstitutionSchoolYear::with('schoolYear')
             ->whereIn('institution_id', $insti_users->pluck('id'))
             ->get()
             ->map(function ($isy) {
@@ -105,11 +107,17 @@ class CustomRegisteredUserController extends Controller
                 ];
             });
 
+        // Fetch degrees with institution_id
+        $degrees = Degree::join('institution_degrees', 'degrees.id', '=', 'institution_degrees.degree_id')
+            ->whereIn('institution_degrees.institution_id', $insti_users->pluck('id'))
+            ->get(['degrees.id', 'degrees.type as name', 'institution_degrees.institution_id']);
+
 
         return Inertia::render('Auth/Register', [
             'insti_users' => $insti_users,
             'programs' => $programs,
             'school_years' => $school_years,
+            'degrees' => $degrees, // <-- add this
         ]);
     }
 

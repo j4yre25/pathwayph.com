@@ -11,6 +11,11 @@ const parsedRows = ref([])
 const validationErrors = ref([])
 const isValid = ref(false)
 
+const props = defineProps({
+  degreeCodes: Array,
+  programCodes: Array,
+})
+
 function handleFileUpload(e) {
   file.value = e.target.files[0]
   parsedRows.value = []
@@ -29,19 +34,27 @@ function handleFileUpload(e) {
       console.log('CSV headers:', Object.keys(results.data[0] || {}))
 
       // Normalize field keys to expected camelCase
-      parsedRows.value = results.data.map(row => ({
-        email: row.email || '',
-        first_name: row.first_name || '',
-        last_name: row.last_name || '',
-        middle_initial: row.middle_initial || '',
-        program_completed: row.program_completed || '',
-        year_graduated: row.year_graduated || '',
-        dob: row.dob || '',
-        gender: row.gender || '',
-        contact_number: row.contact_number || '',
-        employment_status: row.employment_status || '',
-        current_job_title: row.current_job_title || '',
-      }))
+      parsedRows.value = results.data.map(row => {
+        let dob = row.dob || ''
+        if (dob && dob.includes('/')) {
+          const parsed = dayjs(dob, 'MM/DD/YYYY', true)
+          if (parsed.isValid()) dob = parsed.format('YYYY-MM-DD')
+        }
+        return {
+          email: row.email || '',
+          first_name: toTitleCase(row.first_name || ''), // Apply title case transformation
+          last_name: toTitleCase(row.last_name || ''),   // Apply title case transformation
+          middle_name: toTitleCase(row.middle_name || ''), // Apply title case transformation
+          degree_code: (row.degree_code || '').toUpperCase(),
+          program_code: (row.program_code || '').toUpperCase(),
+          year_graduated: row.year_graduated || '',
+          dob: dob,
+          gender: (row.gender || '').charAt(0).toUpperCase() + (row.gender || '').slice(1).toLowerCase(),
+          contact_number: row.contact_number || '',
+          employment_status: (row.employment_status || '').charAt(0).toUpperCase() + (row.employment_status || '').slice(1).toLowerCase(),
+          current_job_title: toTitleCase(row.current_job_title || ''), // Apply title case transformation
+        }
+      })
 
       validateRows()
     },
@@ -63,7 +76,6 @@ function validateRows() {
     if (!row.email) rowErrors.push('Missing email')
     if (!row.first_name) rowErrors.push('Missing first name')
     if (!row.last_name) rowErrors.push('Missing last name')
-    if (!row.program_completed) rowErrors.push('Missing program')
     if (!row.year_graduated) rowErrors.push('Missing year')
     if (row.dob) {
       const parsedDate = dayjs(row.dob, 'MM/DD/YYYY', true)
@@ -98,7 +110,32 @@ function validateRows() {
         messages: rowErrors,
       })
     }
+
+    // Degree and program code validation
+    if (!props.degreeCodes.includes(row.degree_code)) {
+      isValid.value = false
+      validationErrors.value.push({
+        row: index + 2,
+        messages: [`Degree code '${row.degree_code}' does not exist for this institution.`],
+      })
+    }
+    if (!props.programCodes.includes(row.program_code)) {
+      isValid.value = false
+      validationErrors.value.push({
+        row: index + 2,
+        messages: [`Program code '${row.program_code}' does not exist for this institution.`],
+      })
+    }
   })
+}
+
+function toTitleCase(str) {
+  if (!str) return ''
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
 }
 
 function submitToBackend() {
@@ -169,8 +206,10 @@ function submitToBackend() {
               <th class="p-2 border">#</th>
               <th class="p-2 border">Email</th>
               <th class="p-2 border">First Name</th>
+              <th class="p-2 border">Middle Name</th>
               <th class="p-2 border">Last Name</th>
-              <th class="p-2 border">Program</th>
+              <th class="p-2 border">Degree Code</th>
+              <th class="p-2 border">Program Code</th>
               <th class="p-2 border">Year Graduated</th>
               <th class="p-2 border">DOB</th>
               <th class="p-2 border">Gender</th>
@@ -184,8 +223,10 @@ function submitToBackend() {
               <td class="border p-2">{{ i + 2 }}</td>
               <td class="border p-2">{{ row.email }}</td>
               <td class="border p-2">{{ row.first_name }}</td>
+              <td class="border p-2">{{ row.middle_name }}</td>
               <td class="border p-2">{{ row.last_name }}</td>
-              <td class="border p-2">{{ row.program_completed }}</td>
+              <td class="border p-2">{{ row.degree_code }}</td>
+              <td class="border p-2">{{ row.program_code }}</td>
               <td class="border p-2">{{ row.year_graduated }}</td>
               <td class="border p-2">{{ row.dob }}</td>
               <td class="border p-2">{{ row.gender }}</td>

@@ -76,7 +76,7 @@ class DegreeController extends Controller
         }
 
         $request->validate([
-            'type' => ['required', 'in:Bachelor,Associate,Master,Doctoral,Diploma'],
+            'type' => ['required', 'in:Bachelor of Science,Bachelor of Arts,Associate,Master of Science,Master of Arts,Doctoral,Diploma'],
         ]);
 
         // Check if degree exists globally
@@ -100,9 +100,46 @@ class DegreeController extends Controller
             return back()->withErrors(['flash.banner' => 'This degree already exists for your institution.']);
         }
 
+        // Generate degree code
+        $initials = $this->getDegreeInitials($request->type);
+
+        // Find the latest code for this type and institution
+        $lastDegree = InstitutionDegree::where('institution_id', $institution->id)
+            ->whereHas('degree', function($q) use ($request) {
+                $q->where('type', $request->type);
+            })
+            ->orderByDesc('id')
+            ->first();
+
+        if ($lastDegree && $lastDegree->degree_code) {
+            // Extract the number and increment
+            $parts = explode('-', $lastDegree->degree_code);
+            $number = isset($parts[1]) ? intval($parts[1]) + 1 : 1;
+        } else {
+            // Start at 1 for new type/institution
+            $number = 1;
+        }
+
+        // You can set the starting number for each type if you want (e.g., BA starts at 1000)
+        $startNumbers = [
+            'BS' => 1,
+            'BA' => 1,
+            'AS' => 1,
+            'MS' => 1,
+            'MA' => 1,
+            'PhD' => 1,
+            'D' => 1,
+        ];
+        if (!$lastDegree) {
+            $number = $startNumbers[$initials] ?? 1;
+        }
+
+        $degreeCode = $initials . '-' . str_pad($number, 3, '0', STR_PAD_LEFT);
+
         InstitutionDegree::create([
             'degree_id' => $degree->id,
             'institution_id' => $institution->id,
+            'degree_code' => $degreeCode,
         ]);
 
         return redirect()->back()->with('flash.banner', 'Degree added.');
@@ -127,7 +164,8 @@ class DegreeController extends Controller
         $institution = Institution::where('user_id', $user->id)->first();
 
         $request->validate([
-            'type' => ['required', 'in:Bachelor,Associate,Master,Doctoral,Diploma'],
+            'type' => ['required', 'in:Bachelor of Science,Bachelor of Arts,Associate,Master of Science,
+                                    Master of Arts,Doctoral,Diploma'],
         ]);
 
         $degree = Degree::withTrashed()
@@ -179,5 +217,18 @@ class DegreeController extends Controller
         $degree->restore();
 
         return redirect()->back()->with('flash.banner', 'Degree restored.');
+    }
+
+    private function getDegreeInitials($type)
+    {
+        return [
+            'Bachelor of Science' => 'BS',
+            'Bachelor of Arts' => 'BA',
+            'Associate' => 'AS',
+            'Master of Science' => 'MS',
+            'Master of Arts' => 'MA',
+            'Doctoral' => 'PhD',
+            'Diploma' => 'D',
+        ][$type] ?? 'XX';
     }
 }

@@ -28,17 +28,4 @@ class Program extends Model
         return $this->hasMany(CareerOpportunity::class);
     }
 
-    public function getFormattedNameAttribute()
-    {
-        $prefix = match ($this->degree->type) {
-            'Bachelor' => 'BS in',
-            'Associate' => 'AS in',
-            'Master' => 'Master in',
-            'Doctoral' => 'Doctor in',
-            default => '',
-        };
-
-        return $prefix . ' ' . $this->name;
-    }
-
 }
