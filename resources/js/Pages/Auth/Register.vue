@@ -18,10 +18,10 @@ const props = defineProps({
     insti_users: Array,
     school_years: Array,
     programs: Array,
-    sectors: Array,
+    categories: Array,
 });
 
-console.log(props.sectors);
+console.log('Categories:', props.categories);
 
 const isPasswordFocused = ref(false);
 const showModal = ref(false);
@@ -50,7 +50,7 @@ const form = useForm({
     company_zip_code: '',
     company_email: '',
     company_mobile_phone: '',
-    sector: '',
+    category: '',
     first_name: '',
     last_name: '',
     middle_name: '',
@@ -226,16 +226,16 @@ const resendCode = () => {
                                 </div>
                             </div>
 
-                                <InputLabel for="sector" value="Sectors" />
-                                <select id="sector" v-model="form.sector"
+                                <InputLabel for="category" value="Sectors" />
+                                <select id="category" v-model="form.category"
                                     class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                     required>
                                     <option value="">Select Sector</option>
-                                    <option v-for="sector in sectors" :key="sector.id" :value="sector.name">
-                                        {{ sector.name }}
+                                    <option v-for="category in categories" :key="category.id" :value="category.id">
+                                        {{ category.name }}
                                     </option>
                                 </select>
-                                <InputError class="mt-2" :message="form.errors.sector" />
+                                <InputError class="mt-2" :message="form.errors.category" />
 
                             <!-- Company Address -->
                             <div class="grid grid-cols-3 gap-4">

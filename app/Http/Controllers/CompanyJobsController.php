@@ -25,7 +25,7 @@ class CompanyJobsController extends Controller
     {
 
        // Get all jobs belonging to the same company as the user
-         $jobs = Job::where('company_id', $user->company_id)
+        $jobs = Job::where('company_id', $user->company_id)
                 ->get();
         $sectors = Sector::pluck('name'); // Fetch all sector names
         $categories = \App\Models\Category::pluck('name'); // Fetch all category names
@@ -162,7 +162,28 @@ class CompanyJobsController extends Controller
         $new_job->job_deadline = Carbon::parse($validated['job_deadline'])->format('Y-m-d');
         $new_job->job_application_limit = $validated['job_application_limit'] ?? null;
         $new_job->is_approved = 0; 
-         $new_job->save();
+
+         // Generate job code
+        $sector = Sector::find($validated['sector']);
+        $category = \App\Models\Category::find($validated['category']);
+
+        $sectorCode = $sector->sector_id;                // e.g., S0001
+        $divisionCodes = $sector->division_codes;        // e.g., 01-03
+        $categoryCode = $category->division_code;        // e.g., 02
+
+        $initials = collect(explode(' ', $validated['job_title']))
+            ->map(fn ($word) =>Str::substr($word, 0, 1))
+            ->implode('');
+        $initials = strtoupper($initials); // e.g., IA for "Insurance Agents"
+
+        $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
+        $new_job->job_code = $jobCode;
+
+        // Generate job ID
+        $jobCount = Job::count() + 1;
+        $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT); // JS-001
+        $new_job->job_id = "JS-{$jobID}-{$jobCode}";
+        $new_job->save();
         $new_job->programs()->attach($validated['program_id']);
 
         return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');

@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('school_years', function (Blueprint $table) {
-            $table->id();
-            $table->string('school_year_range');
-            $table->timestamps();
-            $table->softDeletes();
+        Schema::table('companies', function (Blueprint $table) {
+            $table->foreignId('category_id')->nullable()->constrained('categories')->after('sector_id');
+           
         });
     }
 
@@ -24,6 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('school_years');
+        Schema::table('companies', function (Blueprint $table) {
+            $table->dropForeign(['category_id']);
+            $table->dropColumn('category_id');
+        });
     }
 };

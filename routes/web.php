@@ -28,6 +28,8 @@ use App\Http\Controllers\JobSearchController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
+use App\Http\Controllers\CompanyJobApplicantController;
+use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
 
 use Laravel\Fortify\Features;
@@ -231,17 +233,29 @@ Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'dis
 
 //Manage Applicants Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    // View all applicants for a specific job
-    Route::get('/jobs/{job}/applicants', [ApplicantController::class, 'index'])->name('applicants');
-
-    // View details of a specific applicant
-    Route::get('/applicants/{applicant}', [ApplicantController::class, 'show'])->name('applicants.show');
-
-    // Update an applicant's status (e.g., mark as hired)
-    Route::put('/applicants/{applicant}', [ApplicantController::class, 'update'])->name('applicants.update');
-
-    // Delete an applicant
-    Route::delete('/applicants/{applicant}', [ApplicantController::class, 'delete'])->name('applicants.delete');
+ 
+    // Job-level applicant management (JobApplicantController)
+    Route::prefix('/company')->group(function () {
+        //View all jobs
+        Route::get('jobs', [CompanyJobApplicantController::class, 'index'])->name('company.job.applicants.index');
+        // View all applicants for a specific job
+        Route::get('{job}/applicants', [CompanyJobApplicantController::class, 'show'])->name('company.job.applicants.show');
+    });
+ 
+    // Individual application management (ApplicationController)
+    Route::prefix('/applicants')->group(function () {
+        // View details of a specific applicant/application
+        Route::get('{application}', [CompanyApplicationController::class, 'show'])->name('applicants.show');
+ 
+        // Update an applicant's status (e.g., mark as hired)
+        Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
+ 
+        // Soft Delete an applicant
+        Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
+ 
+        // Schedule interview
+        Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
+    });
 });
 
 // Manage HR Accounts 

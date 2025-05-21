@@ -6,6 +6,7 @@ use App\Models\Institution;
 use App\Models\InstitutionSchoolYear;
 use App\Models\InstitutionProgram;
 use App\Models\Sector;
+use App\Models\Category;
 use App\Models\Company;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\StatefulGuard;
@@ -56,9 +57,8 @@ class CustomRegisteredUserController extends Controller
         // Send the verification code via email
         $user->notify(new VerifyEmailWithCode($verificationCode));
 
-        // 🔽 Place the custom ID logic **here**, after HR and company are created
         if ($role === 'company') {
-            $hr = $user->hr; // Assuming hr() relationship exists on User model
+            $hr = $user->hr; 
 
             if ($hr && $hr->company_id) {
                 $company = Company::find($hr->company_id);
@@ -66,28 +66,14 @@ class CustomRegisteredUserController extends Controller
                 if ($company) {
                     $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
                     $sectorCode = $company->sector->sector_id?? '000'; // Default to '000' if sector_code is not set
-                    $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}";
+                    $divisionCode = $company->category->division_code ?? '00'; // Default to '000' if division_code is not set
+                    $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
                     $company->save();
                 }
             }
         }
 
-        // 🔽 Place the custom ID logic **here**, after HR and company are created
-        if ($role === 'company') {
-            $hr = $user->hr; // Assuming hr() relationship exists on User model
-
-            if ($hr && $hr->company_id) {
-                $company = Company::find($hr->company_id);
-
-                if ($company) {
-                    $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
-                    $sectorCode = $company->sector->sector_id?? '000'; // Default to '000' if sector_code is not set
-                    $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}";
-                    $company->save();
-                }
-            }
-        }
-
+        
 
         event(new Registered($user));
 
@@ -148,9 +134,9 @@ class CustomRegisteredUserController extends Controller
 
     public function showCompanyDetails()
     {
-        $sectors = Sector::all();
+        $categories = Category::all();
         return Inertia::render('Auth/Register', [
-            'sectors' => $sectors,
+            'categories' => $categories,
         ]);
     }
 
