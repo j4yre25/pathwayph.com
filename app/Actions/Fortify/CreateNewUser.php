@@ -51,9 +51,10 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['employment_status'] = ['required', 'in:Employed,Underemployed,Unemployed'];
                 $rules['current_job_title'] = ['required_if:employment_status,Employed,Underemployed', 'nullable', 'string', 'max:255'];
                 $rules['graduate_year_graduated'] = ['required', 'exists:school_years,school_year_range'];
+                $rules['graduate_degree'] = ['required', 'exists:degrees,id'];
                 break;
             case 'company':
-                $rules['company_name'] = ['required', 'string', 'max:255'];
+                $rules['company_name' ] = ['required', 'string', 'max:255'];
                 $rules['company_street_address'] = ['required', 'string', 'max:255'];
                 $rules['company_brgy'] = ['required', 'string', 'max:255'];
                 $rules['company_city'] = ['required', 'string', 'max:255'];
@@ -134,6 +135,7 @@ class CreateNewUser implements CreatesNewUsers
             'password' => Hash::make($input['password']),
             'role' => $role,
             'mobile_number' => $input['mobile_number'],
+            'is_approved' => false, // <-- Ensure this is set
         ];
 
         $user = User::create($userData);
@@ -203,12 +205,16 @@ class CreateNewUser implements CreatesNewUsers
                 'first_name' => $input['first_name'],
                 'last_name' => $input['last_name'],
                 'middle_name' => $input['middle_name'],
+                'dob' => $input['dob'], // <-- Add this line
                 'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
                 'employment_status' => $input['employment_status'],
                 'contact_number' => $input['mobile_number'],
                 'institution_id' => $input['graduate_school_graduated_from'],
                 'program_id' => $this->getProgramId($input['graduate_program_completed']),
                 'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
+                'degree_id' => $input['graduate_degree'],
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             
             $user->assignRole($role);

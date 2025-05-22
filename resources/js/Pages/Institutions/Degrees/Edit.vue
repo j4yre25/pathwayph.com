@@ -43,11 +43,13 @@ const updateDegree = () => {
                         <InputLabel for="type" value="Degree Type" />
                         <select id="type" v-model="form.type" class="mt-1 block w-full">
                             <option value="">Select Degree</option>
-                            <option value="Bachelor">Bachelor</option>
-                            <option value="Associate">Associate</option>
-                            <option value="Master">Master</option>
-                            <option value="Doctoral">Doctoral</option>
-                            <option value="Diploma">Diploma</option>
+                                <option value="Associate">Associate</option>
+                                <option value="Bachelor of Science">Bachelor of Science</option>
+                                <option value="Bachelor of Arts">Bachelor of Arts</option>
+                                <option value="Master of Science">Master of Science</option>
+                                <option value="Master of Arts">Master of Arts</option>
+                                <option value="Doctoral">Doctoral</option>
+                                <option value="Diploma">Diploma</option>
                         </select>
                         <InputError :message="form.errors.type" class="mt-2" />
                     </div>

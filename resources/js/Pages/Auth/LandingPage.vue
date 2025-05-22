@@ -66,7 +66,7 @@ onMounted(() => {
     <div class="relative min-h-screen">
         <!-- Landing Section -->
         <div id="home" class="relative">
-            <img src="images/LandingPage.jpg" alt="Graduates throwing graduation caps"
+            <img src="/images/LandingPage.jpg" alt="Graduates throwing graduation caps"
                 class="w-full h-[800px] object-cover" width="1920" height="1080" />
             <div class="absolute inset-0 bg-black bg-opacity-60"></div>
             <header class="fixed top-0 left-0 right-0 flex items-center justify-between px-6 py-4 z-50 transition-all duration-300" 
@@ -138,7 +138,7 @@ onMounted(() => {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <!-- Graduates Card -->
                     <div class="bg-white p-6 rounded-lg shadow-md overflow-hidden">
-                        <img src="/images/graduate-planning.jpg" alt="Graduate planning career" 
+                        <img src="/images/gradplanning.jpg" alt="Graduate planning career" 
                             class="w-full h-36 object-cover mb-6 rounded" />
                         <div class="flex items-center mb-4">
                             <div class="bg-blue-100 p-2 rounded-full mr-3">
@@ -154,7 +154,7 @@ onMounted(() => {
                     
                     <!-- Institutions Card -->
                     <div class="bg-white p-6 rounded-lg shadow-md overflow-hidden">
-                        <img src="/images/institution-campus.jpg" alt="University campus" 
+                        <img src="/images/tracking.jpg" alt="University campus" 
                             class="w-full h-36 object-cover mb-6 rounded" />
                         <div class="flex items-center mb-4">
                             <div class="bg-blue-100 p-2 rounded-full mr-3">
@@ -170,7 +170,7 @@ onMounted(() => {
                     
                     <!-- Industry Card -->
                     <div class="bg-white p-6 rounded-lg shadow-md overflow-hidden">
-                        <img src="/images/industry-meeting.jpg" alt="Industry professionals meeting" 
+                        <img src="/images/industry.jpg" alt="Industry professionals meeting" 
                             class="w-full h-36 object-cover mb-6 rounded" />
                         <div class="flex items-center mb-4">
                             <div class="bg-blue-100 p-2 rounded-full mr-3">

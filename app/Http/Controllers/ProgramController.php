@@ -89,38 +89,68 @@ class ProgramController extends Controller
         $user = Auth::user();
         $institution = Institution::where('user_id', $user->id)->first();
 
+        $degree = Degree::findOrFail($request->degree_id);
+        $degreeInitials = $this->getDegreeInitials($degree->type);
+
         $request->validate([
             'name' => ['required', 'string'],
             'degree_id' => ['required', 'exists:degrees,id'],
+            'program_code' => ['nullable', 'string', 'max:20'],
+            'duration' => ['nullable', 'in:Month,Year'],
+            'duration_time' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
 
-        // Check if program exists globally
-        $program = Program::withTrashed()
-            ->where('name', $request->name)
+        // Check for duplicate program in this institution
+        $existingProgram = Program::where('name', $request->name)
             ->where('degree_id', $request->degree_id)
             ->first();
 
-        if (!$program) {
-            $program = Program::create([
-                'name' => $request->name,
-                'degree_id' => $request->degree_id,
-            ]);
+        if ($existingProgram) {
+            $duplicate = InstitutionProgram::where('institution_id', $institution->id)
+                ->where('program_id', $existingProgram->id)
+                ->exists();
+
+            if ($duplicate) {
+                return back()->with(['flash.banner' => 'This program already exists for your institution.']);
+            }
         }
 
-        // Check if this institution already has this program
-        $exists = InstitutionProgram::withTrashed()
-            ->where('institution_id', $institution->id)
-            ->where('program_id', $program->id)
-            ->exists();
-
-        if ($exists) {
-            return back()->with('flash.banner', 'This program already exists for your institution.');
+        if (in_array($degree->type, ['Doctoral', 'Diploma'])) {
+            $programCodePrefix = $degreeInitials;
+        } else {
+            $programCodePrefix = $request->program_code;
         }
+
+        // Find last code for this institution and program code
+        $last = InstitutionProgram::where('institution_id', $institution->id)
+            ->where('program_code', 'like', $programCodePrefix . '%')
+            ->orderByDesc('id')
+            ->first();
+
+        if (in_array($degree->type, ['Diploma', 'Associate'])) {
+            $duration = $request->duration;
+            $durationTime = $request->duration_time;
+            $durCode = $durationTime . strtoupper(substr($duration, 0, 1));
+            $number = $last && preg_match('/(\d+)([MY])(\d+)$/', $last->program_code, $m) ? intval($m[3]) + 1 : 1;
+            $finalCode = $programCodePrefix . '-' . $durCode . str_pad($number, 3, '0', STR_PAD_LEFT);
+        } else {
+            $number = $last && preg_match('/(\d+)$/', $last->program_code, $m) ? intval($m[1]) + 1 : 1;
+            $finalCode = $programCodePrefix . '-' . str_pad($number, 3, '0', STR_PAD_LEFT);
+        }
+
+        // Create or get program
+        $program = Program::firstOrCreate([
+            'name' => $request->name,
+            'degree_id' => $degree->id,
+        ]);
 
         InstitutionProgram::create([
             'program_id' => $program->id,
-            'degree_id' => $request->degree_id,
+            'degree_id' => $degree->id,
             'institution_id' => $institution->id,
+            'program_code' => $finalCode,
+            'duration' => $request->duration,
+            'duration_time' => $request->duration_time,
         ]);
 
         return redirect()->back()->with('flash.banner', 'Program added.');
@@ -173,7 +203,7 @@ class ProgramController extends Controller
             ->exists();
 
         if ($exists) {
-            return back()->with('flash.banner', 'This program already exists for your institution.');
+            return back()->with(['flash.banner' => 'This program already exists for your institution.']);
         }
 
         $institutionProgram = InstitutionProgram::where('institution_id', $institution->id)->findOrFail($id);
@@ -207,4 +237,17 @@ class ProgramController extends Controller
 
         return redirect()->back()->with('flash.banner', 'Program restored.');
     }
+
+    private function getDegreeInitials($type)
+{
+    return [
+        'Bachelor of Science' => 'BS',
+        'Bachelor of Arts' => 'BA',
+        'Associate' => 'AS',
+        'Master of Science' => 'MS',
+        'Master of Arts' => 'MA',
+        'Doctoral' => 'PhD',
+        'Diploma' => 'D',
+    ][$type] ?? 'XX';
+}
 }

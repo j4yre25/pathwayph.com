@@ -2,78 +2,107 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Fortify\CreateNewGraduate;
 use App\Models\Graduate;
 use App\Models\Program;
 use App\Models\SchoolYear;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use App\Actions\Fortify\CreateNewGraduate;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
 
 class GraduateController extends Controller
 {
     public function index()
     {
+        $institutionId = Auth::user()->institution->id;
+
         $graduates = DB::table('graduates')
             ->join('users', 'graduates.user_id', '=', 'users.id')
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
             ->join('school_years', 'graduates.school_year_id', '=', 'school_years.id')
             ->where('users.role', 'graduate')
-            ->where('users.institution_id', Auth::user()->id)
+            ->where('graduates.institution_id', $institutionId)
             ->where('users.is_approved', true)
-            ->whereNull('graduates.deleted_at') // <-- Only show non-archived graduates
+            ->whereNull('graduates.deleted_at')
             ->select(
-                'users.id as user_id',
-                'users.email',
-                'users.graduate_first_name as first_name',
-                'users.graduate_last_name as last_name',
-                'users.graduate_middle_initial as middle_initial',
-                'users.gender',
-                'users.dob',
-                'users.contact_number',
                 'graduates.id as graduate_id',
+                'graduates.user_id',
+                'graduates.first_name',
+                'graduates.middle_name',
+                'graduates.last_name',
+                'graduates.dob',
+                'graduates.gender',
+                'graduates.contact_number',
                 'graduates.program_id',
                 'graduates.school_year_id',
                 'programs.name as program_name',
                 'school_years.school_year_range as year_graduated',
                 'graduates.current_job_title',
                 'graduates.employment_status',
-                DB::raw("CONCAT(users.graduate_first_name, ' ', IFNULL(users.graduate_middle_initial, ''), ' ', users.graduate_last_name) as full_name"),
-                DB::raw("'Yes' as graduated")
+                'users.email'
             )
-            ->orderBy('users.created_at', 'desc')
+            ->orderBy('graduates.created_at', 'desc')
             ->get();
 
-        $institutionPrograms = Program::where('institution_id', Auth::user()->id)->get();
-        $institutionYears = SchoolYear::where('institution_id', Auth::user()->id)->get();
-        $instiUsers = DB::table('users')
-            ->where('role', 'institution')
-            ->where('id', Auth::user()->id)
-            ->get(['id', 'institution_name']);
+        // Fetch programs via the pivot table
+        $programs = DB::table('institution_programs')
+            ->join('programs', 'institution_programs.program_id', '=', 'programs.id')
+            ->where('institution_programs.institution_id', $institutionId)
+            ->whereNull('programs.deleted_at')
+            ->select('programs.*')
+            ->get();
+
+        // Fetch school years for this institution
+        $years = DB::table('institution_school_years')
+            ->join('school_years', 'institution_school_years.school_year_range_id', '=', 'school_years.id')
+            ->where('institution_school_years.institution_id', $institutionId)
+            ->whereNull('school_years.deleted_at')
+            ->select('school_years.*')
+            ->get();
 
         return Inertia::render('Graduates/Index', [
             'graduates' => $graduates,
-            'programs' => $institutionPrograms,
-            'years' => $institutionYears,
-            'instiUsers' => $instiUsers,
+            'programs' => $programs,
+            'years' => $years,
         ]);
     }
 
     public function create()
     {
+        $institutionId = Auth::user()->institution->id;
+
+        // Fetch degrees for this institution
+        $degrees = DB::table('institution_degrees')
+            ->join('degrees', 'institution_degrees.degree_id', '=', 'degrees.id')
+            ->where('institution_degrees.institution_id', $institutionId)
+            ->select('degrees.id', 'degrees.type')
+            ->get();
+
+        // Fetch programs for this institution
+        $programs = DB::table('institution_programs')
+            ->join('programs', 'institution_programs.program_id', '=', 'programs.id')
+            ->where('institution_programs.institution_id', $institutionId)
+            ->whereNull('programs.deleted_at')
+            ->select('programs.*')
+            ->get();
+
+        // Fetch school years for this institution
+        $schoolYears = DB::table('institution_school_years')
+            ->join('school_years', 'institution_school_years.school_year_range_id', '=', 'school_years.id')
+            ->where('institution_school_years.institution_id', $institutionId)
+            ->whereNull('school_years.deleted_at')
+            ->select('school_years.*')
+            ->get();
+
         return Inertia::render('Auth/GraduateCreate', [
-            'programs' => Program::where('institution_id', Auth::user()->id)->get(),
-            'schoolYears' => SchoolYear::where('institution_id', Auth::user()->id)->get(),
-            'institutions' => DB::table('users')
-                ->where('role', 'institution')
-                ->where('id', Auth::user()->id)
-                ->get(['id', 'institution_name']),
+            'degrees' => $degrees,
+            'programs' => $programs,
+            'schoolYears' => $schoolYears,
         ]);
     }
 
@@ -89,7 +118,7 @@ class GraduateController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'middle_initial' => 'nullable|string|max:5',
+            'middle_name' => 'nullable|string|max:255',
             'program_id' => 'required|exists:programs,id',
             'graduate_year_graduated' => 'required|exists:school_years,school_year_range',
             'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
@@ -97,7 +126,6 @@ class GraduateController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                // Custom rule: if employed/underemployed, must not be N/A or n/a
                 function ($attribute, $value, $fail) use ($request) {
                     if (
                         in_array($request->employment_status, ['Employed', 'Underemployed']) &&
@@ -107,6 +135,9 @@ class GraduateController extends Controller
                     }
                 },
             ],
+            'dob' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
+            'gender' => 'required|in:Male,Female',
+            'contact_number' => 'required|digits_between:10,15|regex:/^9\d{9}$/',
         ]);
 
         $schoolYearId = DB::table('school_years')
@@ -117,23 +148,17 @@ class GraduateController extends Controller
             $validated['current_job_title'] = 'N/A';
         }
 
-        // Update Graduate table
         $graduate->update([
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
-            'middle_initial' => $validated['middle_initial'],
+            'middle_name' => $validated['middle_name'],
             'program_id' => $validated['program_id'],
             'school_year_id' => $schoolYearId,
             'employment_status' => $validated['employment_status'],
             'current_job_title' => $validated['current_job_title'],
-        ]);
-
-        // Update User table
-        $user = $graduate->user;
-        $user->update([
-            'graduate_first_name' => $validated['first_name'],
-            'graduate_last_name' => $validated['last_name'],
-            'graduate_middle_initial' => $validated['middle_initial'],
+            'dob' => $validated['dob'],
+            'gender' => $validated['gender'],
+            'contact_number' => $validated['contact_number'],
         ]);
 
         return redirect()->back()->with('flash.banner', 'Graduate updated successfully.');
@@ -150,7 +175,7 @@ class GraduateController extends Controller
         return Inertia::render('Graduates/BatchUploadPreview');
     }
 
-    public function batchUpload(Request $request): JsonResponse
+    public function batchUpload(Request $request)
     {
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt',
@@ -163,43 +188,49 @@ class GraduateController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unable to read the CSV file.'], 400);
         }
 
-        // Specify the delimiter (e.g., ',' for comma, ';' for semicolon, '\t' for tab)
-        $delimiter = ','; // Change this to match your CSV file's delimiter
+        $delimiter = ',';
         $header = fgetcsv($handle, 0, $delimiter);
         if (isset($header[0])) {
             $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
         }
-        $header = array_map(fn($h) => strtolower(trim($h)), $header); // Normalize headers
-
+        $header = array_map(fn($h) => strtolower(trim($h)), $header);
 
         $errors = [];
         $validRows = [];
-        $rowNum = 2; // Start from second row (after header)
-        $institutionId = Auth::user()->id;
+        $rowNum = 2;
+        $institutionId = Auth::user()->institution->id;
 
         while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
             $row = array_combine($header, $data);
 
+            // Skip empty rows
+            if (!$row || !is_array($row) || empty(array_filter($row))) {
+                $rowNum++;
+                continue;
+            }
 
-                if (!empty($row['dob'])) {
-            try {
-                $row['dob'] = Carbon::createFromFormat('m/d/Y', $row['dob'])->format('Y-m-d');
-            } catch (\Exception $e) {
+            // Defensive: check for required keys
+            if (!isset($row['degree_code']) || !isset($row['program_code'])) {
                 $errors[] = [
                     'row' => $rowNum,
-                    'messages' => ['Invalid date format for DOB. Expected format: MM/DD/YYYY.'],
+                    'messages' => ['Missing degree_code or program_code column in CSV.'],
                 ];
                 $rowNum++;
                 continue;
             }
-        }
+
+            $row['degree_code'] = strtoupper(trim($row['degree_code']));
+            $row['program_code'] = strtoupper(trim($row['program_code']));
+            $row['gender'] = isset($row['gender']) ? ucfirst(strtolower(trim($row['gender']))) : '';
+            $row['employment_status'] = isset($row['employment_status']) ? ucfirst(strtolower(trim($row['employment_status']))) : '';
 
             $validator = Validator::make($row, [
                 'email' => 'required|email|unique:users,email',
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
-                'middle_initial' => 'required|string|max:5',
-                'program_completed' => 'required|exists:programs,name',
+                'middle_name' => 'nullable|string|max:255',
+                'degree_code' => 'required|string|max:10',
+                'program_code' => 'required|string|max:20',
                 'year_graduated' => 'required|exists:school_years,school_year_range',
                 'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
                 'current_job_title' => 'required_if:employment_status,Employed,Underemployed|nullable|string|max:255',
@@ -207,6 +238,21 @@ class GraduateController extends Controller
                 'dob' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
                 'contact_number' => 'required|digits_between:10,15|regex:/^9\d{9}$/',
             ]);
+
+            // Convert DOB to Y-m-d if it's in MM/DD/YYYY format
+            if (isset($row['dob']) && preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $row['dob'])) {
+                try {
+                    $row['dob'] = Carbon::createFromFormat('m/d/Y', $row['dob'])->format('Y-m-d');
+                } catch (\Exception $e) {
+                    // If conversion fails, mark as invalid
+                    $errors[] = [
+                        'row' => $rowNum,
+                        'messages' => ['Invalid date format for DOB.'],
+                    ];
+                    $rowNum++;
+                    continue;
+                }
+            }
 
             if (
                 in_array($row['employment_status'], ['Employed', 'Underemployed']) &&
@@ -244,33 +290,51 @@ class GraduateController extends Controller
         foreach ($validRows as $row) {
             $password = $this->generatePassword($row['last_name'], $row['dob']);
 
+            // Add these lines:
+            $degreeId = $this->getDegreeIdByCode($row['degree_code'], $institutionId);
+            $programId = $this->getProgramIdByCode($row['program_code'], $institutionId);
+
+            if (!$degreeId) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'messages' => ["Degree code '{$row['degree_code']}' does not exist for this institution."],
+                ];
+                $rowNum++;
+                continue;
+            }
+
+            if (!$programId) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'messages' => ["Program code '{$row['program_code']}' does not exist for this institution."],
+                ];
+                $rowNum++;
+                continue;
+            }
+
             $user = User::create([
                 'email' => $row['email'],
                 'password' => Hash::make($password),
                 'role' => 'graduate',
                 'is_approved' => true,
-                'gender' => $row['gender'],
-                'dob' => $row['dob'],
-                'contact_number' => $row['contact_number'],
-                'graduate_first_name' => $row['first_name'],
-                'graduate_last_name' => $row['last_name'],
-                'graduate_middle_initial' => $row['middle_initial'],
-                'graduate_school_graduated_from' => $institutionId,
-                'graduate_program_completed' => $this->getProgramId($row['program_completed']),
-                'graduate_year_graduated' => $this->getYearId($row['year_graduated']),
-                'institution_id' => $institutionId,
             ]);
 
             DB::table('graduates')->insert([
                 'user_id' => $user->id,
-                'first_name' => $row['first_name'],
-                'last_name' => $row['last_name'],
-                'middle_initial' => $row['middle_initial'],
+                'first_name' => $this->toTitleCase($row['first_name']),
+                'middle_name' => $this->toTitleCase($row['middle_name']),
+                'last_name' => $this->toTitleCase($row['last_name']),
                 'institution_id' => $institutionId,
-                'program_id' => $this->getProgramId($row['program_completed']),
+                'degree_id' => $degreeId,
+                'program_id' => $programId,
                 'school_year_id' => $this->getYearId($row['year_graduated']),
                 'employment_status' => $row['employment_status'],
-                'current_job_title' => in_array($row['employment_status'], ['Employed', 'Underemployed']) ? $row['current_job_title'] : 'N/A',
+                'current_job_title' => in_array($row['employment_status'], ['Employed', 'Underemployed'])
+                    ? $this->toTitleCase($row['current_job_title'])
+                    : 'N/A',
+                'gender' => $row['gender'],
+                'dob' => $row['dob'],
+                'contact_number' => $row['contact_number'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -279,8 +343,8 @@ class GraduateController extends Controller
         }
 
         return response()->json(['status' => 'success']);
-        
     }
+
     public function downloadTemplate()
     {
         return response()->download(public_path('templates/graduate_template.csv'));
@@ -288,19 +352,21 @@ class GraduateController extends Controller
 
     public function archivedList()
     {
+        $institutionId = Auth::user()->institution->id;
+
         $graduates = DB::table('graduates')
             ->join('users', 'graduates.user_id', '=', 'users.id')
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
             ->join('school_years', 'graduates.school_year_id', '=', 'school_years.id')
             ->where('users.role', 'graduate')
-            ->where('users.institution_id', Auth::user()->id)
+            ->where('graduates.institution_id', $institutionId)
             ->where('users.is_approved', true)
-            ->whereNotNull('graduates.deleted_at') // <-- Only show archived graduates
+            ->whereNotNull('graduates.deleted_at')
             ->select(
                 'graduates.id',
                 'graduates.first_name',
                 'graduates.last_name',
-                'graduates.middle_initial',
+                'graduates.middle_name',
                 'programs.name as graduate_program_completed',
                 'graduates.created_at'
             )
@@ -332,6 +398,28 @@ class GraduateController extends Controller
     private function generatePassword($lastName, $dob)
     {
         $year = Carbon::parse($dob)->year;
-        return "{$lastName}{$year}!!!";
+        $lastNameTitle = $this->toTitleCase($lastName);
+        return "{$lastNameTitle}{$year}!!!";
+    }
+
+    private function getDegreeIdByCode($degreeCode, $institutionId)
+    {
+        return DB::table('institution_degrees')
+            ->where('institution_id', $institutionId)
+            ->where('degree_code', $degreeCode)
+            ->value('degree_id');
+    }
+
+    private function getProgramIdByCode($programCode, $institutionId)
+    {
+        return DB::table('institution_programs')
+            ->where('institution_id', $institutionId)
+            ->where('program_code', $programCode)
+            ->value('program_id');
+    }
+
+    private function toTitleCase($string)
+    {
+        return mb_convert_case(mb_strtolower(trim($string)), MB_CASE_TITLE, "UTF-8");
     }
 }

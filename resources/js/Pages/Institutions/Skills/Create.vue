@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'; // Ensure computed is imported
+import { ref, computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -39,6 +39,7 @@ function toggleCheckbox(id) {
 }
 
 function submit() {
+  console.log('submitting'); // Add this line for debugging
   form.post(route('instiskills.store', { user: userId }), {
     preserveScroll: true,
     onSuccess: () => form.reset(),
@@ -95,7 +96,9 @@ function submit() {
         </template>
 
         <template #actions>
-          <PrimaryButton :disabled="form.processing">Submit</PrimaryButton>
+          <PrimaryButton :disabled="form.processing" :class="{ 'opacity-25': form.processing }">
+            Submit
+          </PrimaryButton>
         </template>
       </FormSection>
     </Container>

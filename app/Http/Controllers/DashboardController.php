@@ -28,38 +28,43 @@ class DashboardController extends Controller
         $careerOpportunities = [];
 
         if ($user->hasRole('institution')) {
-            $institutionId = $user->id;
+            // Get the institution model for this user
+            $institution = Institution::where('user_id', $user->id)->first();
 
-            $summary = [
-                'total_graduates' => Graduate::where('institution_id', $institutionId)->count(),
-                'employed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'employed')->count(),
-                'underemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'underemployed')->count(),
-                'unemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'unemployed')->count(),
-            ];
+            if ($institution) {
+                $institutionId = $institution->id;
 
-            // Get institution-specific programs
-            $programs = InstitutionProgram::with('program')
-                ->where('institution_id', $institutionId)
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => $item->program->id,
-                        'name' => $item->program->name,
-                        'code' => $item->program_code,
-                        'degree' => $item->degree->type ?? null,
-                    ];
-                });
+                $summary = [
+                    'total_graduates' => Graduate::where('institution_id', $institutionId)->count(),
+                    'employed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'employed')->count(),
+                    'underemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'underemployed')->count(),
+                    'unemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'unemployed')->count(),
+                ];
 
-            // Graduates
-            $graduates = Graduate::where('institution_id', $institutionId)->get();
+                // Get institution-specific programs
+                $programs = InstitutionProgram::with('program', 'degree')
+                    ->where('institution_id', $institutionId)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->program->id,
+                            'name' => $item->program->name,
+                            'code' => $item->program_code,
+                            'degree' => $item->degree->type ?? null,
+                        ];
+                    });
 
-            // Career Opportunities
-            $careerOpportunities = $graduates
-                ->whereNotNull('current_job_title')
-                ->where('current_job_title', '!=', 'N/A')
-                ->pluck('current_job_title')
-                ->unique()
-                ->values();
+                // Graduates
+                $graduates = Graduate::where('institution_id', $institutionId)->get();
+
+                // Career Opportunities (from graduates' job titles)
+                $careerOpportunities = $graduates
+                    ->whereNotNull('current_job_title')
+                    ->where('current_job_title', '!=', 'N/A')
+                    ->pluck('current_job_title')
+                    ->unique()
+                    ->values();
+            }
         }
 
         return Inertia::render('Dashboard', [
