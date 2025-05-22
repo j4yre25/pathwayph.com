@@ -17,9 +17,26 @@ const props = defineProps({
   activeSection: {
     type: String,
     default: 'experience'
-  }
+  },
+
+  experienceEntries: Array,
+});
+const isSuccessModalOpen = ref(false);
+const isErrorModalOpen = ref(false);
+const isDuplicateModalOpen = ref(false);
+
+const experienceForm = useForm({
+  graduate_experience_title: '',
+  graduate_experience_company: '',
+  graduate_experience_start_date: null,
+  graduate_experience_end_date: null,
+  graduate_experience_address: '',
+  graduate_experience_description: '',
+  graduate_experience_employment_type: '',
+  is_current: false,
 });
 
+console.log(props.experienceEntries);
 const datepickerConfig = {
   format: 'YYYY-MM-DD',
   enableTime: false,
@@ -65,22 +82,24 @@ const itemToDelete = ref(null);
 
 
 // Experience Data
-const experienceEntries = ref(props.experienceEntries || []);
+const experienceEntries = computed(() => props.experienceEntries || []);
+const archivedExperienceEntries = computed(() => props.archivedExperienceEntries || []);
 const isAddExperienceModalOpen = ref(false);
 const isUpdateExperienceModalOpen = ref(false);
 const experience = ref({
-  graduate_experience_title: '',
-  graduate_experience_company: '',
-  graduate_experience_start_date: null,
-  graduate_experience_end_date: null,
-  graduate_experience_address: '',
-  graduate_experience_description: '',
-  graduate_experience_employment_type: '',
+  title: '',
+  company: '',
+  start_date: null,
+  end_date: null,
+  address: '',
+  description: '',
+  employment_type: '',
   is_current: false,
   id: null
 });
 
 const openAddExperienceModal = () => {
+  console.log('openAddExperienceModal called');
   resetExperience();
   isAddExperienceModalOpen.value = true;
 };
@@ -92,13 +111,13 @@ const closeAddExperienceModal = () => {
 
 const resetExperience = () => {
   experience.value = {
-    graduate_experience_title: '',
-    graduate_experience_company: '',
-    graduate_experience_start_date: null,
-    graduate_experience_end_date: null,
-    graduate_experience_address: '',
-    graduate_experience_description: '',
-    graduate_experience_employment_type: '',
+    title: '',
+    company: '',
+    start_date: null,
+    end_date: null,
+    address: '',
+    description: '',
+    employment_type: '',
     is_current: false,
     id: null
   };
@@ -106,48 +125,20 @@ const resetExperience = () => {
   console.log('Experience reset.');
 };
 
-const validateExperience = () => {
-  const errors = {};
-  if (!experience.value.graduate_experience_title) errors.title = 'Title is required';
-  if (!experience.value.graduate_experience_company) errors.company = 'Company is required';
-  if (!experience.value.graduate_experience_start_date) errors.startDate = 'Start date is required';
-  if (!experience.value.graduate_experience_employment_type) errors.employmentType = 'Employment type is required';
 
-  // Handle end date validation
-  if (!experience.value.is_current) {
-    if (!experience.value.graduate_experience_end_date) {
-      errors.endDate = 'End date is required when not current position';
-    } else {
-      const startDate = new Date(experience.value.graduate_experience_start_date);
-      const endDate = new Date(experience.value.graduate_experience_end_date);
 
-      if (isNaN(endDate.getTime())) {
-        errors.endDate = 'Please enter a valid end date';
-      } else if (startDate && !isNaN(startDate.getTime()) && endDate < startDate) {
-        errors.endDate = 'End date cannot be earlier than start date';
-      }
-    }
-  }
-
-  // Validate description length
-  if (experience.value.graduate_experience_description && experience.value.graduate_experience_description.length > 1000) {
-    errors.description = 'Description cannot exceed 1000 characters';
-  }
-
-  return Object.keys(errors).length === 0 ? null : errors;
-};
 
 const openUpdateExperienceModal = (experienceEntry) => {
   resetExperience();
   experience.value = {
     id: experienceEntry.id,
-    graduate_experience_title: experienceEntry.graduate_experience_title,
-    graduate_experience_company: experienceEntry.graduate_experience_company,
-    graduate_experience_start_date: experienceEntry.graduate_experience_start_date ? formatDate(experienceEntry.graduate_experience_start_date) : null,
-    graduate_experience_end_date: experienceEntry.is_current ? null : (experienceEntry.graduate_experience_end_date ? formatDate(experienceEntry.graduate_experience_end_date) : null),
-    graduate_experience_address: experienceEntry.graduate_experience_address || '',
-    graduate_experience_description: experienceEntry.graduate_experience_description || 'No description provided',
-    graduate_experience_employment_type: experienceEntry.graduate_experience_employment_type || '',
+    title: experienceEntry.title,
+    company: experienceEntry.company,
+    start_date: experienceEntry.start_date ? formatDate(experienceEntry.start_date) : null,
+    end_date: experienceEntry.is_current ? null : (experienceEntry.end_date ? formatDate(experienceEntry.end_date) : null),
+    address: experienceEntry.address || '',
+    description: experienceEntry.description || 'No description provided',
+    employment_type: experienceEntry.employment_type || '',
     is_current: experienceEntry.is_current
   };
   stillInRole.value = experienceEntry.is_current;
@@ -155,68 +146,45 @@ const openUpdateExperienceModal = (experienceEntry) => {
 };
 
 const addExperience = () => {
-  const errors = validateExperience();
-  if (errors) {
-    console.error('Validation errors:', errors);
-    return;
-  }
-
-  const experienceData = {
-    graduate_experience_title: experience.value.graduate_experience_title.trim(),
-    graduate_experience_company: experience.value.graduate_experience_company.trim(),
-    graduate_experience_start_date: formatDate(experience.value.graduate_experience_start_date),
-    graduate_experience_end_date: experience.value.is_current ? null : formatDate(experience.value.graduate_experience_end_date),
-    graduate_experience_address: experience.value.graduate_experience_address?.trim() || '',
-    graduate_experience_description: experience.value.graduate_experience_description?.trim() || 'No description provided',
-    graduate_experience_employment_type: experience.value.graduate_experience_employment_type.trim(),
-    is_current: experience.value.is_current
-  };
-
-  const experienceForm = useForm(experienceData);
+  // Log the form data for debugging
+  console.log('Submitting experience form:', { ...experienceForm });
 
   experienceForm.post(route('profile.experience.store'), {
     onSuccess: (response) => {
-      const updatedExperiences = response?.props?.experienceEntries;
-      if (updatedExperiences) {
-        experienceEntries.value = updatedExperiences;
+      // Optionally update local experience entries if needed
+      if (response?.props?.experienceEntries) {
+        experienceEntries.value = response.props.experienceEntries;
       }
-      resetExperience();
+      // Reset the form fields
+      experienceForm.reset();
+      // Close the modal
       isAddExperienceModalOpen.value = false;
+      // Optionally show a success message/modal
+      isSuccessModalOpen.value = true;
     },
     onError: (errors) => {
+      // Log errors for debugging
       console.error('Error adding experience:', errors);
-      alert('An error occurred while adding the experience. Please try again.');
+      // Optionally show an error message/modal
+      isErrorModalOpen.value = true;
+      // Or use alert for quick feedback
+      alert('An error occurred while adding the experience. Please check the form and try again.');
     },
   });
 };
 
 const updateExperience = () => {
-  const errors = validateExperience();
-  if (errors) {
-    console.error('Validation errors:', errors);
-    return;
-  }
-
-  const experienceData = {
-    id: experience.value.id,
-    graduate_experience_title: experience.value.graduate_experience_title,
-    graduate_experience_company: experience.value.graduate_experience_company,
-    graduate_experience_start_date: formatDate(experience.value.graduate_experience_start_date),
-    graduate_experience_end_date: experience.value.is_current ? null : formatDate(experience.value.graduate_experience_end_date),
-    graduate_experience_address: experience.value.graduate_experience_address || '',
-    graduate_experience_description: experience.value.graduate_experience_description || 'No description provided',
-    graduate_experience_employment_type: experience.value.graduate_experience_employment_type || '',
-    is_current: experience.value.is_current
-  };
-
-  const experienceForm = useForm(experienceData);
+  experienceForm.graduate_experience_title = experience.value.title?.trim() || '';
+  experienceForm.graduate_experience_company = experience.value.company?.trim() || '';
+  experienceForm.graduate_experience_start_date = formatDate(experience.value.start_date);
+  experienceForm.graduate_experience_end_date = stillInRole.value ? null : formatDate(experience.value.end_date);
+  experienceForm.graduate_experience_address = experience.value.address?.trim() || '';
+  experienceForm.graduate_experience_description = experience.value.description?.trim() || 'No description provided';
+  experienceForm.graduate_experience_employment_type = experience.value.employment_type?.trim() || '';
+  experienceForm.is_current = stillInRole.value;
 
   experienceForm.put(route('experience.update', experience.value.id), {
     onSuccess: () => {
-      const index = experienceEntries.value.findIndex(e => e.id === experience.value.id);
-      if (index !== -1) {
-        experienceEntries.value[index] = { ...experienceData };
-      }
       resetExperience();
       isUpdateExperienceModalOpen.value = false;
     },
@@ -237,30 +205,30 @@ const deleteExperience = (experienceId) => {
 };
 
 const formattedExperienceStartDate = computed(() => {
-  return experience.value.graduate_experience_start_date
-    ? new Date(experience.value.graduate_experience_start_date).toISOString().split('T')[0]
+  return experience.start_date
+    ? new Date(experience.start_date).toISOString().split('T')[0]
     : null;
 });
 
 const formattedExperienceEndDate = computed(() => {
-  if (experience.value.is_current) return null;
-  return experience.value.graduate_experience_end_date
-    ? new Date(experience.value.graduate_experience_end_date).toISOString().split('T')[0]
+  if (experience.is_current) return null;
+  return experience.end_date
+    ? new Date(experience.end_date).toISOString().split('T')[0]
     : null;
 });
 
-watch(() => experience.value.is_current, (newValue) => {
+watch(() => experience.is_current, (newValue) => {
   stillInRole.value = newValue;
   if (newValue) {
-    experience.value.graduate_experience_end_date = null;
+    experience.end_date = null;
   } else {
-    experience.value.graduate_experience_end_date = '';
+    experience.end_date = '';
   }
 }, { immediate: true });
 
-watch(() => experience.value.graduate_experience_end_date, (newValue) => {
+watch(() => experience.end_date, (newValue) => {
   if (newValue && isNaN(new Date(newValue).getTime())) {
-    experience.value.graduate_experience_end_date = null;
+    experience.end_date = null;
   }
 });
 
@@ -269,12 +237,12 @@ watch(() => experience.value.graduate_experience_end_date, (newValue) => {
 let currentExperienceIndex = ref(null);
 
 const removeExperience = (experience) => {
-  if (confirm(`Are you sure you want to remove this experience entry: ${experience.graduate_experience_title}?`)) {
+  if (confirm(`Are you sure you want to remove this experience entry: ${experience.title}?`)) {
     deleteForm.delete(route('experience.remove', experience.id), {
       onSuccess: () => {
-        const index = experienceEntries.value.findIndex(e => e.id === experience.id);
+        const index = experienceEntries.findIndex(e => e.id === experience.id);
         if (index !== -1) {
-          experienceEntries.value.splice(index, 1);
+          experienceEntries.splice(index, 1);
         }
       }
     });
@@ -294,360 +262,358 @@ onMounted(() => {
 </script>
 
 <template>
-    <!-- Success Modal -->
-    <Modal :show="isSuccessModalOpen" @close="isSuccessModalOpen = false">
-        <div class="p-6">
-            <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
-                <i class="fas fa-check text-green-500 text-xl"></i>
-            </div>
-            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Success</h2>
-            <p class="text-center text-gray-600">{{ successMessage }}</p>
-            <div class="mt-6 flex justify-center">
-                <PrimaryButton @click="isSuccessModalOpen = false">OK</PrimaryButton>
-            </div>
+  <!-- Success Modal -->
+  <Modal :show="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
+        <i class="fas fa-check text-green-500 text-xl"></i>
+      </div>
+      <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Success</h2>
+      <p class="text-center text-gray-600">{{ successMessage }}</p>
+      <div class="mt-6 flex justify-center">
+        <PrimaryButton @click="isSuccessModalOpen = false">OK</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
+
+  <!-- Error Modal -->
+  <Modal :show="isErrorModalOpen" @close="isErrorModalOpen = false">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4 bg-red-100 rounded-full w-12 h-12 mx-auto">
+        <i class="fas fa-times text-red-500 text-xl"></i>
+      </div>
+      <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h2>
+      <p class="text-center text-gray-600">{{ errorMessage }}</p>
+      <div class="mt-6 flex justify-center">
+        <PrimaryButton @click="isErrorModalOpen = false">OK</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
+
+  <!-- Duplicate Modal -->
+  <Modal :show="isDuplicateModalOpen" @close="isDuplicateModalOpen = false">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4 bg-yellow-100 rounded-full w-12 h-12 mx-auto">
+        <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
+      </div>
+      <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Duplicate Entry</h2>
+      <p class="text-center text-gray-600">This experience already exists in your profile.</p>
+      <div class="mt-6 flex justify-center">
+        <PrimaryButton @click="isDuplicateModalOpen = false">OK</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
+
+
+
+  <div v-if="activeSection === 'experience'" class="flex flex-col lg:flex-row">
+    <div class="w-full mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="text-xl font-semibold mb-4">Work Experience</h1>
+        <div class="flex space-x-4">
+          <PrimaryButton class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center"
+            @click="openAddExperienceModal">
+            <i class="fas fa-plus mr-2"></i>
+            Add Experience
+          </PrimaryButton>
+          <button
+            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
+            @click="toggleArchivedExperience">
+            <i class="fas" :class="showArchivedExperience ? 'fa-eye-slash' : 'fa-eye'"></i>
+            <span class="ml-2">{{ showArchivedExperience ? 'Hide Archived' : 'Show Archived' }}</span>
+          </button>
         </div>
-    </Modal>
+      </div>
+      <p class="text-gray-600 mb-6">Showcase your professional experience</p>
 
-    <!-- Error Modal -->
-    <Modal :show="isErrorModalOpen" @close="isErrorModalOpen = false">
-        <div class="p-6">
-            <div class="flex items-center justify-center mb-4 bg-red-100 rounded-full w-12 h-12 mx-auto">
-                <i class="fas fa-times text-red-500 text-xl"></i>
+      <!-- Experience Entries -->
+      <div>
+        <h2 class="text-lg font-medium mb-4">Active Experience</h2>
+        <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div v-for="experienceEntry in experienceEntries" :key="experienceEntry.id"
+            class="bg-white rounded-lg shadow-md p-4 space-y-3 relative">
+            <div>
+              <div class="border-b pb-2">
+                <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
+                <p class="text-gray-600">{{ experienceEntry.company }}</p>
+              </div>
+              <div class="flex items-center text-gray-600 mt-2">
+                <i class="fas fa-map-marker-alt mr-2"></i>
+                <span>{{ experienceEntry.address }}</span>
+              </div>
+              <div class="flex items-center text-gray-600 mt-2">
+                <i class="far fa-calendar-alt mr-2"></i>
+                <span>
+                  {{ formatDate(experienceEntry.start_date) }} - {{ experienceEntry.is_current ? 'Present' :
+                    formatDate(experienceEntry.end_date) }}
+                </span>
+              </div>
+              <p class="text-gray-600 mt-2 flex items-center">
+                <i class="fas fa-briefcase text-gray-500 mr-2"></i>
+                <strong>Employment Type:</strong> {{ experienceEntry.employment_type }}
+              </p>
+              <p class="mt-2">
+                <strong>
+                  <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
+                </strong>
+                {{ experienceEntry.description || 'No description provided' }}
+              </p>
             </div>
-            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h2>
-            <p class="text-center text-gray-600">{{ errorMessage }}</p>
-            <div class="mt-6 flex justify-center">
-                <PrimaryButton @click="isErrorModalOpen = false">OK</PrimaryButton>
+            <div class="absolute top-2 right-2 flex space-x-2">
+              <button class="text-gray-600 hover:text-indigo-600" @click="openUpdateExperienceModal(experienceEntry)">
+                <i class="fas fa-pen"></i>
+              </button>
+              <button class="text-amber-600 hover:text-amber-800" @click="archiveExperience(experienceEntry)">
+                <i class="fas fa-archive"></i>
+              </button>
+              <button class="text-red-600 hover:text-red-800" @click="deleteExperience(experienceEntry.id)">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
+          </div>
         </div>
-    </Modal>
 
-    <!-- Duplicate Modal -->
-    <Modal :show="isDuplicateModalOpen" @close="isDuplicateModalOpen = false">
-        <div class="p-6">
-            <div class="flex items-center justify-center mb-4 bg-yellow-100 rounded-full w-12 h-12 mx-auto">
-                <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
-            </div>
-            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Duplicate Entry</h2>
-            <p class="text-center text-gray-600">This experience already exists in your profile.</p>
-            <div class="mt-6 flex justify-center">
-                <PrimaryButton @click="isDuplicateModalOpen = false">OK</PrimaryButton>
-            </div>
+        <!-- If no experience entries exist -->
+        <div v-else class="bg-white p-8 rounded-lg shadow">
+          <p class="text-gray-600">No experience entries added yet.</p>
         </div>
-    </Modal>
+      </div>
 
-
-    
-    <div v-if="activeSection === 'experience'" class="flex flex-col lg:flex-row">
-            <div class="w-full mb-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h1 class="text-xl font-semibold mb-4">Work Experience</h1>
-                    <div  class="flex space-x-4">
-                        <PrimaryButton class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center"
-                            @click="isAddExperienceModalOpen = true">
-                            <i class="fas fa-plus mr-2"></i>
-                        Add Experience
-                        </PrimaryButton>
-                        <button 
-                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
-                            @click="toggleArchivedExperience">
-                            <i class="fas" :class="showArchivedExperience ? 'fa-eye-slash' : 'fa-eye'"></i>
-                            <span class="ml-2">{{ showArchivedExperience ? 'Hide Archived' : 'Show Archived' }}</span>
-                        </button>
-                    </div>
-                </div>
-                <p class="text-gray-600 mb-6">Showcase your professional experience</p>
-
-                <!-- Experience Entries -->
-                <div>
-                    <h2 class="text-lg font-medium mb-4">Active Experience</h2>
-                    <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div v-for="experienceEntry in experienceEntries" :key="experienceEntry.id" class="bg-white rounded-lg shadow-md p-4 space-y-3 relative">
-                            <div>
-                                <div class="border-b pb-2">
-                                    <h2 class="text-xl font-bold">{{ experienceEntry.graduate_experience_title }}</h2>
-                                    <p class="text-gray-600">{{ experienceEntry.graduate_experience_company }}</p>
-                                </div>
-                                <div class="flex items-center text-gray-600 mt-2">
-                                    <i class="fas fa-map-marker-alt mr-2"></i>
-                                    <span>{{ experienceEntry.graduate_experience_address }}</span>
-                                </div>
-                                <div class="flex items-center text-gray-600 mt-2">
-                                    <i class="far fa-calendar-alt mr-2"></i>
-                                    <span>
-                                    {{ formatDate(experienceEntry.graduate_experience_start_date) }} - {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.graduate_experience_end_date) }}
-                                    </span>
-                                </div>
-                                <p class="text-gray-600 mt-2 flex items-center">
-                                    <i class="fas fa-briefcase text-gray-500 mr-2"></i>
-                                    <strong>Employment Type:</strong> {{ experienceEntry.graduate_experience_employment_type }}
-                                </p>
-                                <p class="mt-2">
-                                    <strong>
-                                    <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                                    </strong>
-                                    {{ experienceEntry.graduate_experience_description || 'No description provided' }}
-                                </p>
-                            </div>
-                            <div class="absolute top-2 right-2 flex space-x-2">
-                                <button class="text-gray-600 hover:text-indigo-600"
-                                    @click="openUpdateExperienceModal(experienceEntry)">
-                                    <i class="fas fa-pen"></i>
-                                </button>
-                                <button class="text-amber-600 hover:text-amber-800" @click="archiveExperience(experienceEntry)">
-                                    <i class="fas fa-archive"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-800" @click="deleteExperience(experienceEntry.id)">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- If no experience entries exist -->
-                    <div v-else class="bg-white p-8 rounded-lg shadow">
-                    <p class="text-gray-600">No experience entries added yet.</p>
-                    </div>
-                </div>
-
-                <!-- Archived Experience Entries -->
-                <div v-if="showArchivedExperience" class="mt-8">
-                    <h2 class="text-lg font-medium mb-4">Archived Experience</h2>
-                    <div v-if="archivedExperienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div v-for="experienceEntry in archivedExperienceEntries" :key="experienceEntry.id" class="bg-gray-50 p-4 rounded-lg shadow-md space-y-3 relative border border-gray-200">
-                            <div class="opacity-75">
-                                <div class="border-b pb-2">
-                                    <h2 class="text-xl font-bold">{{ experienceEntry.graduate_experience_title }}</h2>
-                                    <p class="text-gray-600">
-                                        {{ experienceEntry.graduate_experience_company }}
-                                    </p>
-                                </div>
-                                <div class="flex items-center text-gray-600 mt-2">
-                                    <i class="fas fa-map-marker-alt mr-2"></i>
-                                    <span>
-                                    {{ experienceEntry.graduate_experience_address }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center text-gray-600 mt-2">
-                                    <i class="far fa-calendar-alt mr-2"></i>
-                                    <span>
-                                    {{ formatDate(experienceEntry.graduate_experience_start_date) }} - {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.graduate_experience_end_date) }}
-                                    </span>
-                                </div>
-                                <p class="text-gray-600 mt-2 flex items-center">
-                                    <i class="fas fa-briefcase text-gray-500 mr-2"></i>
-                                    <strong>Employment Type:</strong> {{ experienceEntry.graduate_experience_employment_type }}
-                                </p>
-                                <p class="mt-2">
-                                    <strong>
-                                    <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                                    </strong>
-                                    {{ experienceEntry.graduate_experience_description || 'No description provided' }}
-                                </p>
-                            </div>
-                            <div class="absolute top-2 right-2 flex space-x-2">
-                                <button class="text-green-600 hover:text-green-800" @click="unarchiveExperience(experienceEntry)">
-                                    <i class="fas fa-box-open"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-800" @click="deleteExperience(experienceEntry.id)">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
-                                Archived
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- If no archived experience entries exist -->
-                    <div v-else class="bg-white p-8 rounded-lg shadow">
-                    <p class="text-gray-600">No archived experience entries found.</p>
-                    </div>
-                </div>
+      <!-- Archived Experience Entries -->
+      <div v-if="showArchivedExperience" class="mt-8">
+        <h2 class="text-lg font-medium mb-4">Archived Experience</h2>
+        <div v-if="archivedExperienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div v-for="experienceEntry in archivedExperienceEntries" :key="experienceEntry.id"
+            class="bg-gray-50 p-4 rounded-lg shadow-md space-y-3 relative border border-gray-200">
+            <div class="opacity-75">
+              <div class="border-b pb-2">
+                <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
+                <p class="text-gray-600">
+                  {{ experienceEntry.company }}
+                </p>
+              </div>
+              <div class="flex items-center text-gray-600 mt-2">
+                <i class="fas fa-map-marker-alt mr-2"></i>
+                <span>
+                  {{ experienceEntry.address }}
+                </span>
+              </div>
+              <div class="flex items-center text-gray-600 mt-2">
+                <i class="far fa-calendar-alt mr-2"></i>
+                <span>
+                  {{ formatDate(experienceEntry.start_date) }} - {{ experienceEntry.is_current ? 'Present' :
+                    formatDate(experienceEntry.end_date) }}
+                </span>
+              </div>
+              <p class="text-gray-600 mt-2 flex items-center">
+                <i class="fas fa-briefcase text-gray-500 mr-2"></i>
+                <strong>Employment Type:</strong> {{ experienceEntry.employment_type }}
+              </p>
+              <p class="mt-2">
+                <strong>
+                  <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
+                </strong>
+                {{ experienceEntry.description || 'No description provided' }}
+              </p>
             </div>
-            
-
-            <!-- Add Experience Modal -->
-            <div v-if="isAddExperienceModalOpen"
-                class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Add Experience</h2>
-                        <button class="text-gray-500 hover:text-gray-700" @click="closeAddExperienceModal">
-                        <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="max-h-96 overflow-y-auto">
-                        <form @submit.prevent="addExperience">
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Job Title <span class="text-red-500">*</span></label>
-                                <input type="text" v-model="experience.data.graduate_experience_title"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="e.g. Software Engineer" required />
-                                <InputError :message="experience.errors.graduate_experience_title" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
-                                <input type="text" v-model="experience.data.graduate_experience_company"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="e.g. Tech Corp" required />
-                                <InputError :message="experience.errors.graduate_experience_company" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
-                                <input type="text" v-model="experience.data.graduate_experience_address"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="e.g. New York, NY" required />
-                                <InputError :message="experience.errors.graduate_experience_address" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Employment Type <span class="text-red-500">*</span></label>
-                                <select v-model="experience.data.graduate_experience_employment_type"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                required>
-                                <option value="" disabled>Select employment type</option>
-                                <option value="Full-time">Full-time</option>
-                                <option value="Part-time">Part-time</option>
-                                <option value="Contract">Contract</option>
-                                <option value="Freelance">Freelance</option>
-                                <option value="Internship">Internship</option>
-                                </select>
-                                <InputError :message="experience.errors.graduate_experience_employment_type" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
-                                <Datepicker v-model="experience.data.graduate_experience_start_date"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="Select start date" required 
-                                :enable-time-picker="false"
-                                :format="'yyyy-MM-dd'"
-                                :preview-format="'yyyy-MM-dd'" />
-                                <InputError :message="experience.errors.graduate_experience_start_date" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">End Date</label>
-                                <Datepicker v-model="experience.data.graduate_experience_end_date"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="Select end date" :disabled="stillInRole"
-                                :enable-time-picker="false"
-                                :format="'yyyy-MM-dd'"
-                                :preview-format="'yyyy-MM-dd'" />
-                                <div class="mt-2">
-                                <input type="checkbox" id="still-in-role" v-model="stillInRole"
-                                    @change="experience.data.graduate_experience_end_date = stillInRole ? null : experience.data.graduate_experience_end_date" />
-                                <label for="still-in-role" class="text-sm text-gray-700 ml-2">I currently work here</label>
-                                </div>
-                                <InputError :message="experience.errors.graduate_experience_end_date" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Description</label>
-                                <textarea v-model="experience.data.graduate_experience_description"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                rows="3" placeholder="Describe your role and responsibilities..."></textarea>
-                                <InputError :message="experience.errors.graduate_experience_description" class="mt-2" />
-                            </div>
-                            <div class="flex justify-end">
-                                <button type="submit"
-                                    class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center"
-                                    :disabled="experience.processing">
-                                <i class="fas fa-save mr-2"></i>
-                                {{ experience.processing ? 'Saving...' : 'Save Experience' }}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            <div class="absolute top-2 right-2 flex space-x-2">
+              <button class="text-green-600 hover:text-green-800" @click="unarchiveExperience(experienceEntry)">
+                <i class="fas fa-box-open"></i>
+              </button>
+              <button class="text-red-600 hover:text-red-800" @click="deleteExperience(experienceEntry.id)">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
-
-            <!-- UpdateExperience Modal -->
-            <div v-if="isUpdateExperienceModalOpen"
-                class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Update Experience</h2>
-                        <button class="text-gray-500 hover:text-gray-700" @click="closeUpdateExperienceModal">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="max-h-96 overflow-y-auto">
-                        <form @submit.prevent="updateExperience">
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Job Title <span class="text-red-500">*</span></label>
-                                <input type="text" v-model="experience.data.graduate_experience_title"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="e.g. Software Engineer" required />
-                                <InputError :message="experience.errors.graduate_experience_title" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
-                                <input type="text" v-model="experience.data.graduate_experience_company"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="e.g. Tech Corp" required />
-                                <InputError :message="experience.errors.graduate_experience_company" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
-                                <input type="text" v-model="experience.data.graduate_experience_address"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="e.g. New York, NY" required />
-                                <InputError :message="experience.errors.graduate_experience_address" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Employment Type <span class="text-red-500">*</span></label>
-                                <select v-model="experience.data.graduate_experience_employment_type"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                required>
-                                <option value="" disabled>Select employment type</option>
-                                <option value="Full-time">Full-time</option>
-                                <option value="Part-time">Part-time</option>
-                                <option value="Contract">Contract</option>
-                                <option value="Freelance">Freelance</option>
-                                <option value="Internship">Internship</option>
-                                </select>
-                                <InputError :message="experience.errors.graduate_experience_employment_type" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
-                                <Datepicker v-model="experience.data.graduate_experience_start_date"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="Select start date" required 
-                                :enable-time-picker="false"
-                                :format="'yyyy-MM-dd'"
-                                :preview-format="'yyyy-MM-dd'" />
-                                <InputError :message="experience.errors.graduate_experience_start_date" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">End Date</label>
-                                <Datepicker v-model="experience.data.graduate_experience_end_date"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                placeholder="Select end date" :disabled="stillInRole" />
-                                <div class="mt-2">
-                                    <input type="checkbox" id="still-in-role-update" v-model="stillInRole"
-                                        @change="experience.data.graduate_experience_end_date = stillInRole ? null : experience.data.graduate_experience_end_date" />
-                                    <label for="still-in-role-update" class="text-sm text-gray-700 ml-2">
-                                        I currently work here
-                                    </label>
-                                </div>
-                                <InputError :message="experience.errors.graduate_experience_end_date" class="mt-2" />
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 font-medium mb-2">Description</label>
-                                <textarea v-model="experience.data.graduate_experience_description"
-                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                rows="3" placeholder="Describe your role and responsibilities..."></textarea>
-                                <InputError :message="experience.errors.graduate_experience_description" class="mt-2" />
-                            </div>
-                            <div class="flex justify-end">
-                                <button type="submit"
-                                class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center"
-                                :disabled="experience.processing">
-                                <i class="fas fa-save mr-2"></i>
-                                {{ experience.processing ? 'Updating...' : 'Update Experience' }}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
+              Archived
             </div>
+          </div>
         </div>
+
+        <!-- If no archived experience entries exist -->
+        <div v-else class="bg-white p-8 rounded-lg shadow">
+          <p class="text-gray-600">No archived experience entries found.</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Add Experience Modal -->
+    <div v-if="isAddExperienceModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Add Experience</h2>
+          <button class="text-gray-500 hover:text-gray-700" @click="closeAddExperienceModal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="max-h-96 overflow-y-auto">
+          <form @submit.prevent="addExperience">
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Job Title <span class="text-red-500">*</span></label>
+              <input type="text" v-model="experienceForm.graduate_experience_title"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="e.g. Software Engineer" required />
+              <InputError :message="experienceForm.errors.graduate_experience_title" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium  mb-2">Company <span class="text-red-500">*</span></label>
+              <input type="text" v-model="experienceForm.graduate_experience_company"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="e.g. Tech Corp" required />
+              <InputError :message="experienceForm.errors.graduate_experience_company" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
+              <input type="text" v-model="experienceForm.graduate_experience_address"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="e.g. New York, NY" required />
+              <InputError :message="experienceForm.errors.graduate_experience_address" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Employment Type <span
+                  class="text-red-500">*</span></label>
+              <select v-model="experienceForm.graduate_experience_employment_type"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                required>
+                <option value="" disabled>Select employment type</option>
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Freelance">Freelance</option>
+                <option value="Internship">Internship</option>
+              </select>
+              <InputError :message="experienceForm.errors.graduate_experience_employment_type" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+              <Datepicker v-model="experienceForm.graduate_experience_start_date"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Select start date" required :enable-time-picker="false" :format="'yyyy-MM-dd'"
+                :preview-format="'yyyy-MM-dd'" />
+              <InputError :message="experienceForm.errors.graduate_experience_start_date" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">End Date</label>
+              <Datepicker v-model="experienceForm.graduate_experience_end_date"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Select end date" :disabled="stillInRole" :enable-time-picker="false" :format="'yyyy-MM-dd'"
+                :preview-format="'yyyy-MM-dd'" />
+              <div class="mt-2">
+                <input type="checkbox" id="still-in-role" v-model="stillInRole"
+                  @change="experience.end_date = stillInRole ? null : experience.end_date" />
+                <label for="still-in-role" class="text-sm text-gray-700 ml-2">I currently work here</label>
+              </div>
+              <InputError :message="experienceForm.errors.graduate_experience_end_date" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Description</label>
+              <textarea v-model="experienceForm.graduate_experience_description"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                rows="3" placeholder="Describe your role and responsibilities..."></textarea>
+              <InputError :message="experienceForm.errors.graduate_experience_description" class="mt-2" />
+            </div>
+            <div class="flex justify-end">
+              <button type="submit"
+                class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center"
+                :disabled="experienceForm.processing">
+                <i class="fas fa-save mr-2"></i>
+                {{ experienceForm.processing ? 'Saving...' : 'Save Experience' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- UpdateExperience Modal -->
+    <div v-if="isUpdateExperienceModalOpen"
+      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Update Experience</h2>
+          <button class="text-gray-500 hover:text-gray-700" @click="closeUpdateExperienceModal">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="max-h-96 overflow-y-auto">
+          <form @submit.prevent="updateExperience">
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Job Title <span class="text-red-500">*</span></label>
+              <input type="text" v-model="experience.title"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="e.g. Software Engineer" required />
+              <InputError :message="experienceForm.errors.graduate_experience_title" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
+              <input type="text" v-model="experience.company"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="e.g. Tech Corp" required />
+              <InputError :message="experienceForm.errors.graduate_experience_company" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
+              <input type="text" v-model="experience.address"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="e.g. New York, NY" required />
+              <InputError :message="experienceForm.errors.graduate_experience_address" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Employment Type <span
+                  class="text-red-500">*</span></label>
+              <select v-model="experience.employment_type"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                required>
+                <option value="" disabled>Select employment type</option>
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Freelance">Freelance</option>
+                <option value="Internship">Internship</option>
+              </select>
+              <InputError :message="experienceForm.errors.graduate_experience_employment_type" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+              <Datepicker v-model="experience.start_date"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Select start date" required :enable-time-picker="false" :format="'yyyy-MM-dd'"
+                :preview-format="'yyyy-MM-dd'" />
+              <InputError :message="experienceForm.errors.graduate_experience_start_date" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">End Date</label>
+              <Datepicker v-model="experience.end_date"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="Select end date" :disabled="stillInRole" />
+              <div class="mt-2">
+                <input type="checkbox" id="still-in-role-update" v-model="stillInRole"
+                  @change="experience.end_date = stillInRole ? null : experience.end_date" />
+                <label for="still-in-role-update" class="text-sm text-gray-700 ml-2">
+                  I currently work here
+                </label>
+              </div>
+              <InputError :message="experienceForm.errors.graduate_experience_end_date" class="mt-2" />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Description</label>
+              <textarea v-model="experience.description"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                rows="3" placeholder="Describe your role and responsibilities..."></textarea>
+              <InputError :message="experienceForm.errors.graduate_experience_description" class="mt-2" />
+            </div>
+            <div class="flex justify-end">
+              <button type="submit"
+                class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center"
+                :disabled="experienceForm.processing">
+                <i class="fas fa-save mr-2"></i>
+                {{ experienceForm.processing ? 'Updating...' : 'Update Experience' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

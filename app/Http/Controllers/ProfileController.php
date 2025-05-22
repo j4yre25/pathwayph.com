@@ -32,14 +32,18 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'institution'])
+        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'institution', 'education'])
             ->where('user_id', $user->id)
             ->first();
 
         // Fetch all institution users (adjust as needed)
         $instiUsers = User::where('role', 'institution')->get();
 
-        $educationEntries = Education::with('institution')->where('graduate_id', $graduates->id)->get();
+        $educationEntries = Education::with('institution')
+            ->where('graduate_id', $graduates->id)
+            ->whereNull('deleted_at') // if you use soft deletes
+            ->get();
+
 
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
@@ -55,6 +59,79 @@ class ProfileController extends Controller
             'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduates->id)->first(),
             'careerGoals' => CareerGoal::where('graduate_id', $graduates->id)->first(),
             'resume' => Resume::where('graduate_id', $graduates->id)->first(),
+        ]);
+    }
+
+    public function educationSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+
+        $educationEntries = Education::with('institution')
+            ->where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at')
+            ->get();
+
+        dd($educationEntries);
+        $archivedEducationEntries = Education::with('institution')
+            ->where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
+            ->get();
+
+        $institutions = Institution::select('id', 'institution_name')->get();
+
+        return Inertia::render('Frontend/ProfileSettings/Education', [
+            'user' => $user,
+            'educationEntries' => $educationEntries,
+            'archivedEducationEntries' => $archivedEducationEntries,
+            'institutions' => $institutions,
+            // Add other props as needed
+        ]);
+    }
+
+    public function experienceSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+
+        // Fetch all experience entries for this graduate
+        $experienceEntries = Experience::where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at') // if you use soft deletes
+            ->get();
+
+        // Optionally, fetch archived experience entries if you support archiving
+        $archivedExperienceEntries = Experience::where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
+            ->get();
+
+        return Inertia::render('Frontend/ProfileSettings/Experience', [
+            'user' => $user,
+            'experienceEntries' => $experienceEntries,
+            'archivedExperienceEntries' => $archivedExperienceEntries,
+            // Add other props as needed
+        ]);
+    }
+
+    public function projectSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+
+        // Fetch all project entries for this graduate
+        $projectsEntries = \App\Models\Project::where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at') // if you use soft deletes
+            ->get();
+
+        // Optionally, fetch archived project entries if you support archiving
+        $archivedProjectsEntries = \App\Models\Project::where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
+            ->get();
+
+        return Inertia::render('Frontend/ProfileSettings/Project', [
+            'user' => $user,
+            'projectsEntries' => $projectsEntries,
+            'archivedProjectsEntries' => $archivedProjectsEntries,
+            // Add other props as needed
         ]);
     }
 
@@ -126,9 +203,14 @@ class ProfileController extends Controller
             ]);
     }
 
+
+
     // Add education
     public function addEducation(Request $request)
     {
+        $user = Auth::user();
+
+        $graduates = \App\Models\Graduate::where('user_id', $user->id)->first();
 
 
         $request->validate([
@@ -210,26 +292,31 @@ class ProfileController extends Controller
             'is_current' => 'boolean',
         ]);
 
-        $data = $request->all();
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        if ($request->is_current) {
-            $data['graduate_experience_end_date'] = null;
-        }
+        $startDate = $request->graduate_experience_start_date
+            ? \Carbon\Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
+            : null;
+        $endDate = $request->is_current
+            ? null
+            : ($request->graduate_experience_end_date
+                ? \Carbon\Carbon::parse($request->graduate_experience_end_date)->format('Y-m-d')
+                : null);
 
-        if (isset($data['graduate_experience_start_date'])) {
-            $data['graduate_experience_start_date'] = Carbon::parse($data['graduate_experience_start_date'])->format('Y-m-d H:i:s');
-        }
-
-        if (isset($data['graduate_experience_end_date'])) {
-            $data['graduate_experience_end_date'] = Carbon::parse($data['graduate_experience_end_date'])->format('Y-m-d H:i:s');
-        }
-
-        $data['graduate_experience_description'] = $data['graduate_experience_description'] ?? 'No description provided';
-
-        $experience = new Experience($data);
-        $experience->user_id = Auth::id();
-
+        // Map request fields to DB columns
+        $experience = new \App\Models\Experience();
+        $experience->graduate_id = $graduate->id;
+        $experience->title = $request->graduate_experience_title;
+        $experience->company = $request->graduate_experience_company;
+        $experience->start_date = $startDate;
+        $experience->end_date = $endDate;
+        $experience->address = $request->graduate_experience_address;
+        $experience->description = $request->graduate_experience_description ?? 'No description provided';
+        $experience->employment_type = $request->graduate_experience_employment_type;
         $experience->save();
+
+        // Return response as needed
         return redirect()->back()->with('flash.banner', 'Experience added successfully.');
     }
 
@@ -247,22 +334,22 @@ class ProfileController extends Controller
             'is_current' => 'boolean',
         ]);
 
-        $data = $request->all();
-
-        if ($request->is_current) {
-            $data['graduate_experience_end_date'] = null;
-        }
-
-        if (isset($data['graduate_experience_start_date'])) {
-            $data['graduate_experience_start_date'] = Carbon::parse($data['graduate_experience_start_date'])->format('Y-m-d H:i:s');
-        }
-
-        if (isset($data['graduate_experience_end_date'])) {
-            $data['graduate_experience_end_date'] = Carbon::parse($data['graduate_experience_end_date'])->format('Y-m-d H:i:s');
-        }
-
         $experience = Experience::findOrFail($id);
-        $experience->update($data);
+
+        $experience->title = $request->graduate_experience_title;
+        $experience->company = $request->graduate_experience_company;
+        $experience->start_date = $request->graduate_experience_start_date
+            ? \Carbon\Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
+            : null;
+        $experience->end_date = $request->is_current
+            ? null
+            : ($request->graduate_experience_end_date
+                ? \Carbon\Carbon::parse($request->graduate_experience_end_date)->format('Y-m-d')
+                : null);
+        $experience->address = $request->graduate_experience_address;
+        $experience->description = $request->graduate_experience_description ?? 'No description provided';
+        $experience->employment_type = $request->graduate_experience_employment_type;
+        $experience->save();
 
         return redirect()->back()->with('flash.banner', 'Experience updated successfully.');
     }
@@ -361,53 +448,57 @@ class ProfileController extends Controller
     // Add Project
     public function addProject(Request $request)
     {
-        try {
-            $request->validate([
-                'graduate_projects_title' => 'required|string|max:255',
-                'graduate_projects_description' => 'nullable|string',
-                'graduate_projects_role' => 'required|string|max:255',
-                'graduate_projects_start_date' => 'required|date',
-                'graduate_projects_end_date' => 'nullable|date',
-                'graduate_projects_url' => 'nullable|string|max:255',
-                'graduate_projects_key_accomplishments' => 'nullable|string',
-                'graduate_project_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // <-- add this line
-                'is_current' => 'boolean'
-            ]);
+        $request->validate([
+            'graduate_projects_title' => 'required|string|max:255',
+            'graduate_projects_description' => 'nullable|string',
+            'graduate_projects_role' => 'required|string|max:255',
+            'graduate_projects_start_date' => 'required|date',
+            'graduate_projects_end_date' => 'nullable|date',
+            'graduate_projects_url' => 'nullable|string|max:255',
+            'graduate_projects_key_accomplishments' => 'nullable|string',
+            'graduate_project_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'is_current' => 'boolean'
+        ]);
 
-            $data = $request->all();
+        // Map request fields to DB columns
+        $data = [
+            'title' => $request->graduate_projects_title,
+            'description' => $request->graduate_projects_description ?? 'No description provided',
+            'role' => $request->graduate_projects_role,
+            'start_date' => \Carbon\Carbon::parse($request->graduate_projects_start_date)->format('Y-m-d'),
+            'end_date' => $request->is_current ? null : (
+                $request->graduate_projects_end_date
+                ? \Carbon\Carbon::parse($request->graduate_projects_end_date)->format('Y-m-d')
+                : null
+            ),
+            'url' => $request->graduate_projects_url,
+            'key_accomplishments' => $request->graduate_projects_key_accomplishments,
+        ];
 
-            if ($request->is_current) {
-                $data['graduate_projects_end_date'] = null;
-            }
-
-            if (isset($data['graduate_projects_start_date'])) {
-                $data['graduate_projects_start_date'] = Carbon::parse($data['graduate_projects_start_date'])->format('Y-m-d');
-            }
-
-            if (isset($data['graduate_projects_end_date'])) {
-                $data['graduate_projects_end_date'] = Carbon::parse($data['graduate_projects_end_date'])->format('Y-m-d');
-            }
-
-            $data['graduate_projects_description'] = $data['graduate_projects_description'] ?? 'No description provided';
-
-            // Handle file upload
-            if ($request->hasFile('graduate_project_file')) {
-                $file = $request->file('graduate_project_file');
-                // dd($file);
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('project_files', $filename, 'public');
-                $data['graduate_project_file'] = $path;
-            }
-
-            $project = new Project($data);
-            $project->user_id = Auth::id();
-            $project->save();
-
-            return redirect()->back()->with('flash.banner', 'Project added successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error adding project: ' . $e->getMessage());
-            return redirect()->back()->with('flash.banner', 'Failed to add project. Please try again.');
+        // Handle file upload
+        if ($request->hasFile('graduate_project_file')) {
+            $file = $request->file('graduate_project_file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('project_files', $filename, 'public');
+            $data['file'] = $path;
         }
+
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+        $data['graduate_id'] = $graduate->id;
+
+        $project = new Project($data);
+        $project->save();
+
+        // Fetch updated projects
+        $projectsEntries = Project::where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at')
+            ->get();
+        $archivedProjectsEntries = Project::where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
+            ->get();
+
+        return redirect()->back()->with('flash.banner', 'Project added successfully.');
     }
 
     public function updateProject(Request $request, $id)
@@ -459,6 +550,10 @@ class ProfileController extends Controller
                 $data['graduate_project_file'] = $path;
             }
 
+            $user = Auth::user();
+            $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+            $data['graduate_id'] = $graduate->id;
+
             $project->update($data);
 
             return redirect()->back()->with('flash.banner', 'Project updated successfully.');
@@ -486,42 +581,69 @@ class ProfileController extends Controller
         }
     }
 
+    public function certificationSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+
+        $certificationsEntries = Certification::where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at')
+            ->get();
+
+        $archivedCertificationsEntries = Certification::where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
+            ->get();
+
+        return Inertia::render('Frontend/ProfileSettings/Certification', [
+            'user' => $user,
+            'certificationsEntries' => $certificationsEntries,
+            'archivedCertificationsEntries' => $archivedCertificationsEntries,
+        ]);
+    }
+
 
     // Add certification
     public function addCertification(Request $request)
     {
         try {
             $request->validate([
-                'graduate_certification_name' => 'required|string|max:255',
-                'graduate_certification_issuer' => 'required|string|max:255',
-                'graduate_certification_issue_date' => 'required|date',
-                'graduate_certification_expiry_date' => 'nullable|date',
-                'graduate_certification_credential_id' => 'nullable|string|max:255',
-                'graduate_certification_credential_url' => 'nullable|string|max:255',
+                'name' => 'required|string|max:255',
+                'issuer' => 'required|string|max:255',
+                'issue_date' => 'required|date',
+                'expiry_date' => 'nullable|date',
+                'credential_url' => 'nullable|string|max:255',
+                'credential_id' => 'nullable|string|max:255',
                 'noExpiryDate' => 'boolean',
-                'noCredentialUrl' => 'boolean'
+                'noCredentialUrl' => 'boolean',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
             ]);
 
-            $data = $request->all();
+            $user = Auth::user();
+            $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-            if ($request->noExpiryDate) {
-                $data['graduate_certification_expiry_date'] = null;
-            }
+            $data = [
+                'graduate_id' => $graduate->id,
+                'name' => $request->name,
+                'issuer' => $request->issuer,
+                'issue_date' => \Carbon\Carbon::parse($request->issue_date)->format('Y-m-d'),
+                'expiry_date' => $request->noExpiryDate ? null : (
+                    $request->expiry_date
+                    ? \Carbon\Carbon::parse($request->expiry_date)->format('Y-m-d')
+                    : null
+                ),
+                'credential_url' => $request->noCredentialUrl ? null : $request->credential_url,
+                'credential_id' => $request->credential_id,
+            ];
 
-            if ($request->noCredentialUrl) {
-                $data['graduate_certification_credential_url'] = null;
-            }
-
-            if (isset($data['graduate_certification_issue_date'])) {
-                $data['graduate_certification_issue_date'] = Carbon::parse($data['graduate_certification_issue_date'])->format('Y-m-d');
-            }
-
-            if (isset($data['graduate_certification_expiry_date'])) {
-                $data['graduate_certification_expiry_date'] = Carbon::parse($data['graduate_certification_expiry_date'])->format('Y-m-d');
+            // Handle file upload
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('certification_files', $filename, 'public');
+                $data['file_path'] = $path;
             }
 
             $certification = new Certification($data);
-            $certification->user_id = Auth::id();
             $certification->save();
 
             return redirect()->back()->with('flash.banner', 'Certification added successfully.');
@@ -531,43 +653,46 @@ class ProfileController extends Controller
         }
     }
 
-    // Update certification
     public function updateCertification(Request $request, $id)
     {
         try {
             $certification = Certification::findOrFail($id);
 
-            if ($certification->user_id !== Auth::id()) {
-                return redirect()->back()->with('flash.banner', 'Unauthorized access.');
-            }
-
             $request->validate([
-                'graduate_certification_name' => 'required|string|max:255',
-                'graduate_certification_issuer' => 'required|string|max:255',
-                'graduate_certification_issue_date' => 'required|date',
-                'graduate_certification_expiry_date' => 'nullable|date',
-                'graduate_certification_credential_id' => 'nullable|string|max:255',
-                'graduate_certification_credential_url' => 'nullable|string|max:255',
+                'name' => 'required|string|max:255',
+                'issuer' => 'required|string|max:255',
+                'issue_date' => 'required|date',
+                'expiry_date' => 'nullable|date',
+                'credential_url' => 'nullable|string|max:255',
+                'credential_id' => 'nullable|string|max:255',
                 'noExpiryDate' => 'boolean',
-                'noCredentialUrl' => 'boolean'
+                'noCredentialUrl' => 'boolean',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
             ]);
 
-            $data = $request->all();
+            $data = [
+                'name' => $request->name,
+                'issuer' => $request->issuer,
+                'issue_date' => \Carbon\Carbon::parse($request->issue_date)->format('Y-m-d'),
+                'expiry_date' => $request->noExpiryDate ? null : (
+                    $request->expiry_date
+                    ? \Carbon\Carbon::parse($request->expiry_date)->format('Y-m-d')
+                    : null
+                ),
+                'credential_url' => $request->noCredentialUrl ? null : $request->credential_url,
+                'credential_id' => $request->credential_id,
+            ];
 
-            if ($request->noExpiryDate) {
-                $data['graduate_certification_expiry_date'] = null;
-            }
-
-            if ($request->noCredentialUrl) {
-                $data['graduate_certification_credential_url'] = null;
-            }
-
-            if (isset($data['graduate_certification_issue_date'])) {
-                $data['graduate_certification_issue_date'] = Carbon::parse($data['graduate_certification_issue_date'])->format('Y-m-d');
-            }
-
-            if (isset($data['graduate_certification_expiry_date'])) {
-                $data['graduate_certification_expiry_date'] = Carbon::parse($data['graduate_certification_expiry_date'])->format('Y-m-d');
+            // Handle file upload
+            if ($request->hasFile('file')) {
+                // Optionally delete old file
+                if ($certification->file_path) {
+                    Storage::disk('public')->delete($certification->file_path);
+                }
+                $file = $request->file('file');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('certification_files', $filename, 'public');
+                $data['file_path'] = $path;
             }
 
             $certification->update($data);
@@ -578,8 +703,6 @@ class ProfileController extends Controller
             return redirect()->back()->with('flash.banner', 'Failed to update certification. Please try again.');
         }
     }
-
-    // Remove certification
     public function removeCertification($id)
     {
         try {
@@ -587,6 +710,11 @@ class ProfileController extends Controller
 
             if ($certification->user_id !== Auth::id()) {
                 return redirect()->back()->with('flash.banner', 'Unauthorized access.');
+            }
+
+            // Optionally delete file
+            if ($certification->file_path) {
+                Storage::disk('public')->delete($certification->file_path);
             }
 
             $certification->delete();

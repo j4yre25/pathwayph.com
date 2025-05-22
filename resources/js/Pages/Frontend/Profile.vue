@@ -29,9 +29,9 @@ import Resume from './ProfileSettings/Resume.vue';
 
 const activeSection = ref('general'); // Default section
 const setActiveSection = (section) => {
-activeSection.value = section;
-// Optionally store in localStorage for persistence across page refreshes
-localStorage.setItem('activeSection', section);
+  activeSection.value = section;
+  // Optionally store in localStorage for persistence across page refreshes
+  localStorage.setItem('activeSection', section);
 };
 
 
@@ -175,22 +175,22 @@ const saveProfile = () => {
   settingsForm.graduate_address = profile.value.graduate_address;
   settingsForm.graduate_about_me = profile.value.graduate_about_me;
   settingsForm.graduate_picture_url = profile.value.graduate_picture_url;
-  
+
   const hasChanges = Object.keys(settingsForm.data()).some(
     (key) => settingsForm[key] !== profile.value[key]
   );
-  
+
   if (!hasChanges) {
     isNoChangesModalOpen.value = true;
     return;
   }
-  
+
   settingsForm.post(route('profile.updateProfile'), {
     onSuccess: (response) => {
       Object.assign(profile.value, settingsForm.data());
       modalState.value.profile = true;
       showSuccessModal(); // Show success modal
-      
+
       console.log('Profile saved successfully on the backend:', response.user);
     },
     onError: (errors) => {
@@ -228,7 +228,7 @@ const initializeData = () => {
 // Call initialize function on component mount
 onMounted(() => {
   initializeData();
-}); 
+});
 
 </script>
 
@@ -303,42 +303,43 @@ onMounted(() => {
             </button>
           </div>
 
-          
+
           <!-- Tab Content -->
           <div class="mt-6">
             <!-- General Settings -->
             <General :activeSection="activeSection" />
-            
+
             <!-- Security Settings -->
             <Security :activeSection="activeSection" />
-            
+
             <!-- Education Settings -->
-            <Education :activeSection="activeSection" />
-            
+            <Education :activeSection="activeSection" :educationEntries="props.educationEntries"
+              :archivedEducationEntries="props.archivedEducationEntries" :institutions="props.institutions" />
+
             <!-- Skills Settings -->
             <Skill :activeSection="activeSection" />
-            
+
             <!-- Experience Settings -->
-            <Experience :activeSection="activeSection" />
-            
+            <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries" />
+
             <!-- Projects Settings -->
-            <Project :activeSection="activeSection" />
-            
+            <Project :activeSection="activeSection" :projectsEntries="props.projectsEntries" />
+
             <!-- Certification Settings -->
-            <Certification :activeSection="activeSection" />
-            
+            <Certification :activeSection="activeSection" :certificationsEntries="props.certificationsEntries" />
+
             <!-- Achievement Settings -->
             <Achievement :activeSection="activeSection" />
-            
+
             <!-- Testimonial Settings -->
             <Testimonial :activeSection="activeSection" />
-            
+
             <!-- Employment Settings -->
             <Employment :activeSection="activeSection" />
-            
+
             <!-- Career Goals Settings -->
             <CareerGoals :activeSection="activeSection" />
-            
+
             <!-- Resume Settings -->
             <Resume :activeSection="activeSection" />
           </div>

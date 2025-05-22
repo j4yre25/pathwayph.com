@@ -16,17 +16,15 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   },
-  educationEntries: {
-    type: Array,
-    default: () => []
-  },
+  educationEntries: Array,
+
   archivedEducationEntries: {
     type: Array,
     default: () => []
   },
 });
 
-console.log('Props:', props);``
+console.log('Props:', props); ``
 // Modal State Management
 const modals = reactive({
   isAddOpen: false,
@@ -649,7 +647,8 @@ const handleNoAchievements = () => {
           <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
             <div>
               <div class="border-b pb-2">
-                <h2 class="text-xl font-bold">{{ entry.graduate_education_id }}</h2>
+                <h2 class="text-xl font-bold"> {{ entry.institution?.institution_name || 'Unknown Institution' }}
+                  </h2>
                 <p class="text-gray-600">
                   {{ entry.program }} in {{ entry.field_of_study }}
                 </p>
@@ -722,7 +721,7 @@ const handleNoAchievements = () => {
               <span>
                 {{ formatDisplayDate(education.start_date) }} - {{
                   education.end_date ? formatDisplayDate(education.end_date) :
-                'present' }}
+                    'present' }}
               </span>
             </div>
             <div v-if="education.term" class="flex items-center text-gray-600 mt-2">

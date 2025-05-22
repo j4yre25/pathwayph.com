@@ -11,15 +11,16 @@ class Certification extends Model
 
     protected $table = 'graduate_certifications';
 
-    protected $fillable = [
-        'graduate_certification_name',
-        'graduate_certification_issuer',
-        'graduate_certification_issue_date',
-        'graduate_certification_expiry_date',
-        'graduate_certification_credential_id',
-        'graduate_certification_credential_url',
-        'user_id', // Foreign key
-    ];
+protected $fillable = [
+    'graduate_id',
+    'name',
+    'issuer',
+    'issue_date',
+    'expiry_date',
+    'credential_url',
+    'credential_id',
+    'file_path',
+];
 
     // Relationship with User
     public function user()
