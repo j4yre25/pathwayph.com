@@ -398,7 +398,8 @@ class GraduateController extends Controller
     private function generatePassword($lastName, $dob)
     {
         $year = Carbon::parse($dob)->year;
-        return "{$lastName}{$year}!!!";
+        $lastNameTitle = $this->toTitleCase($lastName);
+        return "{$lastNameTitle}{$year}!!!";
     }
 
     private function getDegreeIdByCode($degreeCode, $institutionId)
