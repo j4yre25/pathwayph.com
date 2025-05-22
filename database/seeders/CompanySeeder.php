@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\Category;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\HumanResource;
@@ -47,7 +48,19 @@ class CompanySeeder extends Seeder
             ['division' => '47', 'name' => 'Jollibee - Highway Branch', 'address' => 'National Gensan Highway', 'brgy' => 'Unknown', 'tel_phone' => '(083) 301-5233', 'email' => null],
             ];
 
-            foreach ($companies as $index => $comp) {
+        foreach ($companies as $index => $comp) {
+            
+            $divisionCode = (int)$comp['division'];
+
+            // Fetch the category and sector
+            $category = Category::with('sector')->where('division_code', $divisionCode)->first();
+
+            if (!$category || !$category->sector) {
+                continue; // Skip if missing category or sector
+            }
+            $sector = $category->sector;
+
+
             // Generate fake personal info for HR user
             $firstName = $faker->firstName;
             $middleName = ($index < 10) ? $faker->firstName : '';
@@ -71,7 +84,7 @@ class CompanySeeder extends Seeder
                 'role' => 'company',
             ]);
 
-            // 2. Create the Company and assign user_id (owner)
+           // 2. Create the Company (initially without company_id)
             $company = Company::create([
                 'user_id' => $user->id,
                 'company_name' => $comp['name'],
@@ -83,8 +96,17 @@ class CompanySeeder extends Seeder
                 'company_email' => $companyEmail,
                 'company_mobile_phone' => $companyMobile,
                 'company_tel_phone' => $companyTel,
-                'category_id' => (int)$comp['division'],
+                'category_id' => $category->id,
+                'sector_id' => $sector->id,
             ]);
+
+            // 3. Update company_id using your pattern: C-{paddedId}-{sector_id}{division_code}
+            $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
+            $sectorCode = $sector->sector_id ?? '000';
+            $divisionCode = $category->division_code ?? '00';
+
+            $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
+            $company->save();
 
             // 3. Create the HumanResource record linked to user and company
             HumanResource::create([

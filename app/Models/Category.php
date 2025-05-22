@@ -9,22 +9,23 @@ class Category extends Model
 {
     
     use SoftDeletes;
-
-    public function sector() {
-        return $this->belongsTo(Sector::class);
-    }
-
+    
     protected $fillable = [
         'name',
         'user_id',
         'sector_id',    
         'division_code'
-   
+        
         
     ];
 
+    public function sector() 
+    {
+        return $this->belongsTo(Sector::class);
+    }
+    
     public function user()
-{
-    return $this->belongsTo(User::class);
-}
+    {
+        return $this->belongsTo(User::class);
+    }
 }
