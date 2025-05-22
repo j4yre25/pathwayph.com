@@ -122,9 +122,9 @@ const goTo = (url) => {
                   <span class="text-gray-500 italic">Unknown</span>
                 </template>
               </td>
-              <td class="border border-gray-200 px-6 py-4">{{ job.location }}</td>
-              <td class="border border-gray-200 px-6 py-4">{{ job.job_type }}</td>
-              <td class="border border-gray-200 px-6 py-4">{{ job.experience_level }}</td>
+              <td class="border border-gray-200 px-6 py-4">{{ job.job_location }}</td>
+              <td class="border border-gray-200 px-6 py-4">{{ job.job_employment_type }}</td>
+              <td class="border border-gray-200 px-6 py-4">{{ job.job_experience_level }}</td>
               <td class="border border-gray-200 px-6 py-4">
                 <span v-if="job.is_approved === 1" class="text-green-600 font-semibold">Approved</span>
                 <span v-else-if="job.is_approved === 0" class="text-red-600 font-semibold">Disapproved</span>

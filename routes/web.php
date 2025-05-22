@@ -5,7 +5,6 @@ use App\Http\Controllers\ManageGraduatesController;
 use App\Http\Controllers\PesoJobsController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ManageUsersController;
-use App\Http\Controllers\CompanyJobApplicantController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -258,6 +257,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
     });
 });
+
+// Company Reports
 
 // Manage HR Accounts 
 Route::middleware(['auth'])->group(function () {
