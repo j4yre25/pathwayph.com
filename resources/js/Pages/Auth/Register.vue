@@ -9,7 +9,7 @@ import TextInput from '@/Components/TextInput.vue';
 import { useFormattedMobileNumber } from '@/Composables/useFormattedMobileNumber';
 import { useFormattedTelephoneNumber } from '@/Composables/useFormattedTelephoneNumber';
 import { usePasswordCriteria } from '@/Composables/usePasswordCriteria';
-import { defineProps, onMounted, ref, computed } from 'vue';
+import { defineProps, onMounted, ref, computed, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { Inertia } from '@inertiajs/inertia';
 import SectionBorder from '@/Components/SectionBorder.vue';
@@ -19,6 +19,9 @@ const props = defineProps({
     school_years: Array,
     programs: Array,
     categories: Array,
+    sectors: Array,
+    degrees: Array, // <-- add this
+
 });
 
 console.log('Categories:', props.categories);
@@ -64,6 +67,7 @@ const form = useForm({
     graduate_school_graduated_from: '',
     graduate_program_completed: '',
     graduate_year_graduated: '',
+    graduate_degree: '', // <-- add this
 
     employment_status: '',
     current_job_title: '',
@@ -95,13 +99,24 @@ function handleEmploymentStatus() {
 
 
 // Computed properties for filtering programs and school years
+const filteredDegrees = computed(() => {
+    if (!form.graduate_school_graduated_from) return [];
+    return props.degrees.filter(
+        (degree) => Number(degree.institution_id) === Number(form.graduate_school_graduated_from)
+    );
+});
+
 const filteredPrograms = computed(() => {
+    if (!form.graduate_school_graduated_from || !form.graduate_degree) return [];
     return props.programs.filter(
-        (program) => Number(program.institution_id) === Number(form.graduate_school_graduated_from)
+        (program) =>
+            Number(program.institution_id) === Number(form.graduate_school_graduated_from) &&
+            Number(program.degree_id) === Number(form.graduate_degree)
     );
 });
 
 const filteredSchoolYears = computed(() => {
+    if (!form.graduate_school_graduated_from) return [];
     return props.school_years.filter(
         (year) => Number(year.institution_id) === Number(form.graduate_school_graduated_from)
     );
@@ -170,6 +185,15 @@ const resendCode = () => {
 };
 
 
+watch(() => form.graduate_school_graduated_from, (newVal) => {
+    form.graduate_degree = '';
+    form.graduate_program_completed = '';
+    form.graduate_year_graduated = '';
+});
+
+watch(() => form.graduate_degree, (newVal) => {
+    form.graduate_program_completed = '';
+});
 </script>
 
 
@@ -785,6 +809,20 @@ const resendCode = () => {
                             <InputError class="mt-2" :message="form.errors.graduate_school_graduated_from" />
                         </div>
 
+                        <!-- Degree Field -->
+                        <div class="mt-4">
+                            <InputLabel for="graduate_degree" value="Degree" />
+                            <select id="graduate_degree" v-model="form.graduate_degree"
+                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                required>
+                                <option value="">Select Degree</option>
+                                <option v-for="degree in filteredDegrees" :key="degree.id" :value="degree.id">
+                                    {{ degree.name }}
+                                </option>
+                            </select>
+                            <InputError class="mt-2" :message="form.errors.graduate_degree" />
+                        </div>
+
                         <!-- Program Completed -->
                         <div class="mt-4">
                             <InputLabel for="graduate_program_completed" value="Program Completed" />
@@ -806,8 +844,7 @@ const resendCode = () => {
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
                                 <option value="">Select Year</option>
-                                <option v-for="year in filteredSchoolYears" :key="year.id"
-                                    :value="year.school_year_range">
+                                <option v-for="year in filteredSchoolYears" :key="year.id" :value="year.school_year_range">
                                     {{ year.school_year_range }}
                                 </option>
                             </select>

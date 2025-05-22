@@ -9,7 +9,7 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
 const page = usePage();
-const school_years = page.props.school_years;
+const school_years = ref([...page.props.school_years]); // Use a local ref array
 
 const selectedSchoolYear = ref(null);
 const open = ref(false);
@@ -17,12 +17,14 @@ const open = ref(false);
 const archiveSchoolYear = () => {
   if (selectedSchoolYear.value) {
     router.delete(route('school-years.delete', { id: selectedSchoolYear.value.id }), {
+      preserveScroll: true,
       onSuccess: () => {
-        router.reload({ preserveScroll: true });
+        // Remove the archived school year from the local array
+        school_years.value = school_years.value.filter(sy => sy.id !== selectedSchoolYear.value.id);
+        open.value = false;
+        selectedSchoolYear.value = null;
       },
     });
-    open.value = false;
-    selectedSchoolYear.value = null;
   }
 };
 
@@ -84,6 +86,9 @@ const confirmArchive = (schoolYear) => {
                     Archive
                   </DangerButton>
                 </td>
+              </tr>
+              <tr v-if="school_years.length === 0">
+                <td colspan="3" class="px-6 py-4 text-center text-gray-500">No school years found.</td>
               </tr>
             </tbody>
           </table>

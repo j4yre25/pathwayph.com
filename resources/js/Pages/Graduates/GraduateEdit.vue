@@ -24,13 +24,13 @@
             <input type="text" v-model="form.last_name" class="w-full border rounded px-3 py-2" required />
             <p v-if="errors.last_name" class="text-red-500 text-sm mt-1">{{ errors.last_name }}</p>
           </div>
-          <!-- Middle Initial -->
+          <!-- Middle Name -->
           <div>
             <label class="block text-sm font-medium text-gray-700">
-              Middle Initial
+              Middle Name
             </label>
-            <input type="text" v-model="form.middle_initial" class="w-full border rounded px-3 py-2" maxlength="5" />
-            <p v-if="errors.middle_initial" class="text-red-500 text-sm mt-1">{{ errors.middle_initial }}</p>
+            <input type="text" v-model="form.middle_name" class="w-full border rounded px-3 py-2" maxlength="50" />
+            <p v-if="errors.middle_name" class="text-red-500 text-sm mt-1">{{ errors.middle_name }}</p>
           </div>
           <!-- Email Address -->
           <div>
@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -143,7 +143,6 @@ const props = defineProps({
   graduate: Object,
   programs: Array,
   years: Array,
-  instiUsers: Array,
 })
 
 const emit = defineEmits(['close'])
@@ -152,7 +151,7 @@ const form = ref({
   id: null,
   first_name: '',
   last_name: '',
-  middle_initial: '',
+  middle_name: '',
   email: '',
   graduate_school_graduated_from: '',
   program_id: '',
@@ -167,14 +166,13 @@ const form = ref({
 const errors = ref({})
 const processing = ref(false)
 
-// Watch for graduate prop changes (for re-opening modal)
 watch(() => props.graduate, (grad) => {
   if (grad) {
     form.value = {
       id: grad.graduate_id || grad.id,
       first_name: grad.first_name || '',
       last_name: grad.last_name || '',
-      middle_initial: grad.middle_initial || '',
+      middle_name: grad.middle_name || '',
       email: grad.email || '',
       graduate_school_graduated_from: grad.graduate_school_graduated_from || grad.institution_id || '',
       program_id: grad.program_id || '',
@@ -187,7 +185,6 @@ watch(() => props.graduate, (grad) => {
     }
   }
 }, { immediate: true })
-
 
 function handleEmploymentStatus() {
   if (form.value.employment_status === 'Unemployed') {

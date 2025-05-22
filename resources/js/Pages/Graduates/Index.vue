@@ -96,7 +96,9 @@ function cancelArchive() {
             </thead>
             <tbody>
               <tr v-for="grad in graduates" :key="grad.user_id" class="border-b hover:bg-gray-50 text-sm">
-                <td class="p-3">{{ grad.full_name }}</td>
+                <td class="p-3">
+                  {{ grad.first_name }} {{ grad.middle_name }} {{ grad.last_name }}
+                </td>
                 <td class="p-3">{{ grad.program_name }}</td>
                 <td class="p-3">{{ grad.year_graduated }}</td>
                 <td class="p-3">{{ grad.current_job_title || 'N/A' }}</td>

@@ -52,6 +52,7 @@ function applyFilter() {
             <thead class="bg-gray-100 text-xs uppercase tracking-wider text-gray-600">
               <tr>
                 <th class="px-6 py-4">Degree</th>
+                <th class="px-6 py-4">Degree Code</th>
                 <th class="px-6 py-4">Status</th>
               </tr>
             </thead>
@@ -62,6 +63,7 @@ function applyFilter() {
                 class="border-t hover:bg-gray-50 transition-colors"
               >
                 <td class="px-6 py-4">{{ degree.degree?.type }}</td>
+                <td class="px-6 py-4">{{ degree.degree_code }}</td>
                 <td
                   class="px-6 py-4 font-semibold"
                   :class="degree.deleted_at ? 'text-red-600' : 'text-green-600'"

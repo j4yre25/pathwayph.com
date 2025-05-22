@@ -5,6 +5,7 @@ use App\Http\Controllers\ManageGraduatesController;
 use App\Http\Controllers\PesoJobsController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ManageUsersController;
+use App\Http\Controllers\CompanyJobApplicantController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
