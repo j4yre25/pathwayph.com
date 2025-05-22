@@ -5,7 +5,8 @@ import FormSection from '@/Components/FormSection.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { useForm } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { useForm, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     institutionProgram: Object,
@@ -13,9 +14,65 @@ const props = defineProps({
 });
 
 const form = useForm({
-    name: props.institutionProgram.program?.name,
-    degree_id: props.institutionProgram.program?.degree_id,
+    name: props.institutionProgram.program?.name || '',
+    degree_id: props.institutionProgram.program?.degree_id || '',
+    program_code: props.institutionProgram.program_code || '',
+    duration: props.institutionProgram.duration || '',
+    duration_time: props.institutionProgram.duration_time || '',
 });
+
+const selectedDegree = computed(() =>
+    props.degrees.find(d => d.id === form.degree_id)
+);
+
+const degreeType = computed(() => selectedDegree.value?.type || '');
+
+const showProgramCode = computed(() =>
+    ['Bachelor of Science', 'Bachelor of Arts', 'Master of Science', 'Master of Arts', 'Associate'].includes(degreeType.value)
+);
+
+const showDuration = computed(() =>
+    ['Associate'].includes(degreeType.value)
+);
+
+// Watch for degree change to set initials
+watch(() => form.degree_id, () => {
+    if (!selectedDegree.value) return;
+    const initials = {
+        'Bachelor of Science': 'BS',
+        'Bachelor of Arts': 'BA',
+        'Associate': 'AS',
+        'Master of Science': 'MS',
+        'Master of Arts': 'MA',
+        'Doctoral': 'PhD',
+        'Diploma': 'D',
+    }[degreeType.value] || '';
+    if (showProgramCode.value) {
+        // Only set if empty or matches previous initials
+        if (!form.program_code || form.program_code.length <= initials.length) {
+            form.program_code = initials;
+        }
+    } else {
+        form.program_code = '';
+    }
+    if (!showDuration.value) {
+        form.duration = '';
+        form.duration_time = '';
+    }
+});
+
+// Watch for institutionProgram prop to update form values
+watch(
+    () => props.institutionProgram,
+    (newVal) => {
+        form.name = newVal.program?.name || '';
+        form.degree_id = newVal.program?.degree_id || '';
+        form.program_code = newVal.program_code || '';
+        form.duration = newVal.duration || '';
+        form.duration_time = newVal.duration_time || '';
+    },
+    { immediate: true }
+);
 
 const updateProgram = () => {
     form.put(route('programs.update', { id: props.institutionProgram.id }), {
@@ -41,7 +98,7 @@ const updateProgram = () => {
                             v-model="form.name"
                             type="text"
                             class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
-                        />
+                            placeholder="ex.Computer Science"/>
                         <InputError :message="form.errors.name" class="mt-2" />
                     </div>
 
@@ -58,6 +115,45 @@ const updateProgram = () => {
                             </option>
                         </select>
                         <InputError :message="form.errors.degree_id" class="mt-2" />
+                    </div>
+
+                    <div v-if="showProgramCode" class="col-span-6 sm:col-span-4 mt-4">
+                        <InputLabel for="program_code" value="Program Code" />
+                        <input
+                            id="program_code"
+                            v-model="form.program_code"
+                            required
+                            type="text"
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
+                            placeholder="e.g. BSCS-001, ASCT-2Y001"/>
+                        <InputError :message="form.errors.program_code" class="mt-2" />
+                    </div>
+
+                    <div v-if="showDuration" class="col-span-6 sm:col-span-4 mt-4">
+                        <InputLabel for="duration" value="Duration" />
+                        <select
+                            id="duration"
+                            v-model="form.duration"
+                            required
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
+                        >
+                            <option value="">Select</option>
+                            <option value="Year">Year</option>
+                            <option value="Month">Month</option>
+                        </select>
+                        <InputError :message="form.errors.duration" class="mt-2" />
+
+                        <InputLabel for="duration_time" value="Duration Time" class="mt-4" />
+                        <input
+                            id="duration_time"
+                            type="number"
+                            v-model="form.duration_time"
+                            min="1"
+                            max="12"
+                            required
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
+                            placeholder="1,2,etc..."/>
+                        <InputError :message="form.errors.duration_time" class="mt-2" />
                     </div>
                 </template>
 

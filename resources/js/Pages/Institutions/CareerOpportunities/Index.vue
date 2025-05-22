@@ -11,7 +11,8 @@ import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 const page = usePage();
 const userId = page.props.auth.user.id;
 
-const opportunities = page.props.opportunities ?? [];
+// Use a local ref array for opportunities
+const opportunities = ref([...page.props.opportunities ?? []]);
 const programs = page.props.programs ?? [];
 
 const selectedProgram = ref('');
@@ -19,7 +20,7 @@ const showConfirmModal = ref(false);
 const opportunityToArchive = ref(null);
 
 const filteredOpportunities = computed(() => {
-  return opportunities.filter((opp) => {
+  return opportunities.value.filter((opp) => {
     return !selectedProgram.value || String(opp.program_id) === String(selectedProgram.value);
   });
 });
@@ -41,9 +42,12 @@ function archiveConfirmed() {
   router.delete(route('careeropportunities.delete', opportunityToArchive.value.id), {
     preserveScroll: true,
     onSuccess: () => {
+      // Remove the archived opportunity from the local array
+      opportunities.value = opportunities.value.filter(
+        (opp) => opp.id !== opportunityToArchive.value.id
+      );
       showConfirmModal.value = false;
       opportunityToArchive.value = null;
-      // No flashBanner logic here; rely on global flash banner
     }
   });
 }
@@ -80,7 +84,11 @@ function cancelArchive() {
           <label class="block text-sm font-medium text-gray-700">Filter by Program</label>
           <select v-model="selectedProgram" class="mt-1 border-gray-300 rounded-md">
             <option value="">All Programs</option>
-            <option v-for="program in programs" :key="program.id" :value="program.id">
+            <option
+              v-for="program in programs"
+              :key="program.program_id"
+              :value="program.program_id"
+            >
               {{ program.program?.name }}
             </option>
           </select>
@@ -122,7 +130,7 @@ function cancelArchive() {
         </table>
       </div>
 
-      <!-- Confirmation Modal (same style as Programs) -->
+      <!-- Confirmation Modal -->
       <ConfirmationModal :show="showConfirmModal" @close="cancelArchive">
         <template #title>Are you sure?</template>
         <template #content>

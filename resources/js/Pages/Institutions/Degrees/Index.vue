@@ -9,7 +9,7 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
 const page = usePage();
-const degrees = page.props.degrees;
+const degrees = ref([...page.props.degrees]); // Use a local ref array
 
 const selectedDegree = ref(null);
 const open = ref(false);
@@ -17,12 +17,13 @@ const open = ref(false);
 const archiveDegree = () => {
   if (selectedDegree.value) {
     router.delete(route('degrees.delete', { id: selectedDegree.value.id }), {
+      preserveScroll: true,
       onSuccess: () => {
-        router.reload({ preserveScroll: true });
+        degrees.value = degrees.value.filter(d => d.id !== selectedDegree.value.id);
+        open.value = false;
+        selectedDegree.value = null;
       },
     });
-    open.value = false;
-    selectedDegree.value = null;
   }
 };
 
@@ -57,6 +58,7 @@ const confirmArchive = (degree) => {
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider">
               <tr>
                 <th class="px-6 py-4">Degree</th>
+                <th class="px-6 py-4">Degree Code</th>
                 <th class="px-6 py-4">Actions</th>
               </tr>
             </thead>
@@ -67,6 +69,7 @@ const confirmArchive = (degree) => {
                 class="border-t hover:bg-gray-50 transition-colors"
               >
                 <td class="px-6 py-4">{{ degree.degree?.type }}</td>
+                <td class="px-6 py-4">{{ degree.degree_code }}</td>
                 <td class="px-6 py-4 flex gap-2">
                   <Link :href="route('degrees.edit', { id: degree.id })">
                     <PrimaryButton>Edit</PrimaryButton>
@@ -75,6 +78,9 @@ const confirmArchive = (degree) => {
                     Archive
                   </DangerButton>
                 </td>
+              </tr>
+              <tr v-if="degrees.length === 0">
+                <td colspan="2" class="px-6 py-4 text-center text-gray-500">No degrees found.</td>
               </tr>
             </tbody>
           </table>

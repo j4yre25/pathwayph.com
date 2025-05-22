@@ -63,7 +63,7 @@ const disapproveGraduate = (id) => {
                     <tbody class="divide-y divide-gray-200">
                         <tr v-for="graduate in graduates" :key="graduate.id" class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ graduate.graduate_first_name }} {{ graduate.graduate_middle_initial }} {{ graduate.graduate_last_name }}
+                                {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ graduate.email }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -74,11 +74,11 @@ const disapproveGraduate = (id) => {
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap space-x-2">
                                 <PrimaryButton
-                                    @click="approveGraduate(graduate.id)"
+                                    @click="approveGraduate(graduate.user_id)"
                                     v-if="!graduate.is_approved">
                                     Approve
                                 </PrimaryButton>
-                                <DangerButton @click="disapproveGraduate(graduate.id)">
+                                <DangerButton @click="disapproveGraduate(graduate.user_id)">
                                     Disapprove
                                 </DangerButton>
                             </td>

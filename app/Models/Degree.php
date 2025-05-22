@@ -10,11 +10,10 @@ class Degree extends Model
     use SoftDeletes;
 
     protected $fillable = ['type'];
-    
+
     public function programs()
     {
         return $this->hasMany(Program::class);
     }
-
 
 }

@@ -44,6 +44,7 @@ const confirmRestore = (degree) => {
           <thead class="bg-gray-100 uppercase tracking-wider text-xs text-gray-600">
             <tr>
               <th class="px-6 py-4">Degree</th>
+              <th class="px-6 py-4">Degree Code</th>
               <th class="px-6 py-4">Status</th>
               <th class="px-6 py-4">Actions</th>
             </tr>
@@ -55,6 +56,7 @@ const confirmRestore = (degree) => {
               class="border-t hover:bg-gray-50 transition"
             >
               <td class="px-6 py-4">{{ degree.degree?.type }}</td>
+              <td class="px-6 py-4">{{ degree.degree_code }}</td>
               <td class="px-6 py-4">
                 <span class="text-red-600 font-semibold">Archived</span>
               </td>
