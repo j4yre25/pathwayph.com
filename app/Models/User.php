@@ -149,7 +149,7 @@ class User extends Authenticatable
     }
   
     public function hr() {
-        return $this->hasOne(HumanResource::class);
+        return $this->hasOne(HumanResource::class, 'user_id');
     }
 
     public function company()

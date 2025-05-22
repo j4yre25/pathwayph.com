@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
                 
                 $user = Auth::user()?->load('hr');;
                 return [
-                    'isCompany' => $user?->role === 'company',
+                    'isCompany' => $user->role === 'company',
                 ];
             },
             'main' => function () {

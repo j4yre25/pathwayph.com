@@ -21,10 +21,13 @@ class HumanResource extends Model
         'is_main_hr',
     ];
 
-   
+
     protected $attributes = [
         'is_main_hr' => false,
     ];
+    
+    protected $appends = ['full_name']; // <-- Add this line
+
 
     protected function casts(): array
     {
@@ -34,6 +37,10 @@ class HumanResource extends Model
         ];
     }
 
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
     /**
      * The user account for this HR (used for login, etc.).
      */
@@ -49,4 +56,6 @@ class HumanResource extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+
 }

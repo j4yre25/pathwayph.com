@@ -24,6 +24,7 @@ class Company extends Model
         'company_mobile_phone',
         'company_tel_phone',
         'sector_id', 
+        'company_id',
     ];
 
     /**
