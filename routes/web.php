@@ -389,31 +389,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    // Education routes
-    Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('profile.education.store');
-    Route::put('/education/{id}', [ProfileController::class, 'updateEducation'])->name('education.update');
-    Route::delete('/education/{id}', [ProfileController::class, 'removeEducation'])->name('education.remove');
-
-    // Experience routes
-    Route::post('/profile/experience', [ProfileController::class, 'addExperience'])->name('profile.experience.store');
-    Route::put('/experience/{id}', [ProfileController::class, 'updateExperience'])->name('experience.update');
-    Route::delete('/experience/{id}', [ProfileController::class, 'removeExperience'])->name('experience.remove');
-
-    // Certification routes
-    Route::post('/profile/certification', [ProfileController::class, 'addCertification'])->name('profile.certification.store');
-    Route::put('/certification/{id}', [ProfileController::class, 'updateCertification'])->name('certification.update');
-    Route::delete('/certification/{id}', [ProfileController::class, 'removeCertification'])->name('certification.remove');
-
-    // Achievement routes
-    Route::delete('/achievement/{id}', [ProfileController::class, 'removeAchievement'])->name('achievement.remove');
-
-    // Project routes
-    Route::post('/profile/project', [ProfileController::class, 'addProject'])->name('profile.project.store');
-    Route::put('/project/{id}', [ProfileController::class, 'updateProject'])->name('project.update');
-    Route::delete('/project/{id}', [ProfileController::class, 'removeProject'])->name('project.delete');
-});
-
 //School Year Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/institutions/school-years/{user}', [SchoolYearController::class, 'index'])->name('school-years');
@@ -739,7 +714,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
  
     // Education Routes
-    Route::get('/profile/education', [ProfileController::class, 'index'])->name('profile.index');
+    Route::get('/profile/settings/education', [ProfileController::class, 'educationSettings'])->name('profile.settings.education');
     Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('profile.education.add');
     Route::put('/profile/education/{id}', [ProfileController::class, 'updateEducation'])->name('profile.education.update');
     Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('profile.education.delete');
@@ -748,7 +723,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/education/{id}/archived', [ProfileController::class, 'archivedEducation'])->name('profile.education.archived');
  
     // Skill Routes
-    Route::get('/profile/skills', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/skills', [ProfileController::class, 'addSkill'])->name('profile.skills.add');
     Route::put('/profile/skills/{id}', [ProfileController::class, 'updateSkill'])->name('profile.skills.update');
     Route::delete('/profile/skills/{id}', [ProfileController::class, 'deleteSkill'])->name('profile.skills.remove');
@@ -757,7 +731,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/skills/{id}/archived', [ProfileController::class, 'archivedSkill'])->name('profile.skills.archived');
  
     // Experience Routes
-    Route::get('/profile/experiences', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/experiences', [ProfileController::class, 'addExperience'])->name('profile.experience.add');
     Route::put('/profile/experiences/{id}', [ProfileController::class, 'updateExperience'])->name('profile.experience.update');
     Route::delete('/profile/experiences/{id}', [ProfileController::class, 'removeExperience'])->name('profile.experience.remove');
@@ -766,7 +739,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/experiences/{id}/archived', [ProfileController::class, 'archivedExperience'])->name('profile.experience.archived');
  
     // Project Routes
-    Route::get('/profile/projects', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/projects', [ProfileController::class, 'addProject'])->name('profile.projects.add');
     Route::put('/profile/projects/{id}', [ProfileController::class, 'updateProject'])->name('profile.projects.update');
     Route::delete('/profile/projects/{id}', [ProfileController::class, 'removeProject'])->name('profile.projects.remove');
@@ -775,7 +747,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/projects/{id}/archived', [ProfileController::class, 'archivedProject'])->name('profile.projects.archived');
  
     // Certification Routes
-    Route::get('/profile/certifications', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/certifications', [ProfileController::class, 'addCertification'])->name('profile.certifications.add');
     Route::put('/profile/certifications/{id}', [ProfileController::class, 'updateCertification'])->name('profile.certifications.update');
     Route::delete('/profile/certifications/{id}', [ProfileController::class, 'removeCertification'])->name('profile.certifications.remove');
@@ -784,7 +755,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/certifications/{id}/archived', [ProfileController::class, 'archivedCertification'])->name('profile.certifications.archived');
  
     // Achievement Routes
-    Route::get('/profile/achievements', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/achievements', [ProfileController::class, 'addAchievement'])->name('profile.achievements.add');
     Route::put('/profile/achievements/{id}', [ProfileController::class, 'updateAchievement'])->name('profile.achievements.update');
     Route::delete('/profile/achievements/{id}', [ProfileController::class, 'removeAchievement'])->name('profile.achievements.remove');
@@ -793,7 +763,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/achievements/{id}/archived', [ProfileController::class, 'archivedAchievement'])->name('profile.achievements.archived');
  
     // Testimonial Routes
-    Route::get('/profile/testimonials', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/testimonials', [ProfileController::class, 'addTestimonials'])->name('profile.testimonials.add');
     Route::put('/profile/testimonials/{id}', [ProfileController::class, 'updateTestimonials'])->name('profile.testimonials.update');
     Route::delete('/profile/testimonials/{id}', [ProfileController::class, 'removeTestimonials'])->name('profile.testimonials.remove');
