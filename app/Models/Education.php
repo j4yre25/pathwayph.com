@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Education extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -15,10 +16,13 @@ class Education extends Model
      * @var array
      */
 
-         protected $table = 'graduate_educations';
+    protected $table = 'graduate_educations';
 
     protected $fillable = [
         'user_id',
+        'education',
+        'achievements',
+        'is_current',
         'degree',
         'field_of_study',
         'start_date',

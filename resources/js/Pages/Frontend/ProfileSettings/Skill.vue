@@ -9,23 +9,21 @@ import Modal from '@/Components/Modal.vue';
 
 // Define props
 const props = defineProps({
-  activeSection: {
-    type: String,
-    default: 'skills'
-  },
-  skillEntries: {
-    type: Array,
-    default: () => []
-  }
+  skillEntries: { type: Array, default: () => [] },
+  archivedSkillEntries: { type: Array, default: () => [] },
+  activeSection: { type: String, default: '' }
 });
+
+// Emit for parent communication
+const emit = defineEmits(['closeAllModals', 'resetAllStates', 'refresh-skills']);
 
 // Modal State Management
 const isSuccessModalOpen = ref(false);
 const isNoChangesModalOpen = ref(false);
 const isErrorModalOpen = ref(false);
 const isDuplicateModalOpen = ref(false);
-const emit = defineEmits(['closeAllModals', 'resetAllStates']);
-// Skills Data
+const successMessage = ref('');
+const errorMessage = ref('');
 const skills = ref(props.skillEntries || []);
 const skillName = ref('');
 const skillProficiencyType = ref('');
@@ -71,7 +69,7 @@ const saveSkill = () => {
   skillForm.post(route('profile.skills.add'), {
     preserveScroll: true,
     onSuccess: () => {
-      router.reload({ only: ['skillEntries'] }); // This reloads the updated skills list
+      emit('refresh-skills');
       closeAddSkillModal();
       isSuccessModalOpen.value = true;
     },
@@ -91,10 +89,6 @@ const skillForm = useForm({
   graduate_skills_type: skillType.value,
   graduate_skills_years_experience: yearsExperience.value,
 });
-
-console.log('Current Skill Index:', currentSkillIndex.value);
-console.log('Skills Array:', skills.value);
-console.log('Skill at Index:', skills.value[currentSkillIndex.value])
 
 // Update Skill Handler
 const openEditSkillModal = (skill) => {
@@ -136,16 +130,13 @@ const updateSkill = () => {
     return;
   }
 
-  console.log('Updating skill with data:', skillForm.data());
-
   skillForm.put(route('profile.skills.update', { id: skillId }), {
     onSuccess: () => {
-      console.log('Skill updated successfully.');
+      emit('refresh-skills');
       skills.value[currentSkillIndex.value] = { ...skillForm.data(), id: skillId };
       closeUpdateSkillModal();
     },
     onError: (errors) => {
-      console.error('Error updating skill:', errors);
       alert('An error occurred while updating the skill. Please try again.');
     },
   });
@@ -168,20 +159,15 @@ const closeAddSkillModal = () => {
   yearsExperience.value = 0;
 };
 
-
-const newSkill = ref('');
-
 const resetSkill = () => {
   skillName.value = '';
   skillProficiencyType.value = '';
   skillType.value = '';
   yearsExperience.value = 0;
-  console.log('Skill reset.');
 };
 
 const closeSkillsAddedModal = () => {
   isSkillsAddedModalOpen.value = false;
-  console.log('Skills added modal closed.');
 };
 
 const closeUpdateSkillModal = () => {
@@ -190,15 +176,11 @@ const closeUpdateSkillModal = () => {
   skillProficiencyType.value = '';
   skillType.value = '';
   yearsExperience.value = 0;
-  console.log('Update skill modal closed.');
 };
 
 // Computed property to group skills by type
 const groupedSkills = computed(() => {
-  if (!Array.isArray(skills.value)) {
-    console.error('skills.value is not an array:', skills.value);
-    return {};
-  }
+  if (!Array.isArray(skills.value)) return {};
   return skills.value.reduce((acc, skill) => {
     const type = skill.graduate_skills_type || 'Unknown';
     if (!acc[type]) {
@@ -218,36 +200,79 @@ const filteredSkills = computed(() => {
 // Modal Opening Functions
 const openAddSkillModal = () => {
   isAddSkillModalOpen.value = true;
-  console.log('Add skill modal opened.');
+};
+
+const unarchiveSkill = (skill) => {
+  if (!skill.id) {
+    alert('Skill ID not found.');
+    return;
+  }
+  if (!confirm(`Unarchive skill: ${skill.graduate_skills_name}?`)) {
+    return;
+  }
+  router.put(route('profile.skills.unarchive', { id: skill.id }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      emit('refresh-skills');
+    },
+    onError: (errors) => {
+      alert('Failed to unarchive skill.');
+    }
+  });
 };
 
 const removeSkill = (skill) => {
-  if (confirm(`Are you sure you want to remove the skill: ${skill.graduate_skills_name}?`)) {
-    const index = skills.value.findIndex(s => s.id === skill.id);
-    if (index !== -1) {
-      skills.value.splice(index, 1);
-      console.log(`Skill "${skill.graduate_skills_name}" removed from view.`);
-    }
+  if (!skill.id) {
+    alert('Skill ID not found.');
+    return;
   }
+  if (!confirm(`Permanently delete skill: ${skill.graduate_skills_name}? This cannot be undone.`)) {
+    return;
+  }
+  router.delete(route('profile.skills.remove', { id: skill.id }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      emit('refresh-skills');
+    },
+    onError: (errors) => {
+      alert('Failed to remove skill.');
+    }
+  });
 };
 
-// Function to initialize data on component mount
-const initializeData = () => {
-  // Fetch initial data or set defaults
-  console.log('Initializing data...');
+const archiveSkill = (skill) => {
+  if (!skill.id) {
+    alert('Skill ID not found.');
+    return;
+  }
+  if (!confirm(`Are you sure you want to archive the skill: ${skill.graduate_skills_name}?`)) {
+    return;
+  }
+  router.put(route('profile.skills.archive', { id: skill.id }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      emit('refresh-skills');
+    },
+    onError: (errors) => {
+      alert('Failed to archive skill.');
+    }
+  });
 };
 
-// Call initialize function on component mount
-onMounted(() => {
-  initializeData();
-});
+// Watcher to update skills when prop changes
+watch(
+  () => props.skillEntries,
+  (newVal) => {
+    skills.value = newVal || [];
+  },
+  { immediate: true }
+);
 
 const showArchivedSkills = ref(false);
 
 const toggleArchivedSkills = () => {
   showArchivedSkills.value = !showArchivedSkills.value;
 };
-
 </script>
 
 <template>
@@ -396,8 +421,8 @@ const toggleArchivedSkills = () => {
         <!-- Archived Skills -->
         <div v-if="showArchivedSkills" class="mt-8">
           <h2 class="text-lg font-medium mb-4">Archived Skills</h2>
-          <div v-if="archivedSkillsList.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div v-for="skill in archivedSkillsList" :key="skill.id"
+          <div v-if="archivedSkillEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div v-for="skill in archivedSkillEntries" :key="skill.id"
               class="bg-gray-50 rounded-lg p-6 transition-all duration-200 hover:bg-gray-100 border border-gray-200 relative">
               <div class="opacity-75">
                 <div class="flex items-start justify-between mb-4">
