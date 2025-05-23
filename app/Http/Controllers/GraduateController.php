@@ -47,7 +47,7 @@ class GraduateController extends Controller
                 'users.email'
             )
             ->orderBy('graduates.created_at', 'desc')
-            ->get();
+            ->paginate(30); // <-- Add pagination
 
         // Fetch programs via the pivot table
         $programs = DB::table('institution_programs')
@@ -66,7 +66,7 @@ class GraduateController extends Controller
             ->get();
 
         return Inertia::render('Graduates/Index', [
-            'graduates' => $graduates,
+            'graduates' => $graduates, // This is now a paginator object
             'programs' => $programs,
             'years' => $years,
         ]);

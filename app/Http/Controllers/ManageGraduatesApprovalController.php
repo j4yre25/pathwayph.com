@@ -57,15 +57,6 @@ class ManageGraduatesApprovalController extends Controller
 
         $graduate = DB::table('graduates')->where('user_id', $user->id)->first();
 
-        // Debug output
-        \Log::info([
-            'institution_user_id' => Auth::id(),
-            'institution_id' => $institutionId,
-            'graduate_user_id' => $user->id,
-            'graduate_institution_id' => $graduate ? $graduate->institution_id : null,
-            'user_role' => $user->role,
-        ]);
-
         if ($user->role !== 'graduate' || !$graduate || $graduate->institution_id != $institutionId) {
             return redirect()->back()->with('flash.banner', 'You can only approve graduates from your institution.');
         }
@@ -98,7 +89,6 @@ class ManageGraduatesApprovalController extends Controller
     {
         $institutionId = Auth::user()->institution->id;
 
-        // Fetch graduates joined with users and programs
         $query = DB::table('graduates')
             ->join('users', 'graduates.user_id', '=', 'users.id')
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
@@ -106,7 +96,6 @@ class ManageGraduatesApprovalController extends Controller
             ->where('graduates.institution_id', $institutionId)
             ->where('users.is_approved', true);
 
-        // Apply filters dynamically
         $filters = $request->only(['program', 'date_from', 'date_to', 'status']);
 
         if (!empty($filters['program']) && $filters['program'] !== 'all') {
@@ -125,13 +114,13 @@ class ManageGraduatesApprovalController extends Controller
             }
         }
 
-        // Fetch graduates with computed status
+        // Use paginate instead of get
         $graduates = $query->orderBy('users.created_at', 'desc')
             ->select('users.*', 'graduates.*', 'programs.name as program_name',
                 DB::raw("IF(users.deleted_at IS NULL, 'Active', 'Inactive') as status"))
-            ->get();
+            ->paginate(30)
+            ->withQueryString();
 
-        // Retrieve distinct program names for filters
         $programs = DB::table('graduates')
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
             ->where('graduates.institution_id', $institutionId)

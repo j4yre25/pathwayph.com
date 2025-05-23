@@ -10,6 +10,9 @@ const file = ref(null)
 const parsedRows = ref([])
 const validationErrors = ref([])
 const isValid = ref(false)
+const isLoading = ref(false)
+const loadingPercent = ref(0)
+let loadingInterval = null
 
 const props = defineProps({
   degreeCodes: Array,
@@ -139,12 +142,29 @@ function toTitleCase(str) {
 }
 
 function submitToBackend() {
+  isLoading.value = true
+  loadingPercent.value = 0
+
+  // Simulate progress (since we can't get real progress from backend)
+  loadingInterval = setInterval(() => {
+    if (loadingPercent.value < 95) {
+      loadingPercent.value += Math.random() * 2 // random slow increment
+    }
+  }, 200)
+
   const formData = new FormData()
   formData.append('csv_file', file.value)
 
   router.post(route('graduates.batch.upload'), formData, {
     forceFormData: true,
     preserveState: true,
+    onFinish: () => {
+      clearInterval(loadingInterval)
+      loadingPercent.value = 100
+      setTimeout(() => {
+        isLoading.value = false
+      }, 500)
+    },
     onSuccess: () => {
       parsedRows.value = []
       file.value = null
@@ -247,6 +267,22 @@ function submitToBackend() {
         >
           Submit Valid Data
         </button>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div v-if="isLoading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-60">
+      <div class="bg-white rounded-lg p-8 flex flex-col items-center shadow-lg">
+        <svg class="animate-spin h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+        </svg>
+        <div class="mb-2 text-lg font-semibold text-gray-700">Uploading graduates...</div>
+        <div class="w-64 bg-gray-200 rounded-full h-4 mb-2">
+          <div class="bg-blue-600 h-4 rounded-full transition-all duration-200" :style="{ width: loadingPercent + '%' }"></div>
+        </div>
+        <div class="text-sm text-gray-500">{{ Math.floor(loadingPercent) }}% complete</div>
+        <div class="text-xs text-gray-400 mt-2">Please do not close or refresh this page.</div>
       </div>
     </div>
   </AppLayout>

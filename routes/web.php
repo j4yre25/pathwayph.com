@@ -29,7 +29,6 @@ use App\Http\Controllers\JobSearchController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
-use App\Http\Controllers\CompanyJobApplicantController;
 use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
 
