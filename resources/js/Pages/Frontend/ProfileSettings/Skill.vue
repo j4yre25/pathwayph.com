@@ -24,7 +24,7 @@ const isSuccessModalOpen = ref(false);
 const isNoChangesModalOpen = ref(false);
 const isErrorModalOpen = ref(false);
 const isDuplicateModalOpen = ref(false);
-const emit = defineEmits(['close-all-modals', 'reset-all-states']);
+const emit = defineEmits(['closeAllModals', 'resetAllStates']);
 // Skills Data
 const skills = ref(props.skillEntries || []);
 const skillName = ref('');
@@ -68,25 +68,22 @@ const saveSkill = () => {
     graduate_skills_years_experience: yearsExperience.value,
   });
 
-  console.log('Data sent to backend for skill:', skillForm.data());
-  console.log('Selected Proficiency Type:', skillProficiencyType.value);
-  console.log('Selected Skill Type:', skillType.value);
-  console.log('Years of Experience:', yearsExperience.value);
-
   skillForm.post(route('profile.skills.add'), {
-    onSuccess: (response) => {
-      emit('close-all-modals');      skills.value.push({ ...skillForm.data(), id: response.id });
+    preserveScroll: true,
+    onSuccess: () => {
+      router.reload({ only: ['skillEntries'] }); // This reloads the updated skills list
       closeAddSkillModal();
-      console.log('Skill added successfully:', response);
+      isSuccessModalOpen.value = true;
     },
     onError: (errors) => {
-      console.error('Error adding skill:', errors);
-      alert('An error occurred while adding the skill. Please try again.');
+      if (errors.response?.status === 409) {
+        isDuplicateModalOpen.value = true;
+      } else {
+        isErrorModalOpen.value = true;
+      }
     },
   });
 };
-
-
 
 const skillForm = useForm({
   graduate_skills_name: skillName.value,
@@ -244,6 +241,12 @@ const initializeData = () => {
 onMounted(() => {
   initializeData();
 });
+
+const showArchivedSkills = ref(false);
+
+const toggleArchivedSkills = () => {
+  showArchivedSkills.value = !showArchivedSkills.value;
+};
 
 </script>
 

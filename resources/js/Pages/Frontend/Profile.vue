@@ -341,8 +341,12 @@ onMounted(() => {
               @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Skills Settings -->
-            <Skill :activeSection="activeSection" @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates" />
+            <Skill
+              :activeSection="activeSection"
+              :skillEntries="props.skillEntries"
+              @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates"
+            />
 
             <!-- Experience Settings -->
             <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries"
