@@ -26,6 +26,11 @@ const datepickerConfig = {
   format: 'yyyy-MM-dd',
   enableTime: false
 };
+const degreeCompleted = computed(() =>
+  pageProps.graduate?.program?.degree?.type ||
+  pageProps.graduate?.degree?.type ||
+  'Not specified'
+);
 
 const formatDate = (date) => {
   if (!date) return '';
@@ -667,7 +672,7 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ profile.program_id || 'Not specified' }}
+                    {{ degreeCompleted }}
                   </div>
                 </div>
               </div>

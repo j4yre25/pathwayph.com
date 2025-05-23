@@ -32,18 +32,17 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'institution', 'education'])
+        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'education'])
             ->where('user_id', $user->id)
             ->first();
 
         // Fetch all institution users (adjust as needed)
         $instiUsers = User::where('role', 'institution')->get();
 
-        $educationEntries = Education::with('institution')
-            ->where('graduate_id', $graduates->id)
-            ->whereNull('deleted_at') // if you use soft deletes
+        // Remove with('institution') here
+        $educationEntries = Education::where('graduate_id', $graduates->id)
+            ->whereNull('deleted_at')
             ->get();
-
 
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
@@ -67,14 +66,12 @@ class ProfileController extends Controller
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        $educationEntries = Education::with('institution')
-            ->where('graduate_id', $graduate->id)
+        // Remove with('institution') here
+        $educationEntries = Education::where('graduate_id', $graduate->id)
             ->whereNull('deleted_at')
             ->get();
 
-        dd($educationEntries);
-        $archivedEducationEntries = Education::with('institution')
-            ->where('graduate_id', $graduate->id)
+        $archivedEducationEntries = Education::where('graduate_id', $graduate->id)
             ->whereNotNull('deleted_at')
             ->get();
 
@@ -228,13 +225,20 @@ class ProfileController extends Controller
 
 
         $data = $request->all();
-        $data['institution_id'] = $request->institution_id;
         if ($request->is_current) {
             $data['end_date'] = null;
         }
 
-        $education = new Education($data);
-        $education->graduate_id = $graduates->id; // ADD THIS LINE (make sure $graduates is available)
+        $education = new Education();
+        $education->graduate_id = $graduates->id;
+        $education->education = $request->input('education');
+        $education->program = $request->input('program'); // <-- add this line
+        $education->field_of_study = $request->input('field_of_study');
+        $education->start_date = $request->input('start_date');
+        $education->end_date = $request->input('end_date');
+        $education->description = $request->input('description');
+        $education->is_current = $request->input('is_current', false);
+        $education->achievements = $request->input('achievements');
         $education->save();
 
         return redirect()->back()->with('flash.banner', 'Education added successfully.');
@@ -244,7 +248,6 @@ class ProfileController extends Controller
     public function updateEducation(Request $request, $id)
     {
         $request->validate([
-            'institution_id' => 'required|string|max:255',
             'program' => 'required|string|max:255',
             'field_of_study' => 'required|string|max:255',
             'start_date' => 'required|date',
