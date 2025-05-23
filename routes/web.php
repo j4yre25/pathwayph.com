@@ -5,7 +5,6 @@ use App\Http\Controllers\ManageGraduatesController;
 use App\Http\Controllers\PesoJobsController;
 use App\Http\Controllers\JobsController;
 use App\Http\Controllers\ManageUsersController;
-use App\Http\Controllers\CompanyJobApplicantController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -257,6 +256,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
     });
 });
+
+// Company Reports
 
 // Manage HR Accounts 
 Route::middleware(['auth'])->group(function () {
@@ -777,17 +778,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/achievements/{id}/archived', [ProfileController::class, 'archivedAchievement'])->name('profile.achievements.archived');
  
     // Testimonial Routes
-    Route::post('/profile/testimonials', [ProfileController::class, 'addTestimonials'])->name('profile.testimonials.add');
-    Route::put('/profile/testimonials/{id}', [ProfileController::class, 'updateTestimonials'])->name('profile.testimonials.update');
-    Route::delete('/profile/testimonials/{id}', [ProfileController::class, 'removeTestimonials'])->name('profile.testimonials.remove');
-    Route::put('/profile/testimonials/{id}/archive', [ProfileController::class, 'archiveTestimonials'])->name('profile.testimonials.archive');
-    Route::post('/profile/testimonials/{id}/unarchive', [ProfileController::class, 'unarchiveTestimonials'])->name('profile.testimonials.unarchive');
-    Route::put('/profile/testimonials/{id}/archived', [ProfileController::class, 'archivedTestimonials'])->name('profile.testimonials.archived');
+    Route::post('/profile/testimonials', [ProfileController::class, 'addTestimonial'])->name('profile.testimonials.add');
+    Route::put('/profile/testimonials/{id}', [ProfileController::class, 'updateTestimonial'])->name('profile.testimonials.update');
+    Route::delete('/profile/testimonials/{id}', [ProfileController::class, 'removeTestimonial'])->name('profile.testimonials.remove');
+    Route::put('/profile/testimonials/{id}/archive', [ProfileController::class, 'archiveTestimonial'])->name('profile.testimonials.archive');
+    Route::post('/profile/testimonials/{id}/unarchive', [ProfileController::class, 'unarchiveTestimonial'])->name('profile.testimonials.unarchive');
+    Route::put('/profile/testimonials/{id}/archived', [ProfileController::class, 'archivedTestimonial'])->name('profile.testimonials.archived');
  
     // Employment Preferences Routes
     Route::post('/profile/employment-preferences', [ProfileController::class, 'updateEmploymentPreferences'])->name('employment.preferences.updateEmploymentPreferences');
-    Route::post('/employment-preferences/save', [ProfileController::class, 'saveEmploymentPreferences'])->name('profile.employment.preferences.save');
-    Route::post('/employment-references/save', [ProfileController::class, 'saveEmploymentReference'])->name('employment.references.save');
+    Route::post('/employment-preferences/save', [ProfileController::class, 'saveEmploymentReference'])->name('profile.employment.preferences.save');
     Route::get('/employment-preferences', [ProfileController::class, 'getEmploymentPreference'])->name('employment.preferences.get');
  
     // Career Goals Routes
@@ -802,6 +802,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/upload', [ProfileController::class, 'uploadFile']);
     Route::get('/file/{filename}', [ProfileController::class, 'getFile']);
     Route::delete('/file/{filename}', [ProfileController::class, 'deleteFile']);
-});
+});Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
  
  

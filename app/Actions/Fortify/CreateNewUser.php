@@ -103,7 +103,6 @@ class CreateNewUser implements CreatesNewUsers
             'graduate_program_completed.required' => 'The program completed field is required.',
             'graduate_year_graduated.required' => 'The school year field is required.',
             'company_name.required' => 'The company name field is required.',
-
             'company_street_address.required' => 'The street address field is required.',
             'company_brgy.required' => 'The barangay field is required.',
             'company_city.required' => 'The city field is required.',
@@ -165,9 +164,7 @@ class CreateNewUser implements CreatesNewUsers
         // Store in Companies table
         if ($role === 'company') {
             $category = \App\Models\Category::find($input['category']);
-
-            \Log::info('Category input:', ['input' => $input['category']]);
-            \Log::info('Category found:', ['category' => $category]);
+           
             $company = Company::create([
                 'user_id' => $user->id,
                 'company_name' => $input['company_name'],

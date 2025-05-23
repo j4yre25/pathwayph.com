@@ -24,7 +24,7 @@ const props = defineProps({
 const isSuccessModalOpen = ref(false);
 const isErrorModalOpen = ref(false);
 const isDuplicateModalOpen = ref(false);
-
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 const experienceForm = useForm({
   graduate_experience_title: '',
   graduate_experience_company: '',
@@ -149,9 +149,9 @@ const addExperience = () => {
   // Log the form data for debugging
   console.log('Submitting experience form:', { ...experienceForm });
 
-  experienceForm.post(route('profile.experience.store'), {
+  experienceForm.post(route('profile.experience.add'), {
     onSuccess: (response) => {
-      // Optionally update local experience entries if needed
+      emit('close-all-modals');      // Optionally update local experience entries if needed
       if (response?.props?.experienceEntries) {
         experienceEntries.value = response.props.experienceEntries;
       }
@@ -183,7 +183,7 @@ const updateExperience = () => {
   experienceForm.graduate_experience_employment_type = experience.value.employment_type?.trim() || '';
   experienceForm.is_current = stillInRole.value;
 
-  experienceForm.put(route('experience.update', experience.value.id), {
+  experienceForm.put(route('profile.experience.update', experience.value.id), {
     onSuccess: () => {
       resetExperience();
       isUpdateExperienceModalOpen.value = false;
