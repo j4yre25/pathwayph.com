@@ -22,7 +22,9 @@ const props = defineProps({
 // Modal State Management
 const isSuccessModalOpen = ref(false);
 const isNoChangesModalOpen = ref(false);
-
+const isErrorModalOpen = ref(false);
+const isDuplicateModalOpen = ref(false);
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Skills Data
 const skills = ref(props.skillEntries || []);
 const skillName = ref('');
@@ -73,7 +75,7 @@ const saveSkill = () => {
 
   skillForm.post(route('profile.skills.add'), {
     onSuccess: (response) => {
-      skills.value.push({ ...skillForm.data(), id: response.id });
+      emit('close-all-modals');      skills.value.push({ ...skillForm.data(), id: response.id });
       closeAddSkillModal();
       console.log('Skill added successfully:', response);
     },

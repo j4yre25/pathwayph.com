@@ -5,6 +5,7 @@ import Modal from '@/Components/Modal.vue';
 import Datepicker from 'vue3-datepicker';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
+
 // Props
 const props = defineProps({
   activeSection: { type: String, default: 'certifications' },
@@ -18,8 +19,8 @@ function mapCertificationFields(entry) {
     ...entry,
     name: entry.name,
     issuer: entry.issuer,
-    issue_date: entry.issue_date,
-    expiry_date: entry.expiry_date,
+    issue_date: entry.issue_date ? new Date(entry.issue_date) : null,
+    expiry_date: entry.expiry_date ? new Date(entry.expiry_date) : null,
     credential_url: entry.credential_url,
     credential_id: entry.credential_id, // only if you have this column
     file_path: entry.file_path,
@@ -131,7 +132,7 @@ const addCertification = () => {
       isAddCertificationModalOpen.value = false;
       successMessage.value = 'Certification added successfully!';
       isSuccessModalOpen.value = true;
-      resetForm(); 
+      resetForm();
     },
     onError: (errors) => {
       if (errors.duplicate) {
@@ -152,10 +153,11 @@ const updateCertification = () => {
   form.put(route('profile.certifications.update', form.id), {
     forceFormData: true,
     onSuccess: (response) => {
-      resetForm();
+
       isUpdateCertificationModalOpen.value = false;
       successMessage.value = 'Certification updated successfully!';
       isSuccessModalOpen.value = true;
+      resetForm();
     },
     onError: (errors) => {
       if (errors.duplicate) {
@@ -280,8 +282,7 @@ const removeCertification = (entry) => {
                   <i class="fas fa-link text-gray-500 mr-2"></i> Credential URL:
                 </strong>
                 <span v-if="entry.credential_url">
-                  <a :href="entry.credential_url" target="_blank"
-                    class="text-indigo-600 hover:underline break-all">
+                  <a :href="entry.credential_url" target="_blank" class="text-indigo-600 hover:underline break-all">
                     {{ entry.credential_url }}
                   </a>
                 </span>
@@ -340,8 +341,7 @@ const removeCertification = (entry) => {
                   <i class="fas fa-link text-gray-500 mr-2"></i> Credential URL:
                 </strong>
                 <span v-if="entry.credential_url">
-                  <a :href="entry.credential_url" target="_blank"
-                    class="text-indigo-600 hover:underline break-all">
+                  <a :href="entry.credential_url" target="_blank" class="text-indigo-600 hover:underline break-all">
                     {{ entry.credential_url }}
                   </a>
                 </span>
@@ -380,7 +380,8 @@ const removeCertification = (entry) => {
     </div>
 
     <!-- Add Certification Modal -->
-    <div v-if="isAddCertificationModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="isAddCertificationModalOpen"
+      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Add Certification</h2>
@@ -448,7 +449,8 @@ const removeCertification = (entry) => {
     </div>
 
     <!-- Update Certification Modal -->
-    <div v-if="isUpdateCertificationModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="isUpdateCertificationModalOpen"
+      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Update Certification</h2>
@@ -504,7 +506,8 @@ const removeCertification = (entry) => {
                 placeholder="e.g. 123456" />
             </div>
             <div class="mb-4">
-              <label for="certification-file-update" class="block text-sm font-medium text-gray-700">Upload Certificate</label>
+              <label for="certification-file-update" class="block text-sm font-medium text-gray-700">Upload
+                Certificate</label>
               <input type="file" id="certification-file-update" @change="handleFileUpload"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>

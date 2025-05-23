@@ -506,9 +506,6 @@ class ProfileController extends Controller
         try {
             $project = Project::findOrFail($id);
 
-            if ($project->user_id !== Auth::id()) {
-                return redirect()->back()->with('flash.banner', 'Unauthorized access.');
-            }
 
             $request->validate([
                 'graduate_projects_title' => 'required|string|max:255',
@@ -726,6 +723,28 @@ class ProfileController extends Controller
         }
     }
 
+    public function achievementSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+
+        // Fetch all achievement entries for this graduate
+        $achievementEntries = Achievement::where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at') // if you use soft deletes
+            ->get();
+
+        // Optionally, fetch archived achievement entries if you support archiving
+        $archivedAchievementEntries = Achievement::where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
+            ->get();
+
+        return Inertia::render('Frontend/ProfileSettings/Achievement', [
+            'user' => $user,
+            'achievementEntries' => $achievementEntries,
+            'archivedAchievementEntries' => $archivedAchievementEntries,
+            // Add other props as needed
+        ]);
+    }
     // Add achievement
     public function addAchievement(Request $request)
     {
@@ -739,16 +758,22 @@ class ProfileController extends Controller
             'credential_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        $achievement = new Achievement($request->all());
-        $achievement->user_id = Auth::id();
-        $achievement->graduate_achievement_description = $request->graduate_achievement_description ?? 'No description provided';
-        $achievement->graduate_achievement_date = Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
+        $graduate = \App\Models\Graduate::where('user_id', Auth::id())->firstOrFail();
+
+        $achievement = new Achievement();
+        $achievement->graduate_id = $graduate->id;
+        $achievement->title = $request->graduate_achievement_title;
+        $achievement->issuer = $request->graduate_achievement_issuer;
+        $achievement->date = \Carbon\Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
+        $achievement->description = $request->graduate_achievement_description ?? 'No description provided';
+        $achievement->url = $request->graduate_achievement_url;
+        $achievement->type = $request->graduate_achievement_type;
 
         if ($request->hasFile('credential_picture')) {
             $file = $request->file('credential_picture');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('achievements', $filename, 'public');
-            $achievement->credential_picture_url = $path;
+            $achievement->credential_picture = $path;
         }
 
         $achievement->save();
@@ -768,43 +793,45 @@ class ProfileController extends Controller
             'credential_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        $achievement = Achievement::findOrFail($id);
+        $graduate = \App\Models\Graduate::where('user_id', Auth::id())->firstOrFail();
+        $achievement = Achievement::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
 
-        if ($achievement->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $achievement->graduate_achievement_title = $request->graduate_achievement_title;
-        $achievement->graduate_achievement_issuer = $request->graduate_achievement_issuer;
-        $achievement->graduate_achievement_date = Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
-        $achievement->graduate_achievement_description = $request->graduate_achievement_description;
-        $achievement->graduate_achievement_url = $request->graduate_achievement_url;
-        $achievement->graduate_achievement_type = $request->graduate_achievement_type;
+        $achievement->title = $request->graduate_achievement_title;
+        $achievement->issuer = $request->graduate_achievement_issuer;
+        $achievement->date = \Carbon\Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
+        $achievement->description = $request->graduate_achievement_description;
+        $achievement->url = $request->graduate_achievement_url;
+        $achievement->type = $request->graduate_achievement_type;
 
         if ($request->hasFile('credential_picture')) {
-            if ($achievement->credential_picture_url) {
-                Storage::disk('public')->delete($achievement->credential_picture_url);
+            if ($achievement->credential_picture) {
+                Storage::disk('public')->delete($achievement->credential_picture);
             }
-
             $file = $request->file('credential_picture');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('achievements', $filename, 'public');
-            $achievement->credential_picture_url = $path;
+            $achievement->credential_picture = $path;
         }
 
         $achievement->save();
 
         return redirect()->back()->with('flash.banner', 'Achievement updated successfully.');
     }
-
     // Remove achievement
     public function deleteAchievement($id)
     {
         try {
             $achievement = Achievement::findOrFail($id);
 
+            $graduate = \App\Models\Graduate::where('user_id', Auth::id())->firstOrFail();
+            $achievement = Achievement::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
+            // Check ownership
+            if ($achievement->user_id !== Auth::id() || $achievement->graduate_id !== $graduate->id) {
+                return redirect()->back()->with('flash.banner', 'Unauthorized access.');
+            }
+
             if ($achievement->credential_picture_url) {
-                Storage::delete('public/' . $achievement->credential_picture_url);
+                Storage::disk('public')->delete($achievement->credential_picture_url);
             }
 
             $achievement->delete();
@@ -815,26 +842,57 @@ class ProfileController extends Controller
             return redirect()->back()->with('flash.banner', 'Failed to remove achievement. Please try again.');
         }
     }
+    public function testimonialSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
+        // Fetch all testimonial entries for this graduate
+        $testimonialsEntries = Testimonial::where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at') // if you use soft deletes
+            ->get();
+
+        // Optionally, fetch archived testimonial entries if you support archiving
+        $archivedTestimonialsEntries = Testimonial::where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
+            ->get();
+
+        return Inertia::render('Frontend/ProfileSettings/Testimonial', [
+            'user' => $user,
+            'testimonialsEntries' => $testimonialsEntries,
+            'archivedTestimonialsEntries' => $archivedTestimonialsEntries,
+        ]);
+    }
     // Add testimonial
     public function addTestimonial(Request $request)
     {
         $request->validate([
-            'graduate_testimonials_name' => 'required|string|max:255',
-            'graduate_testimonials_role_title' => 'required|string|max:255',
-            'graduate_testimonials_testimonial' => 'required|string',
-            'graduate_testimonials_letters' => 'nullable|file|mimes:pdf,doc,docx|max:2048'
+            'author' => 'required|string|max:255',
+            'position' => 'required|string|max:255',
+            'company' => 'nullable|string|max:255',
+            'content' => 'required|string',
+            'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
         ]);
 
-        $data = $request->all();
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        if ($request->hasFile('graduate_testimonials_letters')) {
-            $path = $request->file('graduate_testimonials_letters')->store('testimonials', 'public');
-            $data['graduate_testimonials_letters'] = $path;
+        $data = [
+            'author' => $request->author,
+            'position' => $request->position,
+            'company' => $request->company,
+            'content' => $request->content,
+            'graduate_id' => $graduate->id,
+        ];
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('testimonials', $filename, 'public');
+            $data['file'] = $path;
         }
 
         $testimonial = new Testimonial($data);
-        $testimonial->user_id = Auth::id();
         $testimonial->save();
 
         return redirect()->back()->with('flash.banner', 'Testimonial added successfully.');
@@ -844,76 +902,108 @@ class ProfileController extends Controller
     public function updateTestimonial(Request $request, $id)
     {
         $request->validate([
-            'graduate_testimonials_name' => 'required|string|max:255',
-            'graduate_testimonials_role_title' => 'required|string|max:255',
-            'graduate_testimonials_testimonial' => 'required|string',
+            'author' => 'required|string|max:255',
+            'position' => 'required|string|max:255',
+            'company' => 'nullable|string|max:255',
+            'content' => 'required|string',
+            'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
         ]);
 
-        $testimonial = Testimonial::findOrFail($id);
-        $testimonial->update($request->all());
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+        $testimonial = Testimonial::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
+
+        $testimonial->author = $request->author;
+        $testimonial->position = $request->position;
+        $testimonial->company = $request->company;
+        $testimonial->content = $request->content;
+
+        if ($request->hasFile('file')) {
+            if ($testimonial->file) {
+                Storage::disk('public')->delete($testimonial->file);
+            }
+            $file = $request->file('file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('testimonials', $filename, 'public');
+            $testimonial->file = $path;
+        }
+
+        $testimonial->save();
 
         return redirect()->back()->with('flash.banner', 'Testimonial updated successfully.');
     }
 
-    // Remove testimonial
     public function removeTestimonial($id)
     {
-        $testimonial = Testimonial::findOrFail($id);
-        $testimonial->delete();
+        try {
+            $user = Auth::user();
+            $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+            $testimonial = Testimonial::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
 
-        return redirect()->back()->with('flash.banner', 'Testimonial removed successfully.');
+            if ($testimonial->file) {
+                Storage::disk('public')->delete($testimonial->file);
+            }
+
+            $testimonial->delete();
+
+            return redirect()->back()->with('flash.banner', 'Testimonial removed successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error deleting testimonial: ' . $e->getMessage());
+            return redirect()->back()->with('flash.banner', 'Failed to remove testimonial. Please try again.');
+        }
+    }
+
+    public function employmentReferenceSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+
+        $employmentReference = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
+
+        return Inertia::render('Frontend/ProfileSettings/Employment', [
+            'user' => $user,
+            'employmentReference' => $employmentReference,
+        ]);
     }
 
     // Update employment preferences
     public function getEmploymentReference()
     {
-        /** @var \App\Models\User $user */
-
         $user = Auth::user();
-        $employmentReference = $user->employmentPreferences()->first();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+        $employmentReference = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
 
-        if ($employmentReference) {
-            return response()->json([
-                'jobTypes' => $employmentReference->jobTypes,
-                'salaryExpectations' => $employmentReference->salaryExpectations,
-                'preferredLocations' => $employmentReference->preferredLocations,
-                'workEnvironment' => $employmentReference->workEnvironment,
-                'availability' => $employmentReference->availability,
-                'additionalNotes' => $employmentReference->additionalNotes,
-            ]);
-        }
-
-        return response()->json(null);
+        return response()->json($employmentReference);
     }
 
     // Save employment preferences
-    public function saveEmploymentPreferences(Request $request)
+    public function saveEmploymentReference(Request $request)
     {
-        Log::info('Saving Employment Preferences:', $request->all());
-
         $request->validate([
-            'jobTypes' => 'nullable|string',
-            'salaryExpectations' => 'nullable|string',
-            'preferredLocations' => 'nullable|string',
-            'workEnvironment' => 'nullable|string',
+            'job_types' => 'nullable|string',
+            'salary_expectations' => 'nullable|string',
+            'preferred_locations' => 'nullable|string',
+            'work_environment' => 'nullable|string',
             'availability' => 'nullable|string',
-            'additionalNotes' => 'nullable|string',
+            'additional_notes' => 'nullable|string',
         ]);
 
-        /** @var \App\Models\User $user */
         $user = Auth::user();
-        $employmentPreferences = $user->employmentPreferences()->firstOrNew(['user_id' => $user->id]);
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        $employmentPreferences->jobTypes = $request->jobTypes;
-        $employmentPreferences->salaryExpectations = $request->salaryExpectations;
-        $employmentPreferences->preferredLocations = $request->preferredLocations;
-        $employmentPreferences->workEnvironment = $request->workEnvironment;
-        $employmentPreferences->availability = $request->availability;
-        $employmentPreferences->additionalNotes = $request->additionalNotes;
+        $employmentReference = \App\Models\EmploymentPreference::firstOrNew([
+            'graduate_id' => $graduate->id
+        ]);
 
-        $employmentPreferences->save();
+        $employmentReference->job_types = $request->job_types;
+        $employmentReference->salary_expectations = $request->salary_expectations;
+        $employmentReference->preferred_locations = $request->preferred_locations;
+        $employmentReference->work_environment = $request->work_environment;
+        $employmentReference->availability = $request->availability;
+        $employmentReference->additional_notes = $request->additional_notes;
+        $employmentReference->graduate_id = $graduate->id;
 
-        Log::info('Employment Preferences Saved:', $employmentPreferences->toArray());
+        $employmentReference->save();
 
         return redirect()->back()->with('flash.banner', 'Employment reference saved successfully.');
     }
@@ -967,6 +1057,20 @@ class ProfileController extends Controller
         return response()->json($careerGoals);
     }
 
+    public function resumeSettings()
+    {
+        $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+
+        // Fetch the current resume for this graduate
+        $resume = \App\Models\Resume::where('graduate_id', $graduate->id)->first();
+
+        return Inertia::render('Frontend/ProfileSettings/Resume', [
+            'user' => $user,
+            'resume' => $resume,
+        ]);
+    }
+
     // Upload resume
     public function uploadResume(Request $request)
     {
@@ -976,42 +1080,48 @@ class ProfileController extends Controller
 
         try {
             $user = Auth::user();
+            $graduate = \App\Models\Graduate::where('user_id', $user->id)->firstOrFail();
+
             $file = $request->file('resume');
             $fileName = time() . '_' . $file->getClientOriginalName();
+            $fileType = $file->getClientMimeType();
+            $fileSize = $file->getSize();
             $path = $file->storeAs('resumes', $fileName, 'public');
 
             // Delete old file if exists
-            if ($user->resume) {
-                Storage::disk('public')->delete($user->resume->file);
+            $oldResume = Resume::where('graduate_id', $graduate->id)->first();
+            if ($oldResume && $oldResume->file_path) {
+                Storage::disk('public')->delete($oldResume->file_path);
+                $oldResume->delete();
             }
 
-            /** @var \App\Models\User $user */
-
             // Save or update resume record
-            $user->resume()->updateOrCreate(
-                [],
-                [
-                    'file' => $path,
-                    'fileName' => $file->getClientOriginalName(),
-                    'user_id' => $user->id
-                ]
-            );
+            Resume::create([
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'file_type' => $fileType,
+                'file_size' => $fileSize,
+                'is_primary' => true,
+                'graduate_id' => $graduate->id,
+            ]);
 
-            return redirect()->back()->with('success', 'Resume uploaded successfully!');
+            return redirect()->route('profile.resume.settings')->with('success', 'Resume uploaded successfully!');
         } catch (\Exception $e) {
             Log::error('Resume upload error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to upload resume');
         }
     }
 
-
     public function deleteResume()
     {
         try {
             $user = Auth::user();
-            if ($user->resume) {
-                Storage::disk('public')->delete($user->resume->file);
-                $user->resume->delete();
+            $graduate = \App\Models\Graduate::where('user_id', $user->id)->firstOrFail();
+            $resume = Resume::where('graduate_id', $graduate->id)->first();
+
+            if ($resume && $resume->file_path) {
+                Storage::disk('public')->delete($resume->file_path);
+                $resume->delete();
             }
             return response()->json(['success' => true]);
         } catch (\Exception $e) {

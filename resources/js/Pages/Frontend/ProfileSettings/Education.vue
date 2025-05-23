@@ -23,7 +23,7 @@ const props = defineProps({
     default: () => []
   },
 });
-
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 console.log('Props:', props); ``
 // Modal State Management
 const modals = reactive({
@@ -243,7 +243,7 @@ const addEducation = () => {
 
   educationForm.post(route('profile.education.add'), {
     onSuccess: (response) => {
-      console.log('Education added successfully:', response);
+      emit('close-all-modals');      console.log('Education added successfully:', response);
       // Close the modal first
       isAddEducationModalOpen.value = false;
       // Reset the form
