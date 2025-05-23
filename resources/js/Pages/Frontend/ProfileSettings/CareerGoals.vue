@@ -18,7 +18,7 @@ const props = defineProps({
   }
 });
 
-
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Career Goals Data
 const newIndustry = ref('');
 const careerGoalsEntries = ref(props.careerGoalsEntries || []);
@@ -81,7 +81,7 @@ const savedCareerGoals = () => {
 
   careerGoalsForm.post(route('career.goals.save'), {
     onSuccess: (response) => {
-      console.log("Backend response for career goals:", response);
+      emit('close-all-modals');      console.log("Backend response for career goals:", response);
       careerGoalsEntries.value.push({ ...careerGoalsForm.data(), id: response.id });
     },
     onError: (errors) => {
@@ -116,7 +116,7 @@ const addPreferredIndustry = () => {
 
     careerGoalsForm.post(route('career.goals.add.industry'), {
       onSuccess: (response) => {
-        console.log("Backend response:", response);
+      emit('close-all-modals');        console.log("Backend response:", response);
       },
       onError: (errors) => {
         console.error("Error saving industry:", errors);

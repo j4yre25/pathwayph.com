@@ -11,7 +11,7 @@ const props = defineProps({
     default: 'security'
   }
 });
-
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Password Management
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);

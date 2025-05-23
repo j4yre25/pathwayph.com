@@ -34,6 +34,27 @@ const setActiveSection = (section) => {
   localStorage.setItem('activeSection', section);
 };
 
+const closeAddEducationModal = () => { };
+const closeUpdateEducationModal = () => { };
+const closeSkillsAddedModal = () => { };
+const closeAddExperienceModal = () => { };
+const closeUpdateExperienceModal = () => { };
+const closeAddCertificationModal = () => { };
+const closeAddAchievementModal = () => { };
+const closeUpdateAchievementModal = () => { };
+const closeAddTestimonialsModal = () => { };
+const closeUpdateTestimonialsModal = () => { };
+const closeAddLocationModal = () => { };
+const closeAddIndustryModal = () => { };
+const closeUpdateCertificationModal = () => { };
+
+const resetEducation = () => { };
+const resetExperience = () => { };
+const resetAchievement = () => { };
+const resetCertification = () => { };
+const resetTestimonials = () => { };
+const resetCareerGoals = () => { };
+const resetEmploymentPreferences = () => { };
 
 const closeAllModals = () => {
   closeAddEducationModal();
@@ -307,41 +328,56 @@ onMounted(() => {
           <!-- Tab Content -->
           <div class="mt-6">
             <!-- General Settings -->
-            <General :activeSection="activeSection" />
+            <General :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
 
             <!-- Security Settings -->
-            <Security :activeSection="activeSection" />
+            <Security :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
 
             <!-- Education Settings -->
             <Education :activeSection="activeSection" :educationEntries="props.educationEntries"
-              :archivedEducationEntries="props.archivedEducationEntries" :institutions="props.institutions" />
+              :archivedEducationEntries="props.archivedEducationEntries" :institutions="props.institutions"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Skills Settings -->
-            <Skill :activeSection="activeSection" />
+            <Skill :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
 
             <!-- Experience Settings -->
-            <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries" />
+            <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Projects Settings -->
-            <Project :activeSection="activeSection" :projectsEntries="props.projectsEntries" />
+            <Project :activeSection="activeSection" :projectsEntries="props.projectsEntries"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Certification Settings -->
-            <Certification :activeSection="activeSection" :certificationsEntries="props.certificationsEntries" />
 
+            <!-- Profile.vue -->
+            <Certification :activeSection="activeSection" :certificationsEntries="props.certificationsEntries"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
             <!-- Achievement Settings -->
-            <Achievement :activeSection="activeSection" />
+            <Achievement :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" :achievementEntries="props.achievementEntries"
+              :archivedAchievementEntries="props.archivedAchievementEntries" />
 
             <!-- Testimonial Settings -->
-            <Testimonial :activeSection="activeSection" />
+            <Testimonial :activeSection="activeSection" :testimonialEntries="props.testimonialsEntries"
+              :archivedTestimonialEntries="props.archivedTestimonialsEntries" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
 
             <!-- Employment Settings -->
-            <Employment :activeSection="activeSection" />
+            <Employment :activeSection="activeSection" :employmentReference="props.employmentReference"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Career Goals Settings -->
-            <CareerGoals :activeSection="activeSection" />
+            <CareerGoals :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
 
             <!-- Resume Settings -->
-            <Resume :activeSection="activeSection" />
+            <Resume :activeSection="activeSection" :resume="props.resume" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
           </div>
         </div>
       </div>

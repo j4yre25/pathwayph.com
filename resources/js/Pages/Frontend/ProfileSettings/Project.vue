@@ -12,7 +12,7 @@ const props = defineProps({
   projectsEntries: Array,
   archivedProjectsEntries: Array,
 });
-
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Map backend fields to frontend expected fields
 function mapProjectFields(entry) {
   return {
@@ -162,7 +162,7 @@ const addProject = () => {
   form.post(route('profile.projects.add'), {
     forceFormData: true,
     onSuccess: (response) => {
-      if (response?.props?.projectsEntries) {
+      emit('close-all-modals');      if (response?.props?.projectsEntries) {
         projectsEntries.value = response.props.projectsEntries;
       }
       resetForm();
@@ -194,10 +194,10 @@ const updateProject = () => {
   form.graduate_projects_url = noProjectUrl.value ? '' : form.graduate_projects_url;
   form.graduate_projects_description = form.graduate_projects_description?.trim() || 'No description provided';
   form.graduate_projects_key_accomplishments = form.graduate_projects_key_accomplishments?.trim() || '';
-  form.post(route('profile.projects.update', form.id), {
+  form.put(route('profile.projects.update', form.id), {
     forceFormData: true,
     onSuccess: (response) => {
-      if (response?.props?.projectsEntries) {
+      emit('close-all-modals');      if (response?.props?.projectsEntries) {
         projectsEntries.value = response.props.projectsEntries;
       }
       resetForm();

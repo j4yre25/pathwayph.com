@@ -11,9 +11,12 @@ class Resume extends Model
     use HasFactory;
 
     protected $fillable = [
-        'file',
-        'fileName',
-        'user_id'
+        'file_path',
+        'file_name',
+        'file_type',
+        'file_size',
+        'is_primary',
+        'graduate_id'
     ];
 
     public function user()
@@ -25,9 +28,8 @@ class Resume extends Model
 
     public function getFileUrlAttribute()
     {
-        return $this->file ? Storage::url($this->file) : null;
+        return $this->file_path ? Storage::url($this->file_path) : null;
     }
-
     public function deleteFile()
     {
         if ($this->file && Storage::exists($this->file)) {

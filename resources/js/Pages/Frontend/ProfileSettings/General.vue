@@ -115,7 +115,7 @@ const settingsForm = useForm({
   other_social_links: profile.value.other_social_links,
   enable_contact_form: profile.value.enable_contact_form,
 });
-
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 const parseFullName = () => {
   const fullName = profile.value.fullName.trim();
   const nameParts = fullName.split(' ');
@@ -202,7 +202,7 @@ const saveProfile = () => {
   settingsForm.post(route('profile.updateProfile'), {
     forceFormData: true,
     onSuccess: (response) => {
-      profile.value.first_name = settingsForm.first_name;
+      emit('close-all-modals');      profile.value.first_name = settingsForm.first_name;
       profile.value.middle_name = settingsForm.middle_name;
       profile.value.last_name = settingsForm.last_name;
       profile.value.graduate_professional_title = settingsForm.graduate_professional_title;
