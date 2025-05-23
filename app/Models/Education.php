@@ -19,7 +19,6 @@ class Education extends Model
 
     protected $fillable = [
         'user_id',
-        'institution_id',
         'degree',
         'field_of_study',
         'start_date',
@@ -63,8 +62,4 @@ class Education extends Model
     /**
      * Get the institution associated with the education record.
      */
-    public function institution()
-    {
-        return $this->belongsTo(Institution::class);
-    }
 }

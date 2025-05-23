@@ -24,11 +24,11 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\JobSearchController;
+use App\Http\Controllers\CompanyJobApplicantController;
 // Company 
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
-use App\Http\Controllers\CompanyJobApplicantController;
 use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
 
