@@ -10,13 +10,13 @@ class EmploymentPreference extends Model
     use HasFactory;
 
     protected $fillable = [
-        'jobTypes',          
-        'salaryExpectations', 
-        'preferredLocations',
-        'workEnvironment',
+        'job_types',          
+        'salary_expectations', 
+        'preferred_locations',
+        'work_environment',
         'availability',
-        'additionalNotes',
-        'user_id',
+        'additional_notes',
+        'graduate_id',
     ];
 
     // Relationship with User

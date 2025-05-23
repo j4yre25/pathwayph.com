@@ -17,15 +17,13 @@ const props = defineProps({
     default: () => ({})
   },
   educationEntries: Array,
-
   archivedEducationEntries: {
     type: Array,
     default: () => []
   },
 });
+const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 
-console.log('Props:', props); ``
-// Modal State Management
 const modals = reactive({
   isAddOpen: false,
   isUpdateOpen: false,
@@ -90,43 +88,21 @@ const formattedEndDate = computed(() => {
     : null;
 });
 
-// Education Data
-// Use computed properties to ensure reactivity with props
 const educationEntries = computed(() => props.educationEntries || []);
 const archivedEducationEntries = computed(() => props.archivedEducationEntries || []);
 
-// Debug log to track data flow
-console.log('Initial education data from props:', {
-  educationEntries: props.educationEntries,
-  archivedEducationEntries: props.archivedEducationEntries
-});
-
-
-// Log data on component mount
-const logData = () => {
-  console.log('Logging education data...');
-  console.log('Education entries:', educationEntries.value);
-  console.log('Archived education entries:', archivedEducationEntries.value);
-};
-
-// Log data when component mounts
 onMounted(() => {
-  logData();
+  // Optionally log data
 });
 
-// No need to watch for changes in props since we're using computed properties
-// that automatically update when props change
-
-// Watch for changes in active section to reload data
 watch(() => props.activeSection, (newValue) => {
   if (newValue === 'education') {
-    console.log('Active section changed to education, reloading data...');
     router.reload();
   }
 });
 
 const education = ref({
-  graduate_education_institution_id: '',
+  education: '', // institution name
   program: '',
   field_of_study: '',
   start_date: null,
@@ -137,8 +113,6 @@ const education = ref({
   noAchievements: false,
 });
 
-
-// Modal State
 const isAddEducationModalOpen = ref(false);
 const isUpdateEducationModalOpen = ref(false);
 
@@ -162,12 +136,11 @@ watch(() => education.value.end_date, (newValue) => {
   }
 });
 
-// Education Handlers
 const addEducation = () => {
   // Validate all required fields
   if (
-    !education.value.graduate_education_institution_id ||
-    education.value.graduate_education_institution_id.trim() === '' ||
+    !education.value.education ||
+    education.value.education.trim() === '' ||
     !education.value.program ||
     education.value.program.trim() === '' ||
     !education.value.field_of_study ||
@@ -212,12 +185,10 @@ const addEducation = () => {
 
   // Check for duplicates - only check non-archived entries
   const isDuplicate = educationEntries.value.some(entry =>
-    entry.graduate_education_institution_id === education.value.graduate_education_institution_id &&
+    entry.education === education.value.education &&
     entry.program === education.value.program &&
     entry.field_of_study === education.value.field_of_study
   );
-
-  console.log('Duplicate check result:', isDuplicate, 'for data:', education.value);
 
   if (isDuplicate) {
     modals.isDuplicateOpen = true;
@@ -229,7 +200,7 @@ const addEducation = () => {
   const formattedEndDate = education.value.is_current ? null : formatDate(education.value.end_date);
 
   const educationForm = useForm({
-    graduate_education_institution_id: education.value.graduate_education_institution_id.trim(),
+    education: education.value.education.trim(),
     program: education.value.program.trim(),
     field_of_study: education.value.field_of_study.trim(),
     start_date: formattedStartDate,
@@ -239,23 +210,16 @@ const addEducation = () => {
     achievements: education.value.noAchievements ? null : education.value.achievements,
   });
 
-  console.log('Data being sent to backend for adding education:', educationForm.data());
-
   educationForm.post(route('profile.education.add'), {
     onSuccess: (response) => {
-      console.log('Education added successfully:', response);
-      // Close the modal first
+      emit('close-all-modals');
       isAddEducationModalOpen.value = false;
-      // Reset the form
       resetEducation();
-      // Show success message
       errorMessage.value = 'Education added successfully!';
       modals.isSuccessOpen = true;
-      // Reload the entire page to ensure all data is refreshed
       router.reload();
     },
     onError: (errors) => {
-      console.error('Error adding education:', errors);
       if (errors.duplicate) {
         modals.isDuplicateOpen = true;
       } else {
@@ -268,7 +232,6 @@ const addEducation = () => {
 
 const updateEducation = () => {
   if (!education.value.id) {
-    console.error('Education ID is required for update');
     errorMessage.value = 'Education ID is missing. Please try again.';
     modals.isErrorOpen = true;
     return;
@@ -276,8 +239,8 @@ const updateEducation = () => {
 
   // Validate all required fields
   if (
-    !education.value.graduate_education_institution_id ||
-    education.value.graduate_education_institution_id.trim() === '' ||
+    !education.value.education ||
+    education.value.education.trim() === '' ||
     !education.value.program ||
     education.value.program.trim() === '' ||
     !education.value.field_of_study ||
@@ -322,13 +285,11 @@ const updateEducation = () => {
 
   // Check for duplicates - only check non-archived entries, excluding the current entry
   const isDuplicate = educationEntries.value.some(entry =>
-    entry.id !== education.value.id && // Exclude current entry
-    entry.graduate_education_institution_id === education.value.graduate_education_institution_id &&
+    entry.id !== education.value.id &&
+    entry.education === education.value.education &&
     entry.program === education.value.program &&
     entry.field_of_study === education.value.field_of_study
   );
-
-  console.log('Duplicate check result for update:', isDuplicate, 'for data:', education.value);
 
   if (isDuplicate) {
     modals.isDuplicateOpen = true;
@@ -336,7 +297,7 @@ const updateEducation = () => {
   }
 
   const educationForm = useForm({
-    graduate_education_institution_id: education.value.graduate_education_institution_id.trim(),
+    education: education.value.education.trim(),
     program: education.value.program.trim(),
     field_of_study: education.value.field_of_study.trim(),
     start_date: formatDate(education.value.start_date),
@@ -347,20 +308,14 @@ const updateEducation = () => {
     no_achievements: education.value.noAchievements,
   });
 
-  console.log('Data being sent to backend for updating education:', educationForm.data());
-
   educationForm.put(route('profile.education.update', { id: education.value.id }), {
     onSuccess: () => {
-      // Close the modal first
       closeUpdateEducationModal();
-      // Show success message
       errorMessage.value = 'Education updated successfully!';
       modals.isSuccessOpen = true;
-      // Reload the entire page to ensure all data is refreshed
       router.reload();
     },
     onError: (errors) => {
-      console.error('Error updating education:', errors);
       if (errors.duplicate) {
         modals.isDuplicateOpen = true;
       } else {
@@ -379,10 +334,9 @@ const handleIsCurrent = () => {
   }
 };
 
-//  Reset Functions
 const resetEducation = () => {
   education.value = {
-    graduate_education_institution_id: '',
+    education: '',
     program: '',
     field_of_study: '',
     start_date: null,
@@ -392,44 +346,29 @@ const resetEducation = () => {
     achievements: '',
     noAchievements: false,
   };
-  console.log('Education reset.');
 };
 
-// Modal Control Functions
 const closeAddEducationModal = () => {
   isAddEducationModalOpen.value = false;
   resetEducation();
-  console.log('Add education modal closed.');
 };
 
 const closeUpdateEducationModal = () => {
   isUpdateEducationModalOpen.value = false;
-  education.value = {
-    graduate_education_institution_id: '',
-    program: '',
-    field_of_study: '',
-    start_date: null,
-    end_date: null,
-    description: ''
-  };
-  console.log('Update education modal closed.');
   resetEducation();
 };
 
 const closeEducationAddedModal = () => {
   isEducationAddedModalOpen.value = false;
-  console.log('Education added modal closed.');
 };
 
 const closeEducationUpdatedModal = () => {
   isEducationUpdatedModalOpen.value = false;
-  console.log('Education updated modal closed.');
 };
 
 const openAddEducationModal = () => {
   resetEducation();
   isAddEducationModalOpen.value = true;
-  console.log('Add education modal opened.');
 };
 
 const openUpdateModal = (entry) => {
@@ -439,7 +378,7 @@ const openUpdateModal = (entry) => {
 const openUpdateEducationModal = (entry) => {
   education.value = {
     id: entry.id,
-    graduate_education_institution_id: entry.graduate_education_institution_id,
+    education: entry.education,
     program: entry.program,
     field_of_study: entry.field_of_study,
     start_date: new Date(entry.start_date),
@@ -452,21 +391,17 @@ const openUpdateEducationModal = (entry) => {
   isUpdateEducationModalOpen.value = true;
 };
 
-//  Confirmation and Removal Functions
 const deleteForm = useForm({});
 
 const removeEducation = (education) => {
   if (confirm(`Are you sure you want to remove this education entry: ${education.program}?`)) {
     deleteForm.delete(route('profile.education.remove', education.id), {
       onSuccess: () => {
-        console.log('Education removed successfully');
-        // Reload the entire page to ensure all data is refreshed
         router.reload();
         errorMessage.value = 'Education entry removed successfully';
         modals.isSuccessOpen = true;
       },
       onError: (error) => {
-        console.error('Error removing education:', error);
         errorMessage.value = 'Failed to remove education entry';
         modals.isErrorOpen = true;
       }
@@ -477,19 +412,13 @@ const removeEducation = (education) => {
 const archiveEducation = (id) => {
   if (confirm('Are you sure you want to archive this education entry?')) {
     const archiveForm = useForm({});
-
-    console.log('Archiving education with ID:', id);
-
     archiveForm.post(route('profile.education.archive', { id }), {
       onSuccess: () => {
-        console.log('Education archived successfully');
-        // Reload the entire page to ensure all data is refreshed
         router.reload();
         errorMessage.value = 'Education entry archived successfully';
         modals.isSuccessOpen = true;
       },
       onError: (error) => {
-        console.error('Error archiving education:', error);
         errorMessage.value = 'Failed to archive education entry';
         modals.isErrorOpen = true;
       }
@@ -500,19 +429,13 @@ const archiveEducation = (id) => {
 const restoreEducation = (id) => {
   if (confirm('Are you sure you want to restore this education entry?')) {
     const restoreForm = useForm({});
-
-    console.log('Restoring education with ID:', id);
-
     restoreForm.post(route('profile.education.restore', { id }), {
       onSuccess: () => {
-        console.log('Education restored successfully');
-        // Reload the entire page to ensure all data is refreshed
         router.reload();
         errorMessage.value = 'Education entry restored successfully';
         modals.isSuccessOpen = true;
       },
       onError: (error) => {
-        console.error('Error restoring education:', error);
         errorMessage.value = 'Failed to restore education entry';
         modals.isErrorOpen = true;
       }
@@ -523,19 +446,13 @@ const restoreEducation = (id) => {
 const deleteEducation = (id) => {
   if (confirm('Are you sure you want to permanently delete this education entry? This action cannot be undone.')) {
     const deleteForm = useForm({});
-
-    console.log('Deleting education with ID:', id);
-
     deleteForm.delete(route('profile.education.delete', { id }), {
       onSuccess: () => {
-        console.log('Education deleted successfully');
-        // Reload the entire page to ensure all data is refreshed
         router.reload();
         errorMessage.value = 'Education entry deleted successfully';
         modals.isSuccessOpen = true;
       },
       onError: (error) => {
-        console.error('Error deleting education:', error);
         errorMessage.value = 'Failed to delete education entry';
         modals.isErrorOpen = true;
       }
@@ -545,9 +462,7 @@ const deleteEducation = (id) => {
 
 const toggleArchivedEducation = () => {
   showArchivedEducation.value = !showArchivedEducation.value;
-  // Always reload data when toggling to ensure we have the latest
   router.reload();
-  console.log('Toggled archived education visibility:', showArchivedEducation.value);
 };
 
 const handleNoAchievements = () => {
@@ -555,10 +470,6 @@ const handleNoAchievements = () => {
     education.value.achievements = '';
   }
 };
-
-// This section has been moved to the top of the script for better organization
-
-
 </script>
 
 <template>
@@ -647,8 +558,7 @@ const handleNoAchievements = () => {
           <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
             <div>
               <div class="border-b pb-2">
-                <h2 class="text-xl font-bold"> {{ entry.institution?.institution_name || 'Unknown Institution' }}
-                  </h2>
+                <h2 class="text-xl font-bold">{{ entry.education || 'Unknown Institution' }}</h2>
                 <p class="text-gray-600">
                   {{ entry.program }} in {{ entry.field_of_study }}
                 </p>
@@ -709,8 +619,7 @@ const handleNoAchievements = () => {
           class="bg-gray-50 p-8 rounded-lg shadow relative border border-gray-200">
           <div class="opacity-75">
             <div class="border-b pb-2">
-              <h2 class="text-xl font-bold">{{ education.graduate_education_institution_id || 'Unknown Institution' }}
-              </h2>
+              <h2 class="text-xl font-bold">{{ education.education || 'Unknown Institution' }}</h2>
               <p class="text-gray-600">
                 {{ education.program || 'Unknown Program' }} in {{
                   education.field_of_study || 'Unknown Field' }}
@@ -766,7 +675,7 @@ const handleNoAchievements = () => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Institution <span
                   class="text-red-500">*</span></label>
-              <input type="text" v-model="education.graduate_education_institution_id"
+              <input type="text" v-model="education.education"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 placeholder="e.g. Harvard University" required>
             </div>
@@ -847,7 +756,7 @@ const handleNoAchievements = () => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Institution <span
                   class="text-red-500">*</span></label>
-              <input type="text" v-model="education.graduate_education_institution_id"
+              <input type="text" v-model="education.education"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 placeholder="e.g. Harvard University" required>
             </div>

@@ -17,4 +17,8 @@ class GraduateSkill extends Model
         'type',
         'years_experience',
     ];
+    public function skill()
+{
+    return $this->belongsTo(Skill::class);
+}
 }
