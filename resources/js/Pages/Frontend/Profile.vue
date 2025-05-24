@@ -33,6 +33,18 @@ const setActiveSection = (section) => {
   // Optionally store in localStorage for persistence across page refreshes
   localStorage.setItem('activeSection', section);
 };
+const refreshSkills = () => {
+  router.visit(route('profile.index'), {
+    only: ['skillEntries', 'archivedSkillEntries'],
+    preserveScroll: true,
+  });
+};
+const refreshEducation = () => {
+  router.visit(route('profile.index'), {
+    only: ['educationEntries', 'archivedEducationEntries'],
+    preserveScroll: true,
+  });
+};
 
 const closeAddEducationModal = () => { };
 const closeUpdateEducationModal = () => { };
@@ -338,15 +350,15 @@ onMounted(() => {
             <!-- Education Settings -->
             <Education :activeSection="activeSection" :educationEntries="props.educationEntries"
               :archivedEducationEntries="props.archivedEducationEntries" :institutions="props.institutions"
-              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates"
+              @refresh-education="refreshEducation" />
 
             <!-- Skills Settings -->
-            <Skill
-              :activeSection="activeSection"
-              :skillEntries="props.skillEntries"
-              @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates"
-            />
+
+            <Skill :activeSection="activeSection" :skillEntries="props.skillEntries"
+              :archivedSkillEntries="props.archivedSkillEntries" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" @refresh-skills="refreshSkills" />
+
 
             <!-- Experience Settings -->
             <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries"
@@ -372,12 +384,12 @@ onMounted(() => {
               @reset-all-states="resetAllStates" />
 
             <!-- Employment Settings -->
-            <Employment :activeSection="activeSection" :employmentReference="props.employmentReference"
+            <Employment :activeSection="activeSection" :employmentPreferences="props.employmentPreferences"
               @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Career Goals Settings -->
-            <CareerGoals :activeSection="activeSection" @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates" />
+            <CareerGoals :activeSection="activeSection" :careerGoals="props.careerGoals"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Resume Settings -->
             <Resume :activeSection="activeSection" :resume="props.resume" @close-all-modals="closeAllModals"

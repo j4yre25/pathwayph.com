@@ -23,6 +23,7 @@ use App\Http\Controllers\ManageGraduatesApprovalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
 use App\Http\Controllers\CustomRegisteredUserController;
+use App\Http\Controllers\GraduateProfileController;
 use App\Http\Controllers\JobSearchController;
 use App\Http\Controllers\CompanyJobApplicantController;
 // Company 
@@ -733,7 +734,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/profile/settings/education', [ProfileController::class, 'educationSettings'])->name('profile.settings.education');
     Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('profile.education.add');
     Route::put('/profile/education/{id}', [ProfileController::class, 'updateEducation'])->name('profile.education.update');
-    Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('profile.education.delete');
+    Route::delete('/profile/education/{id}', [ProfileController::class, 'deleteEducation'])->name('profile.education.delete');
     Route::put('/profile/education/{id}/archive', [ProfileController::class, 'archiveEducation'])->name('profile.education.archive');
     Route::put('/profile/education/{id}/unarchive', [ProfileController::class, 'unarchiveEducation'])->name('profile.education.unarchive');
     Route::put('/profile/education/{id}/archived', [ProfileController::class, 'archivedEducation'])->name('profile.education.archived');
@@ -798,11 +799,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/career-goals', [ProfileController::class, 'getCareerGoals'])->name('career.goals.get');
  
     // Resume Routes
-    Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
+ Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
-    Route::post('/upload', [ProfileController::class, 'uploadFile']);
-    Route::get('/file/{filename}', [ProfileController::class, 'getFile']);
-    Route::delete('/file/{filename}', [ProfileController::class, 'deleteFile']);
-});Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
- 
+    Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
+});
+Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
+ Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
  

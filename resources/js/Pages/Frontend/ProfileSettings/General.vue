@@ -76,7 +76,7 @@ const profile = ref({
   graduate_address: pageProps.graduate?.address || '',
   graduate_about_me: pageProps.graduate?.about_me || '',
   // Fields from Register.vue
-  graduate_school_graduated_from: pageProps.graduate?.institution?.institution_name|| '',
+  graduate_school_graduated_from: pageProps.graduate?.institution?.institution_name || '',
   graduate_program_completed: pageProps.graduate?.program.name || '',
   graduate_year_graduated: pageProps.graduate?.school_year.school_year_range || '',
   // Social links and contact form settings
