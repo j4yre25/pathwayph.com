@@ -17,7 +17,7 @@ class SectorController extends Controller
     {
 
 
-        $sectors = $user->sectors;
+         $sectors = Sector::all(); 
         return Inertia::render('Sectors/Index', [
             'sectors' => $sectors
         ]);

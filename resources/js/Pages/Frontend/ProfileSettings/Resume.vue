@@ -1,26 +1,26 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
-import { useForm, usePage,  router  } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
 const props = defineProps({
-  activeSection: {
-    type: String,
-    default: 'resume'
-  },
-  resume: Object // Pass the current resume from backend if available
+  activeSection: { type: String, default: 'resume' },
+  resume: Object
 });
 
+const currentResume = ref(props.resume);
+
+watch(() => props.resume, (val) => {
+  currentResume.value = val;
+});
 
 const isSuccessModalOpen = ref(false);
 const isErrorModalOpen = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 
-const form = useForm({
-  resume: null
-});
+const form = useForm({ resume: null });
 
 const uploadResume = (event) => {
   const file = event.target.files[0];
@@ -37,12 +37,22 @@ const saveResume = () => {
   }
   form.post(route('resume.upload'), {
     forceFormData: true,
-    onSuccess: () => {
-      successMessage.value = 'Resume uploaded successfully!';
-      isSuccessModalOpen.value = true;
-      form.reset();
-      router.reload({ only: ['resume'] });
-      // Optionally reload the page or fetch the new resume
+    preserveScroll: true,
+    onSuccess: (response) => {
+      // If using Inertia, response is not available here, so use onFinish
+    },
+    onFinish: () => {
+      // Fetch the latest resume via AJAX (optional, but best for instant update)
+      fetch(route('profile.resume.settings'), { headers: { 'Accept': 'application/json' } })
+        .then(res => res.json())
+        .then(data => {
+          if (data.resume) {
+            currentResume.value = data.resume;
+          }
+          successMessage.value = 'Resume uploaded successfully!';
+          isSuccessModalOpen.value = true;
+          form.reset();
+        });
     },
     onError: () => {
       errorMessage.value = 'Failed to upload resume. Please try again.';
@@ -52,14 +62,12 @@ const saveResume = () => {
 };
 
 const removeResume = () => {
-  // You may want to confirm before deleting
   if (confirm('Are you sure you want to delete your resume?')) {
     form.delete(route('resume.delete'), {
       onSuccess: () => {
+        currentResume.value = null;
         successMessage.value = 'Resume deleted successfully!';
         isSuccessModalOpen.value = true;
-        router.reload({ only: ['resume'] });
-        // Optionally reload the page or clear resume data
       },
       onError: () => {
         errorMessage.value = 'Failed to delete resume. Please try again.';
@@ -102,11 +110,11 @@ const removeResume = () => {
       <p class="text-gray-600 mb-4">Upload and manage your resume</p>
       <div class="bg-white p-6 rounded-lg shadow-md border border-gray-300">
         <!-- Display Uploaded Resume -->
-        <div v-if="props.resume && props.resume.file_name" class="flex items-center justify-between border border-gray-300 rounded-lg p-8 mb-4">
+        <div v-if="currentResume && currentResume.file_name" class="flex items-center justify-between border border-gray-300 rounded-lg p-8 mb-4">
           <div class="flex items-center">
             <i class="fas fa-file-alt text-gray-500 text-2xl mr-4"></i>
-            <a :href="props.resume.file_url" target="_blank" class="text-indigo-600 hover:underline">
-              {{ props.resume.file_name }}
+            <a :href="currentResume.file_url" target="_blank" class="text-indigo-600 hover:underline">
+              {{ currentResume.file_name }}
             </a>
           </div>
           <button class="text-red-600 hover:text-red-800" @click="removeResume">

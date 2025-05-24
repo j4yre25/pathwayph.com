@@ -23,6 +23,7 @@ use App\Http\Controllers\ManageGraduatesApprovalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
 use App\Http\Controllers\CustomRegisteredUserController;
+use App\Http\Controllers\GraduateProfileController;
 use App\Http\Controllers\JobSearchController;
 use App\Http\Controllers\CompanyJobApplicantController;
 // Company 
@@ -798,11 +799,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/career-goals', [ProfileController::class, 'getCareerGoals'])->name('career.goals.get');
  
     // Resume Routes
-    Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
+ Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
-    Route::post('/upload', [ProfileController::class, 'uploadFile']);
-    Route::get('/file/{filename}', [ProfileController::class, 'getFile']);
-    Route::delete('/file/{filename}', [ProfileController::class, 'deleteFile']);
-});Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
- 
+    Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
+});
+Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
+ Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
  

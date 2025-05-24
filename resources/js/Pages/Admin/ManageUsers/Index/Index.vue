@@ -16,6 +16,8 @@ const props = defineProps({
     all_users: Object, // Paginated data
 });
 
+console.log('all_users:', props.all_users.data);
+
 const showModal = ref(false);
 const userToArchive = ref(null);
 
@@ -82,10 +84,15 @@ const goTo = (url) => {
                             class="border-b border-gray-200 hover:bg-gray-100">
                             <td class="border border-gray-200 px-6 py-4">{{ user.role }}</td>
                             <td class="border border-gray-200 px-6 py-4">
-                                {{user.organization_name}}  
+                                {{ user.organization_name }}
                             </td>
                             <td class="border border-gray-200 px-6 py-4">
-                                {{ user.full_name }}
+                                <div v-if="user.peso">
+                                    <div>
+                                        {{ user.peso.peso_first_name }} {{ user.peso.peso_middle_name }} {{
+                                        user.peso.peso_last_name }}
+                                    </div>
+                                </div>
                             </td>
                             <td class="border border-gray-200 px-6 py-4">{{ user.email }}</td>
                             <td class="border border-gray-200 px-6 py-4">

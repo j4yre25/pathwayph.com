@@ -18,7 +18,7 @@ const props = defineProps({
     type: String,
     default: 'employment'
   },
-  employmentReference: {
+  employmentPreferences: {
     type: Object,
     default: () => ({
       job_types: '',
@@ -33,47 +33,24 @@ const props = defineProps({
 });
 
 
-console.log( 'Employment Reference:', props.employmentReference);
+console.log( 'Employment Reference:', props);
 
 const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Employment Data
 const employmentPreferences = ref({
-  jobTypes: props.employmentReference.job_types ? props.employmentReference.job_types.split(',') : [],
-  salaryExpectations: props.employmentReference.salary_expectations
-    ? JSON.parse(props.employmentReference.salary_expectations)
+  jobTypes: props.employmentPreferences.job_types ? props.employmentPreferences.job_types.split(',') : [],
+  salaryExpectations: props.employmentPreferences.salary_expectations
+    ? JSON.parse(props.employmentPreferences.salary_expectations)
     : { range: '', frequency: 'per year' },
-  preferredLocations: props.employmentReference.preferred_locations
-    ? props.employmentReference.preferred_locations.split(',') : [],
-  workEnvironment: props.employmentReference.work_environment
-    ? props.employmentReference.work_environment.split(',') : [],
-  availability: props.employmentReference.availability
-    ? props.employmentReference.availability.split(',') : [],
-  additionalNotes: props.employmentReference.additional_notes || ''
+  preferredLocations: props.employmentPreferences.preferred_locations
+    ? props.employmentPreferences.preferred_locations.split(',') : [],
+  workEnvironment: props.employmentPreferences.work_environment
+    ? props.employmentPreferences.work_environment.split(',') : [],
+  availability: props.employmentPreferences.availability
+    ? props.employmentPreferences.availability.split(',') : [],
+  additionalNotes: props.employmentPreferences.additional_notes || ''
 });
-const fetchEmploymentPreferences = async () => {
-  try {
-    const response = await axios.get(route('employment.preferences.get'));
-    if (response.data) {
-      employmentPreferences.value = {
-        jobTypes: response.data.jobTypes ? response.data.jobTypes.split(', ') : [],
-        salaryExpectations: response.data.salaryExpectations ? JSON.parse(response.data.salaryExpectations) : { // Parse the JSON string
-          range: 'Select expected salary range',
-          frequency: 'per year'
-        },
-        preferredLocations: response.data.preferredLocations ? response.data.preferredLocations.split(', ') : [],
-        workEnvironment: response.data.workEnvironment ? response.data.workEnvironment.split(', ') : [],
-        availability: response.data.availability ? response.data.availability.split(', ') : [],
-        additionalNotes: response.data.additionalNotes || ''
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching employment preferences:', error);
-  }
-};
 
-onMounted(() => {
-  fetchEmploymentPreferences();
-});
 
 
 const isAddLocationModalOpen = ref(false);
@@ -169,7 +146,25 @@ onMounted(() => {
   initializeData();
 });
 
-
+watch(
+  () => props.employmentPreferences,
+  (newVal) => {
+    employmentPreferences.value = {
+      jobTypes: newVal.job_types ? newVal.job_types.split(',') : [],
+      salaryExpectations: newVal.salary_expectations
+        ? JSON.parse(newVal.salary_expectations)
+        : { range: '', frequency: 'per year' },
+      preferredLocations: newVal.preferred_locations
+        ? newVal.preferred_locations.split(',') : [],
+      workEnvironment: newVal.work_environment
+        ? newVal.work_environment.split(',') : [],
+      availability: newVal.availability
+        ? newVal.availability.split(',') : [],
+      additionalNotes: newVal.additional_notes || ''
+    };
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
