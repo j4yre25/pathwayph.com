@@ -143,20 +143,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Job::class);
     }
-  
-    public function hr() {
+
+    public function hr()
+    {
         return $this->hasOne(HumanResource::class, 'user_id');
     }
 
-    public function company()
-    {
-        return $this->belongsTo(Company::class, 'company_id');
-    }
-
-    public function peso()
-{
-    return $this->hasMany(Peso::class);
-}
 
     public function sectors()
     {
@@ -167,7 +159,6 @@ class User extends Authenticatable
     public function categories()
     {
         return $this->hasManyThrough(Category::class, Sector::class);
-
     }
     public function programs()
     {
@@ -311,10 +302,6 @@ class User extends Authenticatable
         return $this->hasMany(InstitutionSkill::class, 'institution_id');
     }
 
-    public function institution()
-    {
-        return $this->hasOne(Institution::class, 'user_id');
-    }
 
     public function institutionPrograms()
     {
@@ -328,9 +315,25 @@ class User extends Authenticatable
         );
     }
 
+
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    public function peso()
+    {
+        return $this->hasOne(Peso::class, 'user_id');
+    }
+
+    public function institution()
+    {
+        return $this->hasOne(Institution::class, 'user_id');
+    }
+
     public function graduate()
     {
         return $this->hasOne(Graduate::class, 'user_id');
     }
-
 }

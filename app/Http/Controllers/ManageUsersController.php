@@ -8,44 +8,65 @@ use Inertia\Inertia;
 
 class ManageUsersController extends Controller
 {
-    public function index()
+ public function index()
     {
+        $users = User::with([
+                'company',       // relationship: company()
+                'institution',   // relationship: institution()
+                'peso',          // relationship: peso()
+                'graduate',      // relationship: graduate()
+            ])
+            ->whereIn('role', ['company', 'institution', 'peso', 'graduate'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
-
-        $users = User::whereIn('role', ['company', 'institution', 'peso'])
-            ->orderBy('created_at', 'desc') // Sort by created_at in descending order
-            ->paginate(10); // Paginate the results
-
-            // Append full name depending on role
+        // Append full name and organization name using related models
         $users->getCollection()->transform(function ($user) {
-            if ($user->role === 'company') {
-                $user->full_name = trim("{$user->company_hr_first_name} {$user->company_hr_last_name}");
-                $user->organization_name = $user->company->company_name ?? '-';
-            } elseif ($user->role === 'institution') {
-                $user->full_name = trim("{$user->institution_career_officer_first_name} {$user->institution_career_officer_last_name}");
-                $user->organization_name = $user->institution_name ?? '-';
-            } elseif ($user->role === 'peso') {
-                $user->full_name = trim("{$user->peso_first_name} {$user->peso_last_name}");
-                $user->organization_name = $user->peso_name ?? '-';
-            } elseif ($user->role === 'graduate') {
-                $user->full_name = trim("{$user->graduate_first_name} {$user->graduate_last_name}");
-            } else {
-                $user->full_name = 'N/A';
+            switch ($user->role) {
+                case 'company':
+                    $user->full_name = $user->company
+                        ? trim("{$user->company->hr_first_name} {$user->company->hr_last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->company->company_name ?? '-';
+                    break;
+                case 'institution':
+                    $user->full_name = $user->institution
+                        ? trim("{$user->institution->career_officer_first_name} {$user->institution->career_officer_last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->institution->institution_name ?? '-';
+                    break;
+                case 'peso':
+                    $user->full_name = $user->peso
+                        ? trim("{$user->peso->first_name} {$user->peso->last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->peso->peso_name ?? '-';
+                    break;
+                case 'graduate':
+                    $user->full_name = $user->graduate
+                        ? trim("{$user->graduate->first_name} {$user->graduate->last_name}")
+                        : 'N/A';
+                    $user->organization_name = '-';
+                    break;
+                default:
+                    $user->full_name = 'N/A';
+                    $user->organization_name = '-';
             }
-
             return $user;
         });
 
         return Inertia::render('Admin/ManageUsers/Index/Index', [
             'all_users' => $users
-
-
         ]);
     }
 
     public function list(Request $request)
     {
-        $users = User::query()
+        $users = User::with([
+                'company',
+                'institution',
+                'peso',
+                'graduate',
+            ])
             ->when($request->role && $request->role !== 'all', function ($query) use ($request) {
                 $query->where('role', $request->role);
             })
@@ -59,25 +80,38 @@ class ManageUsersController extends Controller
                 $query->where('is_approved', $request->status === 'active');
             })
             ->orderBy('created_at', 'desc')
-            ->paginate(10); // Paginate the results (10 users per page)
+            ->paginate(10);
 
-        
         $users->getCollection()->transform(function ($user) {
-            if ($user->role === 'company') {
-                $user->full_name = trim("{$user->company_hr_first_name} {$user->company_hr_last_name}");
-                $user->organization_name = $user->company->company_name ?? '-';
-            } elseif ($user->role === 'institution') {
-                $user->full_name = trim("{$user->institution_career_officer_first_name} {$user->institution_career_officer_last_name}");
-                $user->organization_name = $user->institution_name ?? '-';
-            } elseif ($user->role === 'peso') {
-                $user->full_name = trim("{$user->peso_first_name} {$user->peso_last_name}");
-                $user->organization_name = $user->peso_name ?? '-';
-            } elseif ($user->role === 'graduate') {
-                $user->full_name = trim("{$user->graduate_first_name} {$user->graduate_last_name}");
-            } else {
-                $user->full_name = 'N/A';
+            switch ($user->role) {
+                case 'company':
+                    $user->full_name = $user->company
+                        ? trim("{$user->company->hr_first_name} {$user->company->hr_last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->company->company_name ?? '-';
+                    break;
+                case 'institution':
+                    $user->full_name = $user->institution
+                        ? trim("{$user->institution->career_officer_first_name} {$user->institution->career_officer_last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->institution->institution_name ?? '-';
+                    break;
+                case 'peso':
+                    $user->full_name = $user->peso
+                        ? trim("{$user->peso->first_name} {$user->peso->last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->peso->peso_name ?? '-';
+                    break;
+                case 'graduate':
+                    $user->full_name = $user->graduate
+                        ? trim("{$user->graduate->first_name} {$user->graduate->last_name}")
+                        : 'N/A';
+                    $user->organization_name = '-';
+                    break;
+                default:
+                    $user->full_name = 'N/A';
+                    $user->organization_name = '-';
             }
-
             return $user;
         });
 
@@ -88,18 +122,53 @@ class ManageUsersController extends Controller
 
     public function archivedlist()
     {
-
-        $users = User::onlyTrashed()
+        $users = User::with([
+                'company',
+                'institution',
+                'peso',
+                'graduate',
+            ])
+            ->onlyTrashed()
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        $users->getCollection()->transform(function ($user) {
+            switch ($user->role) {
+                case 'company':
+                    $user->full_name = $user->company
+                        ? trim("{$user->company->hr_first_name} {$user->company->hr_last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->company->company_name ?? '-';
+                    break;
+                case 'institution':
+                    $user->full_name = $user->institution
+                        ? trim("{$user->institution->career_officer_first_name} {$user->institution->career_officer_last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->institution->institution_name ?? '-';
+                    break;
+                case 'peso':
+                    $user->full_name = $user->peso
+                        ? trim("{$user->peso->first_name} {$user->peso->last_name}")
+                        : 'N/A';
+                    $user->organization_name = $user->peso->peso_name ?? '-';
+                    break;
+                case 'graduate':
+                    $user->full_name = $user->graduate
+                        ? trim("{$user->graduate->first_name} {$user->graduate->last_name}")
+                        : 'N/A';
+                    $user->organization_name = '-';
+                    break;
+                default:
+                    $user->full_name = 'N/A';
+                    $user->organization_name = '-';
+            }
+            return $user;
+        });
+
         return Inertia::render('Admin/ManageUsers/Index/ArchivedList', [
             'all_users' => $users
-
-
         ]);
     }
-
 
     public function edit(User $users)
     {

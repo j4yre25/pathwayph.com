@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Graduate;
 use App\Models\HumanResource;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -22,17 +23,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-                /** @var \App\Models\User $user */
+        /** @var \App\Models\User $user */
 
-            Inertia::share([
-            'auth' => function() {
+        Inertia::share([
+            'auth' => function () {
                 return [
-                    
+
                     'user' => Auth::user() ? Auth::user()->load('hr') : null,
                 ];
             },
             'roles' => function () {
-                
+
                 $user = Auth::user()?->load('hr');;
                 return [
                     'isCompany' => $user->role === 'company',
@@ -50,10 +51,16 @@ class AppServiceProvider extends ServiceProvider
                     : 3;
             },
             'app' => [
-                'currentUser' => fn () => Auth::check()
+                'currentUser' => fn() => Auth::check()
                     ? \App\Models\User::with('company')->find(Auth::id())
                     : null,
             ],
+            'graduate' => fn() => Auth::check()
+                ? Graduate::where('user_id', Auth::id())->first()
+                : null,
+
+
+
         ]);
     }
 }

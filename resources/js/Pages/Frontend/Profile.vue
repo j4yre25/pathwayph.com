@@ -341,12 +341,8 @@ onMounted(() => {
               @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Skills Settings -->
-            <Skill
-              :activeSection="activeSection"
-              :skillEntries="props.skillEntries"
-              @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates"
-            />
+            <Skill :activeSection="activeSection" :skillEntries="props.skillEntries" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
 
             <!-- Experience Settings -->
             <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries"
@@ -372,12 +368,12 @@ onMounted(() => {
               @reset-all-states="resetAllStates" />
 
             <!-- Employment Settings -->
-            <Employment :activeSection="activeSection" :employmentReference="props.employmentReference"
+            <Employment :activeSection="activeSection" :employmentPreferences="props.employmentPreferences"
               @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Career Goals Settings -->
-            <CareerGoals :activeSection="activeSection" @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates" />
+            <CareerGoals :activeSection="activeSection" :careerGoals="props.careerGoals"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
 
             <!-- Resume Settings -->
             <Resume :activeSection="activeSection" :resume="props.resume" @close-all-modals="closeAllModals"
