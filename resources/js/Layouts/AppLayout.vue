@@ -132,6 +132,12 @@ console.log(page.props.permissions.canManageInstitution)
                                     Job Inbox
                                 </NavLink>
 
+                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
+                                    :active="route().current('job.search')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Job Search
+                                </NavLink>
+
 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('admin.manage_users', { user: page.props.auth.user.id })"

@@ -18,10 +18,14 @@ const props = defineProps({
 });
 
 const fullName = computed(() =>
-    [props.graduate.graduate_first_name, props.graduate.graduate_last_name]
+    [props.graduate_first_name, props.graduate_last_name]
         .filter(Boolean)
         .join(' ')
 );
+
+console.log('Graduate Name:', fullName);
+
+console.log('Name:', props.graduate.first_name);
 
 const localAboutMe = ref(props.graduate.about_me || '');
 
@@ -83,7 +87,7 @@ function fileIcon(url) {
                                 alt="Graduate Picture"
                                 class="w-32 h-32 rounded-full object-cover border-4 border-white shadow" />
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800 text-center mt-2">{{ fullName }}</h2>
+                        <h2 class="text-2xl font-bold text-gray-800 text-center mt-2">{{ graduate.first_name }} {{ graduate.last_name }}</h2>
                         <p class="text-gray-600 text-center mt-1">{{ graduate.current_job_title || 'No professional title' }}</p>
                         <div class="flex justify-center space-x-4 mt-3">
                             <a v-if="graduate.linkedin_url" :href="formatUrl(graduate.linkedin_url, 'linkedin.com')"

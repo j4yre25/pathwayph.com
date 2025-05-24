@@ -6,11 +6,18 @@ import { useForm, usePage, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
+import { debounce } from 'lodash';
 
 // State Management
 const searchQuery = ref('');
 const selectedJobType = ref('');
 const selectedLocation = ref('');
+const selectedIndustry = ref('');
+const selectedSalaryMin = ref('');
+const selectedSalaryMax = ref('');
+const selectedSkills = ref([]);
+const selectedExperience = ref('');
+const selectedCompany = ref('');
 const isViewDetailsModalOpen = ref(false);
 const isApplyModalOpen = ref(false);
 const selectedJob = ref(null);
@@ -28,18 +35,26 @@ const jobsForm = useForm({
     loading: false
 });
 
-// Employment preferences
-const employmentPreferences = useForm({
-    jobTypes: [],
-    salaryExpectations: {
-        range: '',
-        frequency: 'per month'
-    },
-    preferredLocations: [],
-    workEnvironment: [],
-    availability: [],
-    additionalNotes: ''
+const employmentPreferences = ref({
+  jobTypes: props.employmentPreferences?.job_types
+    ? props.employmentPreferences.job_types.split(',')
+    : [],
+  salaryExpectations: props.employmentPreferences?.salary_expectations
+    ? JSON.parse(props.employmentPreferences.salary_expectations)
+    : { range: '', frequency: 'per year' },
+  preferredLocations: props.employmentPreferences?.preferred_locations
+    ? props.employmentPreferences.preferred_locations.split(',')
+    : [],
+  workEnvironment: props.employmentPreferences?.work_environment
+    ? props.employmentPreferences.work_environment.split(',')
+    : [],
+  availability: props.employmentPreferences?.availability
+    ? props.employmentPreferences.availability.split(',')
+    : [],
+  additionalNotes: props.employmentPreferences?.additional_notes || ''
 });
+
+
 
 // Fetch employment preferences
 function fetchEmploymentPreferences() {
@@ -61,25 +76,31 @@ function fetchEmploymentPreferences() {
         preserveState: true
     });
 }
-
-// Fetch jobs
 function fetchJobs() {
-    jobsForm.loading = true;
-    router.get(route('job-search.index'), {
-        search: searchQuery.value,
-        jobType: selectedJobType.value,
-        location: selectedLocation.value
-    }, {
-        preserveScroll: true,
-        onSuccess: (page) => {
-            jobsForm.jobs = page.props.jobs || [];
-            jobsForm.loading = false;
-        },
-        onFinish: () => {
-            jobsForm.loading = false;
-        }
-    });
+  if (jobsForm.loading) return;
+  jobsForm.loading = true;
+  router.get(route('job.search'), {
+    search: searchQuery.value,
+    jobType: selectedJobType.value,
+    location: selectedLocation.value,
+    industry: selectedIndustry.value,
+    salaryMin: selectedSalaryMin.value,
+    salaryMax: selectedSalaryMax.value,
+    skills: selectedSkills.value,
+    experience: selectedExperience.value,
+    company: selectedCompany.value,
+  }, {
+    preserveScroll: true,
+    onSuccess: (page) => {
+      jobsForm.jobs = page.props.jobs.data || [];
+      jobsForm.loading = false;
+    },
+    onFinish: () => {
+      jobsForm.loading = false;
+    }
+  });
 }
+// Fetch jobs with filters
 
 // Apply for a job
 const applyForm = useForm({ job_id: null, cover_letter: '' });
@@ -145,52 +166,45 @@ function closeErrorModal() {
 
 // Calculate match percentage based on employment preferences
 function calculateMatchPercentage(job) {
-    if (!employmentPreferences.jobTypes.length) return 0;
-    
-    let matchPoints = 0;
-    let totalPoints = 0;
-    
-    // Job type match
-    if (employmentPreferences.jobTypes.includes(job.type)) {
-        matchPoints += 30;
+  let matchPoints = 0;
+  let totalPoints = 0;
+
+  // Job type match
+  if (employmentPreferences.value.jobTypes.includes(job.job_employment_type)) {
+    matchPoints += 30;
+  }
+  totalPoints += 30;
+
+  // Location match
+  if (employmentPreferences.value.preferredLocations.some(loc =>
+    job.job_location && job.job_location.toLowerCase().includes(loc.toLowerCase())
+  )) {
+    matchPoints += 25;
+  }
+  totalPoints += 25;
+
+  // Salary match
+  if (job.salary_range && employmentPreferences.value.salaryExpectations.range) {
+    if (job.salary_range.includes(employmentPreferences.value.salaryExpectations.range.split(' ')[0]) ||
+      employmentPreferences.value.salaryExpectations.range.includes(job.salary_range.split(' ')[0])) {
+      matchPoints += 20;
     }
-    totalPoints += 30;
-    
-    // Location match
-    if (employmentPreferences.preferredLocations.some(loc => 
-        job.location.toLowerCase().includes(loc.toLowerCase()))) {
-        matchPoints += 25;
-    }
-    totalPoints += 25;
-    
-    // Salary match
-    const jobSalaryRange = job.salary_range;
-    if (jobSalaryRange && employmentPreferences.salaryExpectations.range) {
-        // Simple check if salary ranges overlap
-        if (jobSalaryRange.includes(employmentPreferences.salaryExpectations.range.split(' ')[0]) ||
-            employmentPreferences.salaryExpectations.range.includes(jobSalaryRange.split(' ')[0])) {
-            matchPoints += 20;
-        }
-    }
-    totalPoints += 20;
-    
-    // Work environment match
-    if (job.remote && employmentPreferences.workEnvironment.includes('Remote')) {
-        matchPoints += 15;
-    } else if (!job.remote && employmentPreferences.workEnvironment.includes('On-site')) {
-        matchPoints += 15;
-    }
-    totalPoints += 15;
-    
-    // Skills match (if available)
-    if (job.required_skills && job.required_skills.length > 0) {
-        // This would require user skills to be available
-        // For now, just add 10% match as placeholder
-        matchPoints += 10;
-    }
-    totalPoints += 10;
-    
-    return Math.round((matchPoints / totalPoints) * 100);
+  }
+  totalPoints += 20;
+
+  // Work environment match
+  if (job.job_work_environment && employmentPreferences.value.workEnvironment.includes(job.job_work_environment)) {
+    matchPoints += 15;
+  }
+  totalPoints += 15;
+
+  // Skills match (if available)
+  if (job.related_skills && job.related_skills.length > 0) {
+    matchPoints += 10;
+  }
+  totalPoints += 10;
+
+  return Math.round((matchPoints / totalPoints) * 100);
 }
 
 // Format salary for display
@@ -200,9 +214,23 @@ function formatSalary(salaryRange) {
 }
 
 // Watch for search changes
-watch([searchQuery, selectedJobType, selectedLocation], () => {
-    fetchJobs();
-});
+const debouncedFetchJobs = debounce(fetchJobs, 400);
+
+watch(
+  [
+    searchQuery,
+    selectedJobType,
+    selectedLocation,
+    selectedIndustry,
+    selectedSalaryMin,
+    selectedSalaryMax,
+    selectedSkills,
+    selectedExperience,
+    selectedCompany
+  ],
+  debouncedFetchJobs,
+  { deep: false }
+);
 
 // Initialize data when component mounts
 onMounted(() => {
@@ -222,45 +250,30 @@ onMounted(() => {
                             <p class="text-sm text-[#374151] mt-1">Discover and apply for jobs that match your skills and interests</p>
                         </header>
 
-                        <!-- Search and Filter Section -->
                         <div class="mb-8">
-                            <div class="flex flex-col md:flex-row gap-4">
-                                <div class="flex-1">
-                                    <TextInput
-                                        v-model="searchQuery"
-                                        type="text"
-                                        class="w-full"
-                                        placeholder="Search jobs by title, company or location"
-                                    >
-                                        <template #prefix>
-                                            <i class="fas fa-search text-gray-400"></i>
-                                        </template>
-                                    </TextInput>
-                                </div>
-                                <div class="flex gap-4">
-                                    <select
-                                        v-model="selectedJobType"
-                                        class="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    >
-                                        <option value="">Job Type</option>
-                                        <option value="Full-time">Full-time</option>
-                                        <option value="Part-time">Part-time</option>
-                                        <option value="Contract">Contract</option>
-                                        <option value="Freelance">Freelance</option>
-                                        <option value="Internship">Internship</option>
-                                    </select>
-                                    <select
-                                        v-model="selectedLocation"
-                                        class="border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                    >
-                                        <option value="">Location</option>
-                                        <option v-for="location in employmentPreferences.preferredLocations" :key="location" :value="location">
-                                            {{ location }}
-                                        </option>
-                                        <option value="Remote">Remote</option>
-                                    </select>
-                                </div>
-                            </div>
+                          <div class="flex flex-col md:flex-row gap-4">
+                            <TextInput v-model="searchQuery" class="w-full" placeholder="Search jobs by title, company, or location" />
+                            <select v-model="selectedJobType" class="border rounded-md px-3 py-2">
+                              <option value="">Job Type</option>
+                              <option v-for="type in jobTypes" :key="type" :value="type">{{ type }}</option>
+                            </select>
+                            <select v-model="selectedIndustry" class="border rounded-md px-3 py-2">
+                              <option value="">Industry</option>
+                              <option v-for="industry in props.industries" :key="industry.id" :value="industry.id">{{ industry.name }}</option>
+                            </select>
+                            <select v-model="selectedExperience" class="border rounded-md px-3 py-2">
+                              <option value="">Experience Level</option>
+                              <option v-for="level in experienceLevels" :key="level" :value="level">{{ level }}</option>
+                            </select>
+                            <select v-model="selectedCompany" class="border rounded-md px-3 py-2">
+                              <option value="">Company</option>
+                              <option v-for="company in props.companies" :key="company.id" :value="company.id">{{ company.company_name }}</option>
+                            </select>
+                            <TextInput v-model="selectedSalaryMin" type="number" class="w-24" placeholder="Min Salary" />
+                            <TextInput v-model="selectedSalaryMax" type="number" class="w-24" placeholder="Max Salary" />
+                            <!-- Skills multi-select (basic example) -->
+                            <input v-model="selectedSkills" placeholder="Skills (comma separated)" class="border rounded-md px-3 py-2" />
+                          </div>
                         </div>
 
                         <h2 class="text-xl font-semibold mb-4">Job Listings</h2>
@@ -284,8 +297,21 @@ onMounted(() => {
                             <div v-for="job in jobsForm.jobs" :key="job.id" class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h3 class="text-lg font-semibold text-gray-900">{{ job.title }}</h3>
-                                        <p class="text-sm text-gray-600">{{ job.company }}</p>
+                                        <h3 class="text-lg font-semibold text-gray-900">{{ job.job_title }}</h3>
+                                        <p class="text-sm text-gray-600">
+                                          <template v-if="job.company">
+                                            {{ job.company.company_name }}
+                                          </template>
+                                          <template v-else-if="job.institution">
+                                            {{ job.institution.institution_name }}
+                                          </template>
+                                          <template v-else-if="job.peso">
+                                            {{ job.peso.peso_name }}
+                                          </template>
+                                          <template v-else>
+                                            Unknown
+                                          </template>
+                                        </p>
                                     </div>
                                     <div class="flex items-center">
                                         <span class="px-3 py-1 text-xs font-medium rounded-full" 
@@ -303,15 +329,15 @@ onMounted(() => {
                                 <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
                                     <div class="flex items-center text-gray-600">
                                         <i class="fas fa-map-marker-alt mr-2"></i>
-                                        {{ job.location }}
+                                        {{ job.job_location }}
                                     </div>
                                     <div class="flex items-center text-gray-600">
                                         <i class="fas fa-briefcase mr-2"></i>
-                                        {{ job.type }}
+                                        {{ job.job_employment_type }}
                                     </div>
                                     <div class="flex items-center text-gray-600">
                                         <i class="fas fa-clock mr-2"></i>
-                                        {{ job.experience_level }}
+                                        {{ job.job_experience_level }}
                                     </div>
                                     <div class="flex items-center text-gray-600">
                                         <i class="fas fa-dollar-sign mr-2"></i>
@@ -319,7 +345,7 @@ onMounted(() => {
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap gap-2 mb-4">
-                                    <span v-for="skill in job.required_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                    <span v-for="skill in job.related_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
                                         {{ skill }}
                                     </span>
                                 </div>
@@ -381,7 +407,7 @@ onMounted(() => {
                                 <div class="mb-6">
                                     <h3 class="text-lg font-semibold mb-2">Required Skills</h3>
                                     <div class="flex flex-wrap gap-2">
-                                        <span v-for="skill in selectedJob.required_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                        <span v-for="skill in selectedJob.related_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
                                             {{ skill }}
                                         </span>
                                     </div>

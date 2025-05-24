@@ -84,11 +84,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import KpiCard from '@/Components/Company/Dashboard/KpiCard.vue'
-import ChartCard from '@/Components/Company/Dashboard/ChartCard.vue'
-import PieChart from '@/Components/Company/Charts/PieChart.vue'
-import LineChart from '@/Components/Company/Charts/LineChart.vue'
-import BarChart from '@/Components/Company/Charts/BarChart.vue'
+// import KpiCard from '@/Components/Company/Dashboard/KpiCard.vue'
+// import ChartCard from '@/Components/Company/Dashboard/ChartCard.vue'
+// import PieChart from '@/Components/Company/Charts/PieChart.vue'
+// import LineChart from '@/Components/Company/Charts/LineChart.vue'
+// import BarChart from '@/Components/Company/Charts/BarChart.vue'
 
 const dashboardData = ref({
   total_job_openings: 0,
