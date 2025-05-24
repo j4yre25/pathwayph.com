@@ -8,21 +8,12 @@ import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
-  activeSection: {
-    type: String,
-    default: 'education'
-  },
-  user: {
-    type: Object,
-    default: () => ({})
-  },
+  activeSection: { type: String, default: 'education' },
+  user: { type: Object, default: () => ({}) },
   educationEntries: Array,
-  archivedEducationEntries: {
-    type: Array,
-    default: () => []
-  },
+  archivedEducationEntries: { type: Array, default: () => [] },
 });
-const emit = defineEmits(['close-all-modals', 'reset-all-states']);
+const emit = defineEmits(['close-all-modals', 'reset-all-states', 'refresh-education']);
 
 const modals = reactive({
   isAddOpen: false,
@@ -36,6 +27,7 @@ const errorMessage = ref('');
 const showArchivedEducation = ref(false);
 const isEducationAddedModalOpen = ref(false);
 const isEducationUpdatedModalOpen = ref(false);
+
 
 const datepickerConfig = {
   format: 'YYYY-MM-DD',
@@ -211,13 +203,12 @@ const addEducation = () => {
   });
 
   educationForm.post(route('profile.education.add'), {
-    onSuccess: (response) => {
-      emit('close-all-modals');
+    onSuccess: () => {
+      emit('refresh-education');
       isAddEducationModalOpen.value = false;
       resetEducation();
       errorMessage.value = 'Education added successfully!';
       modals.isSuccessOpen = true;
-      router.reload();
     },
     onError: (errors) => {
       if (errors.duplicate) {
@@ -310,10 +301,10 @@ const updateEducation = () => {
 
   educationForm.put(route('profile.education.update', { id: education.value.id }), {
     onSuccess: () => {
+      emit('refresh-education');
       closeUpdateEducationModal();
       errorMessage.value = 'Education updated successfully!';
       modals.isSuccessOpen = true;
-      router.reload();
     },
     onError: (errors) => {
       if (errors.duplicate) {
@@ -391,30 +382,13 @@ const openUpdateEducationModal = (entry) => {
   isUpdateEducationModalOpen.value = true;
 };
 
-const deleteForm = useForm({});
-
-const removeEducation = (education) => {
-  if (confirm(`Are you sure you want to remove this education entry: ${education.program}?`)) {
-    deleteForm.delete(route('profile.education.remove', education.id), {
-      onSuccess: () => {
-        router.reload();
-        errorMessage.value = 'Education entry removed successfully';
-        modals.isSuccessOpen = true;
-      },
-      onError: (error) => {
-        errorMessage.value = 'Failed to remove education entry';
-        modals.isErrorOpen = true;
-      }
-    });
-  }
-};
 
 const archiveEducation = (id) => {
   if (confirm('Are you sure you want to archive this education entry?')) {
     const archiveForm = useForm({});
-    archiveForm.post(route('profile.education.archive', { id }), {
+    archiveForm.put(route('profile.education.archive', { id }), {
       onSuccess: () => {
-        router.reload();
+        emit('refresh-education');
         errorMessage.value = 'Education entry archived successfully';
         modals.isSuccessOpen = true;
       },
@@ -429,9 +403,9 @@ const archiveEducation = (id) => {
 const restoreEducation = (id) => {
   if (confirm('Are you sure you want to restore this education entry?')) {
     const restoreForm = useForm({});
-    restoreForm.post(route('profile.education.restore', { id }), {
+    restoreForm.put(route('profile.education.unarchive', { id }), {
       onSuccess: () => {
-        router.reload();
+        emit('refresh-education');
         errorMessage.value = 'Education entry restored successfully';
         modals.isSuccessOpen = true;
       },
@@ -448,7 +422,7 @@ const deleteEducation = (id) => {
     const deleteForm = useForm({});
     deleteForm.delete(route('profile.education.delete', { id }), {
       onSuccess: () => {
-        router.reload();
+        emit('refresh-education');
         errorMessage.value = 'Education entry deleted successfully';
         modals.isSuccessOpen = true;
       },

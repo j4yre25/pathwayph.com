@@ -734,7 +734,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/profile/settings/education', [ProfileController::class, 'educationSettings'])->name('profile.settings.education');
     Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('profile.education.add');
     Route::put('/profile/education/{id}', [ProfileController::class, 'updateEducation'])->name('profile.education.update');
-    Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('profile.education.delete');
+    Route::delete('/profile/education/{id}', [ProfileController::class, 'deleteEducation'])->name('profile.education.delete');
     Route::put('/profile/education/{id}/archive', [ProfileController::class, 'archiveEducation'])->name('profile.education.archive');
     Route::put('/profile/education/{id}/unarchive', [ProfileController::class, 'unarchiveEducation'])->name('profile.education.unarchive');
     Route::put('/profile/education/{id}/archived', [ProfileController::class, 'archivedEducation'])->name('profile.education.archived');
