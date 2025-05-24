@@ -806,3 +806,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
  Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
  
+
+ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::get('/job-search', [JobSearchController::class, 'index'])->name('job.search');
+});

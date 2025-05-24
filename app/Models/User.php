@@ -336,4 +336,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Graduate::class, 'user_id');
     }
+
+    public function employmentPreference()
+    {
+        return $this->hasOne(\App\Models\EmploymentPreference::class, 'graduate_id');
+    }
+    
 }

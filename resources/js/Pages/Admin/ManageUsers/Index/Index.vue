@@ -13,7 +13,7 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 const page = usePage();
 
 const props = defineProps({
-    all_users: Object, // Paginated data
+    all_users: Object,// Paginated data
 });
 
 console.log('all_users:', props.all_users.data);

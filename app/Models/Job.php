@@ -108,6 +108,11 @@ class Job extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class);
+    }
     public function programs()
     {
         return $this->belongsToMany(Program::class);
