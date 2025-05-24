@@ -12,16 +12,6 @@ class Job extends Model
 
 
 
-    public function sector()
-    {
-        return $this->belongsTo(Sector::class);
-    }
-
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
-
     /**
      * The attributes that are mass assignable.
      *
@@ -29,11 +19,12 @@ class Job extends Model
      */
     protected $fillable = [
         'user_id',
+        'peso_id',
         'company_id',
         'program_id',
         'status',
-        'sector',
-        'category',
+        'sector_id',
+        'category_id',
         'job_title',
         'job_location',
         'job_description',
@@ -65,7 +56,7 @@ class Job extends Model
     ];
 
     protected $attributes = [
-        'is_approved' => null, 
+        'is_approved' => null,
     ];
 
     /**
@@ -113,7 +104,7 @@ class Job extends Model
         return $this->belongsTo(User::class);
     }
 
-      public function company()
+    public function company()
     {
         return $this->belongsTo(Company::class);
     }
@@ -128,6 +119,16 @@ class Job extends Model
     public function sectorRelation()
     {
         return $this->belongsTo(Sector::class, 'sector');
+    }
+
+    public function sector()
+    {
+        return $this->belongsTo(Sector::class, 'sector_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     /**
@@ -165,5 +166,10 @@ class Job extends Model
     public function shouldBeArchived()
     {
         return $this->isExpired() || $this->hasApplicationLimitReached();
+    }
+
+    public function peso()
+    {
+        return $this->belongsTo(\App\Models\Peso::class, 'peso_id');
     }
 }
