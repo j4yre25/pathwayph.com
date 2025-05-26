@@ -32,7 +32,7 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'education'])
+        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'education', 'institution'])
             ->where('user_id', $user->id)
             ->first();
 
