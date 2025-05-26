@@ -256,10 +256,17 @@ class User extends Authenticatable
         return $this->hasOne(EmploymentPreference::class);
     }
 
-    // Relationship with Career Goals
+    // Relationship with Career Goals through Graduate
     public function careerGoals()
     {
-        return $this->hasOne(CareerGoal::class);
+        return $this->hasOneThrough(
+            CareerGoal::class,
+            Graduate::class,
+            'user_id', // Foreign key on graduates table
+            'graduate_id', // Foreign key on career_goals table
+            'id', // Local key on users table
+            'id' // Local key on graduates table
+        );
     }
 
     // Relationship with Resume

@@ -21,27 +21,29 @@ class Job extends Model
         'user_id',
         'peso_id',
         'company_id',
-        'program_id',
         'status',
         'sector_id',
         'category_id',
         'job_title',
-        'job_location',
+        'salary_id',
         'job_description',
         'job_requirements',
         'job_salary_type',
         'job_min_salary',
         'job_max_salary',
-        'job_employment_type',
+        'job_type',
         'job_experience_level',
         'job_vacancies',
-        'related_skills',
-        'job_posted_at',
+        'work_environment',
+        'skills',
         'job_deadline',
         'job_application_limit',
         'is_approved',
-        'posted_by'
+        'posted_by',
+        'job_code',
+        'job_id',
     ];
+
 
     /**
      * The attributes that should be cast.
@@ -50,7 +52,7 @@ class Job extends Model
      */
     protected $casts = [
         'job_deadline' => 'date',
-        'related_skills' => 'array',
+        'skills' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -176,5 +178,25 @@ class Job extends Model
     public function peso()
     {
         return $this->belongsTo(\App\Models\Peso::class, 'peso_id');
+    }
+
+    public function jobTypes()
+    {
+        return $this->belongsToMany(JobType::class, 'job_job_type');
+    }
+
+    public function locations()
+    {
+        return $this->belongsToMany(Location::class, 'job_location');
+    }
+
+    public function salary()
+    {
+        return $this->belongsTo(Salary::class);
+    }
+
+    public function workEnvironments()
+    {
+        return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment');
     }
 }

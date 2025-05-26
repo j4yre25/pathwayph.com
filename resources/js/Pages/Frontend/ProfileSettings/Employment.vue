@@ -55,9 +55,9 @@ const employmentPreferences = ref({
     : [],
   additionalNotes: props.employmentPreferences?.additional_notes || ''
 });
- 
- 
-console.log('Job Types:', employmentPreferences.value.jobTypes);
+
+
+
 const isAddLocationModalOpen = ref(false);
  
 // Employment Preferences Handlers

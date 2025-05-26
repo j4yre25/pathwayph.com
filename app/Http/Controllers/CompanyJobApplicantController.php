@@ -6,6 +6,7 @@ use Illuminate\Routing\Controller;
 use App\Models\Job;
 use App\Models\User;
 use App\Models\JobApplication;
+use App\Models\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -15,13 +16,19 @@ class CompanyJobApplicantController extends Controller
 {
     public function index(User $user)
     {
-        $companyId = Auth::user()->company_id;
+        $user = Auth::user();
+    
+        // Get the company associated with the logged-in user
+        $company = Company::where('user_id', $user->id)->firstOrFail();
+
+        $companyId = $company->id;
         $now = Carbon::now();
 
         $jobs = Job::withCount('applications')
-            ->where('company_id', $companyId)
-            ->get();
-
+        ->where('company_id', $companyId)
+        ->where('status', 'open')
+        ->get();
+        
         // All applications for the company's jobs
         $allApplications = JobApplication::whereHas('job', fn($q) => $q->where('company_id', $companyId))
             ->get();

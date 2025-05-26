@@ -9,21 +9,23 @@ class CareerGoal extends Model
 {
     use HasFactory;
 
-     protected $fillable = [
+    protected $fillable = [
         'short_term_goals',
         'long_term_goals',
         'industries_of_interest',
         'career_path',
-        'graduate_id',
+        'graduate_id', // Foreign key
     ];
 
+    // Relationship with Graduate
     public function graduate()
     {
         return $this->belongsTo(Graduate::class);
     }
-    // Relationship with User
+    
+    // Indirect relationship with User through Graduate
     public function user()
     {
-        return $this->belongsTo(Graduate::class);
+        return $this->belongsTo(User::class, 'graduate_id', 'id');
     }
 }

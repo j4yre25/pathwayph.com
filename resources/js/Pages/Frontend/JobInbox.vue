@@ -2,140 +2,48 @@
 import Graduate from '@/Layouts/AppLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import { ref, onMounted, computed } from 'vue';
-import { useForm, usePage, router } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
+import { useJobs } from '@/Composables/useJobs';
+import { useNotifications } from '@/Composables/useNotifications';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
+// Props and Page Data
+const { props } = usePage();
+
 // State Management
 const activeSection = ref(localStorage.getItem('activeSection') || 'opportunities');
-function setActiveSection(section) {
+const setActiveSection = (section) => {
     activeSection.value = section;
     localStorage.setItem('activeSection', section);
-}
+};
 
 // Modal States
 const isViewDetailsModalOpen = ref(false);
 const selectedApplication = ref(null);
 
-// Props and Page Data
-const { props } = usePage();
+// useJobs composable
+const {
+  opportunities,
+  applications,
+  hasApplied,
+  applyForJob,
+  archiveJobOpportunity,
+  activeApplications,
+} = useJobs(props.jobOpportunities, props.jobApplications);
 
-// Forms for data management
-const opportunitiesForm = useForm({
-    opportunities: props.jobOpportunities || [],
-    loading: false
-});
-const applicationsForm = useForm({
-    applications: props.jobApplications || [],
-    loading: false
-});
-const notificationsForm = useForm({
-    notifications: props.notifications || [],
-    loading: false
-});
+// useNotifications composable
+const { notifications, markNotificationAsRead } = useNotifications(props.notifications);
 
-// Computed Properties
-const activeApplications = computed(() =>
-    applicationsForm.applications.filter(app => app.status !== 'archived')
-);
-const interviewScheduled = computed(() =>
-    applicationsForm.applications.filter(app => app.status === 'interview_scheduled')
-);
-const totalApplications = computed(() => applicationsForm.applications.length);
-const offersReceived = computed(() =>
-    applicationsForm.applications.filter(app => app.status === 'offer_received')
-);
+// Loading states (you may want to add loading flags inside composables for better UX)
+const opportunitiesLoading = ref(false);
+const applicationsLoading = ref(false);
+const notificationsLoading = ref(false);
 
-// Apply for a job
-const applyForm = useForm({ job_id: null });
-function applyForJob(jobId) {
-    applyForm.job_id = jobId;
-    applyForm.post(route('apply-for-job'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            fetchOpportunities();
-            fetchApplications();
-        }
-    });
-}
-
-// Archive a job opportunity
-const archiveForm = useForm({ job_id: null });
-function archiveJobOpportunity(jobId) {
-    archiveForm.job_id = jobId;
-    archiveForm.post(route('archive-job-opportunity'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            fetchOpportunities();
-        }
-    });
-}
-
-// Mark notification as read
-const notificationForm = useForm({ notification_id: null });
-function markNotificationAsRead(notificationId) {
-    notificationForm.notification_id = notificationId;
-    notificationForm.post(route('mark-notification-as-read'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            fetchNotifications();
-        }
-    });
-}
-
-// Fetch data helpers
-function fetchOpportunities() {
-    opportunitiesForm.loading = true;
-    router.get(route('job-opportunities'), {}, {
-        preserveScroll: true,
-        onSuccess: (page) => {
-            opportunitiesForm.opportunities = page.props.jobOpportunities || [];
-            opportunitiesForm.loading = false;
-        },
-        onFinish: () => {
-            opportunitiesForm.loading = false;
-        }
-    });
-}
-function fetchApplications() {
-    applicationsForm.loading = true;
-    router.get(route('job-applications'), {}, {
-        preserveScroll: true,
-        onSuccess: (page) => {
-            applicationsForm.applications = page.props.jobApplications || [];
-            applicationsForm.loading = false;
-        },
-        onFinish: () => {
-            applicationsForm.loading = false;
-        }
-    });
-}
-function fetchNotifications() {
-    notificationsForm.loading = true;
-    router.get(route('notifications'), {}, {
-        preserveScroll: true,
-        onSuccess: (page) => {
-            notificationsForm.notifications = page.props.notifications || [];
-            notificationsForm.loading = false;
-        },
-        onFinish: () => {
-            notificationsForm.loading = false;
-        }
-    });
-}
-
-// Initialize data when component mounts
+// Initialize data when component mounts (you can replace router.reload with proper API calls if available)
 onMounted(() => {
-    fetchOpportunities();
-    fetchApplications();
-    fetchNotifications();
+    router.reload();
 });
-
-// Modal close handler
-function closeDetailsModal() {
-    isViewDetailsModalOpen.value = false;
-    selectedApplication.value = null;
-}
 </script>
 
 <template>
@@ -153,7 +61,6 @@ function closeDetailsModal() {
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
                                     'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
                                 ]"
-                                type="button"
                             >
                                 Opportunities
                             </button>
@@ -165,7 +72,6 @@ function closeDetailsModal() {
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
                                     'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
                                 ]"
-                                type="button"
                             >
                                 Applications
                             </button>
@@ -177,11 +83,10 @@ function closeDetailsModal() {
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
                                     'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm relative'
                                 ]"
-                                type="button"
                             >
                                 Notifications
-                                <span v-if="notificationsForm.notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                    {{ notificationsForm.notifications.length }}
+                                <span v-if="notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                    {{ notifications.length }}
                                 </span>
                             </button>
                         </nav>
@@ -216,12 +121,12 @@ function closeDetailsModal() {
                             <!-- Job Opportunities Section -->
                             <div v-if="activeSection === 'opportunities'" class="space-y-6">
                                 <!-- Loading State -->
-                                <div v-if="opportunitiesForm.loading" class="flex justify-center items-center py-8">
+                                <div v-if="opportunitiesLoading" class="flex justify-center items-center py-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                                 </div>
 
                                 <!-- Empty State -->
-                                <div v-else-if="!opportunitiesForm.opportunities.length" class="text-center py-8">
+                                <div v-else-if="!opportunities.length" class="text-center py-8">
                                     <div class="text-gray-400">
                                         <i class="fas fa-briefcase text-4xl mb-4"></i>
                                         <h3 class="text-lg font-medium">No Job Opportunities</h3>
@@ -230,46 +135,45 @@ function closeDetailsModal() {
                                 </div>
 
                                 <!-- Job Opportunities List -->
-                                <div v-else>
-                                    <div v-for="opportunity in opportunitiesForm.opportunities" :key="opportunity.id" class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h3 class="text-lg font-semibold text-gray-900">{{ opportunity.title }}</h3>
-                                                <p class="text-sm text-gray-600">{{ opportunity.company }}</p>
-                                            </div>
-                                            <div class="flex space-x-2">
-                                                <PrimaryButton @click="applyForJob(opportunity.id)" class="text-sm">
-                                                    Apply Now
-                                                </PrimaryButton>
-                                                <button @click="archiveJobOpportunity(opportunity.id)" class="text-sm text-gray-600 hover:text-gray-800 font-medium">
-                                                    <i class="fas fa-archive mr-1"></i> Archive
-                                                </button>
-                                            </div>
+                                <div v-else v-for="opportunity in opportunities" :key="opportunity.id" class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-gray-900">{{ opportunity.title }}</h3>
+                                            <p class="text-sm text-gray-600">{{ opportunity.company }}</p>
                                         </div>
-                                        <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                                            <div class="flex items-center text-gray-600">
-                                                <i class="fas fa-map-marker-alt mr-2"></i>
-                                                {{ opportunity.location }}
-                                            </div>
-                                            <div class="flex items-center text-gray-600">
-                                                <i class="fas fa-briefcase mr-2"></i>
-                                                {{ opportunity.type }}
-                                            </div>
-                                            <div class="flex items-center text-gray-600">
-                                                <i class="fas fa-clock mr-2"></i>
-                                                {{ opportunity.experience_level }}
-                                            </div>
-                                            <div class="flex items-center text-gray-600">
-                                                <i class="fas fa-dollar-sign mr-2"></i>
-                                                {{ opportunity.salary_range }}
-                                            </div>
+                                        <div class="flex space-x-2">
+                                            <PrimaryButton
+                                              :disabled="hasApplied(opportunity.id)"
+                                              @click="applyForJob(opportunity.id)"
+                                              class="text-sm"
+                                            >
+                                              {{ hasApplied(opportunity.id) ? 'Already Applied' : 'Apply Now' }}
+                                            </PrimaryButton>
                                         </div>
-                                        <p class="text-sm text-gray-600 mb-4">{{ opportunity.description }}</p>
-                                        <div class="flex flex-wrap gap-2">
-                                            <span v-for="skill in opportunity.required_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
-                                                {{ skill }}
-                                            </span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>
+                                            {{ opportunity.location }}
                                         </div>
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-briefcase mr-2"></i>
+                                            {{ opportunity.type }}
+                                        </div>
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-clock mr-2"></i>
+                                            {{ opportunity.experience_level }}
+                                        </div>
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-dollar-sign mr-2"></i>
+                                            {{ opportunity.salary }}
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-4">{{ opportunity.description }}</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span v-for="skill in opportunity.required_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                            {{ skill }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -277,12 +181,12 @@ function closeDetailsModal() {
                             <!-- Applications Section -->
                             <div v-if="activeSection === 'applications'" class="space-y-6">
                                 <!-- Loading State -->
-                                <div v-if="applicationsForm.loading" class="flex justify-center items-center py-8">
+                                <div v-if="applicationsLoading" class="flex justify-center items-center py-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                                 </div>
 
                                 <!-- Empty State -->
-                                <div v-else-if="!activeApplications.length" class="text-center py-8">
+                                <div v-else-if="!applications.length" class="text-center py-8">
                                     <div class="text-gray-400">
                                         <i class="fas fa-file-alt text-4xl mb-4"></i>
                                         <h3 class="text-lg font-medium">No Applications</h3>
@@ -291,124 +195,76 @@ function closeDetailsModal() {
                                 </div>
 
                                 <!-- Applications List -->
-                                <div v-else>
-                                    <div v-for="application in activeApplications" :key="application.id" class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h3 class="text-lg font-semibold text-gray-900">{{ application.job_title }}</h3>
-                                                <p class="text-sm text-gray-600">{{ application.company }}</p>
-                                            </div>
-                                            <div class="flex items-center space-x-2">
-                                                <span :class="[
-                                                    'px-3 py-1 text-xs font-medium rounded-full',
-                                                    application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    application.status === 'interview_scheduled' ? 'bg-blue-100 text-blue-800' :
-                                                    application.status === 'offer_received' ? 'bg-green-100 text-green-800' :
-                                                    'bg-gray-100 text-gray-800'
-                                                ]">
-                                                    {{ application.status.replace('_', ' ').charAt(0).toUpperCase() + application.status.slice(1).replace('_', ' ') }}
-                                                </span>
-                                            </div>
+                                <div v-else v-for="application in activeApplications" :key="application.id" class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-gray-900">{{ application.job_title }}</h3>
+                                            <p class="text-sm text-gray-600">{{ application.company }}</p>
                                         </div>
-                                        <div class="text-sm text-gray-600 mb-4">
-                                            <div class="flex items-center space-x-4">
-                                                <span class="flex items-center">
-                                                    <i class="far fa-calendar mr-2"></i>
-                                                    Applied {{ application.applied_date }}
-                                                </span>
-                                                <span v-if="application.interview_date" class="flex items-center">
-                                                    <i class="far fa-clock mr-2"></i>
-                                                    Interview on {{ application.interview_date }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="flex space-x-3">
-                                            <button @click="selectedApplication = application; isViewDetailsModalOpen = true" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                                                View Details
-                                            </button>
+                                        <div class="flex items-center space-x-2">
+                                            <span :class="[
+                                                'px-3 py-1 text-xs font-medium rounded-full',
+                                                application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                application.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                application.status === 'rejected' ? 'bg-red-100 text-red-800' :'bg-gray-100 text-gray-800']">
+                                                {{ application.status }}
+                                            </span>
+                                            <PrimaryButton
+                                                @click="() => { selectedApplication.value = application; isViewDetailsModalOpen.value = true }"
+                                                class="text-xs">
+                                                    View Details
+                                            </PrimaryButton>
                                         </div>
                                     </div>
+                                    <p class="text-sm text-gray-600 mb-2">{{ application.applied_on }}</p>
+                                    <p class="text-sm text-gray-600">{{ application.notes }}</p>
                                 </div>
                             </div>
 
                             <!-- Notifications Section -->
-                            <div v-if="activeSection === 'notifications'" class="space-y-6">
-                                <!-- Loading State -->
-                                <div v-if="notificationsForm.loading" class="flex justify-center items-center py-8">
+                            <div v-if="activeSection === 'notifications'" class="space-y-4 max-h-[60vh] overflow-auto">
+                                <div v-if="notificationsLoading" class="flex justify-center items-center py-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                                 </div>
-
-                                <!-- Empty State -->
-                                <div v-else-if="!notificationsForm.notifications.length" class="text-center py-8">
-                                    <div class="text-gray-400">
-                                        <i class="fas fa-bell text-4xl mb-4"></i>
-                                        <h3 class="text-lg font-medium">No Notifications</h3>
-                                        <p class="text-sm">You're all caught up!</p>
-                                    </div>
+                                <div v-else-if="!notifications.length" class="text-center text-gray-400 py-8">
+                                    <i class="fas fa-bell-slash text-4xl mb-4"></i>
+                                    <p>No new notifications</p>
                                 </div>
-
-                                <!-- Notifications List -->
                                 <div v-else>
-                                    <div v-for="notification in notificationsForm.notifications" :key="notification.id" 
-                                        class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
-                                        :class="{ 'bg-gray-50': notification.read }"
+                                    <div
+                                        v-for="notification in notifications"
+                                        :key="notification.id"
+                                        class="border border-gray-300 rounded p-3 hover:bg-gray-100 cursor-pointer"
+                                        @click="markNotificationAsRead(notification.id)"
                                     >
-                                        <div class="flex items-start justify-between">
-                                            <div class="flex-1">
-                                                <p class="text-sm font-medium text-gray-900">{{ notification.title }}</p>
-                                                <p class="text-sm text-gray-600 mt-1">{{ notification.message }}</p>
-                                                <p class="text-xs text-gray-500 mt-2">{{ notification.created_at }}</p>
-                                            </div>
-                                            <button 
-                                                v-if="!notification.read"
-                                                @click="markNotificationAsRead(notification.id)"
-                                                class="ml-4 text-xs text-gray-500 hover:text-gray-700"
-                                            >
-                                                Mark as read
-                                            </button>
-                                        </div>
+                                        <p class="text-sm text-gray-700">{{ notification.message }}</p>
+                                        <p class="text-xs text-gray-500">{{ new Date(notification.created_at).toLocaleString() }}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <Modal v-model:show="isViewDetailsModalOpen" maxWidth="4xl">
+                        <template #title>
+                            Application Details
+                        </template>
+                        <template #content>
+                            <div v-if="selectedApplication">
+                                <p><strong>Job Title:</strong> {{ selectedApplication.job_title }}</p>
+                                <p><strong>Company:</strong> {{ selectedApplication.company }}</p>
+                                <p><strong>Status:</strong> {{ selectedApplication.status }}</p>
+                                <p><strong>Applied On:</strong> {{ selectedApplication.applied_on }}</p>
+                                <p><strong>Notes:</strong> {{ selectedApplication.notes }}</p>
+                                <!-- Add more details as needed -->
+                            </div>
+                        </template>
+                        <template #footer>
+                            <PrimaryButton @click="isViewDetailsModalOpen = false">Close</PrimaryButton>
+                        </template>
+                    </Modal>
                 </div>
             </div>
         </div>
-
-        <!-- View Application Details Modal -->
-        <Modal :show="isViewDetailsModalOpen" @close="closeDetailsModal">
-            <div class="p-6" v-if="selectedApplication">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">Application Details</h2>
-                <div class="space-y-4">
-                    <div>
-                        <h3 class="font-medium text-gray-900">{{ selectedApplication.job_title }}</h3>
-                        <p class="text-sm text-gray-600">{{ selectedApplication.company }}</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <p class="text-gray-500">Status</p>
-                            <p class="font-medium text-gray-900">{{ selectedApplication.status.replace('_', ' ').charAt(0).toUpperCase() + selectedApplication.status.slice(1).replace('_', ' ') }}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-500">Applied Date</p>
-                            <p class="font-medium text-gray-900">{{ selectedApplication.applied_date }}</p>
-                        </div>
-                        <div v-if="selectedApplication.interview_date">
-                            <p class="text-gray-500">Interview Date</p>
-                            <p class="font-medium text-gray-900">{{ selectedApplication.interview_date }}</p>
-                        </div>
-                    </div>
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button
-                            @click="closeDetailsModal"
-                            class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Modal>
     </Graduate>
 </template>
