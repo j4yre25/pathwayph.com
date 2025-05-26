@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Salary extends Model
+{
+    protected $fillable = ['job_min_salary', 'job_max_salary', 'salary_type'];
+
+    public function jobs(): HasMany
+    {
+        return $this->hasMany(Job::class);
+    }
+
+    public function employmentPreferences(): HasMany
+    {
+        return $this->hasMany(EmploymentPreference::class);
+    }
+}
