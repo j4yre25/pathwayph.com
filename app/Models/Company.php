@@ -23,7 +23,9 @@ class Company extends Model
         'company_email',
         'company_mobile_phone',
         'company_tel_phone',
-        'sector_id', 
+        'category_id', 
+        'sector_id',
+        'company_id',
     ];
 
     /**
@@ -38,6 +40,11 @@ class Company extends Model
     public function sector()
     {
         return $this->belongsTo(Sector::class, 'sector_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     /**

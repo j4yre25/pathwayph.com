@@ -10,6 +10,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
+
 const selectedUserLevel = ref('');
 const currentStep = ref('user-level');
 const schools = ref([]);
@@ -23,10 +24,10 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
-    role: '', // Set the role dynamically
+    role: '',
     gender: '',
-    dob: '', // date of birth
-    contact_number: '',
+    dob: '',
+    mobile_number: '',
     telephone_number: '',
     company_name: '',
     company_street_address: '',
@@ -35,11 +36,11 @@ const form = useForm({
     company_province: '',
     company_zip_code: '',
     company_email: '',
-    company_contact_number: '',
-    hr_first_name: '',
-    hr_middle_name: '',
-    hr_last_name: '',
-    hr_email: '',
+    company_mobile_phone: '',
+    category: '',
+    first_name: '',
+    last_name: '',
+    middle_name: '',
     institution_type: '',
     institution_name: '',
     institution_address: '',
@@ -64,8 +65,10 @@ onMounted(() => {
         form.role = 'institution';
     } else if (path.includes('graduate')) {
         form.role = 'graduate';
-    } else {
+    } else if (path.includes('company')) {
         form.role = 'company';
+    } else {
+        console.error('Unknown role:', path);
     }
     console.log('Current Role:', form.role);
 });
@@ -219,7 +222,7 @@ const submit = () => {
                     <!-- Institution Option -->
                     <Link href="/register/institution">
                     <div class="p-4 border rounded-lg hover:border-blue-500 cursor-pointer transition-all flex items-center"
-                        :class="{ 'border-blue-500 bg-blue-50': selectedUserLevel === 'institution' }">
+                        :class="{ 'border-blue-500 bg-blue-50': selectUserLevel === 'institution' }">
                         <div class="bg-blue-100 p-3 rounded-full mr-4">
                             <i class="fas fa-university text-blue-600"></i>
                         </div>
@@ -232,17 +235,16 @@ const submit = () => {
 
                     <!-- Industry Option -->
                     <Link href="/register/company">
-
-                    <div class="p-4 border rounded-lg hover:border-blue-500 cursor-pointer transition-all flex items-center"
-                        :class="{ 'border-blue-500 bg-blue-50': selectedUserLevel === 'industry' }">
-                        <div class="bg-blue-100 p-3 rounded-full mr-4">
-                            <i class="fas fa-building text-blue-600"></i>
+                        <div class="p-4 border rounded-lg hover:border-blue-500 cursor-pointer transition-all flex items-center"
+                            :class="{ 'border-blue-500 bg-blue-50': selectUserLevel === 'industry' }">
+                            <div class="bg-blue-100 p-3 rounded-full mr-4">
+                                <i class="fas fa-building text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Industry</h3>
+                                <p class="text-sm text-gray-600">For companies seeking qualified talent</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="font-medium">Industry</h3>
-                            <p class="text-sm text-gray-600">For companies seeking qualified talent</p>
-                        </div>
-                    </div>
                     </Link>
 
                 </div>
@@ -848,15 +850,15 @@ const submit = () => {
                         </div>
 
                         <div class="mt-4">
-                            <InputLabel for="company_sector" value="Company Sector/Industry" />
-                            <select id="company_sector" v-model="form.company_sector"
+                            <InputLabel for="category" value="Company Sector/Industry" />
+                            <select id="category" v-model="form.category"
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
                                 <option value="" disabled>Select sector</option>
-                                <option v-for="sector in sectors" :key="sector.id" :value="sector.id">{{ sector.name }}
+                                <option v-for="category in categories" :key="category.id" :value="category.id">{{ category.name }}
                                 </option>
                             </select>
-                            <InputError class="mt-2" :message="form.errors.company_sector" />
+                            <InputError class="mt-2" :message="form.errors.category" />
                         </div>
                         <div class="flex justify-between mt-6">
                             <PrimaryButton type="button" @click="goToNextStep"
@@ -870,16 +872,16 @@ const submit = () => {
                     <div v-if="currentStep === 'contact'">
                         <h3 class="text-lg font-medium">Contact Information</h3>
                         <div>
-                            <InputLabel for="email" value="Email Address" />
-                            <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
-                                placeholder="Enter your email address" required />
-                            <InputError class="mt-2" :message="form.errors.email" />
+                            <InputLabel for="company_email" value="Email Address" />
+                            <TextInput id="company_email" v-model="form.company_email" type="email" class="mt-1 block w-full"
+                                placeholder="Enter your company email address"  />
+                            <InputError class="mt-2" :message="form.errors.company_email" />
                         </div>
                         <div>
-                            <InputLabel for="contact_number" value="Phone Number" />
-                            <TextInput id="contact_number" v-model="form.contact_number" type="tel"
+                            <InputLabel for="mobile_number" value="Phone Number" />
+                            <TextInput id="mobile_number" v-model="form.mobile_number" type="tel"
                                 class="mt-1 block w-full" placeholder="Enter your phone number" required />
-                            <InputError class="mt-2" :message="form.errors.contact_number" />
+                            <InputError class="mt-2" :message="form.errors.mobile_number" />
                         </div>
                         <div>
                             <InputLabel for="telephone_number" value="Telephone (Optional)" />
@@ -902,22 +904,22 @@ const submit = () => {
                     <div v-if="currentStep === 'HR'">
                         <h3 class="text-lg font-medium">HR Information</h3>
                         <div>
-                            <InputLabel for="hr_first_name" value="First Name" />
-                            <TextInput id="hr_first_name" v-model="form.hr_first_name" type="text"
+                            <InputLabel for="first_name" value="First Name" />
+                            <TextInput id="first_name" v-model="form.first_name" type="text"
                                 class="mt-1 block w-full" placeholder="Enter your first name" required />
-                            <InputError class="mt-2" :message="form.errors.hr_first_name" />
+                            <InputError class="mt-2" :message="form.errors.first_name" />
                         </div>
                         <div>
-                            <InputLabel for="hr_middle_name" value="Middle Name (optional)" />
-                            <TextInput id="hr_middle_name" v-model="form.hr_middle_name" type="text"
+                            <InputLabel for="middle_name" value="Middle Name (optional)" />
+                            <TextInput id="middle_name" v-model="form.middle_name" type="text"
                                 class="mt-1 block w-full" placeholder="Enter your middle name" />
-                            <InputError class="mt-2" :message="form.errors.hr_middle_name" />
+                            <InputError class="mt-2" :message="form.errors.middle_name" />
                         </div>
                         <div>
-                            <InputLabel for="hr_last_name" value="Last Name" />
-                            <TextInput id="hr_last_name" v-model="form.hr_last_name" type="text"
+                            <InputLabel for="last_name" value="Last Name" />
+                            <TextInput id="last_name" v-model="form.last_name" type="text"
                                 class="mt-1 block w-full" placeholder="Enter your last name" required />
-                            <InputError class="mt-2" :message="form.errors.hr_last_name" />
+                            <InputError class="mt-2" :message="form.errors.last_name" />
                         </div>
                         <div>
                             <InputLabel for="gender" value="Gender" />
@@ -936,10 +938,10 @@ const submit = () => {
                             <InputError class="mt-2" :message="form.errors.dob" />
                         </div>
                         <div>
-                            <InputLabel for="hr_email" value="HR Email" />
-                            <TextInput id="hr_email" v-model="form.hr_email" type="email" class="mt-1 block w-full"
-                                placeholder="Enter your HR email" required />
-                            <InputError class="mt-2" :message="form.errors.hr_email" />
+                            <InputLabel for="email" value="HR Email" />
+                            <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
+                                placeholder="Enter your email" required />
+                            <InputError class="mt-2" :message="form.errors.email" />
                         </div>
                         <div class="flex justify-between mt-6">
                             <button type="button" @click="goToPreviousStep"

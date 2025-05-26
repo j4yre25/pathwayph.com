@@ -51,9 +51,10 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['employment_status'] = ['required', 'in:Employed,Underemployed,Unemployed'];
                 $rules['current_job_title'] = ['required_if:employment_status,Employed,Underemployed', 'nullable', 'string', 'max:255'];
                 $rules['graduate_year_graduated'] = ['required', 'exists:school_years,school_year_range'];
+                $rules['graduate_degree'] = ['required', 'exists:degrees,id'];
                 break;
             case 'company':
-                $rules['company_name'] = ['required', 'string', 'max:255'];
+                $rules['company_name' ] = ['required', 'string', 'max:255'];
                 $rules['company_street_address'] = ['required', 'string', 'max:255'];
                 $rules['company_brgy'] = ['required', 'string', 'max:255'];
                 $rules['company_city'] = ['required', 'string', 'max:255'];
@@ -61,7 +62,7 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['company_zip_code'] = ['required', 'string', 'max:4'];
                 $rules['company_email'] = ['required', 'string', 'email', 'max:255'];
                 $rules['company_mobile_phone'] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
-                $rules['sector'] = 'required|exists:sectors,name';
+                $rules['category'] = 'required|exists:categories,id';
 
                 break;
             case 'institution':
@@ -102,7 +103,6 @@ class CreateNewUser implements CreatesNewUsers
             'graduate_program_completed.required' => 'The program completed field is required.',
             'graduate_year_graduated.required' => 'The school year field is required.',
             'company_name.required' => 'The company name field is required.',
-
             'company_street_address.required' => 'The street address field is required.',
             'company_brgy.required' => 'The barangay field is required.',
             'company_city.required' => 'The city field is required.',
@@ -127,9 +127,6 @@ class CreateNewUser implements CreatesNewUsers
 
         Validator::make($input, $rules, $messages)->validate();
 
-
-
-
         $userData = [
             'first_name' => $input['first_name'],
             'middle_name' => $input['middle_name'],
@@ -138,6 +135,7 @@ class CreateNewUser implements CreatesNewUsers
             'password' => Hash::make($input['password']),
             'role' => $role,
             'mobile_number' => $input['mobile_number'],
+            'is_approved' => false, // <-- Ensure this is set
         ];
 
         $user = User::create($userData);
@@ -165,18 +163,34 @@ class CreateNewUser implements CreatesNewUsers
 
         // Store in Companies table
         if ($role === 'company') {
+            $category = \App\Models\Category::find($input['category']);
+           
             $company = Company::create([
                 'user_id' => $user->id,
                 'company_name' => $input['company_name'],
                 'company_street_address' => $input['company_street_address'],
                 'company_brgy' => $input['company_brgy'],
                 'company_city' => $input['company_city'],
-                'sector_id' => \App\Models\Sector::where('name', $input['sector'])->value('id'),
+                'sector_id' => $category ? $category->sector_id : null, // <-- sector_id from category
+                'category_id' => $category->id,
                 'company_province' => $input['company_province'],
                 'company_zip_code' => $input['company_zip_code'],
                 'company_email' => $input['company_email'],
                 'company_mobile_phone' => $input['company_mobile_phone'],
                 'company_tel_phone' => $input['telephone_number'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+             // Create main HR record associated with this company and user
+            $user->hr()->create([
+                'first_name' => $input['first_name'],
+                'middle_name' => $input['middle_name'],
+                'last_name' => $input['last_name'],
+                'mobile_number' => $input['mobile_number'],
+                'dob' => $input['dob'],
+                'gender' => $input['gender'],
+                'company_id' => $company->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -188,25 +202,21 @@ class CreateNewUser implements CreatesNewUsers
         if ($role === 'graduate') {
             DB::table('graduates')->insert([
                 'user_id' => $user->id,
-                'graduate_first_name' => $input['first_name'],
-                'graduate_last_name' => $input['last_name'],
-                'graduate_middle_name' => $input['middle_name'],
-                'current_job_title' =>  ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
-                'employment_status' => $input['employment_status'] ,
-                'contact_number' => $input['contact_number'] ,
-                'location' => $input['location'] ,
-                'ethnicity' => $input['ethnicity'] ,
-                'address' => $input['address'] ,
-                'about_me' => $input['about_me'] ,
-                'institution_id' => $input['institution_id'] ,
-                'degree_id' => $input['degree_id'] ,
+                'first_name' => $input['first_name'],
+                'last_name' => $input['last_name'],
+                'middle_name' => $input['middle_name'],
+                'dob' => $input['dob'], // <-- Add this line
+                'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
+                'employment_status' => $input['employment_status'],
+                'contact_number' => $input['mobile_number'],
+                'institution_id' => $input['graduate_school_graduated_from'],
                 'program_id' => $this->getProgramId($input['graduate_program_completed']),
                 'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
-                'linkedin_url' => $input['linkedin_url'] ,
-                'github_url' => $input['github_url'] ,
-                'personal_website' => $input['personal_website'] ,
-                'other_social_links' => $input['other_social_links'] ,
+                'degree_id' => $input['graduate_degree'],
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
+            
             $user->assignRole($role);
             return $user; // <-- Ensure return here
         }
@@ -231,6 +241,13 @@ class CreateNewUser implements CreatesNewUsers
     private function getProgramId($programName)
     {
         return DB::table('programs')->where('name', $programName)->value('id');
+    }
+
+    private function getInstitutionId($institutionName)
+    {
+        return DB::table('institutions')
+            ->whereRaw('LOWER(TRIM(institution_name)) = ?', [strtolower(trim($institutionName))])
+            ->value('id');
     }
     private function getYearId($schoolYearRange)
     {

@@ -11,27 +11,20 @@ class Resume extends Model
     use HasFactory;
 
     protected $fillable = [
-        'file',
-        'fileName',
-        'user_id'
+        'user_id',
+        'graduate_id',
+        'title',
+        'file_path',
+        'file_name',
+        'file_type',
+        'file_size',
+        'is_primary',
     ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 
     protected $appends = ['file_url'];
 
     public function getFileUrlAttribute()
     {
-        return $this->file ? Storage::url($this->file) : null;
-    }
-
-    public function deleteFile()
-    {
-        if ($this->file && Storage::exists($this->file)) {
-            Storage::delete($this->file);
-        }
+        return $this->file_path ? Storage::url($this->file_path) : null;
     }
 }

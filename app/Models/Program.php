@@ -11,10 +11,6 @@ class Program extends Model
 
     protected $fillable = ['name', 'degree_id'];
 
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 
     public function degree()
     {
@@ -30,19 +26,6 @@ class Program extends Model
     public function careerOpportunities()
     {
         return $this->hasMany(CareerOpportunity::class);
-    }
-
-    public function getFormattedNameAttribute()
-    {
-        $prefix = match ($this->degree->type) {
-            'Bachelor' => 'BS in',
-            'Associate' => 'AS in',
-            'Master' => 'Master in',
-            'Doctoral' => 'Doctor in',
-            default => '',
-        };
-
-        return $prefix . ' ' . $this->name;
     }
 
 }

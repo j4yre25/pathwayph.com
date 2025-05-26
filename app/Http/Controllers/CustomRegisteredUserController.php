@@ -6,6 +6,11 @@ use App\Models\Institution;
 use App\Models\InstitutionSchoolYear;
 use App\Models\InstitutionProgram;
 use App\Models\Sector;
+
+use App\Models\Category;
+use App\Models\Company;
+use App\Models\Degree;
+
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
@@ -55,6 +60,23 @@ class CustomRegisteredUserController extends Controller
         // Send the verification code via email
         $user->notify(new VerifyEmailWithCode($verificationCode));
 
+        if ($role === 'company') {
+            $hr = $user->hr; 
+
+            if ($hr && $hr->company_id) {
+                $company = Company::find($hr->company_id);
+
+                if ($company) {
+                    $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
+                    $sectorCode = $company->sector->sector_id?? '000'; // Default to '000' if sector_code is not set
+                    $divisionCode = $company->category->division_code ?? '00'; // Default to '000' if division_code is not set
+                    $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
+                    $company->save();
+                }
+            }
+        }
+
+        
 
         event(new Registered($user));
 
@@ -83,7 +105,7 @@ class CustomRegisteredUserController extends Controller
             ->get();
         
         // Fetch programs with institution_id
-        $programs = \App\Models\InstitutionProgram::with('program')
+        $programs = InstitutionProgram::with('program')
             ->whereIn('institution_id', $insti_users->pluck('id'))
             ->get()
             ->map(function ($ip) {
@@ -91,11 +113,12 @@ class CustomRegisteredUserController extends Controller
                     'id' => $ip->program->id,
                     'name' => $ip->program->name,
                     'institution_id' => $ip->institution_id,
+                    'degree_id' => $ip->program->degree_id, // <-- ADD THIS LINE
                 ];
             });
 
         // Fetch school years with institution_id
-        $school_years = \App\Models\InstitutionSchoolYear::with('schoolYear')
+        $school_years = InstitutionSchoolYear::with('schoolYear')
             ->whereIn('institution_id', $insti_users->pluck('id'))
             ->get()
             ->map(function ($isy) {
@@ -106,18 +129,25 @@ class CustomRegisteredUserController extends Controller
                 ];
             });
 
+        // Fetch degrees with institution_id
+        $degrees = Degree::join('institution_degrees', 'degrees.id', '=', 'institution_degrees.degree_id')
+            ->whereIn('institution_degrees.institution_id', $insti_users->pluck('id'))
+            ->get(['degrees.id', 'degrees.type as name', 'institution_degrees.institution_id']);
+
+
         return Inertia::render('Auth/Register', [
             'insti_users' => $insti_users,
             'programs' => $programs,
             'school_years' => $school_years,
+            'degrees' => $degrees, // <-- add this
         ]);
     }
 
     public function showCompanyDetails()
     {
-        $sectors = Sector::all();
+        $categories = Category::all();
         return Inertia::render('Auth/Register', [
-            'sectors' => $sectors,
+            'categories' => $categories,
         ]);
     }
 

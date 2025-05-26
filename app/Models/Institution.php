@@ -42,11 +42,6 @@ class Institution extends Model
         return $this->hasMany(Graduate::class, 'institution_id');
     }
 
-    public function programs()
-    {
-        return $this->hasMany(Program::class, 'institution_id');
-    }
-
     public function institutionPrograms()
     {
         return $this->hasMany(InstitutionProgram::class, 'institution_id');

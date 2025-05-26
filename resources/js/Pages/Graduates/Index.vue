@@ -95,8 +95,10 @@ function cancelArchive() {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="grad in graduates" :key="grad.user_id" class="border-b hover:bg-gray-50 text-sm">
-                <td class="p-3">{{ grad.full_name }}</td>
+              <tr v-for="grad in graduates.data" :key="grad.user_id" class="border-b hover:bg-gray-50 text-sm">
+                <td class="p-3">
+                  {{ grad.first_name }} {{ grad.middle_name }} {{ grad.last_name }}
+                </td>
                 <td class="p-3">{{ grad.program_name }}</td>
                 <td class="p-3">{{ grad.year_graduated }}</td>
                 <td class="p-3">{{ grad.current_job_title || 'N/A' }}</td>
@@ -111,6 +113,24 @@ function cancelArchive() {
               </tr>
             </tbody>
           </table>
+          <!-- Pagination Controls -->
+          <div class="mt-6 flex justify-center">
+            <nav v-if="graduates.links && graduates.links.length > 3" class="inline-flex -space-x-px">
+              <button
+                v-for="(link, i) in graduates.links"
+                :key="i"
+                v-html="link.label"
+                :disabled="!link.url"
+                @click="$inertia.get(link.url)"
+                :class="[
+                  'px-3 py-1 border text-sm',
+                  link.active ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100',
+                  i === 0 ? 'rounded-l' : '',
+                  i === graduates.links.length - 1 ? 'rounded-r' : ''
+                ]"
+              ></button>
+            </nav>
+          </div>
           <!-- Graduate Modal -->
           <GraduateEdit
             :show="isModalOpen"

@@ -9,7 +9,7 @@ import TextInput from '@/Components/TextInput.vue';
 import { useFormattedMobileNumber } from '@/Composables/useFormattedMobileNumber';
 import { useFormattedTelephoneNumber } from '@/Composables/useFormattedTelephoneNumber';
 import { usePasswordCriteria } from '@/Composables/usePasswordCriteria';
-import { defineProps, onMounted, ref, computed } from 'vue';
+import { defineProps, onMounted, ref, computed, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { Inertia } from '@inertiajs/inertia';
 import SectionBorder from '@/Components/SectionBorder.vue';
@@ -18,10 +18,13 @@ const props = defineProps({
     insti_users: Array,
     school_years: Array,
     programs: Array,
+    categories: Array,
     sectors: Array,
+    degrees: Array, // <-- add this
+
 });
 
-console.log(props.sectors);
+console.log('Categories:', props.categories);
 
 const isPasswordFocused = ref(false);
 const showModal = ref(false);
@@ -50,7 +53,7 @@ const form = useForm({
     company_zip_code: '',
     company_email: '',
     company_mobile_phone: '',
-    sector: '',
+    category: '',
     first_name: '',
     last_name: '',
     middle_name: '',
@@ -64,9 +67,8 @@ const form = useForm({
     graduate_school_graduated_from: '',
     graduate_program_completed: '',
     graduate_year_graduated: '',
-    graduate_first_name: '',
-    graduate_middle_initial: '',
-    graduate_last_name: '',
+    graduate_degree: '', // <-- add this
+
     employment_status: '',
     current_job_title: '',
 });
@@ -97,13 +99,24 @@ function handleEmploymentStatus() {
 
 
 // Computed properties for filtering programs and school years
+const filteredDegrees = computed(() => {
+    if (!form.graduate_school_graduated_from) return [];
+    return props.degrees.filter(
+        (degree) => Number(degree.institution_id) === Number(form.graduate_school_graduated_from)
+    );
+});
+
 const filteredPrograms = computed(() => {
+    if (!form.graduate_school_graduated_from || !form.graduate_degree) return [];
     return props.programs.filter(
-        (program) => Number(program.institution_id) === Number(form.graduate_school_graduated_from)
+        (program) =>
+            Number(program.institution_id) === Number(form.graduate_school_graduated_from) &&
+            Number(program.degree_id) === Number(form.graduate_degree)
     );
 });
 
 const filteredSchoolYears = computed(() => {
+    if (!form.graduate_school_graduated_from) return [];
     return props.school_years.filter(
         (year) => Number(year.institution_id) === Number(form.graduate_school_graduated_from)
     );
@@ -118,6 +131,7 @@ const { passwordCriteria } = usePasswordCriteria(form);
 const maxDate = ref(new Date().toISOString().split('T')[0]);
 const minDate = ref('1900-01-01');
 
+console.log('Form Data:', form);
 // Handle form submission
 const submit = () => {
     let routeName;
@@ -131,8 +145,7 @@ const submit = () => {
         console.error('Unknown role:', form.role);
         return;
     }
-
-    console.log('Form Data:', form);
+    
     form.post(route(routeName), {
         onFinish: () => {
             console.log("Form submission finished");
@@ -172,6 +185,15 @@ const resendCode = () => {
 };
 
 
+watch(() => form.graduate_school_graduated_from, (newVal) => {
+    form.graduate_degree = '';
+    form.graduate_program_completed = '';
+    form.graduate_year_graduated = '';
+});
+
+watch(() => form.graduate_degree, (newVal) => {
+    form.graduate_program_completed = '';
+});
 </script>
 
 
@@ -228,16 +250,16 @@ const resendCode = () => {
                                 </div>
                             </div>
 
-                                <InputLabel for="sector" value="Sectors" />
-                                <select id="sector" v-model="form.sector"
+                                <InputLabel for="category" value="Sectors" />
+                                <select id="category" v-model="form.category"
                                     class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                     required>
                                     <option value="">Select Sector</option>
-                                    <option v-for="sector in sectors" :key="sector.id" :value="sector.name">
-                                        {{ sector.name }}
+                                    <option v-for="category in categories" :key="category.id" :value="category.id">
+                                        {{ category.name }}
                                     </option>
                                 </select>
-                                <InputError class="mt-2" :message="form.errors.sector" />
+                                <InputError class="mt-2" :message="form.errors.category" />
 
                             <!-- Company Address -->
                             <div class="grid grid-cols-3 gap-4">
@@ -403,7 +425,7 @@ const resendCode = () => {
                                         <TextInput id="middle_name" v-model="form.middle_name" placeholder="Dela Cruz"
                                             type="text"
                                             class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
-                                            required />
+                                            />
                                         <InputError class="mt-2" :message="form.errors.middle_name" />
                                     </div>
                                 </div>
@@ -755,23 +777,23 @@ const resendCode = () => {
                         <!-- Graduate First Name -->
                         <div class="grid grid-cols-1 gap-4">
 
-                            <InputLabel for="graduate_first_name" value="First Name" />
-                            <TextInput id="graduate_first_name" v-model="form.graduate_first_name" type="text"
+                            <InputLabel for="first_name" value="First Name" />
+                            <TextInput id="first_name" v-model="form.first_name" type="text"
                                 class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.graduate_first_name" />
+                            <InputError class="mt-2" :message="form.errors.first_name" />
                         </div>
 
                         <!-- Graduate Middle Initial -->
-                        <InputLabel for="graduate_middle_initial" value="GMiddle Initial" />
-                        <TextInput id="graduate_middle_initial" v-model="form.graduate_middle_initial" type="text"
+                        <InputLabel for="middle_name" value="Middle Name" />
+                        <TextInput id="middle_name" v-model="form.middle_name" type="text"
                             class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.graduate_middle_initial" />
+                        <InputError class="mt-2" :message="form.errors.middle_name" />
 
                         <!-- Graduate Last Name -->
-                        <InputLabel for="graduate_last_name" value="Last Name" />
-                        <TextInput id="graduate_last_name" v-model="form.graduate_last_name" type="text"
+                        <InputLabel for="last_name" value="Last Name" />
+                        <TextInput id="last_name" v-model="form.last_name" type="text"
                             class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.graduate_last_name" />
+                        <InputError class="mt-2" :message="form.errors.last_name" />
 
                         <!-- Graduate Graduated From -->
                         <div class="mt-4">
@@ -785,6 +807,20 @@ const resendCode = () => {
                                 </option>
                             </select>
                             <InputError class="mt-2" :message="form.errors.graduate_school_graduated_from" />
+                        </div>
+
+                        <!-- Degree Field -->
+                        <div class="mt-4">
+                            <InputLabel for="graduate_degree" value="Degree" />
+                            <select id="graduate_degree" v-model="form.graduate_degree"
+                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                required>
+                                <option value="">Select Degree</option>
+                                <option v-for="degree in filteredDegrees" :key="degree.id" :value="degree.id">
+                                    {{ degree.name }}
+                                </option>
+                            </select>
+                            <InputError class="mt-2" :message="form.errors.graduate_degree" />
                         </div>
 
                         <!-- Program Completed -->
@@ -808,8 +844,7 @@ const resendCode = () => {
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
                                 <option value="">Select Year</option>
-                                <option v-for="year in filteredSchoolYears" :key="year.id"
-                                    :value="year.school_year_range">
+                                <option v-for="year in filteredSchoolYears" :key="year.id" :value="year.school_year_range">
                                     {{ year.school_year_range }}
                                 </option>
                             </select>
@@ -962,18 +997,12 @@ const resendCode = () => {
                     </div>
                 </div>
 
-
                 <div class="flex items-center justify-end mt-8 border-t border-gray-200 pt-12">
                     <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                         Register
                     </PrimaryButton>
                 </div>
-
-
-
             </form>
-
-
         </template>
     </AuthenticationCard>
 

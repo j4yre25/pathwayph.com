@@ -15,7 +15,7 @@ const props = defineProps({
 });
 
 
-console.log(props.jobs)
+console.log('Jobs', props.jobs)
 const goTo = (url) => {
   if (url) {
     router.get(url); // Use Inertia's router to navigate to the provided URL
@@ -71,28 +71,22 @@ const goToJob = (jobId) => {
           class="border-b border-gray-200 hover:bg-gray-100">
           <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
           <td class="border border-gray-200 px-6 py-4">
-            <template v-if="job.user">
-              <template v-if="job.user.role === 'company'">
-                {{ job.posted_by }}
-              </template>
-              <template v-else-if="job.user.role === 'institution'">
-                {{ job.user.institution_career_officer_first_name }} {{ job.user.institution_career_officer_last_name }}
-              </template>
-              <template v-else-if="job.user.role === 'peso'">
-                {{ job.user.peso_first_name }} {{ job.user.peso_last_name }}
-                
-              </template>
-              <template v-else>
-                {{ job.user.name }}
-              </template>
+            <template v-if="job.company">
+              {{ job.company.hr_first_name }} {{ job.company.hr_last_name }}
+            </template>
+            <template v-else-if="job.institution">
+              {{ job.institution.career_officer_first_name }} {{ job.institution.career_officer_last_name }}
+            </template>
+            <template v-else-if="job.peso">
+              {{ job.peso.peso_first_name }} {{ job.peso.peso_last_name }}
             </template>
             <template v-else>
               <span class="text-gray-500 italic">Unknown</span>
             </template>
           </td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.location }}</td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.job_type }}</td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.experience_level }}</td>
+          <td class="border border-gray-200 px-6 py-4">{{ job.job_location }}</td>
+          <td class="border border-gray-200 px-6 py-4">{{ job.job_employment_type }}</td>
+          <td class="border border-gray-200 px-6 py-4">{{ job.job_experience_level }}</td>
           <td class="border border-gray-200 px-6 py-4">{{ job.applicants_count ?? 0 }}</td>
           <td class="border border-gray-200 px-6 py-4">
             <span v-if="job.is_approved === 1" class="text-green-600 font-semibold">Approved</span>

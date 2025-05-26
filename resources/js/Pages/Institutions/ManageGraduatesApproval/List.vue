@@ -147,11 +147,10 @@ const formatDate = (dateString) => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 text-sm text-gray-800">
-                        <tr v-for="graduate in filteredGraduates" :key="graduate.id"
+                        <tr v-for="graduate in graduates.data" :key="graduate.id"
                             class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4">
-                                {{ graduate.graduate_first_name }} {{ graduate.graduate_middle_initial }} {{
-                                graduate.graduate_last_name }}
+                                {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
                             </td>
                             <td class="px-6 py-4">{{ graduate.program_name }}</td>
                             <td class="px-6 py-4">{{ formatDate(graduate.created_at) }}</td>
@@ -162,13 +161,32 @@ const formatDate = (dateString) => {
                                 </span>
                             </td>
                         </tr>
-                        <tr v-if="filteredGraduates.length === 0">
+                        <tr v-if="graduates.data.length === 0">
                             <td colspan="4" class="text-center text-gray-400 py-6">
                                 No graduates found with current filters.
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="mt-6 flex justify-center">
+              <nav v-if="graduates.links && graduates.links.length > 3" class="inline-flex -space-x-px">
+                <button
+                  v-for="(link, i) in graduates.links"
+                  :key="i"
+                  v-html="link.label"
+                  :disabled="!link.url"
+                  @click="$inertia.get(link.url)"
+                  :class="[
+                    'px-3 py-1 border text-sm',
+                    link.active ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100',
+                    i === 0 ? 'rounded-l' : '',
+                    i === graduates.links.length - 1 ? 'rounded-r' : ''
+                  ]"
+                ></button>
+              </nav>
             </div>
         </Container>
     </AppLayout>

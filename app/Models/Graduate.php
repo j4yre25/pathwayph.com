@@ -11,9 +11,9 @@ class Graduate extends Model
 
     protected $fillable = [
         'user_id',
-        'graduate_first_name',
-        'graduate_last_name',
-        'graduate_middle_name',
+        'first_name',
+        'last_name',
+        'middle_name',
         'current_job_title',
         'employment_status',
         'contact_number',
@@ -29,6 +29,8 @@ class Graduate extends Model
         'github_url',
         'personal_website',
         'other_social_links',
+        'graduate_picture',
+
     ];
 
 
@@ -44,7 +46,10 @@ class Graduate extends Model
     public function schoolYear()
     {
         return $this->belongsTo(SchoolYear::class);
-
+    }
+    public function education()
+    {
+        return $this->hasMany(Education::class);
     }
 
 

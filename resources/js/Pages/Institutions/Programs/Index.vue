@@ -62,6 +62,7 @@ const confirmArchive = (program) => {
               <tr>
                 <th class="px-6 py-4">Program</th>
                 <th class="px-6 py-4">Degree</th>
+                <th class="px-6 py-4">Program Code</th>
                 <th class="px-6 py-4">Actions</th>
               </tr>
             </thead>
@@ -73,6 +74,7 @@ const confirmArchive = (program) => {
               >
                 <td class="px-6 py-4">{{ prog.program?.name }}</td>
                 <td class="px-6 py-4">{{ prog.program?.degree?.type }}</td>
+                <td class="px-6 py-4">{{ prog.program_code }}</td>
                 <td class="px-6 py-4 flex gap-2">
                   <Link :href="route('programs.edit', { id: prog.id })">
                     <PrimaryButton>Edit</PrimaryButton>

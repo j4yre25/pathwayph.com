@@ -9,12 +9,15 @@ class Testimonial extends Model
 {
     use HasFactory;
 
+    protected $table = 'graduate_testimonials';
+
     protected $fillable = [
-        'graduate_testimonials_name',
-        'graduate_testimonials_role_title',
-        'graduate_testimonials_relationship',
-        'graduate_testimonials_testimonial',
-        'user_id', // Foreign key
+        'author',
+        'position',
+        'company',
+        'content',
+        'file',
+        'graduate_id', // Foreign key
     ];
 
     // Relationship with User

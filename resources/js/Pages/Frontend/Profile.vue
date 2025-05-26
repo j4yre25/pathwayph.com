@@ -29,11 +29,44 @@ import Resume from './ProfileSettings/Resume.vue';
 
 const activeSection = ref('general'); // Default section
 const setActiveSection = (section) => {
-activeSection.value = section;
-// Optionally store in localStorage for persistence across page refreshes
-localStorage.setItem('activeSection', section);
+  activeSection.value = section;
+  // Optionally store in localStorage for persistence across page refreshes
+  localStorage.setItem('activeSection', section);
+};
+const refreshSkills = () => {
+  router.visit(route('profile.index'), {
+    only: ['skillEntries', 'archivedSkillEntries'],
+    preserveScroll: true,
+  });
+};
+const refreshEducation = () => {
+  router.visit(route('profile.index'), {
+    only: ['educationEntries', 'archivedEducationEntries'],
+    preserveScroll: true,
+  });
 };
 
+const closeAddEducationModal = () => { };
+const closeUpdateEducationModal = () => { };
+const closeSkillsAddedModal = () => { };
+const closeAddExperienceModal = () => { };
+const closeUpdateExperienceModal = () => { };
+const closeAddCertificationModal = () => { };
+const closeAddAchievementModal = () => { };
+const closeUpdateAchievementModal = () => { };
+const closeAddTestimonialsModal = () => { };
+const closeUpdateTestimonialsModal = () => { };
+const closeAddLocationModal = () => { };
+const closeAddIndustryModal = () => { };
+const closeUpdateCertificationModal = () => { };
+
+const resetEducation = () => { };
+const resetExperience = () => { };
+const resetAchievement = () => { };
+const resetCertification = () => { };
+const resetTestimonials = () => { };
+const resetCareerGoals = () => { };
+const resetEmploymentPreferences = () => { };
 
 const closeAllModals = () => {
   closeAddEducationModal();
@@ -111,7 +144,7 @@ const profile = ref({
   graduate_ethnicity: props.user?.graduate_ethnicity || '',
   graduate_address: props.user?.graduate_address || '',
   graduate_about_me: props.user?.graduate_about_me || '',
-  graduate_picture_url: props.user?.profile_picture || 'path/to/default/image.jpg',
+  graduate_picture_url: props.user?.P || 'path/to/default/image.jpg',
 });
 
 const settingsForm = useForm({
@@ -175,22 +208,22 @@ const saveProfile = () => {
   settingsForm.graduate_address = profile.value.graduate_address;
   settingsForm.graduate_about_me = profile.value.graduate_about_me;
   settingsForm.graduate_picture_url = profile.value.graduate_picture_url;
-  
+
   const hasChanges = Object.keys(settingsForm.data()).some(
     (key) => settingsForm[key] !== profile.value[key]
   );
-  
+
   if (!hasChanges) {
     isNoChangesModalOpen.value = true;
     return;
   }
-  
+
   settingsForm.post(route('profile.updateProfile'), {
     onSuccess: (response) => {
       Object.assign(profile.value, settingsForm.data());
       modalState.value.profile = true;
       showSuccessModal(); // Show success modal
-      
+
       console.log('Profile saved successfully on the backend:', response.user);
     },
     onError: (errors) => {
@@ -228,7 +261,7 @@ const initializeData = () => {
 // Call initialize function on component mount
 onMounted(() => {
   initializeData();
-}); 
+});
 
 </script>
 
@@ -303,44 +336,64 @@ onMounted(() => {
             </button>
           </div>
 
-          
+
           <!-- Tab Content -->
           <div class="mt-6">
             <!-- General Settings -->
-            <General :activeSection="activeSection" />
-            
+            <General :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
+
             <!-- Security Settings -->
-            <Security :activeSection="activeSection" />
-            
+            <Security :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
+
             <!-- Education Settings -->
-            <Education :activeSection="activeSection" />
-            
+            <Education :activeSection="activeSection" :educationEntries="props.educationEntries"
+              :archivedEducationEntries="props.archivedEducationEntries" :institutions="props.institutions"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates"
+              @refresh-education="refreshEducation" />
+
             <!-- Skills Settings -->
-            <Skill :activeSection="activeSection" />
-            
+
+            <Skill :activeSection="activeSection" :skillEntries="props.skillEntries"
+              :archivedSkillEntries="props.archivedSkillEntries" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" @refresh-skills="refreshSkills" />
+
+
             <!-- Experience Settings -->
-            <Experience :activeSection="activeSection" />
-            
+            <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
+
             <!-- Projects Settings -->
-            <Project :activeSection="activeSection" />
-            
+            <Project :activeSection="activeSection" :projectsEntries="props.projectsEntries"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
+
             <!-- Certification Settings -->
-            <Certification :activeSection="activeSection" />
-            
+
+            <!-- Profile.vue -->
+            <Certification :activeSection="activeSection" :certificationsEntries="props.certificationsEntries"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
             <!-- Achievement Settings -->
-            <Achievement :activeSection="activeSection" />
-            
+            <Achievement :activeSection="activeSection" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" :achievementEntries="props.achievementEntries"
+              :archivedAchievementEntries="props.archivedAchievementEntries" />
+
             <!-- Testimonial Settings -->
-            <Testimonial :activeSection="activeSection" />
-            
+            <Testimonial :activeSection="activeSection" :testimonialEntries="props.testimonialsEntries"
+              :archivedTestimonialEntries="props.archivedTestimonialsEntries" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
+
             <!-- Employment Settings -->
-            <Employment :activeSection="activeSection" />
-            
+            <Employment :activeSection="activeSection" :employmentPreferences="props.employmentPreferences"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
+
             <!-- Career Goals Settings -->
-            <CareerGoals :activeSection="activeSection" />
-            
+            <CareerGoals :activeSection="activeSection" :careerGoals="props.careerGoals"
+              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
+
             <!-- Resume Settings -->
-            <Resume :activeSection="activeSection" />
+            <Resume :activeSection="activeSection" :resume="props.resume" @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates" />
           </div>
         </div>
       </div>

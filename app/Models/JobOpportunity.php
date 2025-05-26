@@ -10,9 +10,9 @@ class JobOpportunity extends Model
     use HasFactory;
 
     protected $fillable = [
+        'company_id',
         'title',
         'description',
-        'company_id',
         'location',
         'salary_range',
         'employment_type',

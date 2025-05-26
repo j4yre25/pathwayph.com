@@ -12,14 +12,8 @@ const props = defineProps({
   selectedCareerOpportunity: String,
 });
 
+const userId = usePage().props.auth.user.id;
 const selectedCareerOpportunity = ref(props.selectedCareerOpportunity || '');
-const filteredSkills = computed(() => {
-  return props.skills.filter((skill) => {
-    const matchesCareerOpportunity =
-      !selectedCareerOpportunity.value || skill.career_opportunity_id === selectedCareerOpportunity.value;
-    return matchesCareerOpportunity;
-  });
-});
 
 const uniqueCareerOpportunities = computed(() => {
   const seenTitles = new Set();
@@ -32,10 +26,25 @@ const uniqueCareerOpportunities = computed(() => {
   });
 });
 
+const filteredSkills = computed(() => {
+  if (!selectedCareerOpportunity.value) return props.skills;
+  return props.skills.filter(
+    (skill) =>
+      String(skill.career_opportunity_id) === String(selectedCareerOpportunity.value)
+  );
+});
+
 function applyFilter() {
-  router.get(route('instiskills.list', { user: usePage().props.auth.user.id }), {
+  router.get(route('instiskills.list', { user: userId }), {
     career_opportunity_id: selectedCareerOpportunity.value,
+    preserveScroll: true,
+    preserveState: true,
   });
+}
+
+function clearFilter() {
+  selectedCareerOpportunity.value = '';
+  applyFilter();
 }
 </script>
 
@@ -52,13 +61,19 @@ function applyFilter() {
           <label class="block text-sm font-medium text-gray-700">Filter by Career Opportunity:</label>
           <select v-model="selectedCareerOpportunity" class="mt-1 border-gray-300 rounded-md">
             <option value="">All Career Opportunities</option>
-            <option v-for="opportunity in uniqueCareerOpportunities" :key="opportunity.id" :value="opportunity.id">
+            <option
+              v-for="opportunity in uniqueCareerOpportunities"
+              :key="opportunity.id"
+              :value="opportunity.id"
+            >
               {{ opportunity.title }}
             </option>
           </select>
         </div>
-
         <PrimaryButton @click="applyFilter">Apply Filter</PrimaryButton>
+        <PrimaryButton v-if="selectedCareerOpportunity" @click="clearFilter" class="bg-gray-300 text-gray-700">
+          Clear Filter
+        </PrimaryButton>
       </div>
 
       <!-- Table -->
@@ -83,7 +98,6 @@ function applyFilter() {
                 {{ skill.deleted_at ? 'Inactive' : 'Active' }}
               </td>
             </tr>
-
             <tr v-if="filteredSkills.length === 0">
               <td colspan="3" class="px-6 py-4 text-center text-gray-500">
                 No skills found.

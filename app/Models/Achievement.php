@@ -9,19 +9,22 @@ class Achievement extends Model
 {
     use HasFactory;
 
+    protected $table = 'graduate_achievements';
+
+
     protected $fillable = [
-        'graduate_achievement_title',
-        'graduate_achievement_issuer',
-        'graduate_achievement_date',
-        'graduate_achievement_description',
-        'graduate_achievement_url',
-        'graduate_achievement_type',
-        'credential_picture_url',
-        'user_id'
+        'title',
+        'issuer',
+        'date',
+        'description',
+        'url',
+        'type',
+        'credential_picture',
+        'graduate_id'
     ];
 
     protected $casts = [
-        'graduate_achievement_date' => 'datetime',
+        'date' => 'datetime',
     ];
 
     public function user()

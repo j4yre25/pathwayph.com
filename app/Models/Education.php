@@ -4,19 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Education extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
+
+    protected $table = 'graduate_educations';
+
     protected $fillable = [
         'user_id',
-        'institution_id',
+        'education',
+        'achievements',
+        'is_current',
         'degree',
         'field_of_study',
         'start_date',
@@ -24,12 +30,11 @@ class Education extends Model
         'grade',
         'activities',
         'description',
-        'graduate_education_institution_id',
-        'graduate_education_program',
-        'graduate_education_field_of_study',
-        'graduate_education_start_date',
-        'graduate_education_end_date',
-        'graduate_education_description',
+        'program',
+        'field_of_study',
+        'start_date',
+        'end_date',
+        'description',
     ];
 
     /**
@@ -52,11 +57,13 @@ class Education extends Model
         return $this->belongsTo(User::class);
     }
 
+    
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
+    }
+
     /**
      * Get the institution associated with the education record.
      */
-    public function institution()
-    {
-        return $this->belongsTo(Institution::class);
-    }
 }

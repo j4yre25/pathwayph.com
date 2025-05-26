@@ -9,17 +9,21 @@ class Project extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'graduate_projects_title',
-        'graduate_projects_description',
-        'graduate_projects_role',
-        'graduate_projects_start_date',
-        'graduate_projects_end_date',
-        'graduate_projects_url',
-        'graduate_projects_tech',
-        'graduate_projects_key_accomplishments',
-        'graduate_project_file',
-        'user_id',
+    protected $table = 'graduate_projects';
+
+  protected $fillable = [
+        'graduate_id',
+        'title',
+        'description',
+        'role',
+        'start_date',
+        'end_date',
+        'url',
+        'key_accomplishments',
+        'file',
+        'deleted_at',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [

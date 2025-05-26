@@ -12,16 +12,6 @@ class Job extends Model
 
 
 
-    public function sector()
-    {
-        return $this->belongsTo(Sector::class);
-    }
-
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
-
     /**
      * The attributes that are mass assignable.
      *
@@ -29,29 +19,28 @@ class Job extends Model
      */
     protected $fillable = [
         'user_id',
-        'job_title',
-        'location',
-        'branch_location',
-        'description',
-        'requirements',
-        'is_approved',
-        'min_salary',
-        'max_salary',
-        'job_type',
-        'experience_level',
-        'vacancy',
-        'skills',
-        'sector',
-        'posted_at',
-        'posted_by',
-        'status',
-        'program_id',
+        'peso_id',
         'company_id',
-        'sector',
-        'category',
+        'program_id',
         'status',
-        'expiration_date',
-        'applicants_limit',
+        'sector_id',
+        'category_id',
+        'job_title',
+        'job_location',
+        'job_description',
+        'job_requirements',
+        'job_salary_type',
+        'job_min_salary',
+        'job_max_salary',
+        'job_employment_type',
+        'job_experience_level',
+        'job_vacancies',
+        'related_skills',
+        'job_posted_at',
+        'job_deadline',
+        'job_application_limit',
+        'is_approved',
+        'posted_by'
     ];
 
     /**
@@ -60,15 +49,14 @@ class Job extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'posted_at' => 'datetime',
-        'application_deadline' => 'date',
-        'skills' => 'array',
+        'job_deadline' => 'date',
+        'related_skills' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     protected $attributes = [
-        'is_approved' => null, 
+        'is_approved' => null,
     ];
 
     /**
@@ -116,9 +104,14 @@ class Job extends Model
         return $this->belongsTo(User::class);
     }
 
-      public function company()
+    public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class);
     }
     public function programs()
     {
@@ -131,6 +124,16 @@ class Job extends Model
     public function sectorRelation()
     {
         return $this->belongsTo(Sector::class, 'sector');
+    }
+
+    public function sector()
+    {
+        return $this->belongsTo(Sector::class, 'sector_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     /**
@@ -168,5 +171,10 @@ class Job extends Model
     public function shouldBeArchived()
     {
         return $this->isExpired() || $this->hasApplicationLimitReached();
+    }
+
+    public function peso()
+    {
+        return $this->belongsTo(\App\Models\Peso::class, 'peso_id');
     }
 }

@@ -25,7 +25,7 @@ class CompanyJobsController extends Controller
     {
 
        // Get all jobs belonging to the same company as the user
-         $jobs = Job::where('company_id', $user->company_id)
+        $jobs = Job::where('company_id', $user->hr->company_id)
                 ->get();
         $sectors = Sector::pluck('name'); // Fetch all sector names
         $categories = \App\Models\Category::pluck('name'); // Fetch all category names
@@ -41,13 +41,17 @@ class CompanyJobsController extends Controller
 
     public function create(User $user)
     {
+        $authUser = Auth::user()->load('hr');
+
         $sectors = Sector::with('categories')->get();
         $programs = Program::select('id', 'name')->get();
+
 
 
         return Inertia::render('Company/Jobs/Index/CreateJobs', [
             'sectors' => $sectors,
             'programs' => $programs,
+            'authUser' => $authUser,
         ]);
     }
 
@@ -85,72 +89,100 @@ class CompanyJobsController extends Controller
                 'string',
                 'max:255',
                 Rule::unique('jobs')->where(function ($query) use ($user, $request) {
-                    // Ensures that job titles are unique for each user and location
                     return $query->where('user_id', $user->id)
-                        ->where('location', $request->location);
+                        ->where('job_location', $request->job_location);
                 }),
             ],
-            'location' => 'required|string|max:255',
-            'branch_location' => 'nullable|string|max:255',
-            'vacancy' => 'required|integer|min:1', // Added minimum value check for vacancies
-            'min_salary' => 'nullable|integer|min:5000', // Ensuring a minimum salary of 5,000
-            'max_salary' => 'nullable|integer|min:5000|gte:min_salary', // Added min_salary constraint
-            'is_salary_negotiable' => 'required|boolean',
-            'job_type' => 'required|string|max:255', // Added max length to string
-            'experience_level' => 'required|string|max:255', // Added max length to string
-            'description' => 'required|string|max:5000',
-            'requirements' => 'required|string|max:5000',
-            'expiration_date' => 'required|date|after:today', // Ensuring the expiration date is in the future
-            'applicants_limit' => 'nullable|integer|min:1', // Added minimum value check for applicants
-            'skills' => 'required|array|min:1', // Ensuring at least one skill is provided
+            'posted_by' => 'nullable|string|max:255',
+            'job_location' => 'required|string|max:255',
+            'job_vacancies' => 'required|integer|min:1', // Added minimum value check for vacancies
+            'job_salary_type' => 'nullable|string|max:255', // Added max length to string
+            'job_min_salary' => 'nullable|integer|min:5000', // Ensuring a minimum salary of 5,000
+            'job_max_salary' => 'nullable|integer|min:5000|gte:job_min_salary', // Added job_min_salary constraint
+            'is_negotiable' => 'required|boolean',
+            'job_employment_type' => 'required|string|max:255', // Added max length to string
+            'job_experience_level' => 'required|string|max:255', 
+            'job_work_environment' => 'required|string|max:255', 
+            'job_description' => 'required|string|max:5000',
+            'job_requirements' => 'required|string|max:5000',
+            'job_deadline' => 'required|date|after:today', // Ensuring the expiration date is in the future
+            'job_application_limit' => 'nullable|integer|min:1', // Added minimum value check for applicants
+            'related_skills' => 'required|array|min:1', // Ensuring at least one skill is provided
             'sector' => 'required|exists:sectors,id',
             'category' => 'required|exists:categories,id',
             'program_id' => 'required|array|min:1', // Ensuring at least one program is selected
             'program_id.*' => 'exists:programs,id', // Validating each selected program's ID
-            'posted_by' => 'nullable|string|max:255', // Made nullable to allow default value to be assigned
         ], [
             'job_title.required' => 'Please provide a job title.',
-            'location.required' => 'Job location is required.',
-            'min_salary.min' => 'The minimum salary must be at least ₱5000.',
-            'max_salary.gte' => 'The maximum salary cannot be less than the minimum salary.',
-            'expiration_date.after' => 'The application deadline must be a future date.',
-            'vacancy.required' => 'Please provide the number of vacancies for this job.',
-            'skills.required' => 'At least one skill is required.',
+            'job_location.required' => 'Job job_location is required.',
+            'job_min_salary.min' => 'The minimum salary must be at least ₱5000.',
+            'job_max_salary.gte' => 'The maximum salary cannot be less than the minimum salary.',
+            'job_deadline.after' => 'The application deadline must be a future date.',
+            'job_vacancies.required' => 'Please provide the number of vacancies for this job.',
+            'related_skills.required' => 'At least one skill is required.',
             'program_id.required' => 'Please select at least one program.',
             'program_id.*.exists' => 'Each selected program must be valid.',
-            'description.required' => 'Please provide a job description.',
-            'requirements.required' => 'Please provide the job requirements.',
+            'job_description.required' => 'Please provide a job job_description.',
+            'job_requirements.required' => 'Please provide the job job_requirements.',
         ]);
+
+        $user->loadMissing('hr');
 
         $new_job = new Job();
         $new_job->user_id = $user->id;
-        $new_job->company_id = $user->company_id; 
+        $new_job->posted_by = $user->hr->full_name;
+        $new_job->company_id = $user->hr->company_id; 
+        $new_job->status = 'pending'; // Default status
         $new_job->job_title = $validated['job_title'];
-        $new_job->location = $validated['location'];
-        $new_job->branch_location = $validated['branch_location'];
+        $new_job->job_location = $validated['job_location'];
+
 
         // Salary handling
-        if ($validated['is_salary_negotiable']) {
-            $new_job->min_salary = null;
-            $new_job->max_salary = null;
-            $new_job->is_salary_negotiable = true;
+        if ($validated['is_negotiable']) {
+            $new_job->job_min_salary = null;
+            $new_job->job_max_salary = null;
+            $new_job->is_negotiable = true;
+            $new_job->job_salary_type = null; // optional, clear salary type if negotiable
         } else {
-            $new_job->min_salary = $validated['min_salary'];
-            $new_job->max_salary = $validated['max_salary'];
-            $new_job->is_salary_negotiable = false;
+            $new_job->job_min_salary = $validated['job_min_salary'];
+            $new_job->job_max_salary = $validated['job_max_salary'];
+            $new_job->is_negotiable = false;
+            $new_job->job_salary_type = $validated['job_salary_type']; // set salary type if not negotiable
         }
 
-        $new_job->job_type = $validated['job_type'];
-        $new_job->experience_level = $validated['experience_level'];
-        $new_job->skills = json_encode($validated['skills']);
-        $new_job->vacancy = $validated['vacancy'];
-        $new_job->description = $validated['description'];
-        $new_job->requirements = $validated['requirements'];
+        $new_job->job_employment_type = $validated['job_employment_type'];
+        $new_job->job_experience_level = $validated['job_experience_level'];
+        $new_job->job_work_environment = $validated['job_work_environment'];
+        $new_job->related_skills = json_encode($validated['related_skills']);
+        $new_job->job_vacancies = $validated['job_vacancies'];
+        $new_job->job_description = $validated['job_description'];
+        $new_job->job_requirements = $validated['job_requirements'];
         $new_job->sector_id = $validated['sector'];
         $new_job->category_id = $validated['category'];
-        $new_job->expiration_date = Carbon::parse($validated['expiration_date'])->format('Y-m-d');
-        $new_job->applicants_limit = $validated['applicants_limit'] ?? null;
-        $new_job->posted_by = $validated['posted_by'] ?? null;
+        $new_job->job_deadline = Carbon::parse($validated['job_deadline'])->format('Y-m-d');
+        $new_job->job_application_limit = $validated['job_application_limit'] ?? null;
+        
+
+         // Generate job code
+        $sector = Sector::find($validated['sector']);
+        $category = \App\Models\Category::find($validated['category']);
+
+        $sectorCode = $sector->sector_id;                // e.g., S0001
+        $divisionCodes = $sector->division_codes;        // e.g., 01-03
+        $categoryCode = $category->division_code;        // e.g., 02
+
+        $initials = collect(explode(' ', $validated['job_title']))
+            ->map(fn ($word) =>Str::substr($word, 0, 1))
+            ->implode('');
+        $initials = strtoupper($initials); // e.g., IA for "Insurance Agents"
+
+        $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
+        $new_job->job_code = $jobCode;
+
+        // Generate job ID
+        $jobCount = Job::count() + 1;
+        $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT); // JS-001
+        $new_job->job_id = "JS-{$jobID}-{$jobCode}";
         $new_job->save();
         $new_job->programs()->attach($validated['program_id']);
 
@@ -161,9 +193,9 @@ class CompanyJobsController extends Controller
     {
         $job->load('company', 'category', 'user');
 
-        // Combine min_salary and max_salary into a salary range string
-        $salaryRange = $job->min_salary && $job->max_salary
-            ? "₱". $job->min_salary . ' - ' . $job->max_salary
+        // Combine job_min_salary and job_max_salary into a salary range string
+        $salaryRange = $job->job_min_salary && $job->job_max_salary
+            ? "₱". $job->job_min_salary . ' - ' . $job->job_max_salary
             : "Negotiable";
 
         $hrFirstName = $job->user->company_hr_first_name ?? '';
@@ -174,17 +206,17 @@ class CompanyJobsController extends Controller
             'job' => [
                 'id' => $job->id,
                 'job_title' => $job->job_title,
-                'location' => $job->location,
-                'job_type' => $job->job_type,
-                'experience_level' => $job->experience_level,
-                'description' => $job->description,
-                'requirements' => $job->requirements,
-                'vacancy' => $job->vacancy,
-                'skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
+                'job_location' => $job->job_location,
+                'job_employment_type' => $job->job_employment_type,
+                'job_experience_level' => $job->job_experience_level,
+                'job_description' => $job->job_description,
+                'job_requirements' => $job->job_requirements,
+                'job_vacancies' => $job->job_vacancies,
+                'related_skills' => is_array($job->related_skills) ? $job->related_skills : json_decode($job->related_skills, true),
                 'is_approved' => $job->is_approved,
                 'posted_at' => $job->created_at->format('F j, Y'),
-                'posted_by' => $job->posted_by,
-                'expiration_date' => Carbon::parse($job->expiration_date)->format('F j, Y'),
+                'posted_by' => $job->user->name,
+                'job_deadline' => Carbon::parse($job->job_deadline)->format('F j, Y'),
                 'user_role' => $job->user->role ?? null,
                 'category' => $job->category->name ?? null,
                 'salary_range' => $salaryRange,
@@ -219,17 +251,17 @@ class CompanyJobsController extends Controller
 
         $validated = $request->validate([
             'job_title' => ['required', 'string', 'max:99'],
-            'description' => ['required', 'string', 'max:1000'],
-            'requirements' => ['required', 'string', 'max:1000'],
-            'skills' => ['nullable', 'array'], // Optional: if you want to update skills too
-            'skills.*' => ['string', 'max:255'], // Validate each skill
+            'job_description' => ['required', 'string', 'max:1000'],
+            'job_requirements' => ['required', 'string', 'max:1000'],
+            'related_skills' => ['nullable', 'array'], // Optional: if you want to update related_skills too
+            'related_skills.*' => ['string', 'max:255'], // Validate each skill
         ]);
 
         $job->update([
             'job_title' => $validated['job_title'],
-            'description' => $validated['description'],
-            'requirements' => $validated['requirements'],
-            'skills' => $validated['skills'] ?? $job->skills, // Keep existing if not updating
+            'job_description' => $validated['job_description'],
+            'job_requirements' => $validated['job_requirements'],
+            'related_skills' => $validated['related_skills'] ?? $job->related_skills, // Keep existing if not updating
         ]);
         $job->save();
 
@@ -241,6 +273,7 @@ class CompanyJobsController extends Controller
     public function approve(Job $job)
     {
         $job->is_approved = 1;
+        $job->status = 'open'; // Set status to approved
         $job->save();
 
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');
@@ -249,6 +282,7 @@ class CompanyJobsController extends Controller
     public function disapprove(Job $job)
     {
         $job->is_approved = 0;
+        $job->status = 'closed'; // Set status to disapproved
         $job->save();
 
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job disapproved successfully.');
@@ -275,9 +309,9 @@ class CompanyJobsController extends Controller
             ->filter()
             ->unique();
 
-        // Fetch all graduates (Users with role 'graduate') who have matching skills
+        // Fetch all graduates (Users with role 'graduate') who have matching related_skills
         $qualifiedGraduates = User::where('role', 'graduate')
-            ->whereHas('skills', function ($query) use ($jobSkills) {
+            ->whereHas('related_skills', function ($query) use ($jobSkills) {
                 $query->whereIn(DB::raw('LOWER(graduate_skills_name)'), $jobSkills);
             })
             ->get();
