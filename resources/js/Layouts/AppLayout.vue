@@ -95,13 +95,13 @@ console.log(page.props.permissions.canManageInstitution)
                                     Job Listing
                                 </NavLink>
 
-                                <!-- <NavLink v-if="page.props.auth.user.role === 'company'"
+                                <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.job.applicants.index', { user: page.props.auth.user.id })"
                                     :active="route().current('company.job.applicants.index')" :disabled="!page.props.auth.user.is_approved">
                                     Manage Applicants
-                                </NavLink> -->
+                                </NavLink>
 
-                                <NavLink v-if="roles.isCompany && main.is_main_hr && hrCount > 1"
+                                <NavLink v-if="roles.isCompany"
                                     :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')" :disabled="!auth.user.is_approved">
                                     Manage HR Accounts
@@ -130,6 +130,13 @@ console.log(page.props.permissions.canManageInstitution)
                                     :active="route().current('job.inbox')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Job Inbox
+                                </NavLink>
+                                
+                                <!-- Graduate Portfolio -->
+                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.portfolio')"
+                                    :active="route().current('graduate.portfolio')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Portfolio
                                 </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"

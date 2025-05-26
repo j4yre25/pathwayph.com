@@ -58,4 +58,12 @@ class Graduate extends Model
     {
         return $this->belongsTo(Institution::class, 'institution_id');
     }
+    
+    /**
+     * Get the career goals associated with the graduate.
+     */
+    public function careerGoals()
+    {
+        return $this->hasOne(CareerGoal::class);
+    }
 }

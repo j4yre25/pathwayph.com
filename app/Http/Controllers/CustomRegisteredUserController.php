@@ -98,11 +98,12 @@ class CustomRegisteredUserController extends Controller
 
     public function showGraduateDetails()
     {
+        // Get institutions by joining with users table where role is 'institution'
         $insti_users = Institution::join('users', 'institutions.user_id', '=', 'users.id')
             ->where('users.role', 'institution')
             ->select('institutions.id', 'institutions.institution_name')
             ->get();
-
+        
         // Fetch programs with institution_id
         $programs = InstitutionProgram::with('program')
             ->whereIn('institution_id', $insti_users->pluck('id'))

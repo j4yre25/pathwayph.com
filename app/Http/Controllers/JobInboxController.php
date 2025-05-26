@@ -16,7 +16,7 @@ class JobInboxController extends Controller
     public function index()
     {
         $user = Auth::user();
-
+        
         return Inertia::render('Frontend/JobInbox', [
             'jobOpportunities' => $this->getJobOpportunities($user),
             'jobApplications' => $this->getJobApplications($user),
@@ -28,23 +28,22 @@ class JobInboxController extends Controller
     public function getJobOpportunities($user)
     {
         $jobs = Job::with(['sector', 'category'])
-            ->where('is_approved', 1)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($job) use ($user) {
                 return [
                     'id' => $job->id,
                     'title' => $job->job_title,
-                    'company' => $job->company?->company_name ?? 'Unknown Company',
-                    'location' => $job->location,
-                    'salary' => ($job->min_salary && $job->max_salary)
-                        ? "{$job->min_salary} - {$job->max_salary}"
-                        : 'Negotiable',
-                    'type' => $job->job_type,
+                    'company' => $job->company->company_name,
+                    'location' => $job->job_location,
+                    'salary' => ($job->job_min_salary && $job->job_max_salary)
+                            ? "{$job->job_min_salary} - {$job->jpb_max_salary}"
+                            : 'Negotiable',
+                    'type' => $job->job_employment_type,
                     'posted_at' => $job->created_at->diffForHumans(),
-                    'description' => $job->description,
-                    'experience_level' => $job->experience_level,
-                    'required_skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
+                    'description' => $job->job_description,
+                    'experience_level' => $job->job_experience_level,
+                    'required_skills' => is_array($job->related_skills) ? $job->related_skills : json_decode($job->related_skills, true),
                     'match_percentage' => $this->calculateMatchPercentage($user)
                 ];
             });
@@ -60,26 +59,26 @@ class JobInboxController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($application) {
-                $progress = $this->calculateApplicationProgress($application->status);
+            $progress = $this->calculateApplicationProgress($application->status);
 
-                return [
-                    'id' => $application->id,
-                    'job_title' => $application->job->job_title,
-                    'company' => optional($application->job->company)->company_name ?? 'Unknown Company',
-                    'status' => $application->status,
-                    'progress' => $progress,
-                    'applied_at' => $application->created_at->format('M d, Y'),
-                    'interview_date' => optional($application->interview_date)->format('M d, Y'),
-                ];
-            });
+            return [
+                'id' => $application->id,
+                'job_title' => $application->job->job_title,
+                'company' => optional($application->job->company)->company_name ?? 'Unknown Company',
+                'status' => $application->status,
+                'progress' => $progress,
+                'applied_at' => $application->created_at->format('M d, Y'),
+                'interview_date' => optional($application->interview_date)->format('M d, Y'),
+            ];
+        });
     }
 
     // Get notifications
     public function getNotifications()
     {
-        /** @var \App\Models\User $user */
+                /** @var \App\Models\User $user */
 
-        $user = Auth::user();
+      $user = Auth::user();
 
         return $user->notifications()
             ->where('read_at', null)
@@ -132,7 +131,6 @@ class JobInboxController extends Controller
             'cover_letter' => $validated['cover_letter'] ?? null,
             'additional_documents' => $validated['additional_documents'] ?? null,
             'status' => 'applied',
-            'stage' => 'Applying',
             'applied_at' => now(),
         ]);
 

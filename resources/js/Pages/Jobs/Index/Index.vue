@@ -52,7 +52,6 @@ const filteredJobs = computed(() => {
     });
 });
 
-
 console.log('User ID:', page.props);
 
 const form = useForm({
@@ -65,9 +64,7 @@ const form = useForm({
 // console.log(route('jobs.list'));
 console.log(route('jobs.manage', { user: page.props.auth.user.id }));
 
-
 </script>
-
 
 <template>
     <AppLayout title="Jobs">
@@ -75,12 +72,8 @@ console.log(route('jobs.manage', { user: page.props.auth.user.id }));
             Jobs
         </template>
 
-
-
         <Container class="py-4">
 
-
-            <!-- <PrimaryButton @click="createJob()" class="">Post Job</PrimaryButton> -->
             <div class="flex space-x-2">
                 <div class="mt-8">
                     <Link :href="route('jobs.create', { user: page.props.auth.user.id })">
@@ -126,18 +119,9 @@ console.log(route('jobs.manage', { user: page.props.auth.user.id }));
                 </select>
             </div>
 
-
             <div class="mt-8">
                 <MyJobs :jobs="jobs" />
             </div>
-
-
         </Container>
-
-
-
-
-
     </AppLayout>
-
 </template>

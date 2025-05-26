@@ -170,7 +170,19 @@ const goToNextStep = () => {
 
 // Submit the form
 const submit = () => {
-    form.post(route('register.graduate'), {
+    let routeName;
+    if (form.role === 'graduate') {
+        routeName = 'register.graduate.store';
+    } else if (form.role === 'institution') {
+        routeName = 'register.institution.store';
+    } else if (form.role === 'company') {
+        routeName = 'register.company.store';
+    } else {
+        console.error('Unknown role:', form.role);
+        return;
+    }
+    
+    form.post(route(routeName), {
         onFinish: () => form.reset('password', 'password_confirmation'),
     });
 }
