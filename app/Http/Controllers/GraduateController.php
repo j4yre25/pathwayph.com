@@ -50,8 +50,27 @@ class GraduateController extends Controller
             ->orderBy('users.created_at', 'desc')
             ->get();
 
-        $institutionPrograms = Program::where('institution_id', Auth::user()->id)->get();
-        $institutionYears = SchoolYear::where('institution_id', Auth::user()->id)->get();
+        $institutionPrograms = \App\Models\InstitutionProgram::with('program')
+            ->where('institution_id', Auth::user()->id)
+            ->get()
+            ->map(function ($ip) {
+                return [
+                    'id' => $ip->program->id,
+                    'name' => $ip->program->name,
+                    'institution_id' => $ip->institution_id,
+                ];
+            });
+            
+        $institutionYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
+            ->where('institution_id', Auth::user()->id)
+            ->get()
+            ->map(function ($isy) {
+                return [
+                    'id' => $isy->schoolYear->id,
+                    'school_year_range' => $isy->schoolYear->school_year_range,
+                    'institution_id' => $isy->institution_id,
+                ];
+            });
         $instiUsers = DB::table('users')
             ->where('role', 'institution')
             ->where('id', Auth::user()->id)
@@ -68,8 +87,26 @@ class GraduateController extends Controller
     public function create()
     {
         return Inertia::render('Auth/GraduateCreate', [
-            'programs' => Program::where('institution_id', Auth::user()->id)->get(),
-            'schoolYears' => SchoolYear::where('institution_id', Auth::user()->id)->get(),
+            'programs' => \App\Models\InstitutionProgram::with('program')
+                ->where('institution_id', Auth::user()->id)
+                ->get()
+                ->map(function ($ip) {
+                    return [
+                        'id' => $ip->program->id,
+                        'name' => $ip->program->name,
+                        'institution_id' => $ip->institution_id,
+                    ];
+                }),
+            'schoolYears' => \App\Models\InstitutionSchoolYear::with('schoolYear')
+                ->where('institution_id', Auth::user()->id)
+                ->get()
+                ->map(function ($isy) {
+                    return [
+                        'id' => $isy->schoolYear->id,
+                        'school_year_range' => $isy->schoolYear->school_year_range,
+                        'institution_id' => $isy->institution_id,
+                    ];
+                }),
             'institutions' => DB::table('users')
                 ->where('role', 'institution')
                 ->where('id', Auth::user()->id)

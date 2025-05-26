@@ -65,7 +65,7 @@ onMounted(() => {
     } else if (path.includes('graduate')) {
         form.role = 'graduate';
     } else {
-        form.role = 'company'; // Default to company if not specified
+        form.role = 'company';
     }
     console.log('Current Role:', form.role);
 });
@@ -167,7 +167,19 @@ const goToNextStep = () => {
 
 // Submit the form
 const submit = () => {
-    form.post(route('register.graduate'), {
+    let routeName;
+    if (form.role === 'graduate') {
+        routeName = 'register.graduate.store';
+    } else if (form.role === 'institution') {
+        routeName = 'register.institution.store';
+    } else if (form.role === 'company') {
+        routeName = 'register.company.store';
+    } else {
+        console.error('Unknown role:', form.role);
+        return;
+    }
+    
+    form.post(route(routeName), {
         onFinish: () => form.reset('password', 'password_confirmation'),
     });
 }
