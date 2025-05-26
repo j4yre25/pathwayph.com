@@ -5,8 +5,69 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 import axios from 'axios';
 
-// Reactive data for the portfolio
-const graduateData = ref({
+// Define props for the component
+const props = defineProps({
+    graduateData: {
+        type: Object,
+        default: () => ({
+            name: '',
+            title: '',
+            location: '',
+            phone: '',
+            email: '',
+            degree: '',
+            socialLinks: [],
+            about: "",
+            careerGoals: {
+                shortTerm: '',
+                longTerm: '',
+                industries: ''
+            },
+            employmentPreferences: [],
+            personalInfo: {
+                location: '',
+                birthdate: '',
+                gender: '',
+                ethnicity: '',
+                graduated: '',
+                school: ''
+            },
+            education: [],
+            educationSummary: '',
+            academicAchievements: [],
+            skillCategories: [],
+            skills: [],
+            proficiencyLegend: [
+                { level: 'Expert', description: '5+ years', color: 'bg-green-500' },
+                { level: 'Advanced', description: '3-5 years', color: 'bg-blue-500' },
+                { level: 'Intermediate', description: '1-3 years', color: 'bg-yellow-500' },
+                { level: 'Beginner', description: '< 1 year', color: 'bg-orange-400' }
+            ],
+            workExperience: [],
+            careerHighlights: [],
+            projects: [],
+            certifications: [],
+            achievements: [],
+            testimonials: [],
+            contactInfo: {
+                location: '',
+                email: '',
+                phone: '',
+                website: '',
+                socialProfiles: []
+            },
+            contactForm: {
+                name: '',
+                email: '',
+                subject: '',
+                message: ''
+            }
+        })
+    }
+});
+
+// Local reactive data for the portfolio (for internal component state)
+const localGraduateData = ref({
     name: '',
     title: '',
     location: '',
@@ -85,12 +146,12 @@ const skillsByCategory = computed(() => {
     const result = {};
     
     // Initialize categories
-    graduateData.value.skillCategories.forEach(category => {
+    props.graduateData.skillCategories.forEach(category => {
         result[category.name] = [];
     });
     
     // Group skills by category
-    graduateData.value.skills.forEach(skill => {
+    props.graduateData.skills.forEach(skill => {
         if (result[skill.category]) {
             result[skill.category].push(skill);
         }
@@ -380,7 +441,7 @@ const handleOutsideClick = (event) => {
             >
                 <div class="flex items-center gap-6 sm:gap-8">
                     <img
-                        :alt="`Portrait of ${graduateData.name}`"
+                        :alt="`Portrait of ${props.graduateData.name}`"
                         class="w-24 h-24 rounded-full border-4 border-white object-cover"
                         height="96"
                         :src="profileImageUrl"
@@ -388,22 +449,22 @@ const handleOutsideClick = (event) => {
                     />
                     <div class="text-white">
                         <h1 class="font-semibold text-xl sm:text-2xl leading-tight">
-                            {{ graduateData.name }}
+                            {{ props.graduateData.name }}
                         </h1>
                         <p class="text-sm sm:text-base font-normal leading-tight">
-                            {{ graduateData.title }}
+                            {{ props.graduateData.title }}
                         </p>
                         <div
                             class="flex flex-col sm:flex-row sm:items-center sm:gap-4 mt-1 text-xs sm:text-sm opacity-90"
                         >
                             <div class="flex items-center gap-1">
                                 <i class="fas fa-map-marker-alt text-white text-xs sm:text-sm"></i>
-                                <span>{{ graduateData.location }}</span>
+                                <span>{{ props.graduateData.location }}</span>
                             </div>
                             <div class="hidden sm:block border-l border-white h-4 opacity-50"></div>
                             <div class="flex items-center gap-1">
                                 <i class="fas fa-phone-alt text-white text-xs sm:text-sm"></i>
-                                <span>{{ graduateData.phone }}</span>
+                                <span>{{ props.graduateData.phone }}</span>
                             </div>
                         </div>
                     </div>
@@ -411,15 +472,15 @@ const handleOutsideClick = (event) => {
                 <div class="text-white text-xs sm:text-sm flex flex-col sm:items-end gap-1">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-envelope"></i>
-                        <span>{{ graduateData.email }}</span>
+                        <span>{{ props.graduateData.email }}</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <i class="fas fa-graduation-cap"></i>
-                        <span>{{ graduateData.degree }}</span>
+                        <span>{{ props.graduateData.degree }}</span>
                     </div>
                     <div class="flex items-center gap-2 mt-2">
                         <span
-                            v-for="(link, index) in graduateData.socialLinks"
+                            v-for="(link, index) in props.graduateData.socialLinks"
                             :key="index"
                             class="bg-white text-[#6eb7ff] text-xs sm:text-sm rounded-full px-3 py-1 flex items-center gap-1 shadow-sm hover:bg-[#d9eaff] transition"
                         >

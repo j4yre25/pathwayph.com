@@ -32,8 +32,7 @@ use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
-use App\Http\Controllers\CompanyJobApplicantController;
-use App\Http\Controllers\CompanyApplicationController;
+
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
 use Laravel\Fortify\Http\Controllers\ConfirmedPasswordStatusController;
@@ -53,7 +52,6 @@ use Laravel\Fortify\Http\Controllers\VerifyEmailController;
 use Laravel\Fortify\Http\Controllers\VerifyEmailAddressController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\JobInboxController;
-use App\Http\Controllers\GraduatePortfolioController;
 use Laravel\Fortify\RoutePath;
 use App\Http\Controllers\EducationController;
 use App\Http\Controllers\ExperienceController;
@@ -258,6 +256,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
  
         // Schedule interview
         Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
+        
+        // View graduate portfolio
+        Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
     });
 });
 
@@ -707,33 +708,6 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
     }
 });
 
-//Manage Applicants Routes
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
- 
-    // Job-level applicant management (JobApplicantController)
-    Route::prefix('/company')->group(function () {
-        //View all jobs
-        Route::get('jobs', [CompanyJobApplicantController::class, 'index'])->name('company.job.applicants.index');
-        // View all applicants for a specific job
-        Route::get('{job}/applicants', [CompanyJobApplicantController::class, 'show'])->name('company.job.applicants.show');
-    });
- 
-    // Individual application management (ApplicationController)
-    Route::prefix('/applicants')->group(function () {
-        // View details of a specific applicant/application
-        Route::get('{application}', [CompanyApplicationController::class, 'show'])->name('applicants.show');
- 
-        // Update an applicant's status (e.g., mark as hired)
-        Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
- 
-        // Soft Delete an applicant
-        Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
- 
-        // Schedule interview
-        Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
-    });
-});
-
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -749,14 +723,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob'])->name('apply-for-job');
         Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity'])->name('archive-job-opportunity');
         Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead'])->name('mark-notification-as-read');
-        
-        // Graduate Portfolio Routes
-        Route::get('/graduate-portfolio', [GraduatePortfolioController::class, 'index'])
-            ->name('graduate.portfolio')
-            ->middleware(['auth', 'verified']);
-        Route::post('/graduate-portfolio/contact', [GraduatePortfolioController::class, 'submitContactForm'])
-            ->name('graduate.portfolio.contact')
-            ->middleware(['auth', 'verified']);
     });
 });
 
@@ -764,22 +730,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Profile Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
  
- 
     // Education Routes
-    Route::get('/profile/education', [ProfileController::class, 'index'])->name('profile.index');
+    Route::get('/profile/settings/education', [ProfileController::class, 'educationSettings'])->name('profile.settings.education');
     Route::post('/profile/education', [ProfileController::class, 'addEducation'])->name('profile.education.add');
     Route::put('/profile/education/{id}', [ProfileController::class, 'updateEducation'])->name('profile.education.update');
-    Route::delete('/profile/education/{id}', [ProfileController::class, 'removeEducation'])->name('profile.education.delete');
+    Route::delete('/profile/education/{id}', [ProfileController::class, 'deleteEducation'])->name('profile.education.delete');
     Route::put('/profile/education/{id}/archive', [ProfileController::class, 'archiveEducation'])->name('profile.education.archive');
     Route::put('/profile/education/{id}/unarchive', [ProfileController::class, 'unarchiveEducation'])->name('profile.education.unarchive');
     Route::put('/profile/education/{id}/archived', [ProfileController::class, 'archivedEducation'])->name('profile.education.archived');
  
     // Skill Routes
-    Route::get('/profile/skills', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/skills', [ProfileController::class, 'addSkill'])->name('profile.skills.add');
     Route::put('/profile/skills/{id}', [ProfileController::class, 'updateSkill'])->name('profile.skills.update');
     Route::delete('/profile/skills/{id}', [ProfileController::class, 'deleteSkill'])->name('profile.skills.remove');
@@ -849,4 +812,7 @@ Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSetting
 
  Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/job-search', [JobSearchController::class, 'index'])->name('job.search');
+
+     // Graduate Portfolio
+    Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
 });
