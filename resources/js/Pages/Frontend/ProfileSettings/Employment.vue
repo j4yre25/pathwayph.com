@@ -38,18 +38,26 @@ console.log( 'Employment Reference:', props);
 const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Employment Data
 const employmentPreferences = ref({
-  jobTypes: props.employmentPreferences.job_types ? props.employmentPreferences.job_types.split(',') : [],
-  salaryExpectations: props.employmentPreferences.salary_expectations
+  jobTypes: props.employmentPreferences?.job_types
+    ? props.employmentPreferences.job_types.split(',')
+    : [],
+  salaryExpectations: props.employmentPreferences?.salary_expectations
     ? JSON.parse(props.employmentPreferences.salary_expectations)
     : { range: '', frequency: 'per year' },
-  preferredLocations: props.employmentPreferences.preferred_locations
-    ? props.employmentPreferences.preferred_locations.split(',') : [],
-  workEnvironment: props.employmentPreferences.work_environment
-    ? props.employmentPreferences.work_environment.split(',') : [],
-  availability: props.employmentPreferences.availability
-    ? props.employmentPreferences.availability.split(',') : [],
-  additionalNotes: props.employmentPreferences.additional_notes || ''
+  preferredLocations: props.employmentPreferences?.preferred_locations
+    ? props.employmentPreferences.preferred_locations.split(',')
+    : [],
+  workEnvironment: props.employmentPreferences?.work_environment
+    ? props.employmentPreferences.work_environment.split(',')
+    : [],
+  availability: props.employmentPreferences?.availability
+    ? props.employmentPreferences.availability.split(',')
+    : [],
+  additionalNotes: props.employmentPreferences?.additional_notes || ''
 });
+
+
+console.log('Job Types:', employmentPreferences.value.jobTypes);
 
 
 
@@ -150,17 +158,17 @@ watch(
   () => props.employmentPreferences,
   (newVal) => {
     employmentPreferences.value = {
-      jobTypes: newVal.job_types ? newVal.job_types.split(',') : [],
-      salaryExpectations: newVal.salary_expectations
+      jobTypes: newVal?.job_types ? newVal.job_types.split(',') : [],
+      salaryExpectations: newVal?.salary_expectations
         ? JSON.parse(newVal.salary_expectations)
         : { range: '', frequency: 'per year' },
-      preferredLocations: newVal.preferred_locations
+      preferredLocations: newVal?.preferred_locations
         ? newVal.preferred_locations.split(',') : [],
-      workEnvironment: newVal.work_environment
+      workEnvironment: newVal?.work_environment
         ? newVal.work_environment.split(',') : [],
-      availability: newVal.availability
+      availability: newVal?.availability
         ? newVal.availability.split(',') : [],
-      additionalNotes: newVal.additional_notes || ''
+      additionalNotes: newVal?.additional_notes || ''
     };
   },
   { immediate: true }
