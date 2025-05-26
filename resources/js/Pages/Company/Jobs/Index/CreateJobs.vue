@@ -25,6 +25,8 @@ const props = defineProps({
     authUser: Object,
 })
 
+
+
 const programs = props.programs;
 
 console.log('User ID:', page.props);
@@ -37,11 +39,17 @@ const postedBy = computed(() => {
 });
 
 const jobTypes = [
-    { id: 1, name: 'Full-time' },
-    { id: 2, name: 'Part-time' },
-    { id: 3, name: 'Contract' },
-    { id: 4, name: 'Freelance' },
-    { id: 5, name: 'Internship' }
+    { id: 1, type: 'Full-time' },
+    { id: 2, type: 'Part-time' },
+    { id: 3, type: 'Contract' },
+    { id: 4, type: 'Freelance' },
+    { id: 5, type: 'Internship' }
+];
+
+const workEnvironments = [
+    { id: 1, environment_type: 'On-site' },
+    { id: 2, environment_type: 'Remote' },
+    { id: 3, environment_type: 'Hybrid' },
 ];
 
 const form = useForm({
@@ -273,7 +281,7 @@ const createJob = () => {
                                         v-model="form.job_type" required>
                                         <option value="">Select Job Type</option>
                                         <option v-for="type in jobTypes" :key="type.id" :value="type.id">
-                                            {{ type.name }}
+                                            {{ type.type }}
                                         </option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors.job_type" />
@@ -337,10 +345,9 @@ const createJob = () => {
                                     <select id="work_environment"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.work_environment" required>
-                                        <option value="">Select Work Environment</option>
-                                        <option value="On-site">On-site</option>
-                                        <option value="Remote">Remote</option>
-                                        <option value="Hybrid">Hybrid</option>
+                                         <option v-for="environment in workEnvironments" :key="environment.id" :value="environment.id">
+                                             {{ environment.environment_type }}
+                                        </option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors.job_work_environment" />
                                 </div>

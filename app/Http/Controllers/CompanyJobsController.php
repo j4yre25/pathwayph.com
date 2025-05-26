@@ -8,6 +8,7 @@ use App\Models\Graduate;
 use App\Models\Sector;
 use App\Models\Program;
 use App\Models\JobInvitation;
+use App\Models\Location;
 use App\Models\Salary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -100,9 +101,9 @@ class CompanyJobsController extends Controller
             'salary.job_max_salary' => 'required|numeric',
             'salary.salary_type' => 'required|string',
             'is_negotiable' => 'required|boolean',
-            'job_type' => 'required|string|max:255',
+            'job_type' => 'required|integer|exists:job_types,id',
             'job_experience_level' => 'required|string|max:255',
-            'work_environment' => 'required|string|max:255',
+            'work_environment' => 'required|integer|exists:work_environments,id',
             'job_description' => 'required|string|max:5000',
             'job_requirements' => 'required|string|max:5000',
             'job_deadline' => 'required|date|after:today',
@@ -122,6 +123,9 @@ class CompanyJobsController extends Controller
             'salary_type' => $validated['salary']['salary_type'],
         ]);
 
+
+        $location = Location::firstOrCreate(['address' => $validated['location']]);
+
         $user->loadMissing('hr');
 
         // Prepare job data for mass assignment
@@ -131,7 +135,7 @@ class CompanyJobsController extends Controller
             'company_id' => $user->hr->company_id,
             'status' => 'pending',
             'job_title' => $validated['job_title'],
-            'location' => $validated['location'],
+            'location' => $location->id,
             'salary_id' => $salary->id,
             'is_approved' => null,
             'job_type' => $validated['job_type'],
@@ -176,7 +180,7 @@ class CompanyJobsController extends Controller
 
         $new_job = Job::create($jobData);
         $new_job->jobTypes()->sync([$validated['job_type']]); // expects array of IDs or values
-        $new_job->locations()->sync([$validated['location']]);
+        $new_job->locations()->sync([$location->id]);
         $new_job->workEnvironments()->sync([$validated['work_environment']]);
         $new_job->programs()->attach($validated['program_id']);
 
