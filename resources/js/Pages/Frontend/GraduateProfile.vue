@@ -87,7 +87,8 @@ function fileIcon(url) {
                                 alt="Graduate Picture"
                                 class="w-32 h-32 rounded-full object-cover border-4 border-white shadow" />
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800 text-center mt-2">{{ graduate.first_name }} {{ graduate.last_name }}</h2>
+                        <h2 class="text-2xl font-bold text-gray-800 text-center mt-2">{{ graduate.first_name }} {{
+                            graduate.last_name }}</h2>
                         <p class="text-gray-600 text-center mt-1">{{ graduate.current_job_title || 'No professional title' }}</p>
                         <div class="flex justify-center space-x-4 mt-3">
                             <a v-if="graduate.linkedin_url" :href="formatUrl(graduate.linkedin_url, 'linkedin.com')"
@@ -176,11 +177,9 @@ function fileIcon(url) {
                                 </div>
                                 <div class="mt-2 md:mt-0 text-sm text-gray-500 md:text-right">
                                     <span class="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
-                                        {{ formatDate(edu.start_date) ? formatDate(edu.start_date.substring(0, 10)) :
-                                        'N/A' }}
+                                        {{ edu.start_date ? formatDate(edu.start_date.substring(0, 10)) : 'N/A' }}
                                         -
-                                        {{ formatDate(edu.end_date) ? formatDate(edu.end_date.substring(0, 10)) : 'N/A'
-                                        }}
+                                        {{ edu.end_date ? formatDate(edu.end_date.substring(0, 10)) : 'N/A' }}
                                     </span>
                                 </div>
                             </li>
@@ -203,7 +202,7 @@ function fileIcon(url) {
                                         {{ formatDate(exp.start_date) ? formatDate(exp.start_date) : 'N/A' }}
                                         -
                                         {{ exp.is_current ? 'Present' : (formatDate(exp.end_date) ?
-                                        formatDate(exp.end_date) : 'N/A') }}
+                                            formatDate(exp.end_date) : 'N/A') }}
                                     </span>
                                 </div>
                             </li>
