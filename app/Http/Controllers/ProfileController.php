@@ -25,6 +25,10 @@ use App\Models\Resume;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use App\Models\JobType;
+use App\Models\Salary;
+use App\Models\Location;
+use App\Models\WorkEnvironment;
 
 class ProfileController extends Controller
 {
@@ -997,14 +1001,13 @@ class ProfileController extends Controller
             'salary_expectations' => 'nullable|string',
             'preferred_locations' => 'nullable|string',
             'work_environment' => 'nullable|string',
-            'availability' => 'nullable|string',
             'additional_notes' => 'nullable|string',
         ]);
 
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        $employmentReference = \App\Models\EmploymentPreference::firstOrNew([
+        $employmentReference = EmploymentPreference::firstOrNew([
             'graduate_id' => $graduate->id
         ]);
 
@@ -1012,7 +1015,6 @@ class ProfileController extends Controller
         $employmentReference->salary_expectations = $request->salary_expectations;
         $employmentReference->preferred_locations = $request->preferred_locations;
         $employmentReference->work_environment = $request->work_environment;
-        $employmentReference->availability = $request->availability;
         $employmentReference->graduate_id = $graduate->id;
 
         $employmentReference->save();
@@ -1173,5 +1175,72 @@ class ProfileController extends Controller
         }
 
         return response()->file($path);
+    }
+
+    // Save employment preferences
+    public function saveEmploymentPreferences(Request $request)
+    {
+        $request->validate([
+            'job_types' => 'required|array',
+            'preferred_locations' => 'required|array',
+            'work_environment' => 'required|array',
+            'employment_min_salary' => 'nullable|numeric',
+            'employment_max_salary' => 'nullable|numeric',
+            'salary_type' => 'required|string',
+            'additional_notes' => 'nullable|string',
+        ]);
+        $user = auth()->user();
+        $graduate = $user->graduate;
+        $employmentPreference = $graduate->employmentPreferences()->firstOrCreate([]);
+
+        // 1. Job Types
+        $jobTypeNames = [];
+        $jobTypeIds = [];
+        foreach ($request->job_types as $type) {
+            $jobType = JobType::firstOrCreate(['type' => $type]);
+            $jobTypeIds[] = $jobType->id;
+            $jobTypeNames[] = $jobType->type;
+        }
+        $employmentPreference->jobTypes()->sync($jobTypeIds);
+        $employmentPreference->job_type = implode(',', $jobTypeNames); // <-- Save names, not IDs
+
+        // 2. Salary
+        $salary = Salary::firstOrCreate([
+            'job_min_salary' => $request->employment_min_salary,
+            'job_max_salary' => $request->employment_max_salary,
+            'salary_type' => $request->salary_type,
+            'employment_min_salary' => $request->employment_min_salary,
+            'employment_max_salary' => $request->employment_max_salary,
+        ]);
+        $employmentPreference->salary_id = $salary->id;
+        $employmentPreference->employment_min_salary = $request->employment_min_salary;
+        $employmentPreference->employment_max_salary = $request->employment_max_salary;
+        $employmentPreference->salary_type = $request->salary_type;
+
+        // 3. Locations
+        $locationNames = [];
+        $locationIds = [];
+        foreach ($request->preferred_locations as $address) {
+            $location = Location::firstOrCreate(['address' => $address]);
+            $locationIds[] = $location->id;
+            $locationNames[] = $location->address;
+        }
+        $employmentPreference->locations()->sync($locationIds);
+        $employmentPreference->location = implode(',', $locationNames); // <-- Save names, not IDs
+
+        // 4. Work Environments
+        $workEnvIds = [];
+        foreach ($request->work_environment as $env) {
+            $workEnv = WorkEnvironment::firstOrCreate(['environment_type' => $env]);
+            $workEnvIds[] = $workEnv->id;
+        }
+        $employmentPreference->workEnvironments()->sync($workEnvIds);
+        $employmentPreference->work_environment = implode(',', $request->work_environment); // Save as CSV of names
+
+        // 5. Additional Notes
+        $employmentPreference->additional_notes = $request->additional_notes;
+        $employmentPreference->save();
+
+        return back()->with('flash.banner', 'Employment preferences saved successfully.');
     }
 }
