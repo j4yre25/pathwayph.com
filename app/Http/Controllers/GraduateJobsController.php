@@ -7,9 +7,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 
-class JobSearchController extends Controller
+class GraduateJobsController extends Controller
 {
-   public function index(Request $request)
+  public function index(Request $request)
 {
     $user = Auth::user();
     $employmentPreferences = null;
@@ -21,24 +21,34 @@ class JobSearchController extends Controller
     // Fetch filter options
     $industries = \App\Models\Sector::select('id', 'name')->get();
     $companies = \App\Models\Company::select('id', 'company_name')->get();
+    $jobTypes = \App\Models\JobType::pluck('type', 'id');
+    $locations = \App\Models\Location::pluck('address', 'id');
+    $experienceLevels = Job::distinct()->pluck('job_experience_level');
 
     // Fetch jobs with relationships for poster info
-    $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category'])
+    $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
         ->when($request->search, function ($query, $search) {
             $query->where(function ($q) use ($search) {
                 $q->where('job_title', 'like', "%{$search}%")
-                  ->orWhere('job_location', 'like', "%{$search}%")
                   ->orWhere('job_description', 'like', "%{$search}%");
             });
         })
-        ->when($request->jobType, fn($q, $type) => $q->where('job_employment_type', $type))
-        ->when($request->location, fn($q, $location) => $q->where('job_location', 'like', "%{$location}%"))
+        ->when($request->jobType, function ($q, $type) {
+            $q->whereHas('jobTypes', fn($sub) => $sub->where('job_type_id', $type));
+        })
+        ->when($request->location, function ($q, $location) {
+            $q->whereHas('locations', fn($sub) => $sub->where('location_id', $location));
+        })
         ->when($request->industry, fn($q, $industry) => $q->where('sector_id', $industry))
-        ->when($request->salaryMin, fn($q, $min) => $q->where('job_min_salary', '>=', $min))
-        ->when($request->salaryMax, fn($q, $max) => $q->where('job_max_salary', '<=', $max))
+        ->when($request->salaryMin, function ($q, $min) {
+            $q->whereHas('salary', fn($sub) => $sub->where('job_min_salary', '>=', $min));
+        })
+        ->when($request->salaryMax, function ($q, $max) {
+            $q->whereHas('salary', fn($sub) => $sub->where('job_max_salary', '<=', $max));
+        })
         ->when($request->skills, function ($q, $skills) {
             foreach ((array)$skills as $skill) {
-                $q->whereJsonContains('related_skills', $skill);
+                $q->whereJsonContains('skills', $skill);
             }
         })
         ->when($request->experience, fn($q, $exp) => $q->where('job_experience_level', $exp))
@@ -48,10 +58,12 @@ class JobSearchController extends Controller
         ->withQueryString();
 
     return Inertia::render('Frontend/JobSearch', [
-        'employmentPreferences' => $employmentPreferences,
         'jobs' => $jobs,
         'industries' => $industries,
         'companies' => $companies,
+        'jobTypes' => $jobTypes,
+        'locations' => $locations,
+        'experienceLevels' => $experienceLevels,
     ]);
 }
     public function search(Request $request)
