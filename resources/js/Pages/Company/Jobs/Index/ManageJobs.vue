@@ -79,8 +79,20 @@ const confirmArchive = (job) => {
           <tbody class="text-gray-600 text-sm font-light">
             <tr v-for="job in jobs" :key="job.id" class="border-b border-gray-200 hover:bg-blue-100 even:bg-gray-50 odd:bg-white">
               <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
-              <td class="border border-gray-200 px-6 py-4">{{ job.job_location }}</td>
-              <td class="border border-gray-200 px-6 py-4">{{ job.job_employment_type }}</td>
+              <!-- Employment Type -->
+              <td class="border border-gray-300 px-6 py-4">
+                <span v-if="job.locations && job.job_types.length">
+                  {{ job.job_types.map(type => type.type).join(', ') }}
+                </span>
+                <span v-else>-</span>
+              </td>
+              <!-- Employment Type -->
+              <td class="border border-gray-300 px-6 py-4">
+                <span v-if="job.job_types && job.job_types.length">
+                  {{ job.job_types.map(type => type.type).join(', ') }}
+                </span>
+                <span v-else>-</span>
+              </td>
               <td class="border border-gray-200 px-6 py-4">{{ job.job_experience_level }}</td>
               <td class="border border-gray-200 px-6 py-4">
                 <span v-if="job.status === 'open'" class="text-green-600 font-semibold">Open</span>

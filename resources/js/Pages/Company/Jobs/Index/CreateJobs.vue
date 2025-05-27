@@ -1,6 +1,7 @@
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue'
 import { router, usePage, useForm } from '@inertiajs/vue3'
+import { ref, watch, computed, watchEffect } from 'vue';
+import AppLayout from '@/Layouts/AppLayout.vue'
 import Container from '@/Components/Container.vue'
 import PrimaryButton from '@/Components/PrimaryButton.vue'
 import FormSection from '@/Components/FormSection.vue';
@@ -12,8 +13,10 @@ import RichTextEditor from '@/Components/RichTextEditor.vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import '@fortawesome/fontawesome-free/css/all.css';
-import { ref, watch, computed, watchEffect } from 'vue';
-
+import { useSectorCategories } from '@/composables/useSectorCategories';
+import { useWorkEnvironmentValidation } from '@/composables/useWorkEnvironmentValidation';
+import { useSalaryValidation } from '@/composables/useSalaryValidation';
+import { useSkills } from '@/composables/useSkills';
 
 const page = usePage()
 
@@ -23,9 +26,8 @@ const props = defineProps({
     categories: Array,
     programs: Array,
     authUser: Object,
+    skills: Array, 
 })
-
-
 
 const programs = props.programs;
 
@@ -67,7 +69,7 @@ const form = useForm({
     job_type: '',
     job_experience_level: '',
     job_description: '',
-    skills: [], // <-- use 'skills'
+    skills: [],
     sector: '',
     category: '',
     job_requirements: '',
@@ -81,111 +83,36 @@ watchEffect(() => {
     form.posted_by = postedBy.value;
 });
 
-
 // Tabs setup
 const currentStep = ref('job-details');
-// Navigate to previous step
+
 const goToPreviousStep = () => {
-    if (currentStep.value === 'job-details') {
-    } else if (currentStep.value === 'salary-info') {
-        currentStep.value = 'job-details';
-    } else if (currentStep.value === 'description') {
-        currentStep.value = 'salary-info';
-    } else if (currentStep.value === 'review') {
-        currentStep.value = 'description';
-    }
+    if (currentStep.value === 'salary-info') currentStep.value = 'job-details';
+    else if (currentStep.value === 'description') currentStep.value = 'salary-info';
+    else if (currentStep.value === 'review') currentStep.value = 'description';
 };
 
-// Navigate to next step
 const goToNextStep = () => {
-    if (currentStep.value === 'job-details') {
-        currentStep.value = 'salary-info';
-    } else if (currentStep.value === 'salary-info') {
-        currentStep.value = 'description';
-    } else if (currentStep.value === 'description') {
-        currentStep.value = 'review';
-    }
+    if (currentStep.value === 'job-details') currentStep.value = 'salary-info';
+    else if (currentStep.value === 'salary-info') currentStep.value = 'description';
+    else if (currentStep.value === 'description') currentStep.value = 'review';
 };
-// End for the tabs setup
-// Save as draft functionality
+
 const saveDraft = () => {
-    // Implement save as draft functionality
     console.log('Saving as draft:', form);
 };
-
 
 const expirationDate = ref(null)
 const today = new Date()
 
+const { availableCategories } = useSectorCategories(form, props.sectors);
+const { validateLocation } = useWorkEnvironmentValidation(form);
+const { salaryError, salaryWarning, validateSalary } = useSalaryValidation(form);
+const { newSkill, isFocused, filteredSkills, addSkill, removeSkill, selectSuggestion } = useSkills(form, props.skills);
 
-
-// This is for the categories & sector dropdown
-const availableCategories = ref([])
-
-watch(() => form.sector, (newSector) => {
-    if (newSector) {
-        const selectedSector = props.sectors.find(sector => sector.id === newSector);
-        availableCategories.value = selectedSector ? selectedSector.categories : [];
-        form.category = '';
-    }
-    else {
-        availableCategories.value = [];
-    }
-});
-
-
-// Salary Setup
-const salaryError = ref('');
-
-const validateSalary = () => {
-    if (form.is_negotiable) {
-        salaryError.value = '';
-        return;
-    }
-
-    const min = parseInt(form.salary.job_min_salary);
-    const max = parseInt(form.salary.job_max_salary);
-
-    if (isNaN(min) || min < 5000 || min > 100000) {
-        salaryError.value = 'Minimum salary must be between ₱5,000 and ₱100,000';
-    } else if (isNaN(max) || max < 5000 || max > 100000) {
-        salaryError.value = 'Maximum salary must be between ₱5,000 and ₱100,000';
-    } else if (min > max) {
-        salaryError.value = 'Minimum salary cannot be greater than maximum salary';
-    } else {
-        salaryError.value = '';
-    }
-};
-
-watch(() => form.is_negotiable, () => {
-    validateSalary();
-});
-
-// End of Salary Setup
-
-
-console.log(form.program_id); // It should print something like [1, 2]
-
-// Skill setup
-const newSkill = ref('');
-
-
-const addSkill = () => {
-    if (newSkill.value.trim() !== '') {
-        form.skills.push(newSkill.value.trim());
-        newSkill.value = '';
-    }
-};
-
-const removeSkill = (index) => {
-    form.skills.splice(index, 1);
-};
-// End of skill setup
-
-// Extract selected program IDs (new function)
+// Extract selected program IDs
 const extractProgramIds = () => {
-    // Extract only the ids from the selected programs
-    form.program_id = form.program_id.map(program => program.id);  // Make sure we're only passing program ids (not full objects)
+    form.program_id = form.program_id.map(program => program.id);
 };
 
 const createJob = () => {
@@ -193,9 +120,13 @@ const createJob = () => {
 
     form.program_id = form.program_id.map(program => program.id ?? program);
 
+    if (!validateLocation()) {
+        console.log('Location validation failed.');
+        return;
+    }
+
     form.post(route('company.jobs.store', { user: page.props.auth.user.id }), {
         onSuccess: () => {
-            // form.reset();
             router.visit(route('company.jobs', { user: page.props.auth.user.id }));
         },
         onError: (errors) => {
@@ -205,8 +136,8 @@ const createJob = () => {
 
     console.log('Route:', route('company.jobs.store', { user: page.props.auth.user.id }));
 }
-
 </script>
+
 
 
 <template>
@@ -345,18 +276,24 @@ const createJob = () => {
                                     <select id="work_environment"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.work_environment" required>
-                                         <option v-for="environment in workEnvironments" :key="environment.id" :value="environment.id">
-                                             {{ environment.environment_type }}
+                                        <option v-for="environment in workEnvironments" :key="environment.id" :value="environment.id">
+                                            {{ environment.environment_type }}
                                         </option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors.job_work_environment" />
                                 </div>
 
-                                <!-- Job Location -->
+                                <!-- Job Location (disabled if Remote is selected) -->
                                 <div>
                                     <InputLabel for="location" value="Job Location" />
-                                    <TextInput id="location" type="text" class="mt-1 block w-full"
-                                        v-model="form.location" required />
+                                    <TextInput
+                                        id="location"
+                                        type="text"
+                                        class="mt-1 block w-full"
+                                        v-model="form.location"
+                                        :disabled="form.work_environment == 2"
+                                        :required="form.work_environment != 2"
+                                        :placeholder="form.work_environment == 2 ? 'Remote job — no location needed' : 'Enter job location'"/>
                                     <InputError class="mt-2" :message="form.errors.location" />
                                 </div>
                             </div>
@@ -375,22 +312,27 @@ const createJob = () => {
                                 <!-- Salary Type -->
                                 <div>
                                     <InputLabel for="job_salary_type" value="Salary Type" />
-                                    <select id="salary_type"
+                                    <select
+                                        id="salary_type"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        v-model="form.salary.salary_type">
-                                        <option value="">Select Salary Type</option>
-                                        <option value="monthly">Monthly</option>
-                                        <option value="weekly">Weekly</option>
-                                        <option value="hourly">Hourly</option>
+                                        v-model="form.salary.salary_type"
+                                        @change="validateSalary">
+                                            <option value="">Select Salary Type</option>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="hourly">Hourly</option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors['salary.salary_type']" />
                                 </div>
 
                                 <!-- Negotiable Salary Checkbox -->
                                 <div class="flex items-center mt-6">
-                                    <input id="is_negotiable" type="checkbox"
+                                    <input
+                                        id="is_negotiable"
+                                        type="checkbox"
                                         class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
-                                        v-model="form.is_negotiable" @change="validateSalary" />
+                                        v-model="form.is_negotiable"
+                                        @change="validateSalary"/>
                                     <label for="is_negotiable" class="ml-2 block text-sm text-gray-900">
                                         Salary is negotiable
                                     </label>
@@ -400,32 +342,34 @@ const createJob = () => {
                                 <div>
                                     <InputLabel for="job_min_salary" value="Minimum Salary" />
                                     <div class="relative mt-1">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
-                                        <TextInput id="job_min_salary" type="number" class="pl-7 block w-full"
-                                            v-model="form.salary.job_min_salary" :disabled="form.is_negotiable"
-                                            @input="validateSalary" min="5000" max="100000" />
+                                        <TextInput
+                                            id="job_min_salary"
+                                            type="number"
+                                            class="pl-7 block w-full"
+                                            v-model="form.salary.job_min_salary"
+                                            :disabled="form.is_negotiable"
+                                            @input="validateSalary"/>
                                     </div>
-                                    <p class="mt-1 text-xs text-gray-500">Enter amount between ₱5,000 and ₱100,000</p>
-                                    <InputError class="mt-2" :message="form.errors.job_min_salary" />
                                 </div>
 
                                 <!-- Maximum Salary -->
                                 <div>
                                     <InputLabel for="job_max_salary" value="Maximum Salary" />
                                     <div class="relative mt-1">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
-                                        <TextInput id="max_salary" type="number" class="pl-7 block w-full"
-                                            v-model="form.salary.job_max_salary" :disabled="form.is_negotiable"
-                                            @input="validateSalary" min="5000" max="100000" />
+                                        <TextInput
+                                            id="max_salary"
+                                            type="number"
+                                            class="pl-7 block w-full"
+                                            v-model="form.salary.job_max_salary"
+                                            :disabled="form.is_negotiable"
+                                            @input="validateSalary"/>
                                     </div>
-                                    <p class="mt-1 text-xs text-gray-500">Enter amount between ₱5,000 and ₱100,000</p>
-                                    <InputError class="mt-2" :message="form.errors.max_salary" />
                                 </div>
                             </div>
 
@@ -434,9 +378,13 @@ const createJob = () => {
                                 {{ salaryError }}
                             </div>
 
+                            <!-- Optional Salary Warning Message -->
+                            <div v-if="salaryWarning" class="text-yellow-600 text-sm">
+                                {{ salaryWarning }}
+                            </div>
+
                             <div class="flex justify-between">
-                                <PrimaryButton @click="goToPreviousStep" type="button"
-                                    class="bg-gray-500 hover:bg-gray-600">
+                                <PrimaryButton @click="goToPreviousStep" type="button" class="bg-gray-500 hover:bg-gray-600">
                                     Previous
                                 </PrimaryButton>
                                 <PrimaryButton @click="goToNextStep" type="button">
@@ -444,6 +392,7 @@ const createJob = () => {
                                 </PrimaryButton>
                             </div>
                         </div>
+
 
                         <!-- Description & Requirements Tab -->
                         <div v-if="currentStep === 'description'" class="space-y-6">
@@ -470,29 +419,59 @@ const createJob = () => {
                             <!-- Skills -->
                             <div>
                                 <InputLabel for="skills" value="Skills" />
-                                <div class="flex mt-1">
-                                    <TextInput id="skills" type="text" class="block w-full" v-model="newSkill"
-                                        placeholder="Enter a skill" @keyup.enter.prevent="addSkill" />
-                                    <PrimaryButton type="button" @click="addSkill" class="ml-2">
-                                        Add
-                                    </PrimaryButton>
+
+                                <div class="relative">
+                                    <!-- Input Field -->
+                                    <div class="flex mt-1">
+                                        <TextInput
+                                            id="skills"
+                                            type="text"
+                                            class="block w-full"
+                                            v-model="newSkill"
+                                            placeholder="Enter a skill"
+                                            @input="filterSuggestions"
+                                            @keyup.enter.prevent="addSkill"
+                                            @focus="showSuggestions = true"
+                                        />
+                                        <PrimaryButton type="button" @click="addSkill" class="ml-2">
+                                            Add
+                                        </PrimaryButton>
+                                    </div>
+
+                                    <!-- Suggestions Dropdown -->
+                                    <div v-if="showSuggestions && filteredSkills.length > 0" class="absolute z-10 bg-white border mt-1 w-full rounded shadow max-h-40 overflow-auto">
+                                        <div
+                                            v-for="(suggestion, i) in filteredSkills"
+                                            :key="i"
+                                            @click="selectSuggestion(suggestion)"
+                                            class="px-3 py-2 hover:bg-indigo-100 cursor-pointer"
+                                        >
+                                            {{ suggestion }}
+                                        </div>
+                                    </div>
                                 </div>
-                                <p class="mt-1 text-xs text-gray-500">Add relevant skills required for this position
-                                    (e.g., JavaScript, Project Management).</p>
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Add relevant skills required for this position (e.g., JavaScript, Project Management).
+                                </p>
 
                                 <!-- Skills List -->
                                 <div v-if="form.skills.length > 0" class="mt-3 flex flex-wrap gap-2">
-                                    <div v-for="(skill, index) in form.skills" :key="index"
-                                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center">
+                                    <div
+                                        v-for="(skill, index) in form.skills"
+                                        :key="index"
+                                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
+                                    >
                                         <span>{{ skill }}</span>
-                                        <button type="button" @click="removeSkill(index)"
-                                            class="ml-2 text-blue-600 hover:text-blue-800 focus:outline-none">
+                                        <button type="button" @click="removeSkill(index)" class="ml-2 text-blue-600 hover:text-blue-800 focus:outline-none">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
                                 </div>
+
                                 <InputError class="mt-2" :message="form.errors.skills" />
                             </div>
+
 
                             <div class="flex justify-between">
                                 <PrimaryButton @click="goToPreviousStep" type="button"
@@ -658,13 +637,8 @@ const createJob = () => {
                             </div>
                         </div>
                     </template>
-
                 </FormSection>
-
-
             </div>
-
         </Container>
-
     </AppLayout>
 </template>
