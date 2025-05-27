@@ -11,7 +11,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
-
+ 
 // Define props
 const props = defineProps({
   activeSection: {
@@ -29,12 +29,12 @@ const props = defineProps({
       additional_notes: ''
     })
   }
-
+ 
 });
-
-
+ 
+ 
 console.log( 'Employment Reference:', props);
-
+ 
 const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Employment Data
 const employmentPreferences = ref({
@@ -57,12 +57,9 @@ const employmentPreferences = ref({
 });
 
 
-console.log('Job Types:', employmentPreferences.value.jobTypes);
-
-
 
 const isAddLocationModalOpen = ref(false);
-
+ 
 // Employment Preferences Handlers
 const saveEmploymentPreferences = () => {
   const employmentForm = useForm({
@@ -73,12 +70,12 @@ const saveEmploymentPreferences = () => {
     availability: employmentPreferences.value.availability.length ? employmentPreferences.value.availability.join(',') : '',
     additional_notes: employmentPreferences.value.additionalNotes || ''
   });
-
+ 
   employmentForm.post(route('profile.employment.preferences.save'), {
     onSuccess: (response) => {
       emit('close-all-modals'); console.log('Employment preferences saved successfully:', response);
       router.reload({ only: ['employmentReference'] });
-
+ 
     },
     onError: (errors) => {
       console.error('Error saving employment preferences:', errors);
@@ -86,7 +83,7 @@ const saveEmploymentPreferences = () => {
     },
   });
 };
-
+ 
 const toggleJobType = (type) => {
   const idx = employmentPreferences.value.jobTypes.indexOf(type);
   if (idx === -1) {
@@ -95,33 +92,33 @@ const toggleJobType = (type) => {
     employmentPreferences.value.jobTypes.splice(idx, 1);
   }
 };
-
-
-
+ 
+ 
+ 
 const newLocation = ref('');
-
+ 
 const addPreferredLocation = () => {
   if (!newLocation.value.trim()) {
     alert("Please enter a valid location.");
     return;
   }
-
+ 
   if (!employmentPreferences.value.preferredLocations.includes(newLocation.value.trim())) {
     employmentPreferences.value.preferredLocations.push(newLocation.value.trim());
-
+ 
     console.log('Is Add Location Modal Open:', isAddLocationModalOpen.value);
-
+ 
     console.log("Location added:", newLocation.value);
-
+ 
     alert("Location added successfully!");
   } else {
     alert("This location is already in your preferences.");
   }
-
+ 
   closeAddLocationModal();
 };
-
-
+ 
+ 
 const resetEmploymentPreferences = () => {
   employmentPreferences.value = {
     jobTypes: [],
@@ -136,24 +133,24 @@ const resetEmploymentPreferences = () => {
   };
   console.log('Employment preferences reset.');
 };
-
+ 
 const closeAddLocationModal = () => {
   isAddLocationModalOpen.value = false;
   newLocation.value = '';
   console.log('Add location modal closed.');
 };
-
+ 
 // Function to initialize data on component mount
 const initializeData = () => {
   // Fetch initial data or set defaults
   console.log('Initializing data...');
 };
-
+ 
 // Call initialize function on component mount
 onMounted(() => {
   initializeData();
 });
-
+ 
 watch(
   () => props.employmentPreferences,
   (newVal) => {
@@ -174,7 +171,7 @@ watch(
   { immediate: true }
 );
 </script>
-
+ 
 <template>
   <div v-if="activeSection === 'employment'" class="flex flex-col lg:flex-row">
     <div class="w-full lg:w-1/1 mb-6 lg:mb-0">
@@ -182,7 +179,7 @@ watch(
         <h1 class="text-xl font-semibold mb-4">Employment Preferences</h1>
       </div>
       <p class="text-gray-600 mb-6">Set your job preferences and requirements</p>
-
+ 
       <!-- Success Modal -->
       <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
         <div class="p-6">
@@ -203,7 +200,7 @@ watch(
           </div>
         </div>
       </Modal>
-
+ 
       <!-- Error Modal -->
       <Modal :show="isErrorModalOpen" @close="closeErrorModal">
         <div class="p-6">
@@ -224,7 +221,7 @@ watch(
           </div>
         </div>
       </Modal>
-
+ 
       <!-- Saved Preferences Container -->
       <div
         v-if="employmentPreferences.jobTypes.length || employmentPreferences.salaryExpectations.range || employmentPreferences.preferredLocations.length || employmentPreferences.workEnvironment.length || employmentPreferences.availability.length || employmentPreferences.additionalNotes"

@@ -52,6 +52,7 @@ use Laravel\Fortify\Http\Controllers\VerifyEmailController;
 use Laravel\Fortify\Http\Controllers\VerifyEmailAddressController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\JobInboxController;
+use App\Http\Controllers\InternshipProgramController;
 use Laravel\Fortify\RoutePath;
 use App\Http\Controllers\EducationController;
 use App\Http\Controllers\ExperienceController;
@@ -407,7 +408,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 });
 
 
-
+//Career Counseling Routes
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
+    Route::get('/internship-programs', [InternshipProgramController::class, 'index'])->name('internship-programs.index');
+    Route::post('/internship-programs', [InternshipProgramController::class, 'store'])->name('internship-programs.store');
+    Route::put('/internship-programs/{id}', [InternshipProgramController::class, 'update'])->name('internship-programs.update');
+    Route::delete('/internship-programs/{id}', [InternshipProgramController::class, 'archive'])->name('internship-programs.archive');
+    Route::post('/internship-programs/{id}/restore', [InternshipProgramController::class, 'restore'])->name('internship-programs.restore');
+    Route::post('/internship-programs/batch-upload', [InternshipProgramController::class, 'batchUpload'])->name('internship-programs.batch-upload');
+    Route::post('/internship-programs/assign', [InternshipProgramController::class, 'assignToGraduate'])->name('internship-programs.assign');
+});
 
 //School Year Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {

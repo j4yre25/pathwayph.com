@@ -52,8 +52,6 @@ class Graduate extends Model
         return $this->hasMany(Education::class);
     }
 
-
-
     public function institution()
     {
         return $this->belongsTo(Institution::class, 'institution_id');

@@ -131,10 +131,18 @@ class ProgramController extends Controller
             $duration = $request->duration;
             $durationTime = $request->duration_time;
             $durCode = $durationTime . strtoupper(substr($duration, 0, 1));
-            $number = $last && preg_match('/(\d+)([MY])(\d+)$/', $last->program_code, $m) ? intval($m[3]) + 1 : 1;
+            // Find last code with this prefix and durCode
+            $last = InstitutionProgram::where('institution_id', $institution->id)
+                ->where('program_code', 'like', $programCodePrefix . '-' . $durCode . '%')
+                ->orderByDesc('id')
+                ->first();
+            $number = 1;
+            if ($last && preg_match('/-(?:\d+[MY])?(\d{3})$/', $last->program_code, $m)) {
+                $number = intval($m[1]) + 1;
+            }
             $finalCode = $programCodePrefix . '-' . $durCode . str_pad($number, 3, '0', STR_PAD_LEFT);
         } else {
-            $number = $last && preg_match('/(\d+)$/', $last->program_code, $m) ? intval($m[1]) + 1 : 1;
+            $number = $last && preg_match('/-(\d{3})$/', $last->program_code, $m) ? intval($m[1]) + 1 : 1;
             $finalCode = $programCodePrefix . '-' . str_pad($number, 3, '0', STR_PAD_LEFT);
         }
 
