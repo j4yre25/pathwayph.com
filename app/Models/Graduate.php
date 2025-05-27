@@ -64,4 +64,12 @@ class Graduate extends Model
     {
         return $this->hasOne(CareerGoal::class);
     }
+
+    /**
+     * Get the employment preferences associated with the graduate.
+     */
+    public function employmentPreferences()
+    {
+        return $this->hasOne(\App\Models\EmploymentPreference::class, 'graduate_id');
+    }
 }

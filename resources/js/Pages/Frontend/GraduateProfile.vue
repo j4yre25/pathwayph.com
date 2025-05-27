@@ -345,7 +345,6 @@ function fileIcon(url) {
                             </p>
                             <p><strong>Preferred Locations:</strong> {{ employmentPreferences.preferred_locations }}</p>
                             <p><strong>Work Environment:</strong> {{ employmentPreferences.work_environment }}</p>
-                            <p><strong>Availability:</strong> {{ employmentPreferences.availability }}</p>
                             <p><strong>Additional Notes:</strong> {{ employmentPreferences.additional_notes }}</p>
                         </div>
                     </section>
