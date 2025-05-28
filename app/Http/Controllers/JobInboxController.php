@@ -43,7 +43,7 @@ class JobInboxController extends Controller
                     'posted_at' => $job->created_at->diffForHumans(),
                     'description' => $job->job_description,
                     'experience_level' => $job->job_experience_level,
-                    'required_skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
+                    'required_skills' => is_array($job->related_skills) ? $job->related_skills : json_decode($job->related_skills, true),
                     'match_percentage' => $this->calculateMatchPercentage($user)
                 ];
             });
