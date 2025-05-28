@@ -171,8 +171,8 @@ onMounted(() => {
                                     </div>
                                     <p class="text-sm text-gray-600 mb-4">{{ opportunity.description }}</p>
                                     <div class="flex flex-wrap gap-2">
-                                        <span v-for="skill in opportunity.required_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
-                                            {{ skill }}
+                                        <span v-for="skills in opportunity.required_skills" :key="skills" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                            {{ skills }}
                                         </span>
                                     </div>
                                 </div>

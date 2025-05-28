@@ -7,6 +7,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
+
 // Props and Page Data
 const { props } = usePage();
 
@@ -135,6 +136,12 @@ function visitCompanyWebsite(website) {
     }
 }
 
+function goToCompanyProfile(companyId) {
+  if (companyId) {
+    router.visit(route('company.profile', { id: companyId }));
+  }
+}
+
 // View job details
 function viewJobDetails(job) {
     selectedJob.value = job;
@@ -221,8 +228,8 @@ onMounted(() => {
                                         placeholder="Min Salary" />
                                     <TextInput v-model="selectedSalaryMax" type="number" class="w-full"
                                         placeholder="Max Salary" />
-                                    <TextInput v-model="selectedSkillsInput" class="w-full"
-                                        placeholder="Skills (comma separated)" />
+                                    <TextInput v-mdel="selectedSkillsInput" class="w-full"
+                                        placeholder="Skills (commao separated)" />
                                 </div>
                                 <div class="flex justify-end mt-4">
                                     <PrimaryButton type="submit" class="bg-indigo-600 hover:bg-indigo-700">
@@ -326,8 +333,10 @@ onMounted(() => {
                                         class="text-sm bg-green-600 hover:bg-green-700">
                                         Apply Now
                                     </PrimaryButton>
-                                    <PrimaryButton @click="visitCompanyWebsite(job.company?.website)"
-                                        class="text-sm bg-gray-600 hover:bg-gray-700">
+                                   <PrimaryButton
+                                        v-if="job.company && job.company.id"
+                                        @click="goToCompanyProfile(job.company.id)"
+                                        class="bg-gray-600 hover:bg-gray-700">
                                         View Company
                                     </PrimaryButton>
                                 </div>
