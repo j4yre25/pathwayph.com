@@ -39,7 +39,7 @@ const goToJob = (jobId) => {
         <tr class="bg-blue-500 text-white uppercase text-sm leading-normal">
           <th class="py-3 px-4 text-left border">Job Title</th>
           <th class="py-3 px-4 text-left border">Posted By</th>
-          <th class="py-3 px-4 text-left border">Location</th>
+          <th class="py-3 px-4 text-left border">Work Environment</th>
           <th class="py-3 px-4 text-left border">Employment Type</th>
           <th class="py-3 px-4 text-left border">Experience Level</th>
           <th class="py-3 px-4 text-left border">Approval Status</th>
@@ -59,8 +59,24 @@ const goToJob = (jobId) => {
               {{ job.posted_by }}
             </Link>
           </td>
-          <td class="border border-gray-300 px-6 py-4">{{ job.job_location }}</td>
-          <td class="border border-gray-300 px-6 py-4">{{ job.job_employment_type }}</td>
+
+         <!-- Work Environment -->
+          <td class="border border-gray-300 px-6 py-4">
+            <span v-if="job.work_environments && job.work_environments.length">
+              {{ job.work_environments.map(env => env.environment_type).join(', ') }}
+            </span>
+            <span v-else>-</span>
+          </td>
+
+          <!-- Employment Type -->
+          <td class="border border-gray-300 px-6 py-4">
+            <span v-if="job.job_types && job.job_types.length">
+              {{ job.job_types.map(type => type.type).join(', ') }}
+            </span>
+            <span v-else>-</span>
+          </td>
+
+
           <td class="border border-gray-300 px-6 py-4">{{ job.job_experience_level }}</td>
           <td class="border border-gray-300 px-6 py-4">
             <span v-if="job.is_approved === 1" class="text-green-600 font-semibold">Approved</span>
