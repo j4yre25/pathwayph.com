@@ -366,8 +366,7 @@ onMounted(() => {
                                     <PrimaryButton @click="oneClickApply(job)" class="text-sm bg-green-600 hover:bg-green-700">
                                         One-Click Apply
                                     </PrimaryButton>
-                                    <PrimaryButton @click="visitCompanyWebsite(job.company?.website)" class="text-sm bg-gray-600 hover:bg-gray-700">
-
+                  
                                    <PrimaryButton
                                         v-if="job.company && job.company.id"
                                         @click="goToCompanyProfile(job.company.id)"

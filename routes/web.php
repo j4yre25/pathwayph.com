@@ -275,7 +275,7 @@ Route::middleware(['auth'])->group(function () {
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
-    Route::get('/company/profile/{companyId}', [CompanyProfileController::class, 'profile'])->name('company.profile');
+    Route::get('/company/profile', [CompanyProfileController::class, 'profile'])->name('company.profile');
     Route::post('/company/profile', [CompanyProfileController::class, 'post'])->name('company-profile.post');
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
@@ -821,3 +821,11 @@ Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSetting
 Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
 
 
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
+    Route::get('/graduate-jobs/recommendations', [\App\Http\Controllers\GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
+    // Graduate Portfolio+
+    Route::post('/jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
+
+    Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
+});
