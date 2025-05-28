@@ -13,10 +13,10 @@ import RichTextEditor from '@/Components/RichTextEditor.vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import '@fortawesome/fontawesome-free/css/all.css';
-import { useSectorCategories } from '@/composables/useSectorCategories';
-import { useWorkEnvironmentValidation } from '@/composables/useWorkEnvironmentValidation';
-import { useSalaryValidation } from '@/composables/useSalaryValidation';
-import { useSkills } from '@/composables/useSkills';
+import { useSectorCategories } from '@/Composables/useSectorCategories';
+import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
+import { useSalaryValidation } from '@/Composables/useSalaryValidation';
+import { useSkills } from '@/Composables/useSkills';
 
 const page = usePage()
 

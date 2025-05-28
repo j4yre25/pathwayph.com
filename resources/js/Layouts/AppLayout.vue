@@ -142,7 +142,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
                                     :active="route().current('job.search')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Job Search
+                                    Find Jobs   
                                 </NavLink>
 
 

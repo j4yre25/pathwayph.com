@@ -821,9 +821,3 @@ Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSetting
 Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    Route::get('/job-search', [GraduateJobsController::class, 'index'])->name('job.search');
-
-    // Graduate Portfolio
-    Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
-});

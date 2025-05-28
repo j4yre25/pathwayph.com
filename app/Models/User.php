@@ -133,10 +133,6 @@ class User extends Authenticatable
         ];
     }
 
-    public function graduates()
-    {
-        return $this->hasOne(Graduate::class);
-    }
 
 
     public function jobs()

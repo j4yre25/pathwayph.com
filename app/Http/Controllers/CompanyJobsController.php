@@ -20,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use App\Notifications\NewJobPostingNotification;
 
 
 class CompanyJobsController extends Controller
@@ -194,6 +195,10 @@ class CompanyJobsController extends Controller
         $new_job->workEnvironments()->sync([$validated['work_environment']]);
         $new_job->programs()->attach($validated['program_id']);
 
+
+        // Notify graduates about the new job posting
+        $this->notifyGraduates($new_job);
+
         return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
     }
 
@@ -346,5 +351,23 @@ class CompanyJobsController extends Controller
         $job->restore();
 
         return redirect()->back()->with('flash.banner', 'Job restored successfully.');
+    }
+
+    protected function notifyGraduates(Job $new_job)
+    {
+        // Find graduates whose preferences match the new job
+        $graduates = Graduate::whereHas('employmentPreference', function ($q) use ($new_job) {
+            $q->where(function ($query) use ($new_job) {
+                $query->where('job_type', 'like', "%{$new_job->job_type}%")
+                      ->orWhere('location', 'like', "%{$new_job->location}%")
+                      ->orWhere('work_environment', 'like', "%{$new_job->work_environment}%");
+            });
+        })->get();
+
+        foreach ($graduates as $graduate) {
+            if ($graduate->user) {
+                $graduate->user->notify(new NewJobPostingNotification($new_job));
+            }
+        }
     }
 }
