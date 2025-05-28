@@ -16,7 +16,7 @@ class JobInboxController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
+
         return Inertia::render('Frontend/JobInbox', [
             'jobOpportunities' => $this->getJobOpportunities($user),
             'jobApplications' => $this->getJobApplications($user),
@@ -37,8 +37,8 @@ class JobInboxController extends Controller
                     'company' => $job->company->company_name,
                     'location' => $job->job_location,
                     'salary' => ($job->job_min_salary && $job->job_max_salary)
-                            ? "{$job->job_min_salary} - {$job->jpb_max_salary}"
-                            : 'Negotiable',
+                        ? "{$job->job_min_salary} - {$job->jpb_max_salary}"
+                        : 'Negotiable',
                     'type' => $job->job_employment_type,
                     'posted_at' => $job->created_at->diffForHumans(),
                     'description' => $job->job_description,
@@ -59,43 +59,41 @@ class JobInboxController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($application) {
-            $progress = $this->calculateApplicationProgress($application->status);
+                $progress = $this->calculateApplicationProgress($application->status);
 
-            return [
-                'id' => $application->id,
-                'job_title' => $application->job->job_title,
-                'company' => optional($application->job->company)->company_name ?? 'Unknown Company',
-                'status' => $application->status,
-                'progress' => $progress,
-                'applied_at' => $application->created_at->format('M d, Y'),
-                'interview_date' => optional($application->interview_date)->format('M d, Y'),
-            ];
-        });
+                return [
+                    'id' => $application->id,
+                    'job_title' => $application->job->job_title,
+                    'company' => optional($application->job->company)->company_name ?? 'Unknown Company',
+                    'status' => $application->status,
+                    'progress' => $progress,
+                    'applied_at' => $application->created_at->format('M d, Y'),
+                    'interview_date' => optional($application->interview_date)->format('M d, Y'),
+                ];
+            });
     }
 
     // Get notifications
     public function getNotifications()
     {
-                /** @var \App\Models\User $user */
-
-      $user = Auth::user();
+        $user = Auth::user();
 
         return $user->notifications()
-            ->where('read_at', null)
+            ->whereNull('read_at')
+            ->where('type', \App\Notifications\NewJobPostingNotification::class) // Only new job notifications
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($notification) {
                 return [
                     'id' => $notification->id,
                     'title' => $notification->data['title'] ?? '',
-                    'message' => $notification->data['message'] ?? '',
-                    'type' => $notification->data['type'] ?? 'application_update',
+                    'company' => $notification->data['company'] ?? '',
+                    'job_id' => $notification->data['job_id'] ?? null,
                     'created_at' => $notification->created_at->diffForHumans(),
                     'read' => !is_null($notification->read_at)
                 ];
             });
     }
-
     // Apply for a job
     public function applyForJob(Request $request)
     {

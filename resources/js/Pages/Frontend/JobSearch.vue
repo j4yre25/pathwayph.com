@@ -2,10 +2,11 @@
 import Graduate from '@/Layouts/AppLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import { ref, onMounted, computed } from 'vue';
-import { useForm, usePage, router,  } from '@inertiajs/vue3';
+import { useForm, usePage, router, } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
+import axios from 'axios';
 
 
 // Props and Page Data
@@ -73,7 +74,7 @@ function fetchJobs() {
 
     // Only include non-empty filters
     const params = {};
-    if (searchQuery.value) params.search = searchQuery.value;
+    if (searchQuery.value) params.keywords = searchQuery.value;
     if (selectedJobType.value) params.jobType = selectedJobType.value;
     if (selectedLocation.value) params.location = selectedLocation.value;
     if (selectedIndustry.value) params.industry = selectedIndustry.value;
@@ -120,6 +121,13 @@ function submitApplication() {
         }
     });
 }
+
+function oneClickApply(job) {
+    axios.post(route('jobs.oneClickApply'), { job_id: job.id })
+        .then(() => alert('Applied with your latest resume and cover letter!'));
+}
+
+
 function closeApplyModal() {
     isApplyModalOpen.value = false;
     selectedJob.value = null;
@@ -158,6 +166,22 @@ function closeErrorModal() {
     isErrorModalOpen.value = false;
 }
 
+
+const recommendations = ref([]);
+const recommendationsLoading = ref(false);
+
+function fetchRecommendations() {
+    recommendationsLoading.value = true;
+    axios.get(route('graduate-jobs.recommendations'))
+        .then(res => {
+            recommendations.value = res.data.recommendations || [];
+        })
+        .finally(() => {
+            recommendationsLoading.value = false;
+        });
+}
+
+
 // Format salary for display
 function formatSalary(salary) {
     if (!salary) return 'Not specified';
@@ -167,10 +191,16 @@ function formatSalary(salary) {
     return 'Not specified';
 }
 
+function fetchNotifications() {
+    axios.get('/notifications').then(res => {
+        notifications.value = res.data;
+    });
+}
+
 // Only fetch jobs when user clicks Search
 onMounted(() => {
-    // Optionally, fetch jobs on mount if you want to show jobs by default
-    // fetchJobs();
+    fetchRecommendations();
+    fetchNotifications();
 });
 </script>
 
@@ -184,7 +214,7 @@ onMounted(() => {
                             <h1 class="text-2xl font-extrabold leading-6">Apply for Jobs</h1>
                             <p class="text-sm text-[#374151] mt-1">Discover and apply for jobs that match your skills
                                 and interests</p>
-                                
+
                         </header>
 
                         <!-- FILTER BAR -->
@@ -262,7 +292,7 @@ onMounted(() => {
 
                         <!-- Job Listings -->
                         <div v-else class="grid grid-cols-1 gap-6">
-                            
+
                             <div v-for="job in jobsForm.jobs" :key="job.id"
                                 class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <div class="flex justify-between items-start mb-4">
@@ -329,14 +359,20 @@ onMounted(() => {
                                     <PrimaryButton @click="viewJobDetails(job)" class="text-sm">
                                         View Details
                                     </PrimaryButton>
-                                    <PrimaryButton @click="showApplyModal(job)"
-                                        class="text-sm bg-green-600 hover:bg-green-700">
+                                    <PrimaryButton @click="showApplyModal(job)" class="text-sm bg-green-600 hover:bg-green-700">
                                         Apply Now
                                     </PrimaryButton>
+
+                                    <PrimaryButton @click="oneClickApply(job)" class="text-sm bg-green-600 hover:bg-green-700">
+                                        One-Click Apply
+                                    </PrimaryButton>
+                                    <PrimaryButton @click="visitCompanyWebsite(job.company?.website)" class="text-sm bg-gray-600 hover:bg-gray-700">
+
                                    <PrimaryButton
                                         v-if="job.company && job.company.id"
                                         @click="goToCompanyProfile(job.company.id)"
                                         class="bg-gray-600 hover:bg-gray-700">
+
                                         View Company
                                     </PrimaryButton>
                                 </div>
@@ -395,7 +431,8 @@ onMounted(() => {
                                 <!-- Detailed Sections -->
                                 <div class="mb-6">
                                     <h3 class="text-lg font-semibold mb-2">Job Description</h3>
-                                    <p class="text-gray-700 whitespace-pre-line">{{ selectedJob.job_description || 'Notspecified.' }}</p>
+                                    <p class="text-gray-700 whitespace-pre-line">{{ selectedJob.job_description ||
+                                        'Notspecified.' }}</p>
                                 </div>
                                 <div class="mb-6" v-if="selectedJob.job_roles">
                                     <h3 class="text-lg font-semibold mb-2">Roles</h3>
@@ -502,7 +539,7 @@ onMounted(() => {
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
                                         <h2 class="text-xl font-bold text-gray-900">Apply for: {{ selectedJob.job_title
-                                            }}
+                                        }}
                                         </h2>
                                         <p class="text-md text-gray-600">
                                             <template v-if="selectedJob.company">
@@ -576,6 +613,44 @@ onMounted(() => {
                                 </div>
                             </div>
                         </Modal>
+
+                        
+
+
+
+
+
+                        <!-- Recommended Jobs Section -->
+                        <div class="mb-8">
+                            <h2 class="text-xl font-semibold mb-2">Recommended for You</h2>
+                            <div v-if="recommendationsLoading" class="py-4">Loading recommendations...</div>
+                            <div v-else-if="!recommendations.length" class="text-gray-500 py-4">No recommendations yet.</div>
+                            <div v-else class="grid grid-cols-1 gap-4">
+                                <div v-for="job in recommendations" :key="job.id" class="bg-blue-50 border border-blue-200 rounded p-4">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="font-bold">{{ job.job_title }}</h3>
+                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p>
+                                        </div>
+                                        <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View</PrimaryButton>
+                                    </div>
+                                    <div class="text-xs text-gray-700 mt-2">
+                                        <span v-if="job.locations && job.locations.length">
+                                            {{ job.locations.map(l => l.address).join(', ') }}
+                                        </span>
+                                    </div>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <span
+                                            v-for="label in job.match_labels"
+                                            :key="label"
+                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200"
+                                        > Match with
+                                            {{ label }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
