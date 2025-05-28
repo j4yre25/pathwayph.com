@@ -275,7 +275,7 @@ Route::middleware(['auth'])->group(function () {
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
-    Route::get('/company/profile', [CompanyProfileController::class, 'profile'])->name('company.profile');
+    Route::get('/company/profile/{companyId}', [CompanyProfileController::class, 'profile'])->name('company.profile');
     Route::post('/company/profile', [CompanyProfileController::class, 'post'])->name('company-profile.post');
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
