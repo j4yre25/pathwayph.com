@@ -10,9 +10,11 @@ use Illuminate\Support\Facades\Log;
 
 class GraduateJobsController extends Controller
 {
+
     public function index(Request $request)
     {
         $user = Auth::user();
+
         $employmentPreferences = null;
 
         if ($user && $user->role === 'graduate') {
@@ -32,6 +34,7 @@ class GraduateJobsController extends Controller
                 $query->where(function ($q) use ($keywords) {
                     $q->where('job_title', 'like', "%{$keywords}%")
                         ->orWhere('job_description', 'like', "%{$keywords}%");
+
                 });
             })
             ->when($request->jobType, function ($q, $type) {

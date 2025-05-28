@@ -131,6 +131,17 @@ class User extends Authenticatable
             'is_approved' => 'boolean'
 
         ];
+    }   
+    public function companyThroughHR()
+    {
+        return $this->hasOneThrough(
+            \App\Models\Company::class,        // Final model
+            \App\Models\HumanResource::class,  // Intermediate model
+            'user_id',                         // Foreign key on HumanResource table
+            'id',                              // Foreign key on Company table
+            'id',                              // Local key on User
+            'company_id'                       // Local key on HumanResource
+        );
     }
 
 
@@ -318,11 +329,9 @@ class User extends Authenticatable
         );
     }
 
-
-
     public function company()
     {
-        return $this->belongsTo(Company::class, 'company_id');
+        return $this->belongsTo(Company::class, 'user_id' );
     }
 
     public function peso()

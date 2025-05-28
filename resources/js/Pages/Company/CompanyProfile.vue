@@ -1,6 +1,6 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
-import { defineProps, reactive, ref, watch } from "vue";
+import { defineProps, reactive, ref, watch, computed } from "vue";
 import { router } from "@inertiajs/vue3";
 import { useFormattedMobileNumber } from "@/Composables/useFormattedMobileNumber.js";
 import { useFormattedTelephoneNumber } from "@/Composables/useFormattedTelephoneNumber.js";
@@ -8,47 +8,51 @@ import { useFormattedTelephoneNumber } from "@/Composables/useFormattedTelephone
 
 const props = defineProps({
   company: Object,
+  userRole: {
+    type: String,
+    required: true, // 'company' or 'graduate'
+  },
 });
 
 const isEditing = ref(false);
 const localDescription = ref(props.company.description || '');
 
 watch(() => props.company.description, (newVal) => {
-    localDescription.value = newVal || '';
+  localDescription.value = newVal || '';
 });
 
+const canEdit = computed(() => props.userRole === 'company');
 
 const saveDescription = () => {
-    // Constructing the payload with all required fields
-    const payload = {
-        company_name: props.company.company_name,
-        company_street_address: props.company.company_street_address,
-        company_brgy: props.company.company_brgy,
-        company_city: props.company.company_city,
-        company_province: props.company.company_province,
-        company_zip_code: props.company.company_zip_code,
-        company_contact_number: props.company.company_contact_number,
-        company_email: props.company.company_email,
-        company_telephone_number: props.company.company_telephone_number,
-        company_description: localDescription.value,  // Edited description
-    };
+  if (!canEdit.value) return;
 
-    console.log(payload);  // For debugging purposes
+  const payload = {
+    company_name: props.company.company_name,
+    company_street_address: props.company.company_street_address,
+    company_brgy: props.company.company_brgy,
+    company_city: props.company.company_city,
+    company_province: props.company.company_province,
+    company_zip_code: props.company.company_zip_code,
+    company_contact_number: props.company.company_contact_number,
+    company_email: props.company.company_email,
+    company_telephone_number: props.company.company_telephone_number,
+    company_description: localDescription.value,
+  };
 
-    router.post(route('company-profile.post'), payload, {
-        onSuccess: () => {
-            isEditing.value = false;
-        },
-        onError: (errors) => {
-            console.error(errors);  
-        }
-    });
+  router.post(route('company-profile.post'), payload, {
+    onSuccess: () => {
+      isEditing.value = false;
+    },
+    onError: (errors) => {
+      console.error(errors);
+    },
+  });
 };
 
 const cancelEditing = () => {
-      isEditing.value = false; // Cancel editing, revert changes
-      localDescription.value = props.company.description || '';
-    };
+  isEditing.value = false;
+  localDescription.value = props.company.description || '';
+};
 
 const contactForm = reactive({
   contact: props.company?.company_contact_number || '',
@@ -56,7 +60,7 @@ const contactForm = reactive({
 });
 
 const { formattedMobileNumber } = useFormattedMobileNumber(contactForm, 'contact');
-const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 'telephone');
+const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 'telephone')
 
 </script>
 
@@ -122,6 +126,7 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
                 <!-- Action Buttons -->
                 <div class="flex space-x-4">
                         <a
+                            v-if="canEdit"
                             :href="route('profile.show', { id: company.id, edit: 'company' })"
                             class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 inline-block">
                             Edit Profile
@@ -160,9 +165,9 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
                     <div class="flex items-center justify-between">
                         <h4 class="text-xl font-semibold text-gray-800">Company Description</h4>
                         <Pencil
+                            v-if="canEdit"
                             @click="isEditing = true"
-                            class="w-5 h-5 text-gray-500 hover:text-blue-500 cursor-pointer"
-                        />
+                            class="w-5 h-5 text-gray-500 hover:text-blue-500 cursor-pointer"/>
                     </div>
 
                     <!-- Edit Mode -->
