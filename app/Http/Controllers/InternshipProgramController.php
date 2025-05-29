@@ -17,9 +17,11 @@ class InternshipProgramController extends Controller
             ->when($request->program_id, fn($q) => $q->where('program_id', $request->program_id))
             ->when($request->career_opportunity_id, fn($q) => $q->where('career_opportunity_id', $request->career_opportunity_id))
             ->when($request->skills, fn($q) => $q->where('skills', 'like', "%{$request->skills}%"))
-            ->when($request->status, function($q) use ($request) {
-                if ($request->status === 'active') $q->where('is_active', true);
-                if ($request->status === 'inactive') $q->where('is_active', false);
+            ->when($request->status, function ($q) use ($request) {
+                if ($request->status === 'active')
+                    $q->where('is_active', true);
+                if ($request->status === 'inactive')
+                    $q->where('is_active', false);
             })
             ->withTrashed();
 
@@ -28,6 +30,16 @@ class InternshipProgramController extends Controller
 
         return Inertia::render('Institutions/InternshipPrograms/Index', [
             'internshipPrograms' => $query->get(),
+            'programs' => $programs,
+            'careerOpportunities' => $careerOpportunities,
+        ]);
+    }
+
+    public function create()
+    {
+        $programs = Program::all();
+        $careerOpportunities = CareerOpportunity::all();
+        return Inertia::render('Institutions/InternshipPrograms/Create', [
             'programs' => $programs,
             'careerOpportunities' => $careerOpportunities,
         ]);
