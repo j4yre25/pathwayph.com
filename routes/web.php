@@ -812,7 +812,4 @@ Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSetting
 
  Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/job-search', [JobSearchController::class, 'index'])->name('job.search');
-
-     // Graduate Portfolio
-    Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
 });

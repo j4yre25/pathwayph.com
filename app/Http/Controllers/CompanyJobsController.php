@@ -133,6 +133,7 @@ class CompanyJobsController extends Controller
         $new_job->posted_by = $user->hr->full_name;
         $new_job->company_id = $user->hr->company_id; 
         $new_job->status = 'pending'; // Default status
+        $new_job->is_approved = null;
         $new_job->job_title = $validated['job_title'];
         $new_job->job_location = $validated['job_location'];
 

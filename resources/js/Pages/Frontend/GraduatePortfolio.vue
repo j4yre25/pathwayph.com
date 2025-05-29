@@ -164,9 +164,6 @@ const skillsByCategory = computed(() => {
 onMounted(() => {
     // Any initialization code can go here
     console.log('Graduate Portfolio component mounted');
-    
-    // Here you would typically fetch data from an API or props
-    // and populate the graduateData ref
 });
 
 // Enhanced form validation with real-time feedback

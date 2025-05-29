@@ -1,32 +1,48 @@
 <script setup>
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Link } from '@inertiajs/vue3';
-import Container from '@/Components/Container.vue';
-import { router, usePage } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
+import axios from 'axios';
+import Modal from '@/Components/Modal.vue';
+import GraduatePortfolio from '@/Pages/Frontend/GraduatePortfolio.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import TextArea from '@/Components/TextArea.vue';
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
-import Modal from '@/Components/Modal.vue';
-import axios from 'axios';
-
-const page = usePage();
 
 const props = defineProps({
-  applicants: {
-    type: Array,
-    required: true,
-  }
+  applicants: Array,
+  filters: Object,
+  pipelineStages: Array,
+  statuses: Array,
 });
 
+// Reactive variables
 const selectedApplicant = ref(null);
 const isViewDetailsModalOpen = ref(false);
 const portfolioData = ref(null);
 const isLoading = ref(false);
-
-// Action loading state
+const actionError = ref('');
 const isActionLoading = ref(false);
 const activeApplicantId = ref(null);
-const actionError = ref(null);
+const isScheduleModalOpen = ref(false);
+const isRejectModalOpen = ref(false);
+const isUpdateStatusModalOpen = ref(false);
+const selectedStatus = ref('');
+const selectedPipelineStage = ref('');
+const interviewDate = ref('');
+const interviewTime = ref('');
+const interviewLocation = ref('');
+const interviewNotes = ref('');
+const rejectionReason = ref('');
+const formErrors = ref({});
 
 // Function to get status class based on applicant status
 const getStatusClass = (status) => {
@@ -49,7 +65,7 @@ const fetchPortfolioData = async (applicantId) => {
   isLoading.value = true;
   try {
     // Fetch the portfolio data for the selected applicant
-    const response = await axios.get(route('graduate.portfolio', { user: applicantId }));
+    const response = await axios.get(route('applicants.portfolio', { user: applicantId }));
     portfolioData.value = response.data;
   } catch (error) {
     console.error('Error fetching portfolio data:', error);
@@ -65,7 +81,9 @@ const viewApplicantDetails = async (applicant) => {
   isViewDetailsModalOpen.value = true;
   
   // Fetch portfolio data for the selected applicant
-  await fetchPortfolioData(applicant.user_id);
+  // Use the user_id from the applicant object
+  const userId = applicant.user_id || applicant.id;
+  await fetchPortfolioData(userId);
 };
 
 // Close the modal
@@ -138,7 +156,7 @@ const closeModal = () => {
             <div class="flex space-x-2">
               <!-- View details button -->
               <PrimaryButton
-                  @click="() => { selectedApplicant = applicant; isViewDetailsModalOpen = true }"
+                  @click="() => viewApplicantDetails(applicant)"
                   :disabled="isActionLoading && activeApplicantId === applicant.id"
                   :class="{ 'opacity-50 cursor-not-allowed': isActionLoading && activeApplicantId === applicant.id }"
                   class="text-xs"
@@ -160,4 +178,22 @@ const closeModal = () => {
       </div>
     </div>
   </div>
+  
+  <!-- Portfolio Modal -->  
+  <Modal :show="isViewDetailsModalOpen" @close="closeModal" max-width="6xl">
+    <div class="p-6">
+      <div v-if="isLoading" class="flex justify-center items-center py-8">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+      <div v-else-if="actionError" class="text-center text-red-600 py-8">
+        <p>{{ actionError || 'Unable to load portfolio data.' }}</p>
+      </div>
+      <div v-else-if="portfolioData">
+        <GraduatePortfolio :graduate-data="portfolioData" />
+      </div>
+      <div v-else class="text-center text-gray-600 py-8">
+        <p>No portfolio data available for this applicant.</p>
+      </div>
+    </div>
+  </Modal>
 </template>
