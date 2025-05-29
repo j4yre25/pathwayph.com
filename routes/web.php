@@ -823,8 +823,9 @@ Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name(
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
-    Route::get('/graduate-jobs/recommendations', [\App\Http\Controllers\GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
+    Route::get('/graduate-jobs/recommendations', [GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
     // Graduate Portfolio+
+    
     Route::post('/jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
     Route::get('/company/profile/{id}', [CompanyProfileController::class, 'showPublic'])->name('company.profile.public');
 

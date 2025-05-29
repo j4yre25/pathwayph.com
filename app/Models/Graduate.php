@@ -70,7 +70,12 @@ class Graduate extends Model
      */
     public function employmentPreference()
     {
-        return $this->hasOne(\App\Models\EmploymentPreference::class, 'graduate_id');
+        return $this->hasOne(EmploymentPreference::class, 'graduate_id');
+    }
+
+    public function graduateSkills()
+    {
+        return $this->hasMany(GraduateSkill::class);
     }
 
     public function jobApplications()

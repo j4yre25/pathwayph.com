@@ -161,7 +161,6 @@ class GraduateJobsController extends Controller
             $cleanSkills = array_map(function ($skill) {
                 $skill = trim($skill);
                 // Remove spaces inside the skill (turn "P y t h o n" into "Python")
-                $skill = str_replace(' ', '', $skill);
                 return $skill;
             }, $skillsArray);
 
@@ -221,7 +220,7 @@ class GraduateJobsController extends Controller
             ->toArray();
 
         // Build the recommendation query
-        $jobs = \App\Models\Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+        $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
 
         $recommendations = [];
 
