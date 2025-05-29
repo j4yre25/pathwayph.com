@@ -54,6 +54,20 @@ class CompanyBatchUploadController extends Controller
                 continue;
             }
 
+            if (!empty($row['sector_name'])) {
+                $sector = \App\Models\Sector::where('name', $row['sector_name'])->first();
+                $row['sector_id'] = $sector ? $sector->id : null;
+            } else {
+                $row['sector_id'] = null;
+            }
+
+            if (!empty($row['category_name'])) {
+                $category = \App\Models\Category::where('name', $row['category_name'])->first();
+                $row['category_id'] = $category ? $category->id : null;
+            } else {
+                $row['category_id'] = null;
+            }
+
             $validator = Validator::make($row, [
                 'email' => 'required|email|unique:users,email',
                 'company_name' => 'required|string|max:255',

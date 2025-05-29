@@ -831,3 +831,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
 });
+
+
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'employmentStatusOverview'])->name('admin.reports.index');
+});
