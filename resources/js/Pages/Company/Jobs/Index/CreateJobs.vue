@@ -54,6 +54,16 @@ const workEnvironments = [
     { id: 3, environment_type: 'Hybrid' },
 ];
 
+const selectedJobTypeLabel = computed(() => {
+    const found = jobTypes.find(jt => jt.id === form.job_type);
+    return found ? found.type : 'Not provided';
+});
+
+const selectedWorkEnvironmentLabel = computed(() => {
+    const found = workEnvironments.find(env => env.id === form.work_environment);
+    return found ? found.environment_type : 'Not provided';
+});
+
 const form = useForm({
     job_title: '',
     location: '',
@@ -526,7 +536,7 @@ const createJob = () => {
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Job Type</p>
-                                                <p>{{ form.job_type || 'Not provided' }}</p>
+                                                <p>{{ selectedJobTypeLabel || 'Not provided' }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Experience Level</p>
@@ -534,7 +544,7 @@ const createJob = () => {
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Work Environment</p>
-                                                <p>{{ form.work_environment || 'Not provided' }}</p>
+                                                <p>{{ selectedWorkEnvironmentLabel  || 'Not provided' }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Location</p>
