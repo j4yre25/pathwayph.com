@@ -10,6 +10,7 @@ use App\Models\Program;
 use App\Models\JobInvitation;
 use App\Models\Location;
 use App\Models\Salary;
+use App\Models\Skill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -19,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use App\Notifications\NewJobPostingNotification;
 
 
 class CompanyJobsController extends Controller
@@ -26,15 +28,21 @@ class CompanyJobsController extends Controller
     public function index(User $user)
     {
 
-        // Get all jobs belonging to the same company as the user
-        $jobs = Job::where('company_id', $user->hr->company_id)
-            ->get();
-        $sectors = Sector::pluck('name'); // Fetch all sector names
-        $categories = \App\Models\Category::pluck('name'); // Fetch all category names
+         $jobs = Job::with(
+['jobTypes:id,type',
+            'locations:id,address',
+            'workEnvironments:id,environment_type',
+            'salary'])
+        ->where('company_id', $user->hr->company_id)
+        ->get();
+
+        // dd($jobs->toArray()) ; // Debugging line to check the jobs data
+        $sectors = Sector::pluck('name');
+        $categories = \App\Models\Category::pluck('name');
 
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
-            'sectors' => $sectors, // Array of sectors
+            'sectors' => $sectors,
             'categories' => $categories,
         ]);
     }
@@ -47,6 +55,7 @@ class CompanyJobsController extends Controller
 
         $sectors = Sector::with('categories')->get();
         $programs = Program::select('id', 'name')->get();
+        $skills = Skill::orderBy('name')->pluck('name');
 
 
 
@@ -54,6 +63,7 @@ class CompanyJobsController extends Controller
             'sectors' => $sectors,
             'programs' => $programs,
             'authUser' => $authUser,
+            'skills' => $skills,
         ]);
     }
 
@@ -72,11 +82,15 @@ class CompanyJobsController extends Controller
 
     public function manage(User $user)
     {
-        // Fetch jobs posted by the authenticated user
-        $jobs = $user->jobs;
+        $jobs = $user->jobs()
+        ->with(['jobTypes:id,type',
+            'locations:id,address',
+            'workEnvironments:id,environment_type',
+            'salary'])
+        ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
-            'jobs' => $jobs
+            'jobs' => $jobs,
         ]);
     }
 
@@ -95,12 +109,19 @@ class CompanyJobsController extends Controller
                 }),
             ],
             'posted_by' => 'nullable|string|max:255',
-            'location' => 'required|string|max:255',
+            'location' => [
+                Rule::requiredIf(function () use ($request) {
+                    return $request->work_environment != 2; // Only required if NOT remote
+                }),
+                'nullable',
+                'string',
+                'max:255'
+            ],
             'job_vacancies' => 'required|integer|min:1',
-            'salary.job_min_salary' => 'required|numeric',
-            'salary.job_max_salary' => 'required|numeric',
+            'salary.job_min_salary' => 'nullable|numeric',
+            'salary.job_max_salary' => 'nullable|numeric',
             'salary.salary_type' => 'required|string',
-            'is_negotiable' => 'required|boolean',
+            'is_negotiable' => 'nullable|boolean',
             'job_type' => 'required|integer|exists:job_types,id',
             'job_experience_level' => 'required|string|max:255',
             'work_environment' => 'required|integer|exists:work_environments,id',
@@ -113,29 +134,31 @@ class CompanyJobsController extends Controller
             'category' => 'required|exists:categories,id',
             'program_id' => 'required|array|min:1',
             'program_id.*' => 'exists:programs,id',
-        ], [
-            // ...your custom messages...
         ]);
 
+        // Handle salary creation
         $salary = Salary::create([
-            'job_min_salary' => $validated['salary']['job_min_salary'],
-            'job_max_salary' => $validated['salary']['job_max_salary'],
+            'job_min_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_min_salary'],
+            'job_max_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_max_salary'],
             'salary_type' => $validated['salary']['salary_type'],
         ]);
 
-
-        $location = Location::firstOrCreate(['address' => $validated['location']]);
+        // Handle location only if NOT remote
+        $location = null;
+        if ($validated['work_environment'] != 2) {
+            $location = Location::firstOrCreate(['address' => $validated['location']]);
+        }
 
         $user->loadMissing('hr');
 
-        // Prepare job data for mass assignment
+        // Prepare job data
         $jobData = [
             'user_id' => $user->id,
             'posted_by' => $user->hr->full_name,
             'company_id' => $user->hr->company_id,
             'status' => 'pending',
             'job_title' => $validated['job_title'],
-            'location' => $location->id,
+            'location' => $location ? $location->id : null,
             'salary_id' => $salary->id,
             'is_approved' => null,
             'job_type' => $validated['job_type'],
@@ -151,18 +174,11 @@ class CompanyJobsController extends Controller
             'job_application_limit' => $validated['job_application_limit'] ?? null,
             'is_negotiable' => $validated['is_negotiable'],
             'job_salary_type' => $validated['salary']['salary_type'],
-            'job_min_salary' => $validated['salary']['job_min_salary'],
-            'job_max_salary' => $validated['salary']['job_max_salary'],
+            'job_min_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_min_salary'],
+            'job_max_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_max_salary'],
         ];
 
-        // If negotiable, clear salary fields
-        if ($validated['is_negotiable']) {
-            $jobData['job_min_salary'] = null;
-            $jobData['job_max_salary'] = null;
-            $jobData['job_salary_type'] = null;
-        }
-
-        // Generate job code and job ID
+        // Generate job code and ID
         $sector = Sector::find($validated['sector']);
         $category = \App\Models\Category::find($validated['category']);
         $sectorCode = $sector->sector_id;
@@ -179,10 +195,16 @@ class CompanyJobsController extends Controller
         $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
 
         $new_job = Job::create($jobData);
-        $new_job->jobTypes()->sync([$validated['job_type']]); // expects array of IDs or values
-        $new_job->locations()->sync([$location->id]);
+        $new_job->jobTypes()->sync([$validated['job_type']]);
+        if ($location) {
+            $new_job->locations()->sync([$location->id]);
+        }
         $new_job->workEnvironments()->sync([$validated['work_environment']]);
         $new_job->programs()->attach($validated['program_id']);
+
+
+        // Notify graduates about the new job posting
+        $this->notifyGraduates($new_job);
 
         return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
     }
@@ -336,5 +358,23 @@ class CompanyJobsController extends Controller
         $job->restore();
 
         return redirect()->back()->with('flash.banner', 'Job restored successfully.');
+    }
+
+    protected function notifyGraduates(Job $new_job)
+    {
+        // Find graduates whose preferences match the new job
+        $graduates = Graduate::whereHas('employmentPreference', function ($q) use ($new_job) {
+            $q->where(function ($query) use ($new_job) {
+                $query->where('job_type', 'like', "%{$new_job->job_type}%")
+                      ->orWhere('location', 'like', "%{$new_job->location}%")
+                      ->orWhere('work_environment', 'like', "%{$new_job->work_environment}%");
+            });
+        })->get();
+
+        foreach ($graduates as $graduate) {
+            if ($graduate->user) {
+                $graduate->user->notify(new NewJobPostingNotification($new_job));
+            }
+        }
     }
 }

@@ -15,7 +15,7 @@ class JobApplication extends Model
      * @var array
      */
     protected $fillable = [
-        'user_id',
+        'graduate_id',
         'job_id',
         'status',
         'stage',

@@ -28,6 +28,7 @@ class Job extends Model
         'salary_id',
         'job_description',
         'job_requirements',
+        'is_negotiable',
         'job_salary_type',
         'job_min_salary',
         'job_max_salary',
@@ -59,6 +60,8 @@ class Job extends Model
 
     protected $attributes = [
         'is_approved' => null,
+        'status' => 'active',
+        'is_negotiable' => false,
     ];
 
     /**

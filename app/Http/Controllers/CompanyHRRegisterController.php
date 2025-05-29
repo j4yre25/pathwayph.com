@@ -18,16 +18,7 @@ class CompanyHRRegisterController extends Controller
 
      public function __construct()
     {
-        $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $user = Auth::user();
-
-            if (!($user->role === 'company' && $user->hr->is_main_hr)) {
-                abort(403, 'Only main HR can register other HRs.');
-            }
-
-            return $next($request);
-        });
+        
     }
     public function showRegistrationForm()
     {

@@ -171,8 +171,8 @@ onMounted(() => {
                                     </div>
                                     <p class="text-sm text-gray-600 mb-4">{{ opportunity.description }}</p>
                                     <div class="flex flex-wrap gap-2">
-                                        <span v-for="skill in opportunity.required_skills" :key="skill" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
-                                            {{ skill }}
+                                        <span v-for="skills in opportunity.required_skills" :key="skills" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                            {{ skills }}
                                         </span>
                                     </div>
                                 </div>
@@ -228,17 +228,25 @@ onMounted(() => {
                                 </div>
                                 <div v-else-if="!notifications.length" class="text-center text-gray-400 py-8">
                                     <i class="fas fa-bell-slash text-4xl mb-4"></i>
-                                    <p>No new notifications</p>
+                                    <p>No new job notifications</p>
                                 </div>
                                 <div v-else>
                                     <div
                                         v-for="notification in notifications"
                                         :key="notification.id"
-                                        class="border border-gray-300 rounded p-3 hover:bg-gray-100 cursor-pointer"
+                                        class="border border-yellow-300 bg-yellow-50 rounded p-3 hover:bg-yellow-100 cursor-pointer"
                                         @click="markNotificationAsRead(notification.id)"
                                     >
-                                        <p class="text-sm text-gray-700">{{ notification.message }}</p>
-                                        <p class="text-xs text-gray-500">{{ new Date(notification.created_at).toLocaleString() }}</p>
+                                        <p class="text-sm text-gray-700">
+                                            <span class="font-bold">{{ notification.title }}</span>
+                                            <span v-if="notification.company"> at {{ notification.company }}</span>
+                                        </p>
+                                        <p class="text-xs text-gray-500">{{ notification.created_at }}</p>
+                                        <PrimaryButton
+                                            v-if="notification.job_id"
+                                            @click="router.visit(`/jobs/${notification.job_id}`)"
+                                            class="mt-2 text-xs"
+                                        >View Job</PrimaryButton>
                                     </div>
                                 </div>
                             </div>

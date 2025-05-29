@@ -133,16 +133,16 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
                                 
                                 <!-- Graduate Portfolio -->
-                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.portfolio')"
+                                <!-- <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.portfolio')"
                                     :active="route().current('graduate.portfolio')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Portfolio
-                                </NavLink>
+                                </NavLink> -->
 
                                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
                                     :active="route().current('job.search')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Job Search
+                                    Find Jobs   
                                 </NavLink>
 
 
@@ -293,7 +293,6 @@ console.log(page.props.permissions.canManageInstitution)
                                             <!-- Team Switcher -->
                                             <template v-if="$page.props.auth.user.all_teams.length > 1">
                                                 <div class="border-t border-gray-200" />
-
                                                 <div class="block px-4 py-2 text-xs text-gray-400">
                                                     Switch Teams
                                                 </div>
@@ -369,8 +368,6 @@ console.log(page.props.permissions.canManageInstitution)
                                         <div class="block px-4 py-2 text-xs text-gray-400">
                                             Manage Account
                                         </div>
-
-
                                         <DropdownLink
                                             v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
                                             :disabled="!page.props.auth.user.is_approved" :href="route('peso.profile')">
@@ -406,7 +403,6 @@ console.log(page.props.permissions.canManageInstitution)
                                             :href="route('careerofficer.register')">
                                             Career Officer Registration
                                         </DropdownLink>
-
 
                                         <DropdownLink
                                             v-if="page.props.auth.user.role === 'company' && page.props.auth.user.is_approved"

@@ -24,7 +24,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\GraduateProfileController;
-use App\Http\Controllers\JobSearchController;
+use App\Http\Controllers\GraduateJobsController;
 use App\Http\Controllers\CompanyJobApplicantController;
 // Company 
 use App\Http\Controllers\CompanyProfileController;
@@ -823,8 +823,11 @@ Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name(
 
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-    Route::get('/job-search', [JobSearchController::class, 'index'])->name('job.search');
+    Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
+    Route::get('/graduate-jobs/recommendations', [\App\Http\Controllers\GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
+    // Graduate Portfolio+
+    Route::post('/jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
+    Route::get('/company/profile/{id}', [CompanyProfileController::class, 'showPublic'])->name('company.profile.public');
 
-    // Graduate Portfolio
     Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
 });
