@@ -131,4 +131,12 @@ class CompanyProfileController extends Controller
         $request->user()->deleteCoverPhoto();
         return back()->with('success', 'Cover photo removed.');
     }
+
+    public function showPublic($id)
+{
+    $company = \App\Models\Company::with(['jobs', 'sector'])->findOrFail($id);
+    return inertia('Frontend/CompanyProfile', [
+        'company' => $company,
+    ]);
+}
 }
