@@ -4,71 +4,123 @@ namespace App\Http\Controllers;
 
 use App\Models\InternshipProgram;
 use App\Models\Graduate;
-use App\Models\Program;
-use App\Models\CareerOpportunity;
+use App\Models\Institution;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class InternshipProgramController extends Controller
 {
     public function index(Request $request)
     {
-        $query = InternshipProgram::with(['program', 'careerOpportunity'])
-            ->when($request->program_id, fn($q) => $q->where('program_id', $request->program_id))
-            ->when($request->career_opportunity_id, fn($q) => $q->where('career_opportunity_id', $request->career_opportunity_id))
-            ->when($request->skills, fn($q) => $q->where('skills', 'like', "%{$request->skills}%"))
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->firstOrFail();
+
+        $query = InternshipProgram::with(['programs', 'careerOpportunities', 'skills'])
+            ->where('institution_id', $institution->id)
+            ->when($request->program_id, fn($q) => $q->whereHas('programs', fn($q2) => $q2->where('program_id', $request->program_id)))
+            ->when($request->career_opportunity_id, fn($q) => $q->whereHas('careerOpportunities', fn($q2) => $q2->where('career_opportunity_id', $request->career_opportunity_id)))
+            ->when($request->skills, fn($q) => $q->whereHas('skills', fn($q2) => $q2->where('name', 'like', '%' . $request->skills . '%')))
             ->when($request->status, function ($q) use ($request) {
-                if ($request->status === 'active')
-                    $q->where('is_active', true);
-                if ($request->status === 'inactive')
-                    $q->where('is_active', false);
+                if ($request->status === 'active') $q->where('is_active', true);
+                if ($request->status === 'inactive') $q->where('is_active', false);
             })
             ->withTrashed();
 
-        $programs = Program::all();
-        $careerOpportunities = CareerOpportunity::all();
+        $programs = $institution->institutionPrograms()->with('program')->get()->map(fn($ip) => $ip->program)->unique('id')->values();
+        $careerOpportunities = $institution->institutionCareerOpportunities()->with('careerOpportunity')->get()->map(fn($ico) => $ico->careerOpportunity)->unique('id')->values();
+        $skills = $institution->institutionSkills()->with('skill')->get()->map(fn($is) => $is->skill)->unique('id')->values();
 
         return Inertia::render('Institutions/InternshipPrograms/Index', [
             'internshipPrograms' => $query->get(),
             'programs' => $programs,
             'careerOpportunities' => $careerOpportunities,
+            'skills' => $skills,
         ]);
     }
 
     public function create()
     {
-        $programs = Program::all();
-        $careerOpportunities = CareerOpportunity::all();
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->firstOrFail();
+
+        $programs = $institution->institutionPrograms()->with('program')->get()->map(fn($ip) => $ip->program)->unique('id')->values();
+        $careerOpportunities = $institution->institutionCareerOpportunities()->with('careerOpportunity')->get()->map(fn($ico) => $ico->careerOpportunity)->unique('id')->values();
+        $skills = $institution->institutionSkills()->with('skill')->get()->map(fn($is) => $is->skill)->unique('id')->values();
+
         return Inertia::render('Institutions/InternshipPrograms/Create', [
             'programs' => $programs,
             'careerOpportunities' => $careerOpportunities,
+            'skills' => $skills,
         ]);
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->firstOrFail();
+
         $request->validate([
             'title' => 'required|string|max:255',
-            'program_id' => 'required|exists:programs,id',
-            'career_opportunity_id' => 'nullable|exists:career_opportunities,id',
-            'skills' => 'nullable|string',
-            'description' => 'nullable|string',
+            'program_id' => 'required|array|min:1',
+            'program_id.*' => 'exists:programs,id',
+            'career_opportunity_id' => 'required|array|min:1',
+            'career_opportunity_id.*' => 'exists:career_opportunities,id',
+            'skill_id' => 'required|array|min:1',
+            'skill_id.*' => 'exists:skills,id',
         ]);
-        InternshipProgram::create($request->all());
+
+        $internship = InternshipProgram::create([
+            'title' => $request->title,
+            'institution_id' => $institution->id,
+            'is_active' => true,
+        ]);
+        $internship->programs()->sync($request->program_id);
+        $internship->careerOpportunities()->sync($request->career_opportunity_id);
+        $internship->skills()->sync($request->skill_id);
+
         return back()->with('flash.banner', 'Internship program added.');
+    }
+
+    public function edit($id)
+    {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->firstOrFail();
+        $internship = InternshipProgram::with(['programs', 'careerOpportunities', 'skills'])->findOrFail($id);
+
+        $programs = $institution->institutionPrograms()->with('program')->get()->map(fn($ip) => $ip->program)->unique('id')->values();
+        $careerOpportunities = $institution->institutionCareerOpportunities()->with('careerOpportunity')->get()->map(fn($ico) => $ico->careerOpportunity)->unique('id')->values();
+        $skills = $institution->institutionSkills()->with('skill')->get()->map(fn($is) => $is->skill)->unique('id')->values();
+
+        return Inertia::render('Institutions/InternshipPrograms/Edit', [
+            'internshipProgram' => $internship,
+            'programs' => $programs,
+            'careerOpportunities' => $careerOpportunities,
+            'skills' => $skills,
+        ]);
     }
 
     public function update(Request $request, $id)
     {
-        $program = InternshipProgram::withTrashed()->findOrFail($id);
+        $internship = InternshipProgram::findOrFail($id);
+
         $request->validate([
             'title' => 'required|string|max:255',
-            'program_id' => 'required|exists:programs,id',
-            'career_opportunity_id' => 'nullable|exists:career_opportunities,id',
-            'skills' => 'nullable|string',
-            'description' => 'nullable|string',
+            'program_id' => 'required|array|min:1',
+            'program_id.*' => 'exists:programs,id',
+            'career_opportunity_id' => 'required|array|min:1',
+            'career_opportunity_id.*' => 'exists:career_opportunities,id',
+            'skill_id' => 'required|array|min:1',
+            'skill_id.*' => 'exists:skills,id',
         ]);
-        $program->update($request->all());
+
+        $internship->update([
+            'title' => $request->title,
+        ]);
+        $internship->programs()->sync($request->program_id);
+        $internship->careerOpportunities()->sync($request->career_opportunity_id);
+        $internship->skills()->sync($request->skill_id);
+
         return back()->with('flash.banner', 'Internship program updated.');
     }
 
@@ -105,5 +157,57 @@ class InternshipProgramController extends Controller
         $graduate = Graduate::findOrFail($request->graduate_id);
         $graduate->internshipPrograms()->syncWithoutDetaching([$request->internship_program_id]);
         return back()->with('flash.banner', 'Internship program assigned to graduate.');
+    }
+
+    public function archivedList()
+    {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->firstOrFail();
+        $archived = InternshipProgram::with(['programs', 'careerOpportunities', 'skills'])
+            ->onlyTrashed()
+            ->where('institution_id', $institution->id)
+            ->get();
+
+        return Inertia::render('Institutions/InternshipPrograms/ArchivedList', [
+            'internshipPrograms' => $archived,
+        ]);
+    }
+
+    public function list(Request $request)
+    {
+        $user = Auth::user();
+        $institution = Institution::where('user_id', $user->id)->firstOrFail();
+
+        $programFilter = $request->input('program_id');
+        $careerFilter = $request->input('career_opportunity_id');
+
+        // Get institution's available programs and career opportunities
+        $programs = $institution->institutionPrograms()->with('program')->get()->map(fn($ip) => $ip->program)->unique('id')->values();
+        $careerOpportunities = $institution->institutionCareerOpportunities()->with('careerOpportunity')->get()->map(fn($ico) => $ico->careerOpportunity)->unique('id')->values();
+
+        // Query internship programs with relationships
+        $query = InternshipProgram::with(['programs', 'careerOpportunities', 'skills'])
+            ->where('institution_id', $institution->id);
+
+        if ($programFilter) {
+            $query->whereHas('programs', function ($q) use ($programFilter) {
+                $q->where('program_id', $programFilter);
+            });
+        }
+        if ($careerFilter) {
+            $query->whereHas('careerOpportunities', function ($q) use ($careerFilter) {
+                $q->where('career_opportunity_id', $careerFilter);
+            });
+        }
+
+        $internshipPrograms = $query->get();
+
+        return Inertia::render('Institutions/InternshipPrograms/List', [
+            'internshipPrograms' => $internshipPrograms,
+            'programs' => $programs,
+            'careerOpportunities' => $careerOpportunities,
+            'selectedProgram' => $programFilter,
+            'selectedCareerOpportunity' => $careerFilter,
+        ]);
     }
 }
