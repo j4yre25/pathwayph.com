@@ -98,9 +98,6 @@ const goToNextStep = () => {
     else if (currentStep.value === 'description') currentStep.value = 'review';
 };
 
-const saveDraft = () => {
-    console.log('Saving as draft:', form);
-};
 
 const expirationDate = ref(null)
 const today = new Date()
@@ -529,7 +526,7 @@ const createJob = () => {
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Job Type</p>
-                                                <p>{{ form.job_employement_type || 'Not provided' }}</p>
+                                                <p>{{ form.job_type || 'Not provided' }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Experience Level</p>
@@ -537,7 +534,7 @@ const createJob = () => {
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Work Environment</p>
-                                                <p>{{ form.job_work_environment || 'Not provided' }}</p>
+                                                <p>{{ form.work_environment || 'Not provided' }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Location</p>
@@ -626,10 +623,6 @@ const createJob = () => {
                                     Previous
                                 </PrimaryButton>
                                 <div class="flex space-x-3">
-                                    <PrimaryButton @click="saveDraft" type="button"
-                                        class="bg-gray-500 hover:bg-yellow-600">
-                                        Save as Draft
-                                    </PrimaryButton>
                                     <PrimaryButton type="submit" :disabled="form.processing">
                                         {{ form.processing ? 'Posting...' : 'Post Job' }}
                                     </PrimaryButton>
