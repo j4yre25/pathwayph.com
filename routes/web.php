@@ -832,3 +832,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 });
 
 Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
+
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'employmentStatusOverview'])->name('admin.reports.index');
+});
