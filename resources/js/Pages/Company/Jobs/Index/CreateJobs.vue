@@ -281,6 +281,19 @@ const createJob = () => {
                                     <InputError class="mt-2" :message="form.errors.job_experience_level" />
                                 </div>
                                 
+                                <!-- Number of Vacancies -->
+                                <div>
+                                    <InputLabel for="job_vacancies" value="Number of Vacancies" />
+                                        <TextInput
+                                        id="job_vacancies"
+                                        type="number"
+                                        class="mt-1 block w-full"
+                                        v-model="form.job_vacancies"
+                                        required
+                                        min="1"/>
+                                    <InputError class="mt-2" :message="form.errors.job_vacancies" />
+                                </div>
+                                
                                 <!-- Sector -->
                                 <div>
                                     <InputLabel for="sector" value="Sector" />
@@ -311,18 +324,6 @@ const createJob = () => {
                                     <InputError class="mt-2" :message="form.errors.category" />
                                 </div>
                                 
-                                <!-- Number of Vacancies -->
-                                <div>
-                                    <InputLabel for="job_vacancies" value="Number of Vacancies" />
-                                        <TextInput
-                                        id="job_vacancies"
-                                        type="number"
-                                        class="mt-1 block w-full"
-                                        v-model="form.job_vacancies"
-                                        required
-                                        min="1"/>
-                                    <InputError class="mt-2" :message="form.errors.job_vacancies" />
-                                </div>
                                 
                                   <!-- Work Environment -->
                                 <div>

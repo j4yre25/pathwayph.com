@@ -258,7 +258,7 @@ class User extends Authenticatable
     }
 
     // Relationship with Employment Preferences
-    public function employmentPreferences()
+    public function employmentPreference()
     {
         return $this->hasOne(EmploymentPreference::class);
     }
@@ -349,9 +349,5 @@ class User extends Authenticatable
         return $this->hasOne(Graduate::class, 'user_id');
     }
 
-    public function employmentPreference()
-    {
-        return $this->hasOne(\App\Models\EmploymentPreference::class, 'graduate_id');
-    }
     
 }

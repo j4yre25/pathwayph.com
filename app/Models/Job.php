@@ -120,7 +120,7 @@ class Job extends Model
     }
     public function programs()
     {
-        return $this->belongsToMany(Program::class);
+        return $this->belongsToMany(Program::class, 'job_program', 'job_id', 'program_id') ;
     }
 
     /**
