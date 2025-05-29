@@ -61,6 +61,26 @@ class GraduateJobsController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+            
+            // Clean skills field before sending to Inertia
+            $jobs->getCollection()->transform(function ($job) {
+            // Decode JSON skills if stored as string, or use as is if array
+            $skillsArray = is_string($job->skills) ? json_decode($job->skills, true) : ($job->skills ?? []);
+
+            // Clean each skill
+            $cleanSkills = array_map(function ($skill) {
+                $skill = trim($skill);
+                // Remove spaces inside the skill (turn "P y t h o n" into "Python")
+                $skill = str_replace(' ', '', $skill);
+                return $skill;
+            }, $skillsArray);
+
+            // Assign back clean skills
+            $job->skills = $cleanSkills;
+
+            return $job;
+        });
+
         return Inertia::render('Frontend/JobSearch', [
             'jobs' => $jobs,
             'industries' => $industries,
@@ -131,6 +151,25 @@ class GraduateJobsController extends Controller
             ->latest()
             ->paginate(10)
             ->withQueryString();
+
+             // Clean skills field before sending to Inertia
+            $jobs->getCollection()->transform(function ($job) {
+            // Decode JSON skills if stored as string, or use as is if array
+            $skillsArray = is_string($job->skills) ? json_decode($job->skills, true) : ($job->skills ?? []);
+
+            // Clean each skill
+            $cleanSkills = array_map(function ($skill) {
+                $skill = trim($skill);
+                // Remove spaces inside the skill (turn "P y t h o n" into "Python")
+                $skill = str_replace(' ', '', $skill);
+                return $skill;
+            }, $skillsArray);
+
+            // Assign back clean skills
+            $job->skills = $cleanSkills;
+
+            return $job;
+        });
 
         return Inertia::render('Frontend/JobSearch', [
             'jobs' => $jobs,
