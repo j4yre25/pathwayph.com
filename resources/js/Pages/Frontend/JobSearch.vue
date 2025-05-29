@@ -122,10 +122,16 @@ function submitApplication() {
     });
 }
 
-function oneClickApply(job) {
-    axios.post(route('jobs.oneClickApply'), { job_id: job.id })
-        .then(() => alert('Applied with your latest resume and cover letter!'));
-}
+const oneClickApply = (job) => {
+    const form = useForm({ job_id: job.id });
+    console.log(route('jobs.oneClickApply')); // Is this outputting '/jobs/one-click-apply' exactly?
+
+    form.post(route('jobs.oneClickApply'), {
+        onSuccess: () => alert('Applied with your latest resume and cover letter!'),
+        onError: () => alert('Something went wrong.'),
+
+    });
+};
 
 
 function closeApplyModal() {
