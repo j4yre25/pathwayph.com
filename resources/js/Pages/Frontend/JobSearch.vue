@@ -252,8 +252,8 @@ onMounted(() => {
                                         placeholder="Min Salary" />
                                     <TextInput v-model="selectedSalaryMax" type="number" class="w-full"
                                         placeholder="Max Salary" />
-                                    <TextInput v-mdel="selectedSkillsInput" class="w-full"
-                                        placeholder="Skills (commao separated)" />
+                                    <TextInput v-model="selectedSkillsInput" class="w-full"
+                                        placeholder="Skills (comma separated)" />
                                 </div>
                                 <div class="flex justify-end mt-4">
                                     <PrimaryButton type="submit" class="bg-indigo-600 hover:bg-indigo-700">
