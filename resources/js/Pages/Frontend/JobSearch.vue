@@ -146,7 +146,7 @@ function visitCompanyWebsite(website) {
 
 function goToCompanyProfile(companyId) {
   if (companyId) {
-    router.visit(route('company.profile', { id: companyId }));
+    router.visit(route('company.profile.public', { id: companyId }));
   }
 }
 
@@ -191,16 +191,10 @@ function formatSalary(salary) {
     return 'Not specified';
 }
 
-function fetchNotifications() {
-    axios.get('/notifications').then(res => {
-        notifications.value = res.data;
-    });
-}
 
 // Only fetch jobs when user clicks Search
 onMounted(() => {
     fetchRecommendations();
-    fetchNotifications();
 });
 </script>
 
