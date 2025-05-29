@@ -28,7 +28,11 @@ class CompanyJobsController extends Controller
     public function index(User $user)
     {
 
-         $jobs = Job::with(['jobTypes', 'locations', 'workEnvironments'])
+         $jobs = Job::with(
+['jobTypes:id,type',
+            'locations:id,address',
+            'workEnvironments:id,environment_type',
+            'salary'])
         ->where('company_id', $user->hr->company_id)
         ->get();
 
@@ -79,7 +83,10 @@ class CompanyJobsController extends Controller
     public function manage(User $user)
     {
         $jobs = $user->jobs()
-        ->with(['jobTypes', 'locations', 'workEnvironments'])
+        ->with(['jobTypes:id,type',
+            'locations:id,address',
+            'workEnvironments:id,environment_type',
+            'salary'])
         ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
