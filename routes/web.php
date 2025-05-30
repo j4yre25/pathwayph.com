@@ -25,8 +25,8 @@ use App\Http\Controllers\DegreeController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\GraduateProfileController;
 use App\Http\Controllers\GraduateJobsController;
-use App\Http\Controllers\CompanyJobApplicantController;
 // Company 
+use App\Http\Controllers\CompanyJobApplicantController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
@@ -67,6 +67,7 @@ use App\Http\Controllers\JobsListController;
 use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\ResumeController;
+use App\Http\Controllers\Company\CompanyReportsController;
 
 use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -264,6 +265,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 });
 
 // Company Reports
+Route::prefix('company')->middleware(['auth'])->group(function () {
+    Route::get('/company-reports', [CompanyReportsController::class, 'overview'])
+        ->name('company.reports.overview');
+});
+
 
 // Manage HR Accounts 
 Route::middleware(['auth'])->group(function () {
@@ -280,7 +286,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
+
+  
 });
+
+
+
 
 //End of Company Routes
 
@@ -840,3 +851,4 @@ Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'o
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('admin.reports.index');
 });
+
