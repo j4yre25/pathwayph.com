@@ -25,7 +25,7 @@ echarts.use([
 import phMap from '@/maps/ph.json'
 echarts.registerMap('PH', phMap)
 
-// Use defineProps with object syntax for better type safety and IDE support
+// Use defineProps with object syntax for better type safety and xIDE support
 const props = defineProps({
   statusCounts: { type: Object, default: () => ({}) },
   employed: { type: Number, default: 0 },
