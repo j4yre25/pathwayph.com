@@ -55,7 +55,7 @@ const goTo = (url) => {
                         <tr v-for="user in all_users.data" :key="user.id"
                             class="border-b border-gray-200 hover:bg-gray-100">
                             <td class="border border-gray-200 px-6 py-4">{{ user.role }}</td>
-                         <td class="border border-gray-200 px-6 py-4">
+                            <td class="border border-gray-200 px-6 py-4">
                                 {{ user.full_name }}
                             </td>
                             <td class="border border-gray-200 px-6 py-4">
@@ -64,7 +64,7 @@ const goTo = (url) => {
                             <td class="border border-gray-200 px-6 py-4">
                                 <span class="text-red-600 font-semibold">Archived</span>
                             </td>
-                            <td class="border border-gray-200 px-6 py-4">
+                            <td class="border border-gray-200 px-6 py-4">   
                                 <DangerButton class="mr-2" @click="confirmRestore(user)">Restore User</DangerButton>
                             </td>
                         </tr>
