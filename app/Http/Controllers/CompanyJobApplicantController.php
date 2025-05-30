@@ -25,9 +25,20 @@ class CompanyJobApplicantController extends Controller
         $now = Carbon::now();
 
         $jobs = Job::withCount('applications')
+        ->with(['jobTypes:id,type',
+            'locations:id,address',
+            'workEnvironments:id,environment_type',
+            'salary'])
         ->where('company_id', $companyId)
         ->where('status', 'open')
+        ->orderBy('created_at', 'desc') // then newest
         ->get();
+
+        // Accurate count of active jobs (open + approved)
+        $activeJobCount = Job::where('company_id', $companyId)
+        ->where('status', 'open')
+        ->where('is_approved', true)
+        ->count();
         
         // All applications for the company's jobs
         $allApplications = JobApplication::whereHas('job', fn($q) => $q->where('company_id', $companyId))
@@ -55,7 +66,7 @@ class CompanyJobApplicantController extends Controller
                 'hired' => $hiredCount,
                 'rejected' => $rejectedCount,
                 'interviews' => $interviewsCount,
-                'total_jobs' => $jobs->count(),
+                'total_jobs' => $activeJobCount,
                 'total_applicants' => $totalApplicants,
             ]
         ]);

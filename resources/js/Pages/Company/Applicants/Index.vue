@@ -62,7 +62,7 @@ const statsDisplay = computed(() => [
         iconColor: 'text-[#B45309]'
     },
     {
-        title: 'Total Jobs',
+        title: 'Total Active Jobs',
         value: props.stats.total_jobs.toString(),
         period: props.stats.this_month_label,
         icon: 'fas fa-briefcase',

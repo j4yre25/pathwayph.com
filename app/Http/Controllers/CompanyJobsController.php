@@ -29,13 +29,15 @@ class CompanyJobsController extends Controller
     public function index(User $user)
     {
 
-         $jobs = Job::with(
-['jobTypes:id,type',
+         $jobs = Job::with([
+            'jobTypes:id,type',
             'locations:id,address',
             'workEnvironments:id,environment_type',
-            'salary'])
+            'salary'
+        ])
         ->where('company_id', $user->hr->company_id)
-        ->orderBy('created_at', 'desc')
+        ->orderByRaw('is_approved DESC') // prioritize approved jobs
+        ->orderBy('created_at', 'desc')            // then by latest
         ->get();
 
         // dd($jobs->toArray()) ; // Debugging line to check the jobs data
@@ -89,6 +91,8 @@ class CompanyJobsController extends Controller
             'locations:id,address',
             'workEnvironments:id,environment_type',
             'salary'])
+        ->orderByRaw('is_approved DESC') // prioritize approved jobs
+        ->orderBy('created_at', 'desc') 
         ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
