@@ -14,12 +14,16 @@ class CompanyProfileController extends Controller
     public function profile()
     {
         $user = Auth::user();
+        $company = $user->companyThroughHR ?? null;
+         // Determine user role
+        $userRole = $user->hasRole('company') ? 'company' : 'graduate';
 
         return Inertia::render('Company/CompanyProfile', [
+            'userRole' => $userRole,
             'company' => [
-                'company_name' => $user->company_name,
-                'company_email' => $user->company_email,
-                'company_contact_number' => $user->company_contact_number,
+                'company_name' => $company->company_name ?? 'N/A',
+                'company_email' => $company->company_email ?? 'N/A',
+                'company_contact_number' => $user->company_contact_number ?? 'N/A',
                 'address' => implode(', ', array_filter([
                     $user->company_street_address,
                     $user->company_brgy,
@@ -27,11 +31,11 @@ class CompanyProfileController extends Controller
                     $user->company_province,
                     $user->company_zip_code
                 ])),
-                'sector' => $user->sector->name ?? null, // assuming relation exists
-                'description' => $user->company_description,
-                'telephone_number' => $user->telephone_number,
-                'created_at' => $user->created_at->format('F j, Y'),
-                'branch' => implode (', ', array_filter([
+                'sector' => $user->sector->name ?? null,
+                'description' => $user->company_description ?? null,
+                'telephone_number' => $user->telephone_number ?? null,
+                'created_at' => $user->created_at?->format('F j, Y') ?? null,
+                'branch' => implode(', ', array_filter([
                     $user->company_brgy,
                     $user->company_city,
                 ])),
@@ -39,8 +43,10 @@ class CompanyProfileController extends Controller
                 'profile_photo' => $user->profile_photo_path ? Storage::url($user->profile_photo_path) : null,
                 'cover_photo' => $user->cover_photo_path ? Storage::url($user->cover_photo_path) : null,
             ],
+            
         ]);
     }
+
 
     public function post(Request $request)
     {
@@ -125,4 +131,12 @@ class CompanyProfileController extends Controller
         $request->user()->deleteCoverPhoto();
         return back()->with('success', 'Cover photo removed.');
     }
+
+    public function showPublic($id)
+{
+    $company = \App\Models\Company::with(['jobs', 'sector'])->findOrFail($id);
+    return inertia('Frontend/CompanyProfile', [
+        'company' => $company,
+    ]);
+}
 }

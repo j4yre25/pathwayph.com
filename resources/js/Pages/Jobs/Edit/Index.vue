@@ -17,19 +17,16 @@ const goBack = () => {
 
 <template>
     <AppLayout title="Edit Job">
-        <Container class="py-8">
-            <!-- Header with Back Button -->
-            <div class="mb-6">
-                <div class="flex items-center mb-4">
-                    <button @click="goBack" class="flex items-center text-blue-600 hover:text-blue-800 transition-colors mr-4">
-                        <i class="fas fa-arrow-left mr-2"></i>
-                        <span>Back</span>
+        <template #header>
+            <div class="flex items-center">
+                <button @click="goBack" class="flex items-center text-blue-600 hover:text-blue-800 transition-colors mr-4">
+                        <i class="fas fa-chevron-left mr-2"></i>
                     </button>
-                    <h1 class="text-2xl font-bold text-gray-800">Edit Job</h1>
-                </div>
-                <div class="h-1 w-20 bg-blue-500 rounded"></div>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit Job</h2>
             </div>
+        </template>
 
+        <Container class="py-10">
             <!-- Job Header Card -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between">

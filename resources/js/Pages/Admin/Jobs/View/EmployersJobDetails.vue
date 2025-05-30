@@ -28,7 +28,7 @@ const inviteMatchedGraduates = (jobId) => {
 
 // Function to go back to previous page
 const goBack = () => {
-  router.visit(window.history.length > 1 ? -1 : route('jobs.index'));
+  router.visit(window.history.length > 1 ? -1 : route('admin.manage_users'));
 };
 
 // Function to get status class based on job approval status
@@ -53,7 +53,10 @@ const getStatusText = (status) => {
         <button @click="goBack" class="mr-3 text-blue-500 hover:text-blue-700 focus:outline-none" aria-label="Go back">
           <i class="fas fa-chevron-left text-xl"></i>
         </button>
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Job Details</h2>
+        <i class="fas fa-folder-plus text-blue-500 text-xl mr-2"></i>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+          Job Details
+        </h2>
       </div>
     </template>
     

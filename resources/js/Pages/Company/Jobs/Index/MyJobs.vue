@@ -1,9 +1,7 @@
 <script setup>
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Link } from '@inertiajs/vue3';
 import Container from '@/Components/Container.vue';
-import { router } from '@inertiajs/vue3';
-import { usePage } from '@inertiajs/vue3';
+import { router, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
@@ -37,7 +35,7 @@ const filteredJobs = computed(() => {
 });
 
 const goToJob = (jobId) => {
-  router.visit(route('jobs.view', jobId));
+  router.visit(route('company.jobs.view', jobId));
 };
 
 // Function to get status class based on job status
@@ -66,7 +64,7 @@ const getStatusText = (status) => {
     </div>
     
     <!-- Job listings as rows -->
-    <div v-if="jobs && jobs.length > 0" class="divide-y divide-gray-200">
+    <div v-if="jobs && jobs.length > 0" class="divide-y divide-gray-300">
       <div v-for="job in jobs" :key="job.id" 
            class="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
            @click="goToJob(job.id)">
@@ -82,27 +80,41 @@ const getStatusText = (status) => {
                   :aria-label="`View details for ${job.job_title}`">
                   {{ job.job_title }}
               </h3>
-              <div class="flex items-center text-sm text-gray-500 mt-1 md:mt-0">
+             <div class="flex flex-wrap items-center gap-x-4 text-sm text-gray-500">
+              <div v-if="job.locations.length" class="flex items-center">
                 <i class="fas fa-map-marker-alt mr-1" aria-hidden="true"></i>
-                <span>{{ job.location || 'Remote' }}</span>
+                <span>{{ job.locations.map(loc => loc.address).join(', ') }}</span>
               </div>
+              <div v-if="job.work_environments.length" class="flex items-center">
+                <i class="fas fa-briefcase mr-1" aria-hidden="true"></i>
+                <span>{{ job.work_environments.map(env => env.environment_type).join(', ') }}</span>
+              </div>
+            </div>
             </div>
             
             <!-- Job type and details -->
             <div class="flex flex-wrap items-center mt-2 text-sm text-gray-600">
               <div class="mr-4 mb-1">
                 <span class="inline-block bg-gray-100 rounded-full px-2 py-0.5 text-xs font-medium text-gray-800">
-                  {{ job.job_type || 'Full-time' }}
+                  {{ job.job_types.map(type => type.type).join(', ') }}
                 </span>
               </div>
               
-              <div v-if="job.salary_min || job.salary_max" class="mr-4 mb-1">
+              <div v-if="job.salary" class="mr-4 mb-1 flex items-center text-sm text-gray-500">
                 <i class="fas fa-money-bill-wave mr-1" aria-hidden="true"></i>
                 <span>
-                  {{ job.salary_min ? `₱${job.salary_min}` : 'Negotiable' }} 
-                  {{ job.salary_min && job.salary_max ? '-' : '' }}
-                  {{ job.salary_max ? `₱${job.salary_max}` : '' }}
-                  {{ job.salary_period ? `/${job.salary_period}` : '' }}
+                  <template v-if="job.salary.job_min_salary && job.salary.job_max_salary">
+                    ₱{{ job.salary.job_min_salary.toLocaleString() }} - ₱{{ job.salary.job_max_salary.toLocaleString() }}
+                  </template>
+                  <template v-else-if="job.salary.job_min_salary">
+                    ₱{{ job.salary.job_min_salary.toLocaleString() }}
+                  </template>
+                  <template v-else>
+                    Negotiable
+                  </template>
+                  <template v-if="job.salary.salary_type">
+                    /{{ job.salary.salary_type }}
+                  </template>
                 </span>
               </div>
               
@@ -133,7 +145,7 @@ const getStatusText = (status) => {
     </div>
       
     <!-- Empty state when no jobs are available -->
-    <div v-else class="bg-white rounded-lg border border-gray-200 p-10 text-center">
+    <div v-else class="bg-white rounded-lg border border-gray-300 p-10 text-center">
       <div class="flex flex-col items-center">
         <i class="fas fa-briefcase text-gray-300 text-4xl mb-3" aria-hidden="true"></i>
         <p class="text-lg font-medium text-gray-800">No job positions found</p>

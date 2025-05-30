@@ -52,8 +52,6 @@ class Graduate extends Model
         return $this->hasMany(Education::class);
     }
 
-
-
     public function institution()
     {
         return $this->belongsTo(Institution::class, 'institution_id');
@@ -65,5 +63,13 @@ class Graduate extends Model
     public function careerGoals()
     {
         return $this->hasOne(CareerGoal::class);
+    }
+
+    /**
+     * Get the employment preferences associated with the graduate.
+     */
+    public function employmentPreference()
+    {
+        return $this->hasOne(\App\Models\EmploymentPreference::class, 'graduate_id');
     }
 }
