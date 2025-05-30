@@ -148,12 +148,7 @@ const goTo = (url) => {
                                 {{ user.organization_name }}
                             </td>
                             <td class="border border-gray-200 px-6 py-4">
-                                <div v-if="user.peso">
-                                    <div>
-                                        {{ user.peso.peso_first_name }} {{ user.peso.peso_middle_name }} {{
-                                        user.peso.peso_last_name }}
-                                    </div>
-                                </div>
+                                {{ user.full_name }}
                             </td>
                             <td class="border border-gray-200 px-6 py-4">
                                 {{ new Date(user.created_at).toLocaleDateString() }}
