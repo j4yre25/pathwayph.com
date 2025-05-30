@@ -9,6 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ManageJobReferralsController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRegisterController;
 use App\Http\Controllers\ApplicationController;
@@ -839,4 +840,8 @@ Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'o
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('admin.reports.index');
+});
+
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
 });

@@ -194,8 +194,8 @@ console.log(page.props.permissions.canManageInstitution)
 
 
 
-                                <NavLink :href="route('dashboard')" v-if="page.props.auth.user.role === 'peso'"
-                                    Categories :active="route().current('dashboard')">
+                                <NavLink :href="route('peso.job-referrals.index')" v-if="page.props.auth.user.role === 'peso'"
+                                    Categories :active="route().current('peso.job-referrals.index')">
                                     Manage Job Referrals
                                 </NavLink>
                                 <!-- 
