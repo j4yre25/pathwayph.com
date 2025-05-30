@@ -109,8 +109,8 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'company'"
-                                    :href="route('dashboard', { user: page.props.auth.user.id })"
-                                    :active="route().current('jdashboard')"
+                                    :href="route('company.reports.overview', { user: page.props.auth.user.id })"
+                                    :active="route().current('company.reports.overview')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Reports
                                 </NavLink>

@@ -134,7 +134,7 @@ const getStatusText = (status) => {
             
             <!-- Action buttons -->
             <div class="flex space-x-2" @click.stop>
-              <Link :href="route('jobs.view', job.id)" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+              <Link :href="route('company.jobs.view', job.id)" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
                 <i class="fas fa-eye mr-1" aria-hidden="true"></i>
                 View Details
               </Link>
