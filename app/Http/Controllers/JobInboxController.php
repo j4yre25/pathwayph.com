@@ -88,6 +88,7 @@ class JobInboxController extends Controller
             ->map(function ($notification) {
                 return [
                     'id' => $notification->id,
+                    'data' => $notification->data,
                     'title' => $notification->data['title'] ?? '',
                     'company' => $notification->data['company'] ?? '',
                     'job_id' => $notification->data['job_id'] ?? null,

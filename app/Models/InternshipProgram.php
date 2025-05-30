@@ -10,10 +10,28 @@ class InternshipProgram extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'title', 'program_id', 'career_opportunity_id', 'skills', 'description', 'is_active'
+        'title', 'institution_id', 'is_active'
     ];
 
-    public function program() { return $this->belongsTo(Program::class); }
-    public function careerOpportunity() { return $this->belongsTo(CareerOpportunity::class); }
-    public function graduates() { return $this->belongsToMany(Graduate::class, 'graduate_internship_program'); }
+    public function institution() { return $this->belongsTo(Institution::class); }
+
+    public function programs()
+    {
+        return $this->belongsToMany(Program::class, 'internship_program_program');
+    }
+
+    public function careerOpportunities()
+    {
+        return $this->belongsToMany(CareerOpportunity::class, 'internship_program_career_opportunity');
+    }
+
+    public function skills()
+    {
+        return $this->belongsToMany(Skill::class, 'internship_program_skill');
+    }
+
+    public function graduates()
+    {
+        return $this->belongsToMany(Graduate::class, 'graduate_internship_program');
+    }
 }

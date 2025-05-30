@@ -11,37 +11,34 @@ use Inertia\Inertia;
 use App\Models\Job;
 use App\Models\Application;
 use Illuminate\Support\Facades\DB;
+use App\Models\InstitutionSchoolYear;
+use App\Models\SchoolYear;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-        $summary = [
-            'total_jobs' => 0,
-            'total_applications' => 0,
-            'total_hires' => 0,
-        ];
 
-        $graduates = [];
-        $programs = [];
-        $careerOpportunities = [];
+        // Always initialize variables
+        $summary = [
+            'total_graduates' => 0,
+            'employed' => 0,
+            'underemployed' => 0,
+            'unemployed' => 0,
+        ];
+        $graduates = collect();
+        $programs = collect();
+        $careerOpportunities = collect();
+        $schoolYears = collect();
 
         if ($user->hasRole('institution')) {
-            // Get the institution model for this user
             $institution = Institution::where('user_id', $user->id)->first();
 
             if ($institution) {
                 $institutionId = $institution->id;
 
-                $summary = [
-                    'total_graduates' => Graduate::where('institution_id', $institutionId)->count(),
-                    'employed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'employed')->count(),
-                    'underemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'underemployed')->count(),
-                    'unemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'unemployed')->count(),
-                ];
-
-                // Get institution-specific programs
+                // Programs
                 $programs = InstitutionProgram::with('program', 'degree')
                     ->where('institution_id', $institutionId)
                     ->get()
@@ -49,21 +46,50 @@ class DashboardController extends Controller
                         return [
                             'id' => $item->program->id,
                             'name' => $item->program->name,
-                            'code' => $item->program_code,
                             'degree' => $item->degree->type ?? null,
                         ];
                     });
 
-                // Graduates
-                $graduates = Graduate::where('institution_id', $institutionId)->get();
+                // Graduates (with all fields needed for dashboard)
+                $graduates = Graduate::where('institution_id', $institutionId)
+                    ->with('schoolYear') // eager load the schoolYear relation
+                    ->get()
+                    ->map(function ($g) {
+                        return [
+                            'program_id' => $g->program_id,
+                            'current_job_title' => $g->current_job_title,
+                            'employment_status' => ucfirst($g->employment_status),
+                            'gender' => $g->gender,
+                            'school_year_id' => $g->school_year_id,
+                            'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null, // <-- add this
+                        ];
+                    });
 
-                // Career Opportunities (from graduates' job titles)
+                // Career Opportunities (unique job titles)
                 $careerOpportunities = $graduates
-                    ->whereNotNull('current_job_title')
-                    ->where('current_job_title', '!=', 'N/A')
                     ->pluck('current_job_title')
+                    ->filter(fn($title) => $title && $title !== 'N/A')
                     ->unique()
                     ->values();
+
+                // Get all school years for this institution (with range)
+                $schoolYears = InstitutionSchoolYear::with('schoolYear')
+                    ->where('institution_id', $institutionId)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->schoolYear->id,
+                            'range' => $item->schoolYear->school_year_range,
+                            'term' => $item->term,
+                        ];
+                    });
+
+                $summary = [
+                    'total_graduates' => $graduates->count(),
+                    'employed' => $graduates->where('employment_status', 'Employed')->count(),
+                    'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
+                    'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
+                ];
             }
         }
 
@@ -77,6 +103,7 @@ class DashboardController extends Controller
             'graduates' => $graduates,
             'programs' => $programs,
             'careerOpportunities' => $careerOpportunities,
+            'schoolYears' => $schoolYears,
         ]);
     }
 

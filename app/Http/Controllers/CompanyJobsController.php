@@ -12,6 +12,8 @@ use App\Models\Location;
 use App\Models\Salary;
 use App\Models\Skill;
 use App\Notifications\JobInviteNotification;
+use App\Notifications\NewJobPostingNotification;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -21,7 +23,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
-use App\Notifications\NewJobPostingNotification;
 
 
 class CompanyJobsController extends Controller
@@ -346,20 +347,20 @@ class CompanyJobsController extends Controller
     public function autoInvite(Job $job)
     {
         $jobSkills = collect($job->skills)
-        ->map(fn($skill) => Str::lower($skill))
-        ->filter()
-        ->unique();
+            ->map(fn($skill) => Str::lower($skill))
+            ->filter()
+            ->unique();
         $jobProgramIds = $job->programs->pluck('id');
 
         // Match graduates who have matching skills AND are from related programs
         $qualifiedGraduates = Graduate::whereHas('user', function ($query) {
-        $query->where('role', 'graduate');
+            $query->where('role', 'graduate');
         })
-        ->whereIn('program_id', $jobProgramIds)
-        ->whereHas('graduateSkills.skill', function ($query) use ($jobSkills) {
-            $query->whereIn(DB::raw('LOWER(name)'), $jobSkills);
-        })
-        ->get();
+            ->whereIn('program_id', $jobProgramIds)
+            ->whereHas('graduateSkills.skill', function ($query) use ($jobSkills) {
+                $query->whereIn(DB::raw('LOWER(name)'), $jobSkills);
+            })
+            ->get();
 
         foreach ($qualifiedGraduates as $graduate) {
             JobInvitation::updateOrCreate([
@@ -371,8 +372,9 @@ class CompanyJobsController extends Controller
                 'title' => 'You have been invited to apply to this job opportunity.',
             ]);
 
-            // 🔔 Send in-app notification
-            $graduate->user->notify(new JobInviteNotification($job));
+            if ($graduate->user) {
+                $graduate->user->notify(new JobInviteNotification($job));
+            }
         }
 
         return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skills and program.');
@@ -395,8 +397,8 @@ class CompanyJobsController extends Controller
         $graduates = Graduate::whereHas('employmentPreference', function ($q) use ($new_job) {
             $q->where(function ($query) use ($new_job) {
                 $query->where('job_type', 'like', "%{$new_job->job_type}%")
-                      ->orWhere('location', 'like', "%{$new_job->location}%")
-                      ->orWhere('work_environment', 'like', "%{$new_job->work_environment}%");
+                    ->orWhere('location', 'like', "%{$new_job->location}%")
+                    ->orWhere('work_environment', 'like', "%{$new_job->work_environment}%");
             });
         })->get();
 

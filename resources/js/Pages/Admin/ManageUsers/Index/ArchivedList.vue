@@ -55,20 +55,8 @@ const goTo = (url) => {
                         <tr v-for="user in all_users.data" :key="user.id"
                             class="border-b border-gray-200 hover:bg-gray-100">
                             <td class="border border-gray-200 px-6 py-4">{{ user.role }}</td>
-                            <td class="border border-gray-200 px-6 py-4">
-                                <template v-if="user.role === 'company'">
-                                    {{ user.company_name }}
-                                </template>
-                                <template v-else-if="user.role === 'institution'">
-                                    {{ user.institution_career_officer_first_name }} {{
-                                        user.institution_career_officer_last_name }}
-                                </template>
-                                <template v-else-if="user.role === 'peso'">
-                                    {{ user.peso_first_name }} {{ user.peso_last_name }}
-                                </template>
-                                <template v-else>
-                                    {{ user.name }}
-                                </template>
+                         <td class="border border-gray-200 px-6 py-4">
+                                {{ user.full_name }}
                             </td>
                             <td class="border border-gray-200 px-6 py-4">
                                 {{ new Date(user.created_at).toLocaleDateString() }}

@@ -408,10 +408,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 });
 
 
-//Career Counseling Routes
+//Internship Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/internship-programs', [InternshipProgramController::class, 'index'])->name('internship-programs.index');
+    Route::get('/internship-programs/list', [InternshipProgramController::class, 'list'])->name('internship-programs.list');
+    Route::get('/internship-programs/archivedlist', [InternshipProgramController::class, 'archivedList'])->name('internship-programs.archivedlist');
     Route::post('/internship-programs', [InternshipProgramController::class, 'store'])->name('internship-programs.store');
+    Route::get('/internship-programs/create', [InternshipProgramController::class, 'create'])->name('internship-programs.create');
+    Route::get('/internship-programs/edit/{id}', [InternshipProgramController::class, 'edit'])->name('internship-programs.edit');
     Route::put('/internship-programs/{id}', [InternshipProgramController::class, 'update'])->name('internship-programs.update');
     Route::delete('/internship-programs/{id}', [InternshipProgramController::class, 'archive'])->name('internship-programs.archive');
     Route::post('/internship-programs/{id}/restore', [InternshipProgramController::class, 'restore'])->name('internship-programs.restore');

@@ -131,7 +131,7 @@ class User extends Authenticatable
             'is_approved' => 'boolean'
 
         ];
-    }   
+    }
     public function companyThroughHR()
     {
         return $this->hasOneThrough(
@@ -331,7 +331,7 @@ class User extends Authenticatable
 
     public function company()
     {
-        return $this->belongsTo(Company::class, 'user_id' );
+        return $this->hasOne(Company::class, 'user_id');
     }
 
     public function peso()
@@ -348,6 +348,4 @@ class User extends Authenticatable
     {
         return $this->hasOne(Graduate::class, 'user_id');
     }
-
-    
 }

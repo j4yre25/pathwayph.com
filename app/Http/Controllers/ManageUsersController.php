@@ -8,14 +8,14 @@ use Inertia\Inertia;
 
 class ManageUsersController extends Controller
 {
- public function index()
+    public function index()
     {
         $users = User::with([
-                'company',       // relationship: company()
-                'institution',   // relationship: institution()
-                'peso',          // relationship: peso()
-                'graduate',      // relationship: graduate()
-            ])
+            'company',       // relationship: company()
+            'institution',   // relationship: institution()
+            'peso',          // relationship: peso()
+            'graduate',      // relationship: graduate()
+        ])
             ->whereIn('role', ['company', 'institution', 'peso', 'graduate'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -25,19 +25,21 @@ class ManageUsersController extends Controller
             switch ($user->role) {
                 case 'company':
                     $user->full_name = $user->company
-                        ? trim("{$user->company->hr_first_name} {$user->company->hr_last_name}")
+                        ? trim("{$user->company->first_name} {$user->company->last_name}")
                         : 'N/A';
-                    $user->organization_name = $user->company->company_name ?? '-';
+                    $user->organization_name = ($user->company && !empty($user->company->company_name))
+                        ? $user->company->company_name
+                        : '-';
                     break;
                 case 'institution':
                     $user->full_name = $user->institution
-                        ? trim("{$user->institution->career_officer_first_name} {$user->institution->career_officer_last_name}")
+                        ? trim("{$user->institution->institution_president_first_name} {$user->institution->institution_president_last_name}")
                         : 'N/A';
                     $user->organization_name = $user->institution->institution_name ?? '-';
                     break;
                 case 'peso':
                     $user->full_name = $user->peso
-                        ? trim("{$user->peso->first_name} {$user->peso->last_name}")
+                        ? trim("{$user->peso->peso_first_name} {$user->peso->peso_last_name}")
                         : 'N/A';
                     $user->organization_name = $user->peso->peso_name ?? '-';
                     break;
@@ -62,11 +64,11 @@ class ManageUsersController extends Controller
     public function list(Request $request)
     {
         $users = User::with([
-                'company',
-                'institution',
-                'peso',
-                'graduate',
-            ])
+            'company',
+            'institution',
+            'peso',
+            'graduate',
+        ])
             ->when($request->role && $request->role !== 'all', function ($query) use ($request) {
                 $query->where('role', $request->role);
             })
@@ -86,19 +88,19 @@ class ManageUsersController extends Controller
             switch ($user->role) {
                 case 'company':
                     $user->full_name = $user->company
-                        ? trim("{$user->company->hr_first_name} {$user->company->hr_last_name}")
+                        ? trim("{$user->company->first_name} {$user->company->last_name}")
                         : 'N/A';
                     $user->organization_name = $user->company->company_name ?? '-';
                     break;
                 case 'institution':
                     $user->full_name = $user->institution
-                        ? trim("{$user->institution->career_officer_first_name} {$user->institution->career_officer_last_name}")
+                        ? trim("{$user->institution->institution_president_first_name} {$user->institution->institution_president_last_name}")
                         : 'N/A';
                     $user->organization_name = $user->institution->institution_name ?? '-';
                     break;
                 case 'peso':
                     $user->full_name = $user->peso
-                        ? trim("{$user->peso->first_name} {$user->peso->last_name}")
+                        ? trim("{$user->peso->peso_first_name} {$user->peso->peso_last_name}")
                         : 'N/A';
                     $user->organization_name = $user->peso->peso_name ?? '-';
                     break;
@@ -123,32 +125,32 @@ class ManageUsersController extends Controller
     public function archivedlist()
     {
         $users = User::with([
-                'company',
-                'institution',
-                'peso',
-                'graduate',
-            ])
+            'company',
+            'institution',
+            'peso',
+            'graduate',
+        ])
             ->onlyTrashed()
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        $users->getCollection()->transform(function ($user) {
+      $users->getCollection()->transform(function ($user) {
             switch ($user->role) {
                 case 'company':
                     $user->full_name = $user->company
-                        ? trim("{$user->company->hr_first_name} {$user->company->hr_last_name}")
+                        ? trim("{$user->company->first_name} {$user->company->last_name}")
                         : 'N/A';
                     $user->organization_name = $user->company->company_name ?? '-';
                     break;
                 case 'institution':
                     $user->full_name = $user->institution
-                        ? trim("{$user->institution->career_officer_first_name} {$user->institution->career_officer_last_name}")
+                        ? trim("{$user->institution->institution_president_first_name} {$user->institution->institution_president_last_name}")
                         : 'N/A';
                     $user->organization_name = $user->institution->institution_name ?? '-';
                     break;
                 case 'peso':
                     $user->full_name = $user->peso
-                        ? trim("{$user->peso->first_name} {$user->peso->last_name}")
+                        ? trim("{$user->peso->peso_first_name} {$user->peso->peso_last_name}")
                         : 'N/A';
                     $user->organization_name = $user->peso->peso_name ?? '-';
                     break;
@@ -187,7 +189,7 @@ class ManageUsersController extends Controller
             $user->hr->is_main_hr = true;
             $user->hr->save();
         }
-        
+
         $user->save();
 
         return redirect()->route('admin.manage_users')->with('flash.banner', 'User  approved successfully.');

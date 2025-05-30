@@ -25,6 +25,7 @@ class JobInviteNotification extends Notification
             'job_id' => $this->job->id,
             'title' => 'You have a new job invitation: ' . $this->job->job_title,
             'company' => $this->job->company->company_name ?? 'Unknown Company',
+            'type' => 'invite',
         ];
     }
 }

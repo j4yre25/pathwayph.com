@@ -1,28 +1,28 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
+  internshipProgram: Object,
   programs: Array,
   careerOpportunities: Array,
   skills: Array,
 });
 
 const form = useForm({
-  title: '',
-  program_id: [],
-  career_opportunity_id: [],
-  skill_id: [],
+  title: props.internshipProgram.title,
+  program_id: props.internshipProgram.programs.map(p => p.id),
+  career_opportunity_id: props.internshipProgram.career_opportunities.map(c => c.id),
+  skill_id: props.internshipProgram.skills.map(s => s.id),
 });
 
 const showSuccess = ref(false);
 
 function submit() {
-  form.post(route('internship-programs.store'), {
+  form.put(route('internship-programs.update', props.internshipProgram.id), {
     onSuccess: () => {
       showSuccess.value = true;
-      form.reset();
     },
     onError: () => {
       showSuccess.value = false;
@@ -32,9 +32,9 @@ function submit() {
 </script>
 
 <template>
-  <AppLayout title="Add Internship Program">
+  <AppLayout title="Edit Internship Program">
     <template #header>
-      <h2 class="text-2xl font-semibold text-gray-800">Add Internship Program</h2>
+      <h2 class="text-2xl font-semibold text-gray-800">Edit Internship Program</h2>
     </template>
 
     <div class="py-10">
@@ -127,8 +127,9 @@ function submit() {
             <button
               type="submit"
               class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow transition"
+              :disabled="form.processing"
             >
-              Add Program
+              Update Program
             </button>
             <transition name="fade">
               <div
@@ -140,7 +141,7 @@ function submit() {
                   <path stroke-linecap="round" stroke-linejoin="round"
                         d="M5 13l4 4L19 7"/>
                 </svg>
-                <span>Internship program added!</span>
+                <span>Internship program updated!</span>
               </div>
             </transition>
           </div>
