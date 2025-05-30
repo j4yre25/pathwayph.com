@@ -28,6 +28,12 @@ class EmploymentPreference extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
+    }
+
+
     public function jobTypes()
     {
         return $this->belongsToMany(JobType::class, 'employment_preference_job_type');

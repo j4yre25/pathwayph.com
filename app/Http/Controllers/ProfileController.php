@@ -1191,7 +1191,7 @@ class ProfileController extends Controller
         ]);
         $user = auth()->user();
         $graduate = $user->graduate;
-        $employmentPreference = $graduate->employmentPreferences()->firstOrCreate([]);
+        $employmentPreference = $graduate->employmentPreference()->firstOrCreate([]);
 
         // 1. Job Types
         $jobTypeNames = [];

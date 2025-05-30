@@ -7,6 +7,26 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import 'quill/dist/quill.snow.css';
 import * as lucide from 'lucide-vue-next';
+import * as echarts from 'echarts/core'
+import { PieChart } from 'echarts/charts'
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  ToolboxComponent
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import VueECharts from 'vue-echarts'
+
+echarts.use([
+  PieChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  ToolboxComponent,
+  CanvasRenderer
+])
+
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -23,6 +43,7 @@ createInertiaApp({
 
         vueApp.use(plugin)
             .use(ZiggyVue)
+            .component('VueECharts', VueECharts)
             .mount(el);
     },
     progress: {

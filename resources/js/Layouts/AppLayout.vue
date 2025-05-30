@@ -97,7 +97,8 @@ console.log(page.props.permissions.canManageInstitution)
 
                                 <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.job.applicants.index', { user: page.props.auth.user.id })"
-                                    :active="route().current('company.job.applicants.index')" :disabled="!page.props.auth.user.is_approved">
+                                    :active="route().current('company.job.applicants.index')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     Manage Applicants
                                 </NavLink>
 
@@ -113,7 +114,10 @@ console.log(page.props.permissions.canManageInstitution)
                                     :disabled="!page.props.auth.user.is_approved">
                                     Reports
                                 </NavLink>
+
+
                             </div>
+
 
                             <!-- Navigation Links -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
@@ -131,7 +135,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     :disabled="!page.props.auth.user.is_approved">
                                     Job Inbox
                                 </NavLink>
-                                
+
                                 <!-- Graduate Portfolio -->
                                 <!-- <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.portfolio')"
                                     :active="route().current('graduate.portfolio')"
@@ -142,7 +146,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
                                     :active="route().current('job.search')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Find Jobs   
+                                    Find Jobs
                                 </NavLink>
 
 
@@ -166,6 +170,13 @@ console.log(page.props.permissions.canManageInstitution)
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('categories.index')">
                                     Manage Categories
+                                </NavLink>
+
+                                <NavLink v-if="page.props.auth.user.role === 'peso'"
+                                    :href="route('admin.reports.index', { user: page.props.auth.user.id })"
+                                    :active="route().current('admin.reports.index')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Reports
                                 </NavLink>
 
 

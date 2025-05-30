@@ -1,50 +1,35 @@
 <script setup>
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Link } from '@inertiajs/vue3';
-import Container from '@/Components/Container.vue';
-import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
-import { ref } from 'vue';
-import { router } from '@inertiajs/vue3'; // Ensure router is imported
+import { ref, computed, watch } from 'vue'
+import { router } from '@inertiajs/vue3'
 
-const page = usePage();
 const props = defineProps({
-  jobs: Object, // Paginated jobs object
+  jobs: Object, // paginated jobs object
   sectors: Array,
   categories: Array,
-});
-
-console.log(props.jobs)
-const goTo = (url) => {
-  if (url) {
-    router.get(url); // Use Inertia's router to navigate to the provided URL
-  }
-};
+})
 
 const searchQuery = ref('');
 const selectedSector = ref('');
 const selectedCategory = ref('');
 
+const jobTypeLabel = (type) => {
+  switch (type) {
+    case 1: return 'Full-Time';
+    case 2: return 'Part-Time';
+    default: return 'Unknown';
+  }
+};
+
 const filteredJobs = computed(() => {
   return props.jobs.data
     .filter(job => {
-      const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
-      const matchesSector = selectedSector.value ? job.sector === selectedSector.value : true;
-      const matchesCategory = selectedCategory.value ? job.category === selectedCategory.value : true;
+      const matchesSearch = job.job_title?.toLowerCase().includes(searchQuery.value.toLowerCase());
+      const matchesSector = selectedSector.value ? job.sector_id === parseInt(selectedSector.value) : true;
+      const matchesCategory = selectedCategory.value ? job.category_id === parseInt(selectedCategory.value) : true;
       return matchesSearch && matchesSector && matchesCategory;
     })
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Sort by created_at in descending order
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 });
-
-const archiveJob = (jobId) => {
-  router.post(route('peso.jobs.archive', jobId), {}, {
-    onSuccess: () => console.log("Job archived!")
-  });
-};
-
-const approveJob = (job) => {
-  router.post(route('peso.jobs.approve', { job: job.id }), {});
-};
 
 const goToJob = (jobId) => {
   router.get(route('peso.jobs.view', { id: jobId }));
@@ -61,12 +46,13 @@ const goToJob = (jobId) => {
           <th class="py-2 px-4 text-left border">Location</th>
           <th class="py-2 px-4 text-left border">Employment Type</th>
           <th class="py-2 px-4 text-left border">Experience Level</th>
+          <th class="py-2 px-4 text-left border">Applicants</th>
           <th class="py-2 px-4 text-left border">Status</th>
         </tr>
       </thead>
       <tbody class="text-gray-600 text-sm font-light">
-        <tr v-for="job in filteredJobs" :key="job.id" @click="goToJob(job.id)"
-          class="border-b border-gray-200 hover:bg-gray-100">
+        <tr v-for="job in props.jobs.data" :key="job.id" @click="goToJob(job.id)"
+          class="border-b border-gray-200 hover:bg-gray-100 cursor-pointer">
           <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
           <td class="border border-gray-200 px-6 py-4">
             <template v-if="job.company">
@@ -82,8 +68,12 @@ const goToJob = (jobId) => {
               <span class="text-gray-500 italic">Unknown</span>
             </template>
           </td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.job_location }}</td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.job_employment_type }}</td>
+          <td class="border border-gray-200 px-6 py-4">
+            {{ job.location?.address ?? job.company?.company_city ?? 'N/A' }}
+          </td>
+          <td class="border border-gray-200 px-6 py-4">
+            {{ jobTypeLabel(job.job_type) }}
+          </td>
           <td class="border border-gray-200 px-6 py-4">{{ job.job_experience_level }}</td>
           <td class="border border-gray-200 px-6 py-4">{{ job.applicants_count ?? 0 }}</td>
           <td class="border border-gray-200 px-6 py-4">
@@ -97,10 +87,10 @@ const goToJob = (jobId) => {
   </div>
 
   <div class="mt-4">
-    <nav v-if="jobs.links.length > 1" aria-label="Page navigation">
+    <nav v-if="jobs.links && jobs.links.length > 1" aria-label="Page navigation">
       <ul class="inline-flex -space-x-px text-sm">
         <li v-for="link in jobs.links" :key="link.url" :class="{ 'active': link.active }">
-          <a v-if="link.url" @click.prevent="goTo(link.url)"
+          <a v-if="link.url" @click.prevent="goToJob(link.url)"
             :class="link.active ? 'flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700' : 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700'">
             <span v-html="link.label"></span>
           </a>
@@ -112,4 +102,4 @@ const goToJob = (jobId) => {
       </ul>
     </nav>
   </div>
-</template>
+</template> 

@@ -11,6 +11,9 @@ use App\Models\JobInvitation;
 use App\Models\Location;
 use App\Models\Salary;
 use App\Models\Skill;
+use App\Notifications\JobInviteNotification;
+use App\Notifications\NewJobPostingNotification;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -20,7 +23,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
-use App\Notifications\NewJobPostingNotification;
 
 
 class CompanyJobsController extends Controller
@@ -28,13 +30,17 @@ class CompanyJobsController extends Controller
     public function index(User $user)
     {
 
-         $jobs = Job::with(
-['jobTypes:id,type',
-            'locations:id,address',
-            'workEnvironments:id,environment_type',
-            'salary'])
-        ->where('company_id', $user->hr->company_id)
-        ->get();
+        $jobs = Job::with(
+            [
+                'jobTypes:id,type',
+                'locations:id,address',
+                'workEnvironments:id,environment_type',
+                'salary'
+            ]
+        )
+            ->where('company_id', $user->hr->company_id)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         // dd($jobs->toArray()) ; // Debugging line to check the jobs data
         $sectors = Sector::pluck('name');
@@ -83,18 +89,18 @@ class CompanyJobsController extends Controller
     public function manage(User $user)
     {
         $jobs = $user->jobs()
-        ->with(['jobTypes:id,type',
-            'locations:id,address',
-            'workEnvironments:id,environment_type',
-            'salary'])
-        ->get();
+            ->with([
+                'jobTypes:id,type',
+                'locations:id,address',
+                'workEnvironments:id,environment_type',
+                'salary'
+            ])
+            ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
             'jobs' => $jobs,
         ]);
     }
-
-
 
     public function store(Request $request, User $user)
     {
@@ -136,23 +142,52 @@ class CompanyJobsController extends Controller
             'program_id.*' => 'exists:programs,id',
         ]);
 
-        // Handle salary creation
-        $salary = Salary::create([
+        $salary = $this->createSalary($validated);
+        $location = $this->handleLocation($validated);
+        $user->loadMissing('hr');
+        $jobData = $this->prepareJobData($validated, $user, $salary, $location);
+
+        [$jobCode, $jobID] = $this->generateJobCodes($validated['sector'], $validated['category'], $validated['job_title']);
+        $jobData['job_code'] = $jobCode;
+        $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
+
+        $new_job = Job::create($jobData);
+        $new_job->jobTypes()->sync([$validated['job_type']]);
+        if ($location) {
+            $new_job->locations()->sync([$location->id]);
+        }
+        $new_job->workEnvironments()->sync([$validated['work_environment']]);
+        $new_job->programs()->attach($validated['program_id']);
+
+        // Notify graduates of the new job posting
+        $this->notifyGraduates($new_job);
+
+        // Auto-invite qualified graduates based on skills/program
+        $this->autoInvite($new_job);
+
+        return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
+    }
+
+    private function createSalary(array $validated): Salary
+    {
+        return Salary::create([
             'job_min_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_min_salary'],
             'job_max_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_max_salary'],
             'salary_type' => $validated['salary']['salary_type'],
         ]);
+    }
 
-        // Handle location only if NOT remote
-        $location = null;
+    private function handleLocation(array $validated): ?Location
+    {
         if ($validated['work_environment'] != 2) {
-            $location = Location::firstOrCreate(['address' => $validated['location']]);
+            return Location::firstOrCreate(['address' => $validated['location']]);
         }
+        return null;
+    }
 
-        $user->loadMissing('hr');
-
-        // Prepare job data
-        $jobData = [
+    private function prepareJobData(array $validated, User $user, Salary $salary, $location): array
+    {
+        return [
             'user_id' => $user->id,
             'posted_by' => $user->hr->full_name,
             'company_id' => $user->hr->company_id,
@@ -170,43 +205,30 @@ class CompanyJobsController extends Controller
             'job_requirements' => $validated['job_requirements'],
             'sector_id' => $validated['sector'],
             'category_id' => $validated['category'],
-            'job_deadline' => Carbon::parse($validated['job_deadline'])->format('Y-m-d'),
+            'job_deadline' => \Carbon\Carbon::parse($validated['job_deadline'])->format('Y-m-d'),
             'job_application_limit' => $validated['job_application_limit'] ?? null,
             'is_negotiable' => $validated['is_negotiable'],
             'job_salary_type' => $validated['salary']['salary_type'],
             'job_min_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_min_salary'],
             'job_max_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_max_salary'],
         ];
+    }
 
-        // Generate job code and ID
-        $sector = Sector::find($validated['sector']);
-        $category = \App\Models\Category::find($validated['category']);
+    private function generateJobCodes($sectorId, $categoryId, $jobTitle): array
+    {
+        $sector = Sector::find($sectorId);
+        $category = \App\Models\Category::find($categoryId);
         $sectorCode = $sector->sector_id;
         $divisionCodes = $sector->division_codes;
         $categoryCode = $category->division_code;
-        $initials = collect(explode(' ', $validated['job_title']))
+        $initials = collect(explode(' ', $jobTitle))
             ->map(fn($word) => Str::substr($word, 0, 1))
             ->implode('');
         $initials = strtoupper($initials);
         $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
         $jobCount = Job::count() + 1;
         $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT);
-        $jobData['job_code'] = $jobCode;
-        $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
-
-        $new_job = Job::create($jobData);
-        $new_job->jobTypes()->sync([$validated['job_type']]);
-        if ($location) {
-            $new_job->locations()->sync([$location->id]);
-        }
-        $new_job->workEnvironments()->sync([$validated['work_environment']]);
-        $new_job->programs()->attach($validated['program_id']);
-
-
-        // Notify graduates about the new job posting
-        $this->notifyGraduates($new_job);
-
-        return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
+        return [$jobCode, $jobID];
     }
 
     public function view(Job $job)
@@ -322,17 +344,22 @@ class CompanyJobsController extends Controller
     }
 
 
+
     public function autoInvite(Job $job)
     {
-        $jobSkills = collect($job->skill)
+        $jobSkills = collect($job->skills)
             ->map(fn($skill) => Str::lower($skill))
             ->filter()
             ->unique();
+        $jobProgramIds = $job->programs->pluck('id');
 
-        // Fetch all graduates (Users with role 'graduate') who have matching related_skills
-        $qualifiedGraduates = User::where('role', 'graduate')
-            ->whereHas('related_skills', function ($query) use ($jobSkills) {
-                $query->whereIn(DB::raw('LOWER(graduate_skills_name)'), $jobSkills);
+        // Match graduates who have matching skills AND are from related programs
+        $qualifiedGraduates = Graduate::whereHas('user', function ($query) {
+            $query->where('role', 'graduate');
+        })
+            ->whereIn('program_id', $jobProgramIds)
+            ->whereHas('graduateSkills.skill', function ($query) use ($jobSkills) {
+                $query->whereIn(DB::raw('LOWER(name)'), $jobSkills);
             })
             ->get();
 
@@ -341,14 +368,19 @@ class CompanyJobsController extends Controller
                 'job_id' => $job->id,
                 'graduate_id' => $graduate->id,
             ], [
-                'company_id' => Auth::id(),
+                'company_id' => Auth::user()->hr->company_id,
                 'status' => 'pending',
-                'message' => 'You have been invited to apply to this job opportunity.',
+                'title' => 'You have been invited to apply to this job opportunity.',
             ]);
+
+            if ($graduate->user) {
+                $graduate->user->notify(new JobInviteNotification($job));
+            }
         }
 
-        return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skill alignment.');
+        return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skills and program.');
     }
+
 
 
     public function restore($job)
@@ -366,8 +398,8 @@ class CompanyJobsController extends Controller
         $graduates = Graduate::whereHas('employmentPreference', function ($q) use ($new_job) {
             $q->where(function ($query) use ($new_job) {
                 $query->where('job_type', 'like', "%{$new_job->job_type}%")
-                      ->orWhere('location', 'like', "%{$new_job->location}%")
-                      ->orWhere('work_environment', 'like', "%{$new_job->work_environment}%");
+                    ->orWhere('location', 'like', "%{$new_job->location}%")
+                    ->orWhere('work_environment', 'like', "%{$new_job->work_environment}%");
             });
         })->get();
 

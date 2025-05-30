@@ -80,12 +80,15 @@ class JobInboxController extends Controller
 
         return $user->notifications()
             ->whereNull('read_at')
-            ->where('type', \App\Notifications\NewJobPostingNotification::class) // Only new job notifications
+            ->whereIn('type', [
+                \App\Notifications\NewJobPostingNotification::class,
+                \App\Notifications\JobInviteNotification::class])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($notification) {
                 return [
                     'id' => $notification->id,
+                    'data' => $notification->data,
                     'title' => $notification->data['title'] ?? '',
                     'company' => $notification->data['company'] ?? '',
                     'job_id' => $notification->data['job_id'] ?? null,

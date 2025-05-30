@@ -161,7 +161,6 @@ class GraduateJobsController extends Controller
             $cleanSkills = array_map(function ($skill) {
                 $skill = trim($skill);
                 // Remove spaces inside the skill (turn "P y t h o n" into "Python")
-                $skill = str_replace(' ', '', $skill);
                 return $skill;
             }, $skillsArray);
 
@@ -221,7 +220,7 @@ class GraduateJobsController extends Controller
             ->toArray();
 
         // Build the recommendation query
-        $jobs = \App\Models\Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+        $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
 
         $recommendations = [];
 
@@ -295,6 +294,9 @@ class GraduateJobsController extends Controller
 
     public function oneClickApply(Request $request)
     {
+        if (!Auth::check()) {
+        return response()->json(['error' => 'Unauthenticated'], 401);
+    }
         $user = Auth::user();
         $graduate = $user->graduate;
 
@@ -305,6 +307,7 @@ class GraduateJobsController extends Controller
         $coverLetter = $graduate->cover_letter ?? '';
 
         \App\Models\JobApplication::create([
+            'user_id' => auth()->id(),
             'graduate_id' => $graduate->id,
             'job_id' => $request->job_id,
             'status' => 'applied',
