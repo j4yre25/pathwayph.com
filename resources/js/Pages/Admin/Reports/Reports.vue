@@ -4,21 +4,26 @@ import { ref, watch, onMounted, computed } from 'vue'
 import VueECharts from 'vue-echarts';
 
 import * as echarts from 'echarts/core'
-import { BarChart, HeatmapChart } from 'echarts/charts'
-import { TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, LegendComponent } from 'echarts/components'
+import { BarChart, HeatmapChart, LineChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, LegendComponent, GeoComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
 // Register required ECharts components
 echarts.use([
   BarChart,
+  GeoComponent,
   HeatmapChart,
   TitleComponent,
   TooltipComponent,
   GridComponent,
   VisualMapComponent,
   LegendComponent,
-  CanvasRenderer
+  CanvasRenderer,
+  LineChart,
 ])
+
+import phMap from '@/maps/ph.json'
+echarts.registerMap('PH', phMap)
 
 // Use defineProps with object syntax for better type safety and IDE support
 const props = defineProps({
@@ -32,6 +37,16 @@ const props = defineProps({
   skillsWordCloud: { type: Object, default: () => ({}) },
   topSkillDemand: { type: Object, default: () => ({}) },
   topSkillSupply: { type: Object, default: () => ({}) },
+  summary: { type: Object, default: () => ({ employed: 0, unemployed: 0, further_studies: 0 }) },
+  unemploymentOverTime: { type: Array, default: () => [] },
+  employmentTrend: { type: Array, default: () => [] },
+  jobPlacementTrend: { type: Array, default: () => [] },
+  locationStats: { type: Array, default: () => [] },
+  jobOpeningsByLocation: { type: Object, default: () => ({}) },
+  jobSeekersByLocation: { type: Object, default: () => ({}) },
+  referralByLocation: { type: Object, default: () => ({}) },
+  referralSuccessHeatmap: { type: Array, default: () => [] },
+
 })
 
 // KPI values
@@ -216,6 +231,203 @@ const skillBarOption = computed(() => ({
     }
   ]
 }))
+
+// Pie chart for unemployment rate (Employed, Unemployed, Further Studies)
+const unemploymentPieOption = computed(() => ({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  legend: { orient: 'vertical', left: 'left' },
+  series: [
+    {
+      name: 'Status',
+      type: 'pie',
+      radius: '60%',
+      data: [
+        { name: 'Employed', value: props.summary.employed ?? 0 },
+        { name: 'Unemployed', value: props.summary.unemployed ?? 0 },
+      ],
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      },
+      label: {
+        formatter: '{b}: {d}%',
+        color: '#374151',
+        fontWeight: 'bold'
+      }
+    }
+  ]
+}));
+
+// Area chart for unemployment rate over time
+const areaOption = computed(() => ({
+  tooltip: {
+    trigger: 'axis',
+    formatter: params => {
+      return params.map(p =>
+        `${p.seriesName}: ${p.value}%`
+      ).join('<br>');
+    }
+  },
+  legend: { data: ['Unemployment Rate', 'Employment Rate'] },
+  xAxis: {
+    type: 'category',
+    data: props.unemploymentOverTime.map(item => item.year),
+    boundaryGap: false,
+    axisLabel: { fontSize: 14 }
+  },
+  yAxis: {
+    type: 'value',
+    axisLabel: { formatter: '{value}%', fontSize: 14 }
+  },
+  series: [
+    {
+      name: 'Unemployment Rate',
+      type: 'line',
+      data: props.unemploymentOverTime.map(item => item.unemployment_rate),
+      areaStyle: { color: '#ef4444', opacity: 0.3 },
+      itemStyle: { color: '#ef4444' },
+      lineStyle: { color: '#ef4444' },
+      smooth: true
+    },
+    {
+      name: 'Employment Rate',
+      type: 'line',
+      data: props.unemploymentOverTime.map(item => item.employment_rate),
+      areaStyle: { color: '#22c55e', opacity: 0.2 },
+      itemStyle: { color: '#22c55e' },
+      lineStyle: { color: '#22c55e' },
+      smooth: true
+    }
+  ]
+}));
+
+// Employment Trend Over Time (Line Chart)
+const employmentTrendOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: props.employmentTrend.map(item => item.year),
+    axisLabel: { fontSize: 14 }
+  },
+  yAxis: {
+    type: 'value',
+    axisLabel: { formatter: '{value}%', fontSize: 14 }
+  },
+  series: [
+    {
+      name: 'Employment Rate',
+      type: 'line',
+      data: props.employmentTrend.map(item => item.employment_rate),
+      itemStyle: { color: '#3b82f6' },
+      lineStyle: { color: '#3b82f6' },
+      smooth: true
+    }
+  ]
+}));
+
+// Job Placement Rate Over Time (Area Chart)
+const jobPlacementOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: props.jobPlacementTrend.map(item => item.year),
+    axisLabel: { fontSize: 14 }
+  },
+  yAxis: {
+    type: 'value',
+    axisLabel: { formatter: '{value}%', fontSize: 14 }
+  },
+  series: [
+    {
+      name: 'Job Placement Rate',
+      type: 'line',
+      areaStyle: { color: '#f59e42', opacity: 0.3 },
+      data: props.jobPlacementTrend.map(item => item.placement_rate),
+      itemStyle: { color: '#f59e42' },
+      lineStyle: { color: '#f59e42' },
+      smooth: true
+    }
+  ]
+}));
+
+// Bubble Map: Job Openings vs. Job Seekers
+const bubbleMapData = computed(() =>
+  Object.keys(props.jobOpeningsByLocation).map(loc => ({
+    name: loc,
+    value: [
+      loc, // For a real map, use [lng, lat] or region name
+      props.jobOpeningsByLocation[loc],
+      props.jobSeekersByLocation[loc] ?? 0
+    ],
+    symbolSize: Math.max(props.jobOpeningsByLocation[loc], 10)
+  }))
+);
+
+// Heatmap: Referral Success Rate
+const heatmapMapData = computed(() =>
+  props.referralSuccessHeatmap.map(item => ({
+    name: item.name,
+    value: item.rate
+  }))
+);
+
+// Example ECharts option for Bubble Map (using geo or map)
+const bubbleMapOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: p => `${p.name}<br>Jobs: ${p.value[1]}<br>Seekers: ${p.value[2]}`
+  },
+  geo: {
+    map: 'PH', // Use 'world' or your country/region map
+    roam: true,
+    label: { show: false },
+    itemStyle: { areaColor: '#e0e7ef', borderColor: '#999' }
+  },
+  series: [
+    {
+      name: 'Job Openings',
+      type: 'scatter',
+      coordinateSystem: 'geo',
+      data: bubbleMapData.value,
+      symbolSize: val => Math.sqrt(val[1]) * 4, // Bubble size by job openings
+      itemStyle: { color: '#3b82f6', opacity: 0.7 }
+    }
+  ]
+}));
+
+// Example ECharts option for Heatmap
+const referralHeatmapOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: p => `${p.name}<br>Referral Success Rate: ${p.value}%`
+  },
+  geo: {
+    map: 'PH',
+    roam: true,
+    label: { show: false },
+    itemStyle: { areaColor: '#e0e7ef', borderColor: '#999' }
+  },
+  visualMap: {
+    min: 0,
+    max: 100,
+    left: 'left',
+    top: 'bottom',
+    text: ['High', 'Low'],
+    inRange: { color: ['#fca5a5', '#22c55e'] },
+    calculable: true
+  },
+  series: [
+    {
+      name: 'Referral Success Rate',
+      type: 'heatmap',
+      coordinateSystem: 'geo',
+      data: heatmapMapData.value
+    }
+  ]
+}));
 </script>
 
 <template>
@@ -280,14 +492,14 @@ const skillBarOption = computed(() => ({
             <h4 class="font-semibold mb-2">Top Job Roles (Employed Graduates)</h4>
             <ul class="flex flex-wrap gap-2">
               <li v-for="[role, count] in topRoles" :key="role"
-                  class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
                 {{ role }} <span class="font-bold">({{ count }})</span>
               </li>
             </ul>
             <h4 class="font-semibold mt-6 mb-2">Top Skills (Employed Graduates)</h4>
             <ul class="flex flex-wrap gap-2">
               <li v-for="[skill, count] in topSkills" :key="skill"
-                  class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
                 {{ skill }} <span class="font-bold">({{ count }})</span>
               </li>
             </ul>
@@ -297,6 +509,54 @@ const skillBarOption = computed(() => ({
             <VueECharts :option="skillBarOption" style="height: 320px; width: 100%;" />
           </div>
         </div>
+      </div>
+
+      <!-- Unemployment Rate Pie Chart -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment Rate Distribution</h3>
+        <VueECharts :option="unemploymentPieOption" style="height: 350px; width: 100%; max-width: 420px;" />
+      </div>
+
+      <!-- Unemployment Rate Over Time Area Chart -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment Rate Over Time</h3>
+        <VueECharts :option="areaOption" style="height: 350px; width: 100%;" />
+      </div>
+
+      <!-- Employment Trend Over Time Line Chart -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment Trend Over Time</h3>
+        <VueECharts :option="employmentTrendOption" style="height: 350px; width: 100%;" />
+      </div>
+
+      <!-- Job Placement Rate Over Time Area Chart -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Placement Rate Over Time</h3>
+        <VueECharts :option="jobPlacementOption" style="height: 350px; width: 100%;" />
+      </div>
+
+      <!-- Job Openings and Seekers Bubble Map -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Openings vs. Job Seekers</h3>
+        <VueECharts :option="bubbleMapOption" style="height: 400px; width: 100%;" />
+      </div>
+
+      <!-- Referral Success Rate Heatmap -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Success Rate Heatmap</h3>
+        <VueECharts :option="referralHeatmapOption" style="height: 400px; width: 100%;" />
+      </div>
+
+      <!-- Bubble Map: Job Openings vs. Seekers -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Openings vs. Job Seekers by Location (Bubble Map)</h3>
+        <VueECharts :option="bubbleMapOption" style="height: 500px; width: 100%;" />
+      </div>
+
+      <!-- Heatmap: Referral Success Rate -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Success Rate by Location (Heatmap)</h3>
+        <VueECharts :option="referralHeatmapOption" style="height: 500px; width: 100%;" />
       </div>
     </div>
   </AppLayout>
