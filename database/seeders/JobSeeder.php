@@ -6,8 +6,11 @@ use App\Models\HumanResource;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Job;
-use App\Models\Program;
+use App\Models\Salary;
 use App\Models\Company;
+use App\Models\JobType;
+use App\Models\WorkEnvironment;
+use App\Models\Location;
 use Faker\Factory as Faker;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -21,6 +24,8 @@ class JobSeeder extends Seeder
         $faker = Faker::create('en_PH');
         $sectors = Sector::pluck('id')->toArray(); // Fetch all valid sector IDs
         $company = User::where('role', 'company')->pluck('id')->toArray(); // Fetch all valid company IDs
+        $jobTypes = JobType::pluck('id')->toArray();  
+        $workEnvironment = WorkEnvironment::pluck('id')->toArray();  
 
          $companies = [
             ['name' => 'GS Pescador Sea Trading Corporation', 'address' => 'Pescador Building, PFDA, Barangay Tambler'],
@@ -405,15 +410,16 @@ class JobSeeder extends Seeder
             ],
         ];
 
-        $jobTypes = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'];
+
         $experienceLevels = ['Entry-level', 'Intermediate', 'Mid-level', 'Senior/Executive'];
-        $workEnvironment = ['Remote', 'On-site', 'Hybrid'];
-        $salaryTypes = ['Monthly', 'Hourly', 'Weekly'];
+        $salaryTypes = ['monthly',  'weekly', 'hourly'];
 
         $skillsList = [
             'Communication', 'Teamwork', 'Problem-solving', 'Time management',
             'Attention to detail', 'Adaptability', 'Leadership', 'Technical skills',
-            'Customer service', 'Analytical thinking'
+            'Customer service', 'Analytical thinking', 'Computer literacy',
+            'Documentation', 'Compliance knowledge', 'Inventory management',
+            'Coordination', 'Critical thinking',
         ];
         
         $companyNameIdMap = Company::pluck('id', 'company_name')->toArray();
@@ -442,6 +448,7 @@ class JobSeeder extends Seeder
                 $title = $jobData['title'];
                 $categoryId = $jobData['category_id'];
                 $sectorId = $categoryCategoryMap[$categoryId] ?? Arr::random($sectors); // fallback
+
 
                 // Randomly pick a year for created_at between 2022 and 2024 for variety
                 $postYear = rand(2022, 2024);
@@ -479,6 +486,8 @@ class JobSeeder extends Seeder
                 $sector = Sector::find($sectorId);
                 $category =Category::find($categoryId);
 
+                
+
                 if ($sector && $category) {
                     $sectorCode = $sector->sector_id;                // e.g., S0001
                     $divisionCodes = $sector->division_codes;        // e.g., 01-03
@@ -499,35 +508,52 @@ class JobSeeder extends Seeder
                 
                 // Compose full job_id
                 $fullJobID = "JS-{$jobID}-{$jobCode}";
-                
-                $job = Job::create([
-                    'user_id' => $userId,
-                    'company_id' => $companyId,
-                    'posted_by' => $postedByName,
-                    'job_title' => $title,
-                    'sector_id' => $sectorId,
-                    'category_id' => $categoryId,
-                    'job_employment_type' => Arr::random($jobTypes),
-                    'job_work_environment' => Arr::random($workEnvironment),
-                    'job_experience_level' => Arr::random($experienceLevels),
-                    'job_salary_type' => $salaryType,
-                    'is_negotiable' => $isNegotiable,
+
+                $location = Location::firstOrCreate(
+                    ['address' => $company['address']]
+                );
+
+                // Create Salary first
+                $salary = Salary::create([
                     'job_min_salary' => $minSalary,
                     'job_max_salary' => $maxSalary,
-                    'job_location' => $companyLocation,
-                    'job_vacancies' => random_int(1, 10),
-                    'job_description' => "$title position available at our company. Responsibilities include ...",
-                    'job_requirements' => "Requirements for $title include ...",
-                    'related_skills' => json_encode(array_rand(array_flip($skillsList), 3)),
-                    'job_application_limit' => Arr::random([null, 50, 100]),
-                    'is_approved' => Arr::random([0, 1]),
-                    'created_at' => $createdAt,
-                    'updated_at' => $createdAt,  // or later if you want
-                    'job_deadline' => $jobDeadline->format('Y-m-d'),
-                    'status' => $status,
-                    'job_code' => $jobCode,
-                    'job_id' => $fullJobID,
+                    'salary_type' => $salaryType,
                 ]);
+                
+                // Remove those fields from the Job::create block
+                $job = Job::create([
+                'user_id' => $userId,
+                'company_id' => $companyId,
+                'posted_by' => $postedByName,
+                'job_title' => $title,
+                'sector_id' => $sectorId,
+                'category_id' => $categoryId,
+                'is_negotiable' => $isNegotiable,
+                'job_experience_level' => Arr::random($experienceLevels),
+                'job_vacancies' => random_int(1, 10),
+                'job_description' => "$title position available at our company. Responsibilities include ...",
+                'job_requirements' => "Requirements for $title include ...",
+                'skills' => json_encode(array_rand(array_flip($skillsList), 3)),
+                'job_application_limit' => Arr::random([null, 50, 100]),
+                'is_approved' => Arr::random([0, 1]),
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
+                'job_deadline' => $jobDeadline->format('Y-m-d'),
+                'status' => $status,
+                'job_code' => $jobCode,
+                'job_id' => $fullJobID,
+                'salary_id' => $salary->id, 
+                ]);
+
+                $jobTypeId = Arr::random($jobTypes);  // get random job_type_id
+                $job->jobTypes()->attach($jobTypeId);
+
+                $environmentId = Arr::random($workEnvironment);  // get random environment_id
+                $job->workEnvironments()->attach($environmentId);
+
+              
+                $job->locations()->syncWithoutDetaching([$location->id]);
+
 
             }
         }

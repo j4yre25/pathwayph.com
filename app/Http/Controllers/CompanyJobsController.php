@@ -30,17 +30,16 @@ class CompanyJobsController extends Controller
     public function index(User $user)
     {
 
-        $jobs = Job::with(
-            [
-                'jobTypes:id,type',
-                'locations:id,address',
-                'workEnvironments:id,environment_type',
-                'salary'
-            ]
-        )
-            ->where('company_id', $user->hr->company_id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+         $jobs = Job::with([
+            'jobTypes:id,type',
+            'locations:id,address',
+            'workEnvironments:id,environment_type',
+            'salary'
+        ])
+        ->where('company_id', $user->hr->company_id)
+        ->orderByRaw('is_approved DESC') // prioritize approved jobs
+        ->orderBy('created_at', 'desc')            // then by latest
+        ->get();
 
         // dd($jobs->toArray()) ; // Debugging line to check the jobs data
         $sectors = Sector::pluck('name');
@@ -89,13 +88,13 @@ class CompanyJobsController extends Controller
     public function manage(User $user)
     {
         $jobs = $user->jobs()
-            ->with([
-                'jobTypes:id,type',
-                'locations:id,address',
-                'workEnvironments:id,environment_type',
-                'salary'
-            ])
-            ->get();
+        ->with(['jobTypes:id,type',
+            'locations:id,address',
+            'workEnvironments:id,environment_type',
+            'salary'])
+        ->orderByRaw('is_approved DESC') // prioritize approved jobs
+        ->orderBy('created_at', 'desc') 
+        ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
             'jobs' => $jobs,

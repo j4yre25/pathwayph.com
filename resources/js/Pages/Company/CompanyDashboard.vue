@@ -1,4 +1,4 @@
-<script setup>
+cOMP<script setup>
 import { defineProps, onMounted } from "vue";
 
 const props = defineProps({
