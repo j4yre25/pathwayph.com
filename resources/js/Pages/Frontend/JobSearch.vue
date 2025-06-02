@@ -98,6 +98,10 @@ function fetchJobs() {
     });
 }
 
+function calculateMatchPercentage(job) {
+    return job.match_percentage ?? 0;
+}
+
 // Apply for a job
 const applyForm = useForm({ job_id: null, cover_letter: '' });
 function showApplyModal(job) {
@@ -639,12 +643,12 @@ onMounted(() => {
                                         </span>
                                     </div>
                                     <div class="mt-2 flex flex-wrap gap-2">
-                                        <span
-                                            v-for="label in job.match_labels"
-                                            :key="label"
-                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200"
-                                        > Match with
-                                            {{ label }}
+                                        <span v-for="label in job.match_labels" :key="label"
+                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200">
+                                            Match with {{ label }}
+                                        </span>
+                                        <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                            {{ job.match_percentage }}% Match
                                         </span>
                                     </div>
                                 </div>
