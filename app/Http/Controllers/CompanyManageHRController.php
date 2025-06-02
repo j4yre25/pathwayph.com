@@ -44,7 +44,6 @@ class CompanyManageHRController extends Controller
     }
 
 
-
     public function edit($id)
     {
         $user = Auth::user();// Get the logged-in user (company)
@@ -112,27 +111,21 @@ class CompanyManageHRController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy($id)
-    {
-        $user = Auth::user(); // Get the logged-in user (company)
 
-        // Ensure only main HR can delete HRs
-        if ($user->role !== 'company' || !$user->is_main_hr) {
-            abort(403, 'Unauthorized access.');
-        }
+    public function archive($id) {
+        $user = User::findOrFail($id);
+        $user->archived_at = now();
+        $user->save();
 
-        // Fetch the HR to delete
-        $hr = User::findOrFail($id);
-
-        // Ensure the HR belongs to the same company
-        if ($hr->company_email !== $user->company_email) {
-            abort(403, 'Unauthorized access.');
-        }
-
-        // Delete the HR account
-        $hr->delete();
-
-        return redirect()->route('company.manage-hrs')
-            ->with('success', 'HR account deleted successfully!');
+        return back()->with('success', 'User archived successfully.');
     }
+
+    public function unarchive($id) {
+        $user = User::findOrFail($id);
+        $user->archived_at = null;
+        $user->save();
+
+        return back()->with('success', 'User restored successfully.');
+    }
+
 }

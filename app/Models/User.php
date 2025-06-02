@@ -46,50 +46,9 @@ class User extends Authenticatable
         'telephone_number',
         'contact_number',
         'profile_picture',
-
-        // PESO
-        'peso_first_name',
-        'peso_last_name',
-
-
-        //Graduate
-        'institution_id',
-        'graduate_first_name',
-        'graduate_last_name',
-        'graduate_middle_initial',
-        'graduate_current_job_title', //changed this
-        'graduate_email',
-        'graduate_phone',
-        'graduate_location',
-        'graduate_birthdate',
-        'graduate_gender',
-        'graduate_ethnicity',
-        'graduate_address',
-        'graduate_about_me',
-        'graduate_picture_url',
-
-        'graduate_education_institution_id',
-        'graduate_education_program',
-        'graduate_education_field_of_study',
-        'graduate_education_start_date',
-        'graduate_education_end_date',
-        'graduate_education_description',
-
-        'graduate_skills_name',
-        'graduate_skills_proficiency',
-        'graduate_skills_type',
-        'graduate_skills_years_experience',
-
-
-
-        // Institution
-        'institution_type',
-        'institution_name',
-        'institution_address',
-        'institution_president_last_name',
-        'institution_president_first_name',
-        'institution_career_officer_first_name',
-        'institution_career_officer_last_name',
+        'archived_at',
+        'last_login_at'
+       
     ];
 
     /**
@@ -125,10 +84,13 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'archived_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'graduate_year_graduated' => 'date',
             'is_approved' => 'boolean'
+
 
         ];
     }
@@ -348,4 +310,17 @@ class User extends Authenticatable
     {
         return $this->hasOne(Graduate::class, 'user_id');
     }
+
+    public function scopeArchived($query) {
+        return $query->whereNotNull('archived_at');
+    }
+
+    public function scopeActive($query) {
+        return $query->whereNull('archived_at');
+    }
+
+    public function isArchived() {
+        return !is_null($this->archived_at);
+    }
+
 }
