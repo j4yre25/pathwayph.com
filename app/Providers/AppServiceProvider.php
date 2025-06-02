@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Illuminate\Support\ServiceProvider;
 
+use Laravel\Fortify\Contracts\LoginResponse;
+use App\Actions\Fortify\LoginResponse as CustomLoginResponse;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -15,8 +18,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LoginResponse::class, CustomLoginResponse::class);
     }
+
 
     /**
      * Bootstrap any application services.
