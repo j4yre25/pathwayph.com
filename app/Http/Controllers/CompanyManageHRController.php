@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\HumanResource;
+use App\Models\HrInfoView;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 
@@ -18,28 +19,19 @@ class CompanyManageHRController extends Controller
      */
     public function index()
     {
-                /** @var \App\Models\User $user */
+        /** @var \App\Models\User $user */
+         $user = Auth::user();
 
-        $user = Auth::user();
-
-        $user->load('hr');
-
-        // Fetch HRs linked to the same company (filter via human_resources table)
+        // Get the company_id linked to the currently logged-in HR
         $companyId = $user->hr->company_id;
 
-        $hrs = User::where('role', 'company')
-            ->whereHas('hr', function ($query) use ($companyId) {
-                $query->where('company_id', $companyId)
-                    ->where('is_main_hr', false);
-            })
+        // Query your view and filter by company_id
+        $hrs = DB::table('company_hr_view')
+            ->where('company_id', $companyId)
             ->get();
-
-
-       
 
         return inertia('Company/ManageHR/Index/Index', [
             'hrs' => $hrs,
-
         ]);
     }
 
