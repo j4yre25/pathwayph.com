@@ -105,7 +105,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 <NavLink v-if="roles.isCompany"
                                     :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')" :disabled="!auth.user.is_approved">
-                                    Manage HR Accounts
+                                    Human Resource Accounts
                                 </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'company'"

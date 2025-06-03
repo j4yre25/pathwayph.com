@@ -84,19 +84,27 @@ class CompanyJobApplicantController extends Controller
         $interviewsCount = (clone $applicationsQuery)->whereNotNull('interview_date')->count();
         $pendingCount = $totalApplicants - ($hiredCount + $rejectedCount + $declinedByGraduate);
 
-        // Applications with user info
-        $applicants = $applicationsQuery->with('user', 'job')->get()->map(function ($application) {
-            return [
-                'id' => $application->id,
-                'name' => $application->user->graduate_first_name. ' ' . $application->user->graduate_last_name,
-                'job_title' => $application->job->job_title,
-                'email' => $application->user->email,
-                'status' => $application->status,
-                'notes' => $application->notes,
-                'applied_at' => $application->applied_at ? $application->applied_at->format('M d, Y') : null,
-                'interview_date' => $application->interview_date ? $application->interview_date->format('M d, Y') : null,
-            ];
-        });
+        $applicants = $applicationsQuery
+            ->with(['graduate.user', 'job']) // eager load graduate and their user
+            ->get()
+            ->map(function ($application) {
+                $graduate = $application->graduate;
+                $user = $graduate?->user;
+
+                return [
+                    'id' => $application->id,
+                    'name' => $graduate
+                        ? $graduate->first_name . ' ' . $graduate->last_name
+                        : 'N/A',
+                    'job_title' => $application->job->job_title,
+                    'email' => $user?->email ?? 'N/A',
+                    'status' => $application->status,
+                    'stage' => $application->stage,
+                    'notes' => $application->notes,
+                    'applied_at' => optional($application->applied_at)->format('M d, Y'),
+                    'interview_date' => optional($application->interview_date)->format('M d, Y'),
+                ];
+            });
 
         return Inertia::render('Company/Applicants/ListOfApplicants/Index', [
             'job' => $job,
@@ -111,5 +119,6 @@ class CompanyJobApplicantController extends Controller
             ],
         ]);
     }
+
 
 }

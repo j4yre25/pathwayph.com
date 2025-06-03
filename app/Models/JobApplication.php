@@ -16,6 +16,7 @@ class JobApplication extends Model
      */
     protected $fillable = [
         'graduate_id',
+        'user_id',
         'job_id',
         'status',
         'stage',
@@ -47,6 +48,14 @@ class JobApplication extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the graduate that owns the job application.
+     */ 
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
     }
 
     /**

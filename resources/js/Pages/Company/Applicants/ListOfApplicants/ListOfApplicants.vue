@@ -1,32 +1,48 @@
 <script setup>
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Link } from '@inertiajs/vue3';
-import Container from '@/Components/Container.vue';
-import { router, usePage } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
+import axios from 'axios';
+import Modal from '@/Components/Modal.vue';
+import GraduatePortfolio from '@/Pages/Frontend/GraduatePortfolio.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import TextArea from '@/Components/TextArea.vue';
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
-import Modal from '@/Components/Modal.vue';
-import axios from 'axios';
-
-const page = usePage();
 
 const props = defineProps({
-  applicants: {
-    type: Array,
-    required: true,
-  }
+  applicants: Array,
+  filters: Object,
+  pipelineStages: Array,
+  statuses: Array,
 });
 
+// Reactive variables
 const selectedApplicant = ref(null);
 const isViewDetailsModalOpen = ref(false);
 const portfolioData = ref(null);
 const isLoading = ref(false);
-
-// Action loading state
+const actionError = ref('');
 const isActionLoading = ref(false);
 const activeApplicantId = ref(null);
-const actionError = ref(null);
+const isScheduleModalOpen = ref(false);
+const isRejectModalOpen = ref(false);
+const isUpdateStatusModalOpen = ref(false);
+const selectedStatus = ref('');
+const selectedPipelineStage = ref('');
+const interviewDate = ref('');
+const interviewTime = ref('');
+const interviewLocation = ref('');
+const interviewNotes = ref('');
+const rejectionReason = ref('');
+const formErrors = ref({});
 
 // Function to get status class based on applicant status
 const getStatusClass = (status) => {
@@ -49,7 +65,7 @@ const fetchPortfolioData = async (applicantId) => {
   isLoading.value = true;
   try {
     // Fetch the portfolio data for the selected applicant
-    const response = await axios.get(route('graduate.portfolio', { user: applicantId }));
+    const response = await axios.get(route('applicants.portfolio', { user: applicantId }));
     portfolioData.value = response.data;
   } catch (error) {
     console.error('Error fetching portfolio data:', error);
@@ -65,7 +81,9 @@ const viewApplicantDetails = async (applicant) => {
   isViewDetailsModalOpen.value = true;
   
   // Fetch portfolio data for the selected applicant
-  await fetchPortfolioData(applicant.user_id);
+  // Use the user_id from the applicant object
+  const userId = applicant.user_id || applicant.id;
+  await fetchPortfolioData(userId);
 };
 
 // Close the modal
@@ -89,62 +107,68 @@ const closeModal = () => {
     <!-- Applicant listings as rows -->
     <div v-if="props.applicants && props.applicants.length > 0" class="divide-y divide-gray-200">
       <div v-for="applicant in props.applicants" :key="applicant.id" 
-           class="hover:bg-gray-50 transition-colors duration-150">
-        
-        <div class="p-4 flex flex-col md:flex-row md:items-center md:justify-between">
-          <div class="flex-1 min-w-0 mb-3 md:mb-0 md:mr-4">
-            <div class="flex flex-col md:flex-row md:items-center">
-              <h3 class="text-lg font-semibold text-gray-800 truncate mr-2"
+          class="hover:bg-gray-50 transition-colors duration-150">
+
+        <div class="p-4 flex flex-col md:flex-row md:items-start md:justify-between md:space-x-4">
+          <!-- Applicant details (left side) -->
+          <div class="w-full md:w-1/3 mb-3 md:mb-0 md:mr-4 flex items-start space-x-4">
+            <!-- Profile Image -->
+            <img
+              :src="applicant.profile_picture || '/default-avatar.png'"
+              alt="Profile"
+              class="w-14 h-14 mr-2 rounded-full object-cover border border-gray-300"
+            />
+
+            <!-- Name, Email, etc. -->
+            <div class="min-w-0">
+              <div>
+                <h3
+                  class="text-lg font-semibold text-gray-800 truncate mr-2"
                   :class="{ 'opacity-50': isActionLoading && activeApplicantId === applicant.id }"
                   :aria-disabled="isActionLoading && activeApplicantId === applicant.id"
                   role="button"
                   tabindex="0"
-                  :aria-label="`View details for ${applicant.name}`">
+                  :aria-label="`View details for ${applicant.name}`"
+                >
                   {{ applicant.name }}
-              </h3>
-              <div class="flex items-center text-sm text-gray-500 mt-1 md:mt-0">
-                <i class="fas fa-envelope mr-1" aria-hidden="true"></i>
-                <span>{{ applicant.email }}</span>
+                </h3>
+                <div class="flex items-center text-sm text-gray-500 mt-1">
+                  <i class="fas fa-envelope mr-1" aria-hidden="true"></i>
+                  <span>{{ applicant.email }}</span>
+                </div>
               </div>
-            </div>
-            
-            <!-- Application details -->
-            <div class="flex flex-wrap items-center mt-2 text-sm text-gray-600">
-              <div class="mr-4 mb-1">
-                <i class="fas fa-calendar mr-1" aria-hidden="true"></i>
-                <span>Applied on: {{ applicant.applied_at }}</span>
-              </div>
-              
-              <div class="mb-1">
-                <i class="fas fa-comment mr-1" aria-hidden="true"></i>
-                <span>{{ applicant.notes || 'No additional notes.' }}</span>
+
+              <!-- Application details -->
+              <div class="flex flex-wrap items-center mt-2 text-sm text-gray-600">
+                <div class="mr-4 mb-1">
+                  <i class="fas fa-calendar mr-1" aria-hidden="true"></i>
+                  <span>Applied on: {{ applicant.applied_at }}</span>
+                </div>
+                <div class="mb-1">
+                  <i class="fas fa-comment mr-1" aria-hidden="true"></i>
+                  <span>{{ applicant.notes || 'No additional notes.' }}</span>
+                </div>
               </div>
             </div>
           </div>
           
-          <!-- Pipeline, Status and actions (right side) -->
-          <div class="flex flex-col md:flex-row items-center justify-between md:justify-end space-y-2 md:space-y-0 md:space-x-4">
-            <!-- Pipeline (visible on larger screens) -->
-            <div class="hidden md:block w-32">
-              <CandidatePipeline :stage="applicant.stage" />
-            </div>
-            
-            <!-- Status badge -->
-            <span :class="[getStatusClass(applicant.status), 'text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap']">
-              {{ getStatusText(applicant.status) }}
-            </span>
-            
-            <!-- Action buttons -->
-            <div class="flex space-x-2">
-              <!-- View details button -->
-              <PrimaryButton
-                  @click="() => { selectedApplicant = applicant; isViewDetailsModalOpen = true }"
+          <!-- Pipeline and Details Button -->
+          <div class="w-full md:w-2/3 mt-4 md:mt-0">
+            <div class="rounded-lg p-4">
+              <div class="flex justify-between items-center">
+                <div class="flex-1">
+                  <p class="text-sm font-semibold text-gray-800 mb-2">Hiring Process</p>
+                  <CandidatePipeline :stage="applicant.stage" />
+                </div>
+                <PrimaryButton
+                  @click="() => viewApplicantDetails(applicant)"
                   :disabled="isActionLoading && activeApplicantId === applicant.id"
                   :class="{ 'opacity-50 cursor-not-allowed': isActionLoading && activeApplicantId === applicant.id }"
                   class="text-xs"
                   aria-label="View details">
-                  View Details
-              </PrimaryButton>
+                  View More &gt;
+                </PrimaryButton>
+              </div>
             </div>
           </div>
         </div>
@@ -160,4 +184,22 @@ const closeModal = () => {
       </div>
     </div>
   </div>
+  
+  <!-- Portfolio Modal -->  
+  <Modal :show="isViewDetailsModalOpen" @close="closeModal" max-width="6xl">
+    <div class="p-6">
+      <div v-if="isLoading" class="flex justify-center items-center py-8">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+      <div v-else-if="actionError" class="text-center text-red-600 py-8">
+        <p>{{ actionError || 'Unable to load portfolio data.' }}</p>
+      </div>
+      <div v-else-if="portfolioData">
+        <GraduatePortfolio :graduate-data="portfolioData" />
+      </div>
+      <div v-else class="text-center text-gray-600 py-8">
+        <p>No portfolio data available for this applicant.</p>
+      </div>
+    </div>
+  </Modal>
 </template>
