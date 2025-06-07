@@ -82,19 +82,45 @@ class JobInboxController extends Controller
             ->whereNull('read_at')
             ->whereIn('type', [
                 \App\Notifications\NewJobPostingNotification::class,
-                \App\Notifications\JobInviteNotification::class])
+                \App\Notifications\InterviewScheduledNotification::class,
+                \App\Notifications\JobInviteNotification::class
+            ])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($notification) {
-                return [
+                $type = $notification->type;
+                $data = $notification->data;
+
+                // Default fields
+                $result = [
                     'id' => $notification->id,
-                    'data' => $notification->data,
-                    'title' => $notification->data['title'] ?? '',
-                    'company' => $notification->data['company'] ?? '',
-                    'job_id' => $notification->data['job_id'] ?? null,
+                    'type' => class_basename($type),
+                    'data' => $data,
+                    'title' => $data['title'] ?? '',
+                    'company' => $data['company'] ?? '',
+                    'job_id' => $data['job_id'] ?? null,
                     'created_at' => $notification->created_at->diffForHumans(),
-                    'read' => !is_null($notification->read_at)
+                    'read' => !is_null($notification->read_at),
                 ];
+
+                // Special handling for InterviewScheduledNotification
+               if ($type === \App\Notifications\InterviewScheduledNotification::class) {
+                $result['interview_id'] = $data['interview_id'] ?? null;
+                $result['scheduled_at'] = $data['scheduled_at'] ?? null;
+                $result['location'] = $data['location'] ?? null;
+                $result['job_application_id'] = $data['job_application_id'] ?? null;
+                $result['job_title'] = $data['job_title'] ?? '';
+                $result['message'] =
+                    'Interview scheduled for ' .
+                    ($data['job_title'] ?? 'this position') .
+                    ((!empty($data['company'])) ? ' at ' . $data['company'] : '') .
+                    (!empty($data['scheduled_at']) ? ' on ' . \Carbon\Carbon::parse($data['scheduled_at'])->format('F j, Y, g:i a') : '') .
+                    (!empty($data['location']) ? ' (' . $data['location'] . ')' : '') .
+                    '.';
+                $result['action_url'] = $data['action_url'] ?? '';
+            }
+
+                return $result;
             });
     }
     // Apply for a job

@@ -27,6 +27,8 @@ import {
 import { CanvasRenderer } from 'echarts/renderers';
 import VueECharts from 'vue-echarts';
 
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
 echarts.use([
   PieChart,
   LineChart,

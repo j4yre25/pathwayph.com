@@ -6,14 +6,7 @@ import axios from 'axios';
 import Modal from '@/Components/Modal.vue';
 import GraduatePortfolio from '@/Pages/Frontend/GraduatePortfolio.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import Dropdown from '@/Components/Dropdown.vue';
-import DropdownLink from '@/Components/DropdownLink.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputError from '@/Components/InputError.vue';
-import TextArea from '@/Components/TextArea.vue';
+
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
@@ -76,14 +69,9 @@ const fetchPortfolioData = async (applicantId) => {
 };
 
 // Function to view applicant details
-const viewApplicantDetails = async (applicant) => {
-  selectedApplicant.value = applicant;
-  isViewDetailsModalOpen.value = true;
-  
-  // Fetch portfolio data for the selected applicant
-  // Use the user_id from the applicant object
-  const userId = applicant.user_id || applicant.id;
-  await fetchPortfolioData(userId);
+
+const viewApplicantDetails = (applicant) => {
+  router.get(route('applicants.show', applicant.id));
 };
 
 // Close the modal

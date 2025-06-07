@@ -80,6 +80,36 @@ class Graduate extends Model
 
     public function jobApplications()
     {
-        return $this->hasMany(\App\Models\JobApplication::class, 'graduate_id');
+        return $this->hasMany(JobApplication::class, 'graduate_id');
+    }
+
+    public function experience()
+    {
+        return $this->hasMany(Experience::class);
+    }
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    public function achievements()
+    {
+        return $this->hasMany(Achievement::class);
+    }
+
+    public function certifications()
+    {
+        return $this->hasMany(Certification::class);
+    }
+
+    public function testimonials()
+    {
+        return $this->hasMany(Testimonial::class);
+    }
+
+    public function resume()
+    {
+        return $this->hasOne(Resume::class);
     }
 }
