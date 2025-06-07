@@ -24,7 +24,6 @@ class JobApplication extends Model
         'resume_id',
         'cover_letter',
         'additional_documents',
-        'interview_date',
         'notes'
     ];
 
@@ -74,4 +73,11 @@ class JobApplication extends Model
         return $this->belongsTo(Resume::class);
     }
    
+    /**
+     * Get the interviews associated with the job application.
+     */
+    public function interviews()
+    {
+        return $this->hasMany(Interview::class);
+    }
 }

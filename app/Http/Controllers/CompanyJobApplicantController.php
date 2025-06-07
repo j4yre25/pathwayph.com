@@ -56,7 +56,8 @@ class CompanyJobApplicantController extends Controller
 
         $hiredCount = $allApplications->where('status', 'hired')->count();
         $rejectedCount = $allApplications->where('status', 'rejected')->count();
-        $interviewsCount = $allApplications->whereNotNull('interview_date')->count();
+        $interviewsCount = JobApplication::whereHas('interviews', function($q) {
+        })->whereHas('job', fn($q) => $q->where('company_id', $companyId))->count();
 
         return Inertia::render('Company/Applicants/Index', [
             'jobs' => $jobs,
@@ -81,7 +82,7 @@ class CompanyJobApplicantController extends Controller
         $hiredCount = (clone $applicationsQuery)->where('status', 'hired')->count();
         $rejectedCount = (clone $applicationsQuery)->where('status', 'rejected')->count();
         $declinedByGraduate = (clone $applicationsQuery)->where('status', 'declined')->count();
-        $interviewsCount = (clone $applicationsQuery)->whereNotNull('interview_date')->count();
+        $interviewsCount = (clone $applicationsQuery)->whereHas('interviews')->count();
         $pendingCount = $totalApplicants - ($hiredCount + $rejectedCount + $declinedByGraduate);
 
         $applicants = $applicationsQuery
@@ -102,7 +103,7 @@ class CompanyJobApplicantController extends Controller
                     'stage' => $application->stage,
                     'notes' => $application->notes,
                     'applied_at' => optional($application->applied_at)->format('M d, Y'),
-                    'interview_date' => optional($application->interview_date)->format('M d, Y'),
+                    'interview_date' => optional($application->interviews->sortByDesc('scheduled_at')->first()?->scheduled_at)->format('M d, Y'),
                 ];
             });
 

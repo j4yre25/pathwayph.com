@@ -51,7 +51,7 @@ function submitSchedule() {
   const minute = scheduleForm.value.minute.padStart(2, '0');
   const datetime = `${date}T${hour.toString().padStart(2, '0')}:${minute}:00`;
 
-  router.post(route('applicants.scheduleInterview', props.applicant.id), {
+  router.post(router('applicants.scheduleInterview', props.applicant.id), {
     scheduled_at: datetime,
   }, {
     onSuccess: () => {
