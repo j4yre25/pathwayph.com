@@ -16,6 +16,7 @@ class JobApplication extends Model
      */
     protected $fillable = [
         'graduate_id',
+        'user_id',
         'job_id',
         'status',
         'stage',
@@ -23,7 +24,6 @@ class JobApplication extends Model
         'resume_id',
         'cover_letter',
         'additional_documents',
-        'interview_date',
         'notes'
     ];
 
@@ -50,6 +50,14 @@ class JobApplication extends Model
     }
 
     /**
+     * Get the graduate that owns the job application.
+     */ 
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
+    }
+
+    /**
      * Get the job that the application is for.
      */
     public function job()
@@ -64,5 +72,12 @@ class JobApplication extends Model
     {
         return $this->belongsTo(Resume::class);
     }
-
+   
+    /**
+     * Get the interviews associated with the job application.
+     */
+    public function interviews()
+    {
+        return $this->hasMany(Interview::class);
+    }
 }

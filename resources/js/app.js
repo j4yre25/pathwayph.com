@@ -1,12 +1,15 @@
 import './bootstrap';
 import '../css/app.css';
 
+import Chart from 'chart.js/auto'; // ✅ Use this instead of registerables
+
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import 'quill/dist/quill.snow.css';
 import * as lucide from 'lucide-vue-next';
+
 import * as echarts from 'echarts/core';
 import {
   PieChart,
@@ -24,20 +27,20 @@ import {
 import { CanvasRenderer } from 'echarts/renderers';
 import VueECharts from 'vue-echarts';
 
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 echarts.use([
   PieChart,
-   LineChart,
+  LineChart,
   BarChart,
   TitleComponent,
   TooltipComponent,
   LegendComponent,
   ToolboxComponent,
-    GridComponent,
+  GridComponent,
   DatasetComponent,
   CanvasRenderer
-])
-
+]);
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
