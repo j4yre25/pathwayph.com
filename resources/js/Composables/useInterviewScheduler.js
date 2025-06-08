@@ -25,7 +25,7 @@ export default function useInterviewScheduler(applicantId, onSuccessCallback = (
     const minute = scheduleForm.value.minute.padStart(2, '0');
     const datetime = `${date}T${hour.toString().padStart(2, '0')}:${minute}:00`;
 
-    router.post(router('applicants.scheduleInterview', applicantId), {
+    router.post(route('applicants.scheduleInterview', applicantId), {
       scheduled_at: datetime,
     }, {
       onSuccess: () => {

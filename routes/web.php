@@ -269,8 +269,30 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 // Company Reports
 Route::prefix('company')->middleware(['auth'])->group(function () {
-    Route::get('/company-reports', [CompanyReportsController::class, 'overview'])
-        ->name('company.reports.overview');
+    Route::get('/company-reports', [CompanyReportsController::class, 'overview'])->name('company.reports.overview');
+    Route::get('/company-reports/department', [CompanyReportsController::class, 'department'])->name('company.reports.department');
+    Route::get('/company-reports/hiring-funnel', [CompanyReportsController::class, 'hiringFunnel'])->name('company.reports.hiringFunnel');
+    Route::get('/company-reports/trends', [CompanyReportsController::class, 'trends'])->name('company.reports.trends');
+    Route::get('/company-reports/application-analysis', [CompanyReportsController::class, 'applicationAnalysis'])->name('company.reports.applicationAnalysis');
+    Route::get('/company-reports/skills', [CompanyReportsController::class, 'skills'])->name('company.reports.skills');
+    Route::get('/company-reports/employment-type', [CompanyReportsController::class, 'employmentType'])->name('company.reports.employmentType');
+    Route::get('/company-reports/salary', [CompanyReportsController::class, 'salary'])->name('company.reports.salary');
+    Route::get('/company-reports/diversity', [CompanyReportsController::class, 'diversity'])->name('company.reports.diversity');
+    Route::get('/company-reports/applicant-status', [CompanyReportsController::class, 'applicantStatus'])->name('company.reports.applicantStatus');
+    Route::get('/company-reports/screening', [CompanyReportsController::class, 'screening'])->name('company.reports.screening');
+    Route::get('/company-reports/interview-progress', [CompanyReportsController::class, 'interviewProgress'])->name('company.reports.interviewProgress');
+    Route::get('/company-reports/competency', [CompanyReportsController::class, 'competency'])->name('company.reports.competency');
+    Route::get('/company-reports/efficiency', [CompanyReportsController::class, 'efficiency'])->name('company.reports.efficiency');
+    Route::get('/company-reports/performance', [CompanyReportsController::class, 'performance'])->name('company.reports.performance');
+    Route::get('/company-reports/feedback', [CompanyReportsController::class, 'feedback'])->name('company.reports.feedback');
+    Route::get('/company-reports/graduate-pool', [CompanyReportsController::class, 'graduatePool'])->name('company.reports.graduatePool');
+    Route::get('/company-reports/graduate-demographics', [CompanyReportsController::class, 'graduateDemographics'])->name('company.reports.graduateDemographics');
+    Route::get('/company-reports/academic-performance', [CompanyReportsController::class, 'academicPerformance'])->name('company.reports.academicPerformance');
+    Route::get('/company-reports/preferences', [CompanyReportsController::class, 'preferences'])->name('company.reports.preferences');
+    Route::get('/company-reports/matching-success', [CompanyReportsController::class, 'matchingSuccess'])->name('company.reports.matchingSuccess');
+    Route::get('/company-reports/internship', [CompanyReportsController::class, 'internship'])->name('company.reports.internship');
+    Route::get('/company-reports/employer-feedback', [CompanyReportsController::class, 'employerFeedback'])->name('company.reports.employerFeedback');
+    Route::get('/company-reports/future-potential', [CompanyReportsController::class, 'futurePotential'])->name('company.reports.futurePotential');
 });
 
 
