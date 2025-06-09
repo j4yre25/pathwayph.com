@@ -7,7 +7,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import '@fortawesome/fontawesome-free/css/all.css';
+import '@fortawesome/vue-fontawesome';
 
 const page = usePage()
 
