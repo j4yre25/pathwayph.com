@@ -8,6 +8,7 @@ use App\Http\Controllers\ManageUsersController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\PesoCareerGuidanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManageJobReferralsController;
 use App\Http\Controllers\AdminController;
@@ -311,8 +312,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
-
-  
 });
 
 
@@ -863,20 +862,19 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
     Route::get('/graduate-jobs/recommendations', [GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
     // Graduate Portfolio+
-    
+
     Route::get('/company/profile/{id}', [CompanyProfileController::class, 'showPublic'])->name('company.profile.public');
-    
+
     Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
 });
 
 Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
-    Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('admin.reports.index');
-});
-
-
-Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
+    Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
+    Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
 });
 
+
+Route::prefix('admin')->middleware(['auth'])->group(function () {});

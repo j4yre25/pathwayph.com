@@ -12,7 +12,7 @@ import MultiSelect from '@/Components/MultiSelect.vue';
 import RichTextEditor from '@/Components/RichTextEditor.vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import '@fortawesome/fontawesome-free/css/all.css';
+import '@fortawesome/vue-fontawesome';
 import { useSectorCategories } from '@/Composables/useSectorCategories';
 import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
 import { useSalaryValidation } from '@/Composables/useSalaryValidation';

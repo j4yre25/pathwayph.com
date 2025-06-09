@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+
 import { Link, router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -8,7 +9,6 @@ import GraduatePortfolio from '@/Pages/Frontend/GraduatePortfolio.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
-import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
   applicants: Array,

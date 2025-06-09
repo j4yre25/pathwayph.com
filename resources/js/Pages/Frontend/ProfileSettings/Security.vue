@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
-import '@fortawesome/fontawesome-free/css/all.css';
+import '@fortawesome/vue-fontawesome';
 
 // Define props
 const props = defineProps({

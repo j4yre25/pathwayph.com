@@ -1,8 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
-import '@fortawesome/fontawesome-free/css/all.css';
-
+ 
 const activeSection = ref('landing-page.index');
 
 // Header state
@@ -306,11 +305,8 @@ onMounted(() => {
     </div>
 </template>
 
-<style scoped>
-body {
-  font-family: 'Inter', sans-serif;
-  scroll-behavior: smooth;
-}
+<!-- <style scoped>
+
 
 .animate-bounce {
   animation: bounce 2s infinite;
@@ -328,4 +324,4 @@ body {
 .transition-colors {
   transition: background-color 0.3s, color 0.3s;
 }
-</style>
+</style> -->
