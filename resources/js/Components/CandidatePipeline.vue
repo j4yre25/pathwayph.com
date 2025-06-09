@@ -1,12 +1,39 @@
 <script setup>
-defineProps({
+const props = defineProps({
   stage: {
     type: String,
     required: true,
   },
 })
 
+// Display stages in order for progress bar logic
 const stages = ['Applying', 'Screening', 'Interview', 'Test', 'Onboarding']
+
+// Map backend stage keys to internal stage names
+const stageMap = {
+  applying: 'Applying',
+  applied: 'Applying', 
+  screened: 'Screening',
+  screening: 'Screening',
+  interviewed: 'Interview',
+  interview: 'Interview',
+  testing: 'Test',
+  test: 'Test',
+  onboarding: 'Onboarding',
+}
+
+// Human-readable display labels
+const displayLabelMap = {
+  Applying: 'Applied',
+  Screening: 'Screened',
+  Interview: 'Interviewed',
+  Test: 'Tested',
+  Onboarding: 'Onboarding',
+}
+
+const normalizedStage = stageMap[props.stage?.toLowerCase()] ?? null
+const currentStageIndex = stages.findIndex(s => s === normalizedStage)
+
 </script>
 
 <template>
@@ -15,14 +42,14 @@ const stages = ['Applying', 'Screening', 'Interview', 'Test', 'Onboarding']
       <div class="flex flex-col items-center">
         <span
           class="text-xs text-gray-600 ml-1"
-          :class="index === stages.indexOf(stage) ? 'font-semibold text-blue-600' : ''"
+          :class="index === currentStageIndex ? 'font-semibold text-blue-600' : ''"
         >
-          {{ step }}
+          {{ displayLabelMap[step] || step }}
         </span>
         <div
           :class="[
             'w-24 h-1 rounded',
-            index <= stages.indexOf(stage) ? 'bg-blue-500' : 'bg-gray-300'
+            index <= currentStageIndex ? 'bg-blue-500' : 'bg-gray-300'
           ]"
         ></div>
       </div>
@@ -30,3 +57,5 @@ const stages = ['Applying', 'Screening', 'Interview', 'Test', 'Onboarding']
     </template>
   </div>
 </template>
+
+

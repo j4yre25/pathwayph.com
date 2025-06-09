@@ -1,9 +1,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { PieChart, BarChart, LineChart } from "vue-chart-3";
-import { Chart, registerables } from "chart.js";
 import { Users, Briefcase, LineChart as LineIcon, Ban } from "lucide-vue-next";
-Chart.register(...registerables);
 
 const props = defineProps({
   graduates: Array,

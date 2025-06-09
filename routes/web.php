@@ -259,10 +259,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
 
         // Schedule interview
-        Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
+        Route::post('{application}/schedule-interview', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.scheduleInterview');
 
         // View graduate portfolio
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
+
+        Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
     });
 });
 
@@ -751,12 +753,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-
-
 // Profile Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
-    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
+    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
 
     // Education Routes
     Route::get('/profile/settings/education', [ProfileController::class, 'educationSettings'])->name('profile.settings.education');

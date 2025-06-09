@@ -3,110 +3,104 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Portfolio;
-use App\Models\Education;
-use App\Models\Experience;
-use App\Models\Skill;
-use App\Models\Project;
-use App\Models\Certification;
+use App\Models\JobApplication;
+use App\Models\Interview;
+use App\Notifications\InterviewScheduledNotification;
 use Inertia\Inertia;
 
 class CompanyApplicationController extends Controller
 {
-    /**
-     * Display the specified graduate's portfolio.
-     *
-     * @param  int  $userId
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function viewPortfolio($userId)
+/**
+ * Display the specified graduate's portfolio.
+ *
+ * @param  \App\Models\User  $user
+ * @return \Inertia\Response
+ */
+    public function show(JobApplication $application)
     {
-        // Get the graduate user
-        $user = User::findOrFail($userId);
+            // Load related data (skills, portfolio, etc.)
+        $application->load([
+                'graduate.user',       // Basic user info
+                'graduate.graduateSkills.skill',    
+                'graduate.education',   
+                'graduate.experience',
+                'graduate.projects',
+                'graduate.achievements',
+                'graduate.certifications',
+                'graduate.testimonials',
+                'graduate.employmentPreference',
+                'graduate.employmentPreference.jobTypes',
+                'graduate.employmentPreference.locations',
+                'graduate.employmentPreference.workEnvironments',
+                'graduate.employmentPreference.salary',
+                'graduate.careerGoals',
+                'graduate.resume',
+                'job',                 // Job applied for
+            ]);
+
+        $graduate = $application->graduate;
+
+        return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
+            'applicant' => $application,
+            'graduate' => $graduate,
+            'skills' => $graduate?->graduateSkills?->map(function($gs) {
+                return [
+                    'id' => $gs->id,
+                    'skill_id' => $gs->skill_id,
+                    'skill_name' => $gs->skill->name ?? null,
+                    'years_experience' => $gs->years_experience,
+                    'proficiency_type' => $gs->proficiency_type,
+                    // add other fields if needed
+                ];
+            }) ?? [],
+            'experiences' => $graduate?->experience ?? [],
+            'education' => $graduate?->education ?? [],
+            'projects' => $graduate?->projects ?? [],
+            'achievements' => $graduate?->achievements ?? [],
+            'certifications' => $graduate?->certifications ?? [],
+            'testimonials' => $graduate?->testimonials ?? [],
+            'employmentPreferences' => $graduate?->employmentPreference,
+            'careerGoals' => $graduate?->careerGoals,
+            'resume' => $graduate?->resume,
+            'job' => $application->job,
+        ]);
+    }
+
+    public function updateNote(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        $application->notes = $request->input('notes');
+        $application->save();
+
+        return redirect()->back()->with('success', 'Note updated successfully.');
+    }
+
+    public function scheduleInterview(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'scheduled_at' => 'required|date|after:now',
+            'location' => 'nullable|string|max:255',
+        ]);
+
+        $interview = Interview::create([
+            'job_application_id' => $application->id,
+            'scheduled_at' => $request->scheduled_at,
+            'location' => $request->location,
+        ]);
+
+        $interview->load('jobApplication.job.company');
         
-        // Get the graduate's portfolio data
-        $portfolio = Portfolio::where('user_id', $userId)->first();
-        $education = Education::where('user_id', $userId)->get();
-        $experience = Experience::where('user_id', $userId)->get();
-        $skills = Skill::where('user_id', $userId)->get();
-        $projects = Project::where('user_id', $userId)->get();
-        $certifications = Certification::where('user_id', $userId)->get();
-        
-        // Format the data for the GraduatePortfolio component
-        $graduateData = [
-            'name' => $user->graduate_first_name . ' ' . $user->graduate_middle_initial . ' ' . $user->graduate_last_name,
-            'title' => $user->graduate_professional_title ?? '',
-            'location' => $user->graduate_location ?? '',
-            'phone' => $user->contact_number ?? '',
-            'email' => $user->email,
-            'degree' => $user->graduate_program_completed ?? '',
-            'socialLinks' => [
-                // Add social links if available
-                ['name' => 'LinkedIn', 'icon' => 'fab fa-linkedin', 'url' => $user->linkedin_url ?? ''],
-                ['name' => 'GitHub', 'icon' => 'fab fa-github', 'url' => $user->github_url ?? '']
-            ],
-            'about' => $user->graduate_about_me ?? '',
-            'personalInfo' => [
-                'location' => $user->graduate_location ?? '',
-                'birthdate' => $user->dob ?? '',
-                'gender' => $user->gender ?? '',
-                'ethnicity' => $user->graduate_ethnicity ?? '',
-                'graduated' => $user->graduate_year_graduated ?? '',
-                'school' => $user->graduate_school_graduated_from ?? ''
-            ],
-            'education' => $education->map(function($item) {
-                return [
-                    'institution' => $item->graduate_education_institution_id ?? '',
-                    'degree' => $item->graduate_education_degree ?? '',
-                    'program' => $item->graduate_education_program ?? '',
-                    'startDate' => $item->graduate_education_start_date ?? '',
-                    'endDate' => $item->graduate_education_end_date ?? '',
-                    'description' => $item->graduate_education_description ?? ''
-                ];
-            }),
-            'skills' => $skills->map(function($item) {
-                return [
-                    'name' => $item->graduate_skill_name ?? '',
-                    'category' => $item->graduate_skill_category ?? 'General',
-                    'proficiency' => $item->graduate_skill_proficiency ?? 'Intermediate'
-                ];
-            }),
-            'skillCategories' => [
-                ['name' => 'Technical', 'icon' => 'fas fa-code'],
-                ['name' => 'Soft Skills', 'icon' => 'fas fa-comments'],
-                ['name' => 'Languages', 'icon' => 'fas fa-language'],
-                ['name' => 'Tools', 'icon' => 'fas fa-tools']
-            ],
-            'workExperience' => $experience->map(function($item) {
-                return [
-                    'company' => $item->graduate_experience_company ?? '',
-                    'title' => $item->graduate_experience_title ?? '',
-                    'startDate' => $item->graduate_experience_start_date ?? '',
-                    'endDate' => $item->graduate_experience_end_date ?? '',
-                    'description' => $item->graduate_experience_description ?? '',
-                    'location' => $item->graduate_experience_location ?? ''
-                ];
-            }),
-            'projects' => $projects->map(function($item) {
-                return [
-                    'name' => $item->graduate_projects_name ?? '',
-                    'role' => $item->graduate_projects_role ?? '',
-                    'description' => $item->graduate_projects_description ?? '',
-                    'technologies' => $item->graduate_projects_technologies ?? '',
-                    'url' => $item->graduate_projects_url ?? ''
-                ];
-            }),
-            'certifications' => $certifications->map(function($item) {
-                return [
-                    'name' => $item->graduate_certification_name ?? '',
-                    'issuer' => $item->graduate_certification_issuer ?? '',
-                    'date' => $item->graduate_certification_date ?? '',
-                    'description' => $item->graduate_certification_description ?? ''
-                ];
-            })
-        ];
-        
-        return response()->json($graduateData);
+        // Send notification to graduate/user
+        if ($application->graduate && $application->graduate->user) {
+        $application->graduate->user->notify(new InterviewScheduledNotification($interview));
+        }
+
+
+        // (Optional) Integrate with Google/Outlook Calendar here and save event ID
+
+        return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
     }
 }

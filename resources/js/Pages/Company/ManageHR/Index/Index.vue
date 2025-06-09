@@ -43,32 +43,68 @@ const deleteHR = async (hrId) => {
         </template>
 
         <Container class="py-4">
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-300">
-                    <thead>
+            <!-- Desktop Table (Shown on large screens and above) -->
+            <div class="hidden lg:block overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-300 table-fixed shadow rounded">
+                    <thead class="bg-blue-100 text-gray-700 uppercase text-sm">
                         <tr>
-                        <th class="px-4 py-2 border">First Name</th>
-                        <th class="px-4 py-2 border">Last Name</th>
-                        <th class="px-4 py-2 border">Email</th>
-                        <th class="px-4 py-2 border">Contact</th>
-                        <th class="px-4 py-2 border">Actions</th>
+                            <th class="w-[20%] px-4 py-3 border text-center">Full Name</th>
+                            <th class="w-[25%] px-4 py-3 border text-center">Email Address</th>
+                            <th class="w-[20%] px-4 py-3 border text-center">Contact Details</th>
+                            <th class="w-[15%] px-4 py-3 border text-center">Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="hr in hrs" :key="hr.id">
-                        <td class="px-4 py-2 border">{{ hr.company_hr_first_name }}</td>
-                        <td class="px-4 py-2 border">{{ hr.company_hr_last_name }}</td>
-                        <td class="px-4 py-2 border">{{ hr.email }}</td>
-                        <td class="px-4 py-2 border">{{ hr.contact_number }}</td>
-                        <td class="px-4 py-2 border">
-                            <!-- <PrimaryButton @click="editHR(hr)" class="text-blue-500 hover:underline">Activate</PrimaryButton>
-                            <PrimaryButton @click="editHR(hr)" class="text-blue-500 hover:underline ml-2">Deactivate</PrimaryButton>
-                            <PrimaryButton @click="deleteHR(hr.id)" class="text-red-500 hover:underline ml-2">Archived</PrimaryButton> -->
-                        </td>
+                        <tr v-for="hr in hrs" :key="hr.User_Email" class="hover:bg-gray-50">
+                            <td class="px-4 py-3 border">{{ hr.HR_Name }}</td>
+                            <td class="px-4 py-3 border">{{ hr.User_Email }}</td>
+                            <td class="px-4 py-3 border">{{ hr.Mob_Num }}</td>
+                            <td class="px-4 py-3 border text-center">
+                                <span
+                                    :class="hr.Status === 'active'
+                                        ? 'bg-green-100 text-green-700 px-2 py-1 rounded-full text-md font-medium'
+                                        : 'bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs italic'">
+                                    {{ hr.Status }}
+                                </span>
+                            </td>
                         </tr>
                     </tbody>
-                    </table>            
+                </table>
+
+            </div>
+
+            <!-- Mobile Card Layout (Shown on screens below lg) -->
+            <div class="block lg:hidden space-y-4">
+                <div
+                    v-for="hr in hrs"
+                    :key="hr.User_Email"
+                    class="bg-white border border-gray-300 rounded shadow-sm p-4">
+                    <div class="mb-2">
+                        <span class="font-semibold">HR Name:</span> {{ hr.HR_Name }}
+                    </div>
+                    <div class="mb-2">
+                        <span class="font-semibold">Email:</span> {{ hr.User_Email }}
+                    </div>
+                    <div class="mb-2">
+                        <span class="font-semibold">Contact:</span> {{ hr.Mob_Num }}
+                    </div>
+                    <div class="mb-4">
+                        <span class="font-semibold">Company:</span> {{ hr.Company_Name }}
+                    </div>
+                    <div class="mb-2">
+                        <span class="font-semibold">Status:</span>
+                        <span
+                            :class="hr.Status === 'active'
+                            ? 'text-green-600 font-semibold'
+                            : 'text-gray-500 italic'"
+                        >
+                            {{ hr.Status }}
+                        </span>
+                    </div>
                 </div>
+            </div>
+
+
 
             <!-- Confirmation Modal -->
             <ConfirmationModal @close="showModal = false" :show="showModal">

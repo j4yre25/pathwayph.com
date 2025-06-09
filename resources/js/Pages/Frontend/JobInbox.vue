@@ -226,16 +226,29 @@ onMounted(() => {
                                         class="border border-yellow-300 bg-yellow-50 rounded p-3 hover:bg-yellow-100 cursor-pointer"
                                         @click="markNotificationAsRead(notification.id)">
                                         <p class="text-sm text-gray-700">
-                                            <span class="font-bold">{{ notification.data?.title }}</span>
-                                            <span v-if="notification.data?.company"> at {{ notification.data?.company
-                                                }}</span>
-                                            <span v-if="notification.data?.type === 'invite'"
-                                                class="ml-2 inline-block px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs">Invitation</span>
+                                            <span v-if="notification.type === 'InterviewScheduledNotification'">
+                                                 Interview scheduled
+                                                <span v-if="notification.data.job_title">
+                                                    for <b>{{ notification.data.job_title }}</b>
+                                                </span>
+                                                <span v-if="notification.data.company">
+                                                    at <b>{{ notification.data.company }}</b>
+                                                </span>
+                                                on <b>{{ new Date(notification.data.scheduled_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</b>
+                                                <span v-if="notification.data.location"> ({{ notification.data.location }})</span>.
+                                            </span>
+                                            <span v-else>
+                                                <span class="font-bold">{{ notification.data?.title }}</span>
+                                                <span v-if="notification.data?.company"> at {{ notification.data?.company }}</span>
+                                            </span>
                                         </p>
                                         <p class="text-xs text-gray-500">{{ notification.created_at }}</p>
-                                        <PrimaryButton v-if="notification.data?.job_id"
+                                         <PrimaryButton v-if="notification.data?.job_id"
                                             @click="router.visit(`/jobs/${notification.data?.job_id}`)"
                                             class="mt-2 text-xs">View Job</PrimaryButton>
+                                        <PrimaryButton v-else-if="notification.data?.action_url"
+                                            @click="router.visit(notification.data?.action_url)"
+                                            class="mt-2 text-xs">View Application</PrimaryButton>
                                     </div>
                                 </div>
                             </div>
