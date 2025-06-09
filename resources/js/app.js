@@ -8,6 +8,7 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import 'quill/dist/quill.snow.css';
 import * as lucide from 'lucide-vue-next';
 import * as echarts from 'echarts/core';
+import '@fortawesome/fontawesome-free/css/all.css';
 import {
   PieChart,
   LineChart,

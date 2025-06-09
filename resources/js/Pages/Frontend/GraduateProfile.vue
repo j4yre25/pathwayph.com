@@ -1,7 +1,6 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { defineProps, ref, watch, computed } from "vue";
-import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
     graduate: Object,

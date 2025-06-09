@@ -34,7 +34,7 @@ class JobInboxController extends Controller
                 return [
                     'id' => $job->id,
                     'title' => $job->job_title,
-                    'company' => $job->company->company_name,
+                    'company' => optional($job->company)->company_name ?? 'Unknown Company',
                     'location' => $job->job_location,
                     'salary' => ($job->job_min_salary && $job->job_max_salary)
                         ? "{$job->job_min_salary} - {$job->jpb_max_salary}"
@@ -82,7 +82,8 @@ class JobInboxController extends Controller
             ->whereNull('read_at')
             ->whereIn('type', [
                 \App\Notifications\NewJobPostingNotification::class,
-                \App\Notifications\JobInviteNotification::class])
+                \App\Notifications\JobInviteNotification::class
+            ])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($notification) {

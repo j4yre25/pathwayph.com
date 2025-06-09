@@ -5,7 +5,7 @@ import Container from '@/Components/Container.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
-import '@fortawesome/fontawesome-free/css/all.css';
+import '@fortawesome/vue-fontawesome';
 import Modal from '@/Components/Modal.vue';
 import axios from 'axios';
 

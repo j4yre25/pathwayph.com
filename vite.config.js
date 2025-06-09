@@ -16,12 +16,10 @@ export default defineConfig({
                     includeAbsolute: false,
                 },
             },
-        }
-    
-    ),
-        
-        
+        }),
     ],
+        
+        
     build: {
         rollupOptions: {
             output: {
@@ -33,7 +31,7 @@ export default defineConfig({
                 },
             },
         },
-        chunkSizeWarningLimit: 1500, // Adjust the chunk size warning limit (default is 500 kB)
+        chunkSizeWarningLimit: 2000,
     },
-    
+
 });

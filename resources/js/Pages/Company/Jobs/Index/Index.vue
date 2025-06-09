@@ -7,7 +7,7 @@ import { useForm } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 import MyJobs from './MyJobs.vue'
 import { ref, computed } from 'vue';
-import '@fortawesome/fontawesome-free/css/all.css';
+import '@fortawesome/vue-fontawesome';
 
 const page = usePage()
 
