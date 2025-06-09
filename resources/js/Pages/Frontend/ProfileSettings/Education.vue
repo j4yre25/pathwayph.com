@@ -5,7 +5,6 @@ import { useForm, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
-import '@fortawesome/vue-fontawesome';
 
 const props = defineProps({
   activeSection: { type: String, default: 'education' },

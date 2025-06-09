@@ -5,7 +5,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useForm, usePage, router, } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import '@fortawesome/vue-fontawesome';
+
 import axios from 'axios';
 
 

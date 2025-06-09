@@ -778,7 +778,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Profile Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
-    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
 
     // Education Routes
     Route::get('/profile/settings/education', [ProfileController::class, 'educationSettings'])->name('profile.settings.education');
@@ -849,7 +849,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/career-goals/save', [ProfileController::class, 'saveCareerGoals'])->name('career.goals.save');
     Route::get('/career-goals', [ProfileController::class, 'getCareerGoals'])->name('career.goals.get');
 
-    // Resume Routes
+     // Resume Routes
     Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
     Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');

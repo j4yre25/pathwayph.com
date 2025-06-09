@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
-import '@fortawesome/vue-fontawesome';
+
 import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 import axios from 'axios';
 
