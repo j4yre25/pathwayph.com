@@ -4,7 +4,7 @@ import { router, usePage, Link } from '@inertiajs/vue3'
 import { ref, computed, onMounted } from 'vue'
 import Container from '@/Components/Container.vue'
 import ListOfJobs from './ListOfJobs.vue'
-import '@fortawesome/vue-fontawesome';
+
 
 const page = usePage()
 

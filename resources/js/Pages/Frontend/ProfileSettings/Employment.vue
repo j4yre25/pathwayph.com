@@ -12,6 +12,7 @@ import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 
+
 // Define props
 const props = defineProps({
   activeSection: {

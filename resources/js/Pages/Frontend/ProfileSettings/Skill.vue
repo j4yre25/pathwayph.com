@@ -4,7 +4,6 @@ import { useForm, usePage, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SkillsChart from '@/Components/SkillsChart.vue';
 import ApexCharts from 'vue3-apexcharts';
-import '@fortawesome/vue-fontawesome';
 import Modal from '@/Components/Modal.vue';
 
 // Define props
