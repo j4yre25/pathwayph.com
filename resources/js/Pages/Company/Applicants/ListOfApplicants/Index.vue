@@ -5,7 +5,7 @@ import Container from '@/Components/Container.vue'
 import ListOfApplicants from './ListOfApplicants.vue'
 import StatCard from '@/Components/StatsCard.vue'
 import CandidatePipeline from '@/Components/CandidatePipeline.vue'
-import '@fortawesome/vue-fontawesome';
+
 
 const props = defineProps({
   job: {

@@ -4,7 +4,7 @@ import Modal from '@/Components/Modal.vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
-import '@fortawesome/vue-fontawesome';
+import '@fortawesome/fontawesome-free/css/all.css';
 import './datepicker.css';
 
 

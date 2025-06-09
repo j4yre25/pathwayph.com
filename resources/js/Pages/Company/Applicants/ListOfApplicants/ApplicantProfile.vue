@@ -1,9 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import AppLayout from '@/Layouts/AppLayout.vue';
 import { router } from '@inertiajs/vue3';
-import CandidatePipeline from '@/Components/CandidatePipeline.vue';
 import Datepicker from 'vue3-datepicker';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import CandidatePipeline from '@/Components/CandidatePipeline.vue';
+import useInterviewScheduler from '@/Composables/useInterviewScheduler';
+import useApplicantNote from '@/Composables/useApplicantNote';
+import  { useVisitWebsite }  from '@/Composables/useVisitWebsite';
 
 const props = defineProps({
   applicant: Object,
@@ -19,75 +22,48 @@ const props = defineProps({
   resume: { type: Object, default: null },
 });
 
-
+// Copy to clipboard function
 function copyToClipboard(text) {
   if (!text) return;
   navigator.clipboard.writeText(text);
 }
+//End of copy to clipboard function
 
 const activeTab = ref('Resume');
 
 // Fetch tab-specific data on viewApplicantDetails()
 const resume = ref(null);
-const showConfirmationModal = ref(false);
 
 //For scheduling interview
-const showScheduleModal = ref(false);
-const scheduleForm = ref({
-  date: null,
-  hour: '09',
-  minute: '00',
-  ampm: 'AM',
+const {
+  showScheduleModal,
+  showConfirmationModal,
+  scheduleForm,
+  submitSchedule,
+  incrementHour,
+  decrementHour,
+  incrementMinute,
+  decrementMinute,
+  toggleAMPM
+} = useInterviewScheduler(props.applicant.id, () => {
+  console.log('Interview scheduled successfully!');
 });
+//End of scheduling interview
 
-function submitSchedule() {
-  const dateObj = scheduleForm.value.date;
-  const date = dateObj instanceof Date
-    ? dateObj.toISOString().slice(0, 10)
-    : scheduleForm.value.date;
-  let hour = parseInt(scheduleForm.value.hour);
-  if (scheduleForm.value.ampm === 'PM' && hour < 12) hour += 12;
-  if (scheduleForm.value.ampm === 'AM' && hour === 12) hour = 0;
-  const minute = scheduleForm.value.minute.padStart(2, '0');
-  const datetime = `${date}T${hour.toString().padStart(2, '0')}:${minute}:00`;
+//For note section
+const {
+  note,
+  editingNote,
+  noteInput,
+  startEditNote,
+  cancelEditNote,
+  saveNote
+} = useApplicantNote(props.applicant);
+//End of note section
 
-  router.post(router('applicants.scheduleInterview', props.applicant.id), {
-    scheduled_at: datetime,
-  }, {
-    onSuccess: () => {
-      showScheduleModal.value = false;
-      showConfirmationModal.value = true;
-    }
-  });
-}
+//For social media links
+const { formatUrl } = useVisitWebsite();
 
-function incrementHour() {
-  let hour = parseInt(scheduleForm.value.hour, 10);
-  hour = hour >= 12 ? 1 : hour + 1;
-  scheduleForm.value.hour = hour.toString().padStart(2, '0');
-}
-function decrementHour() {
-  let hour = parseInt(scheduleForm.value.hour, 10);
-  hour = hour <= 1 ? 12 : hour - 1;
-  scheduleForm.value.hour = hour.toString().padStart(2, '0');
-}
-function incrementMinute() {
-  let minute = parseInt(scheduleForm.value.minute, 10);
-  minute = minute >= 59 ? 0 : minute + 1;
-  scheduleForm.value.minute = minute.toString().padStart(2, '0');
-}
-function decrementMinute() {
-  let minute = parseInt(scheduleForm.value.minute, 10);
-  minute = minute <= 0 ? 59 : minute - 1;
-  scheduleForm.value.minute = minute.toString().padStart(2, '0');
-}
-function toggleAMPM() {
-  scheduleForm.value.ampm = scheduleForm.value.ampm === 'AM' ? 'PM' : 'AM';
-}
-
-onMounted(() => {
-  console.log('Applicant data:', props.applicant)
-})
 function formatDate(dateStr) {
   if (!dateStr) return 'N/A';
   const date = new Date(dateStr);
@@ -98,15 +74,7 @@ function formatDate(dateStr) {
     day: 'numeric'
   });
 }
-function formatUrl(url, base) {
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('www.')) return 'https://' + url;
-    if (base && !url.includes(base)) {
-        return `https://${base}/${url.replace(/^\/+/, '')}`;
-    }
-    return 'https://' + url;
-}
+
 
 
 const totalYearsExperience = computed(() => {
@@ -124,33 +92,10 @@ const totalYearsExperience = computed(() => {
   return years > 0 ? `${years} Year${years > 1 ? 's' : ''}` : '< 1 Year';
 });
 
-//This is for the note section
-const note = ref(props.applicant.notes || '');
-const editingNote = ref(false);
-const noteInput = ref(note.value);
+onMounted(() => {
+  console.log('Applicant data:', props.applicant)
+})
 
-function startEditNote() {
-  noteInput.value = note.value;
-  editingNote.value = true;
-}
-
-function cancelEditNote() {
-  editingNote.value = false;
-}
-
-function saveNote() {
-  router.put(
-    route('applicants.note.update', props.applicant.id),
-    { notes: noteInput.value },
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        note.value = noteInput.value;
-        editingNote.value = false;
-      },
-    }
-  );
-}
 </script>
 
 <template>

@@ -3,7 +3,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Container from '@/Components/Container.vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import '@fortawesome/vue-fontawesome';
+
 
 const page = usePage()
 const props = defineProps({
