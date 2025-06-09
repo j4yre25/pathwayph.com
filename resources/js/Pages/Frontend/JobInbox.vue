@@ -12,15 +12,18 @@ import '@fortawesome/fontawesome-free/css/all.css';
 const { props } = usePage();
 
 // State Management
-const activeSection = ref(localStorage.getItem('activeSection') || 'opportunities');
+const activeSection = ref(localStorage.getItem('activeSection') || 'applications');
 const setActiveSection = (section) => {
     activeSection.value = section;
     localStorage.setItem('activeSection', section);
 };
 
-// Modal States
-const isViewDetailsModalOpen = ref(false);
 const selectedApplication = ref(null);
+const isViewDetailsModalOpen = ref(false);
+function openApplicationDetails(application) {
+    selectedApplication.value = application;
+    isViewDetailsModalOpen.value = true;
+}
 
 // useJobs composable
 const {
@@ -53,14 +56,7 @@ onMounted(() => {
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
                     <div class="border-b border-gray-200">
                         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                            <button @click="setActiveSection('opportunities')" :class="[
-                                activeSection === 'opportunities'
-                                    ? 'border-indigo-500 text-indigo-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
-                            ]">
-                                Opportunities
-                            </button>
+
                             <button @click="setActiveSection('applications')" :class="[
                                 activeSection === 'applications'
                                     ? 'border-indigo-500 text-indigo-600'
@@ -94,9 +90,10 @@ onMounted(() => {
                                                 'Notifications' }}
                                     </h1>
                                     <p class="text-xs text-[#374151] mt-1">
-                                        {{ activeSection === 'opportunities' ? 'Browse and apply for availabl positions' :
-                                        activeSection === 'applications' ? 'Track your job applications' :
-                                        'Stay updated with your application status' }}
+                                        {{ activeSection === 'opportunities' ? 'Browse and apply for availabl positions'
+                                            :
+                                            activeSection === 'applications' ? 'Track your job applications' :
+                                                'Stay updated with your application status' }}
                                     </p>
                                 </div>
                                 <div class="flex items-center space-x-3">
@@ -200,9 +197,7 @@ onMounted(() => {
                                                             application.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800']">
                                                 {{ application.status }}
                                             </span>
-                                            <PrimaryButton
-                                                @click="() => { selectedApplication.value = application; isViewDetailsModalOpen.value = true }"
-                                                class="text-xs">
+                                            <PrimaryButton @click="openApplicationDetails(application)" class="text-xs">
                                                 View Details
                                             </PrimaryButton>
                                         </div>
@@ -227,28 +222,35 @@ onMounted(() => {
                                         @click="markNotificationAsRead(notification.id)">
                                         <p class="text-sm text-gray-700">
                                             <span v-if="notification.type === 'InterviewScheduledNotification'">
-                                                 Interview scheduled
+                                                Interview scheduled
                                                 <span v-if="notification.data.job_title">
                                                     for <b>{{ notification.data.job_title }}</b>
                                                 </span>
                                                 <span v-if="notification.data.company">
                                                     at <b>{{ notification.data.company }}</b>
                                                 </span>
-                                                on <b>{{ new Date(notification.data.scheduled_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</b>
-                                                <span v-if="notification.data.location"> ({{ notification.data.location }})</span>.
+                                                on <b>{{ new
+                                                    Date(notification.data.scheduled_at).toLocaleString('en-US', {
+                                                        year:
+                                                            'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:
+                                                            '2-digit'
+                                                    }) }}</b>
+                                                <span v-if="notification.data.location"> ({{ notification.data.location
+                                                }})</span>.
                                             </span>
                                             <span v-else>
                                                 <span class="font-bold">{{ notification.data?.title }}</span>
-                                                <span v-if="notification.data?.company"> at {{ notification.data?.company }}</span>
+                                                <span v-if="notification.data?.company"> at {{
+                                                    notification.data?.company }}</span>
                                             </span>
                                         </p>
                                         <p class="text-xs text-gray-500">{{ notification.created_at }}</p>
-                                         <PrimaryButton v-if="notification.data?.job_id"
+                                        <PrimaryButton v-if="notification.data?.job_id"
                                             @click="router.visit(`/jobs/${notification.data?.job_id}`)"
                                             class="mt-2 text-xs">View Job</PrimaryButton>
                                         <PrimaryButton v-else-if="notification.data?.action_url"
-                                            @click="router.visit(notification.data?.action_url)"
-                                            class="mt-2 text-xs">View Application</PrimaryButton>
+                                            @click="router.visit(notification.data?.action_url)" class="mt-2 text-xs">
+                                            View Application</PrimaryButton>
                                     </div>
                                 </div>
                             </div>
