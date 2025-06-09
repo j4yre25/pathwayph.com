@@ -204,7 +204,7 @@ const saveProfile = () => {
   console.log('Submitting form:', settingsForm);
 
   // Submit form
-  settingsForm.post(route('profile.updateProfile'), {
+  settingsForm.post(route('profile.update'), {
     forceFormData: true,
     onSuccess: (response) => {
       emit('close-all-modals');      profile.value.first_name = settingsForm.first_name;

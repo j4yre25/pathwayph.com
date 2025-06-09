@@ -105,21 +105,21 @@ class JobInboxController extends Controller
                 ];
 
                 // Special handling for InterviewScheduledNotification
-               if ($type === \App\Notifications\InterviewScheduledNotification::class) {
-                $result['interview_id'] = $data['interview_id'] ?? null;
-                $result['scheduled_at'] = $data['scheduled_at'] ?? null;
-                $result['location'] = $data['location'] ?? null;
-                $result['job_application_id'] = $data['job_application_id'] ?? null;
-                $result['job_title'] = $data['job_title'] ?? '';
-                $result['message'] =
-                    'Interview scheduled for ' .
-                    ($data['job_title'] ?? 'this position') .
-                    ((!empty($data['company'])) ? ' at ' . $data['company'] : '') .
-                    (!empty($data['scheduled_at']) ? ' on ' . \Carbon\Carbon::parse($data['scheduled_at'])->format('F j, Y, g:i a') : '') .
-                    (!empty($data['location']) ? ' (' . $data['location'] . ')' : '') .
-                    '.';
-                $result['action_url'] = $data['action_url'] ?? '';
-            }
+                if ($type === \App\Notifications\InterviewScheduledNotification::class) {
+                    $result['interview_id'] = $data['interview_id'] ?? null;
+                    $result['scheduled_at'] = $data['scheduled_at'] ?? null;
+                    $result['location'] = $data['location'] ?? null;
+                    $result['job_application_id'] = $data['job_application_id'] ?? null;
+                    $result['job_title'] = $data['job_title'] ?? '';
+                    $result['message'] =
+                        'Interview scheduled for ' .
+                        ($data['job_title'] ?? 'this position') .
+                        ((!empty($data['company'])) ? ' at ' . $data['company'] : '') .
+                        (!empty($data['scheduled_at']) ? ' on ' . \Carbon\Carbon::parse($data['scheduled_at'])->format('F j, Y, g:i a') : '') .
+                        (!empty($data['location']) ? ' (' . $data['location'] . ')' : '') .
+                        '.';
+                    $result['action_url'] = $data['action_url'] ?? '';
+                }
 
                 return $result;
             });
@@ -128,6 +128,7 @@ class JobInboxController extends Controller
     public function applyForJob(Request $request)
     {
         $user = Auth::user();
+        $graduate = $user->graduate;
 
         $validated = $request->validate([
             'job_id' => 'required|exists:jobs,id',
@@ -154,6 +155,7 @@ class JobInboxController extends Controller
         // Create application
         $application = JobApplication::create([
             'user_id' => $user->id,
+            'graduate_id' => $graduate->id,
             'job_id' => $validated['job_id'],
             'resume_id' => $validated['resume_id'] ?? null,
             'cover_letter' => $validated['cover_letter'] ?? null,

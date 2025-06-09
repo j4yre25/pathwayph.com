@@ -218,7 +218,7 @@ const saveProfile = () => {
     return;
   }
 
-  settingsForm.post(route('profile.updateProfile'), {
+  settingsForm.post(route('profile.update'), {
     onSuccess: (response) => {
       Object.assign(profile.value, settingsForm.data());
       modalState.value.profile = true;

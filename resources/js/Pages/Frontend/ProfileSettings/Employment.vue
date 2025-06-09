@@ -10,6 +10,8 @@ import SelectInput from '@/Components/SelectInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
+import '@fortawesome/fontawesome-free/css/all.css';
+
 
 // Define props
 const props = defineProps({
