@@ -1085,44 +1085,53 @@ class ProfileController extends Controller
             'resume' => 'required|mimes:pdf,doc,docx|max:2048',
         ]);
 
+        if (!$request->hasFile('resume')) {
+            return response()->json(['error' => 'No file uploaded.'], 400);
+        }
+
         try {
             $user = Auth::user();
             $graduate = \App\Models\Graduate::where('user_id', $user->id)->firstOrFail();
 
             $file = $request->file('resume');
-            $fileName = time() . '_' . $file->getClientOriginalName();
+            $originalName = $file->getClientOriginalName() ?: uniqid('resume_', true) . '.' . $file->getClientOriginalExtension();
+            $fileName = time() . '_' . $originalName;
             $fileType = $file->getClientMimeType();
             $fileSize = $file->getSize();
+            
+            // Defensive: ensure $fileName is not empty
+            if (empty($fileName)) {
+                return response()->json(['error' => 'File name is empty.'], 400);
+            }
             $path = $file->storeAs('resumes', $fileName, 'public');
 
+            
             // Optionally delete old file
-            $oldResume = \App\Models\Resume::where('graduate_id', $graduate->id)->first();
+            $oldResume = Resume::where('graduate_id', $graduate->id)->first();
             if ($oldResume && $oldResume->file_path) {
                 Storage::disk('public')->delete($oldResume->file_path);
             }
 
-            $resume = \App\Models\Resume::updateOrCreate(
+            $resume = Resume::updateOrCreate(
                 ['graduate_id' => $graduate->id],
                 [
                     'user_id' => $user->id,
                     'title' => $request->input('title', 'Resume'),
                     'file_path' => $path,
-                    'file_name' => $file->getClientOriginalName(),
+                    'file_name' => $originalName,
                     'file_type' => $fileType,
                     'file_size' => $fileSize,
                     'is_primary' => true,
                 ]
             );
 
-            // Return JSON for AJAX (Inertia) requests
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['resume' => $resume]);
             }
 
-            // Fallback for non-AJAX
             return redirect()->back()->with('success', 'Resume uploaded successfully!');
         } catch (\Exception $e) {
-            Log::error('Resume upload error: ' . $e->getMessage());
+            \Log::error('Resume upload error: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to upload resume'], 500);
         }
     }
