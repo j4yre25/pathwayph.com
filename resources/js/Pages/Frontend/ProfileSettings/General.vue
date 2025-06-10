@@ -203,8 +203,12 @@ const saveProfile = () => {
 
   console.log('Submitting form:', settingsForm);
 
+  if (!settingsForm.graduate_picture) {
+  delete settingsForm.graduate_picture;
+}
+
   // Submit form
-  settingsForm.post(route('profile.update'), {
+  settingsForm.post(route('profile.updateProfile'), {
     forceFormData: true,
     onSuccess: (response) => {
       emit('close-all-modals');      profile.value.first_name = settingsForm.first_name;

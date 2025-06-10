@@ -176,8 +176,11 @@ class ProfileController extends Controller
 
 
         // Handle profile picture upload
-        if ($request->hasFile('graduate_picture')) {
+        if ($request->hasFile('graduate_picture')&& $request->file('graduate_picture')->isValid()) {
             $file = $request->file('graduate_picture');
+if (!$file->getRealPath()) {
+        return back()->withErrors(['graduate_picture' => 'File upload failed. Please try again.']);
+    }
             $originalName = $file->getClientOriginalName();
             if (!$originalName) {
                 $originalName = uniqid('profile_', true) . '.' . $file->getClientOriginalExtension();
