@@ -59,12 +59,15 @@ class DashboardController extends Controller
                     ->get()
                     ->map(function ($g) {
                         return [
+                            'first_name' => $g->first_name,
+                            'middle_name' => $g->middle_name,
+                            'last_name' => $g->last_name,
                             'program_id' => $g->program_id,
                             'current_job_title' => $g->current_job_title,
                             'employment_status' => ucfirst($g->employment_status),
                             'gender' => $g->gender,
                             'school_year_id' => $g->school_year_id,
-                            'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null, // <-- add this
+                            'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null,
                         ];
                     });
 
