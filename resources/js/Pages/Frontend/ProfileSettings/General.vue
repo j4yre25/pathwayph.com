@@ -632,56 +632,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Education Information Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 class="text-xl font-semibold mb-2">Education Information</h2>
-            <p class="text-gray-600 mb-4">Your academic background</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              <!-- School Graduated From -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
-                <div class="relative">
-                  <i class="fas fa-university absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_school_graduated_from || 'Not specified' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Year Graduated -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
-                <div class="relative">
-                  <i class="fas fa-calendar-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_year_graduated || 'Not specified' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Program Completed -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
-                <div class="relative">
-                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_program_completed || 'Not specified' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Degree Completed -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
-                <div class="relative">
-                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ degreeCompleted }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        
 
           <!-- Contact Information Section -->
           <div class="bg-white p-6 rounded-lg border border-gray-200">
