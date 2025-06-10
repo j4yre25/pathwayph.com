@@ -36,26 +36,28 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $graduates = \App\Models\Graduate::with(['program.degree', 'schoolYear', 'education', 'institution'])
-            ->where('user_id', $user->id)
-            ->first();
+        $graduate = \App\Models\Graduate::with([
+            'institution',
+            'schoolYear',
+            'program.degree'
+        ])->where('user_id', $user->id)->first();
 
         // Fetch all institution users (adjust as needed)
         $instiUsers = User::where('role', 'institution')->get();
 
         // Remove with('institution') here
-        $educationEntries = Education::where('graduate_id', $graduates->id)
+        $educationEntries = Education::where('graduate_id', $graduate->id)
             ->whereNull('deleted_at')
             ->get();
 
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
-            'graduate' => $graduates,
+            'graduate' => $graduate, // <-- pass this!
             'instiUsers' => $instiUsers,
             'educationEntries' => $educationEntries,
-            'experienceEntries' => Experience::where('graduate_id', $graduates->id)->get(),
+            'experienceEntries' => Experience::where('graduate_id', $graduate->id)->get(),
             'skillEntries' => GraduateSkill::with('skill')
-                ->where('graduate_id', $graduates->id)
+                ->where('graduate_id', $graduate->id)
                 ->get()
                 ->map(function ($gs) {
                     return [
@@ -66,13 +68,13 @@ class ProfileController extends Controller
                         'graduate_skills_years_experience' => $gs->years_experience,
                     ];
                 }),
-            'certificationsEntries' => Certification::where('graduate_id', $graduates->id)->get(),
-            'projectsEntries' => Project::where('graduate_id', $graduates->id)->get(),
-            'achievementEntries' => Achievement::where('graduate_id', $graduates->id)->get(),
-            'testimonialsEntries' => Testimonial::where('graduate_id', $graduates->id)->get(),
-            'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduates->id)->first(),
-            'careerGoals' => CareerGoal::where('graduate_id', $graduates->id)->first(),
-            'resume' => Resume::where('graduate_id', $graduates->id)->first(),
+            'certificationsEntries' => Certification::where('graduate_id', $graduate->id)->get(),
+            'projectsEntries' => Project::where('graduate_id', $graduate->id)->get(),
+            'achievementEntries' => Achievement::where('graduate_id', $graduate->id)->get(),
+            'testimonialsEntries' => Testimonial::where('graduate_id', $graduate->id)->get(),
+            'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduate->id)->first(),
+            'careerGoals' => CareerGoal::where('graduate_id', $graduate->id)->first(),
+            'resume' => Resume::where('graduate_id', $graduate->id)->first(),
         ]);
     }
 

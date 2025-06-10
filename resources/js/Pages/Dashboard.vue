@@ -45,7 +45,7 @@ const handleLogout = () => {
             <CompanyDashboard :summary="page.props.summary" />
         </div>
 
-        <div v-else="page.props.roles?.isInstitution" class="py-12">
+        <div v-else-if="page.props.roles?.isInstitution" class="py-12">
             <Welcome v-if="!page.props.roles?.isInstitution" />
             <div class="p-6">
                 <h3 class="text-lg font-semibold text-gray-800">
@@ -61,6 +61,7 @@ const handleLogout = () => {
                 :programs="page.props.programs"
                 :careerOpportunities="page.props.careerOpportunities"
                 :schoolYears="page.props.schoolYears"
+                :institutionCareerOpportunities="page.props.institutionCareerOpportunities"
             />
         </div>
 

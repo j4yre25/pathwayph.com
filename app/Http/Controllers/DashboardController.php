@@ -13,6 +13,8 @@ use App\Models\Application;
 use Illuminate\Support\Facades\DB;
 use App\Models\InstitutionSchoolYear;
 use App\Models\SchoolYear;
+use App\Models\InstitutionCareerOpportunity;
+use App\Models\CareerOpportunity;
 
 class DashboardController extends Controller
 {
@@ -31,6 +33,7 @@ class DashboardController extends Controller
         $programs = collect();
         $careerOpportunities = collect();
         $schoolYears = collect();
+        $institutionCareerOpportunities = collect();
 
         if ($user->hasRole('institution')) {
             $institution = Institution::where('user_id', $user->id)->first();
@@ -84,6 +87,19 @@ class DashboardController extends Controller
                         ];
                     });
 
+                // Get all institution career opportunities with program info
+                $institutionCareerOpportunities = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
+                    ->where('institution_id', $institutionId)
+                    ->get()
+                    ->map(function ($ico) {
+                        return [
+                            'id' => $ico->careerOpportunity->id,
+                            'title' => $ico->careerOpportunity->title,
+                            'program_id' => $ico->program_id,
+                            'program_name' => $ico->program ? $ico->program->name : null,
+                        ];
+                    });
+
                 $summary = [
                     'total_graduates' => $graduates->count(),
                     'employed' => $graduates->where('employment_status', 'Employed')->count(),
@@ -104,6 +120,7 @@ class DashboardController extends Controller
             'programs' => $programs,
             'careerOpportunities' => $careerOpportunities,
             'schoolYears' => $schoolYears,
+            'institutionCareerOpportunities' => $institutionCareerOpportunities,
         ]);
     }
 
