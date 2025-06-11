@@ -11,11 +11,16 @@ import 'quill/dist/quill.snow.css';
 import * as lucide from 'lucide-vue-next';
 
 import * as echarts from 'echarts/core';
+import "echarts-wordcloud";
 import '@fortawesome/fontawesome-free/css/all.css';
 import {
   PieChart,
   LineChart,
-  BarChart
+  BarChart,
+  FunnelChart,
+  ScatterChart,
+  RadarChart,
+  BoxplotChart,
 } from 'echarts/charts';
 import {
   TitleComponent,
@@ -34,6 +39,10 @@ echarts.use([
   PieChart,
   LineChart,
   BarChart,
+  FunnelChart,
+  ScatterChart,
+  RadarChart,
+  BoxplotChart,
   TitleComponent,
   TooltipComponent,
   LegendComponent,

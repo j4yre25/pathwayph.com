@@ -426,11 +426,11 @@ onMounted(() => {
                           </div>
                           <!-- PDF Preview -->
                           <div v-if="resume.file_type && resume.file_type.includes('pdf')" class="border rounded mt-4 overflow-hidden">
-                            <iframe :src="resume.file_url" width="100%" height="400px"></iframe>
+                            <iframe :src="resume.file_url ? `/storage/${resume.file_url}` : ''" width="100%" height="400px"></iframe>
                           </div>
                           <!-- For non-PDF files, just show info and download -->
                           <div v-else class="text-gray-600 text-base">
-                            <a :href="resume.file_url" download target="_blank" class="text-indigo-600 hover:underline font-semibold">
+                            <a :href="resume.file_path" download target="_blank" class="text-indigo-600 hover:underline font-semibold">
                               Download Resume
                             </a>
                           </div>
