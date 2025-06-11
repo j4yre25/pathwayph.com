@@ -161,7 +161,7 @@ console.log('Education:', props.education);
                         <!-- PDF Preview -->
                         <div v-if="resume.file_type && resume.file_type.includes('pdf')"
                             class="border rounded mt-4 overflow-hidden">
-                            <iframe :src="resume.file_url" width="100%" height="400px"></iframe>
+                            <iframe :src="resume.file_url ? `/storage/${resume.file_url}` : ''" width="100%" height="400px"></iframe>
                         </div>
                     </div>
                     <div v-else class="bg-white rounded-lg shadow-lg p-6 text-gray-600">

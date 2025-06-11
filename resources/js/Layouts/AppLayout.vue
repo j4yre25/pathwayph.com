@@ -25,38 +25,8 @@ const title = page.props.title;
 
 const showingNavigationDropdown = ref(false);
 
-const reportTabs = [
-  { label: "Job Openings Overview", route: "company.reports.overview" },
-  { label: "Department-Wise Job Listings", route: "company.reports.department" },
-  { label: "Hiring Funnel", route: "company.reports.hiringFunnel" },
-  { label: "Job Posting Trends", route: "company.reports.trends" },
-  { label: "Application Analysis", route: "company.reports.applicationAnalysis" },
-  { label: "Skills and Qualifications", route: "company.reports.skills" },
-  { label: "Employment Type", route: "company.reports.employmentType" },
-  { label: "Salary Insights", route: "company.reports.salary" },
-  { label: "Diversity and Inclusion", route: "company.reports.diversity" },
-  { label: "Applicant Status Overview", route: "company.reports.applicantStatus" },
-  { label: "Candidate Screening Insights", route: "company.reports.screening" },
-  { label: "Interview Progress", route: "company.reports.interviewProgress" },
-  { label: "Skills and Competency Analysis", route: "company.reports.competency" },
-  { label: "Recruitment Efficiency", route: "company.reports.efficiency" },
-  { label: "Job Posting Performance", route: "company.reports.performance" },
-  { label: "Feedback and Satisfaction", route: "company.reports.feedback" },
-  { label: "Graduate Pool Overview", route: "company.reports.graduatePool" },
-  { label: "Graduate Demographics", route: "company.reports.graduateDemographics" },
-  { label: "Academic Performance", route: "company.reports.academicPerformance" },
-  { label: "Employment Preferences", route: "company.reports.preferences" },
-  { label: "Matching Success Rate", route: "company.reports.matchingSuccess" },
-  { label: "Internship Experience", route: "company.reports.internship" },
-  { label: "Employer Feedback", route: "company.reports.employerFeedback" },
-  { label: "Future Potential", route: "company.reports.futurePotential" },
-];
 
-const reportRouteNames = reportTabs.map(r => r.route);
 
-function isAnyReportActive() {
-  return reportRouteNames.some(name => route().current(name));
-}
 
 // Safe logging
 console.log('Auth:', auth);
@@ -167,6 +137,12 @@ console.log(page.props.permissions.canManageInstitution)
                                         </div>
                                     </div>
                                 </div>
+                                <NavLink v-if="page.props.auth.user.role === 'company'"
+                                    :href="route('company.reports.list', { user: page.props.auth.user.id })"
+                                    :active="route().current('company.reports.list')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Reports
+                                </NavLink>
                             </div>
 
 

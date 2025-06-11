@@ -50,6 +50,13 @@ class ProfileController extends Controller
             ->whereNull('deleted_at')
             ->get();
 
+        $internships = [];
+        if ($graduate) {
+            $internships = $graduate->internshipPrograms()
+                ->with(['programs', 'careerOpportunities'])
+                ->get();
+        }
+
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
             'graduate' => $graduate, // <-- pass this!
@@ -75,6 +82,7 @@ class ProfileController extends Controller
             'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduate->id)->first(),
             'careerGoals' => CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
+            'internships' => $internships,
         ]);
     }
 

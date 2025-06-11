@@ -270,14 +270,15 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 // Company Reports
 Route::prefix('company')->middleware(['auth'])->group(function () {
-    Route::get('/company-reports', [CompanyReportsController::class, 'overview'])->name('company.reports.overview');
+    Route::get('/company-reports/{user}/reports/list', [CompanyReportsController::class, 'list'])->name('company.reports.list');
+    Route::get('/company-reports-jobOverview', [CompanyReportsController::class, 'overview'])->name('company.reports.overview');
     Route::get('/company-reports/department', [CompanyReportsController::class, 'department'])->name('company.reports.department');
     Route::get('/company-reports/hiring-funnel', [CompanyReportsController::class, 'hiringFunnel'])->name('company.reports.hiringFunnel');
     Route::get('/company-reports/trends', [CompanyReportsController::class, 'trends'])->name('company.reports.trends');
     Route::get('/company-reports/application-analysis', [CompanyReportsController::class, 'applicationAnalysis'])->name('company.reports.applicationAnalysis');
     Route::get('/company-reports/skills', [CompanyReportsController::class, 'skills'])->name('company.reports.skills');
     Route::get('/company-reports/employment-type', [CompanyReportsController::class, 'employmentType'])->name('company.reports.employmentType');
-    Route::get('/company-reports/salary', [CompanyReportsController::class, 'salary'])->name('company.reports.salary');
+    Route::get('/company-reports/salary', [CompanyReportsController::class, 'salaryInsights'])->name('company.reports.salary');
     Route::get('/company-reports/diversity', [CompanyReportsController::class, 'diversity'])->name('company.reports.diversity');
     Route::get('/company-reports/applicant-status', [CompanyReportsController::class, 'applicantStatus'])->name('company.reports.applicantStatus');
     Route::get('/company-reports/screening', [CompanyReportsController::class, 'screening'])->name('company.reports.screening');
@@ -456,6 +457,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/internship-programs/{id}/restore', [InternshipProgramController::class, 'restore'])->name('internship-programs.restore');
     Route::post('/internship-programs/batch-upload', [InternshipProgramController::class, 'batchUpload'])->name('internship-programs.batch-upload');
     Route::post('/internship-programs/assign', [InternshipProgramController::class, 'assignToGraduate'])->name('internship-programs.assign');
+    Route::get('/institutions/internship-programs/assign', [InternshipProgramController::class, 'assignPage'])->name('internship-programs.assign-page');
+    Route::post('/institutions/internship-programs/remove-graduate', [InternshipProgramController::class, 'removeGraduate'])->name('internship-programs.remove-graduate');
 });
 
 //School Year Routes
