@@ -27,6 +27,31 @@ class JobApplication extends Model
         'notes'
     ];
 
+    protected static function booted()
+    {
+         static::created(function ($application) {
+        // Log initial stage on creation
+            \App\Models\JobApplicationStage::create([
+                'job_application_id' => $application->id,
+                'stage' => $application->stage,
+                'changed_at' => now(),
+            ]);
+        });
+
+        static::updated(function ($application) {
+            if ($application->isDirty('stage')) {
+                \App\Models\JobApplicationStage::create([
+                    'job_application_id' => $application->id,
+                    'stage' => $application->stage,
+                    'changed_at' => now(),
+                ]);
+            }
+        });
+    }
+    protected $attributes = [
+        'stage' => 'applied', 
+    ];
+
     /**
      * The attributes that should be cast.
      *
@@ -79,5 +104,13 @@ class JobApplication extends Model
     public function interviews()
     {
         return $this->hasMany(Interview::class);
+    }
+
+    /**
+     * Get the stages associated with the job application.
+     */
+    public function stages()
+    {
+        return $this->hasMany(JobApplicationStage::class);
     }
 }
