@@ -23,17 +23,24 @@ public function index(Request $request)
             $q->where('company_name', 'like', '%' . $request->company . '%');
         });
     }
+    // Filtering by candidate (old)
     if ($request->filled('candidate')) {
-        $query->whereHas('graduate.user', function ($q) use ($request) {
-            $q->where('name', 'like', '%' . $request->candidate . '%');
+        $query->whereHas('graduate', function ($q) use ($request) {
+            $q->where('first_name', 'like', '%' . $request->candidate . '%')
+              ->orWhere('middle_name', 'like', '%' . $request->candidate . '%')
+              ->orWhere('last_name', 'like', '%' . $request->candidate . '%');
         });
     }
     if ($request->filled('search')) {
         $search = $request->search;
         $query->where(function ($q) use ($search) {
-            $q->whereHas('graduate.user', fn($sub) => $sub->where('name', 'like', "%$search%"))
-              ->orWhereHas('job', fn($sub) => $sub->where('job_title', 'like', "%$search%"))
-              ->orWhereHas('job.company', fn($sub) => $sub->where('company_name', 'like', "%$search%"));
+            $q->whereHas('graduate', function ($sub) use ($search) {
+                $sub->where('first_name', 'like', "%$search%")
+                    ->orWhere('middle_name', 'like', "%$search%")
+                    ->orWhere('last_name', 'like', "%$search%");
+            })
+            ->orWhereHas('job', fn($sub) => $sub->where('job_title', 'like', "%$search%"))
+            ->orWhereHas('job.company', fn($sub) => $sub->where('company_name', 'like', "%$search%"));
         });
     }
 
@@ -72,7 +79,10 @@ public function index(Request $request)
 
         return [
             'id' => $ref->id,
-            'candidate' => $graduate && $graduate->user ? $graduate->user->name : 'N/A',
+            // Use graduate's full name instead of user->name
+            'candidate' => $graduate
+                ? trim($graduate->first_name . ' ' . ($graduate->middle_name ? $graduate->middle_name . ' ' : '') . $graduate->last_name)
+                : 'N/A',
             'job_title' => $job ? $job->job_title : 'N/A',
             'company' => $job && $job->company ? $job->company->company_name : 'N/A',
             'status' => $ref->status,

@@ -46,9 +46,11 @@ const props = defineProps({
   jobSeekersByLocation: { type: Object, default: () => ({}) },
   referralByLocation: { type: Object, default: () => ({}) },
   referralSuccessHeatmap: { type: Array, default: () => [] },
+  graduates: { type: Array, default: () => [] },
+
 
 })
-
+const graduates = ref([]);
 // KPI values
 const employed = computed(() => props.statusCounts?.Employed ?? props.employed ?? 0)
 const unemployed = computed(() => props.statusCounts?.Unemployed ?? props.unemployed ?? 0)
@@ -428,12 +430,97 @@ const referralHeatmapOption = computed(() => ({
     }
   ]
 }));
+
+const filteredGraduates = computed(() => {
+  return props.graduates.filter(g =>
+    (!selectedYear.value || g.schoolYear?.school_year_range === selectedYear.value) &&
+    (!selectedProgram.value || g.program_id === selectedProgram.value) &&
+    (!selectedStatus.value || g.employment_status === selectedStatus.value) &&
+    (!selectedLocation.value || g.location === selectedLocation.value)
+  );
+});
+// FILTER CONTROLS
+const selectedYear = ref('')
+const selectedProgram = ref('')
+const selectedStatus = ref('')
+const selectedLocation = ref('')
+
+const years = ref([])
+const programs = ref([])
+const locations = ref([])
+
+// Populate filter options on mount
+onMounted(() => {
+  // Assuming `graduates` is available in the context
+  if (graduates.value && graduates.value.length) {
+    // Years
+    const allYears = new Set()
+    graduates.value.forEach(g => {
+      if (g.schoolYear?.school_year_range) {
+        const yearRange = g.schoolYear.school_year_range.split('-')
+        if (yearRange.length === 2) {
+          const startYear = parseInt(yearRange[0])
+          const endYear = parseInt(yearRange[1])
+          for (let y = startYear; y <= endYear; y++) {
+            allYears.add(y)
+          }
+        }
+      }
+    })
+    years.value = Array.from(allYears).sort((a, b) => b - a)
+
+    // Programs and Locations (assuming these are available in graduates data)
+    const allPrograms = new Set()
+    const allLocations = new Set()
+    graduates.value.forEach(g => {
+      if (g.program_id) allPrograms.add(g.program_id)
+      if (g.location) allLocations.add(g.location)
+    })
+    programs.value = Array.from(allPrograms)
+    locations.value = Array.from(allLocations)
+  }
+})
 </script>
 
 <template>
   <AppLayout title="PESO Reports">
     <div class="max-w-5xl mx-auto py-8 px-4">
       <h2 class="text-2xl font-bold mb-6 text-gray-800">Employment Status Overview</h2>
+
+      <!-- FILTER CONTROLS -->
+      <div class="flex flex-wrap gap-4 mb-8">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+          <select v-model="selectedYear" class="border rounded px-2 py-1">
+            <option value="">All</option>
+            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
+          <select v-model="selectedProgram" class="border rounded px-2 py-1">
+            <option value="">All</option>
+            <option v-for="program in programs" :key="program.id" :value="program.id">{{ program.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select v-model="selectedStatus" class="border rounded px-2 py-1">
+            <option value="">All</option>
+            <option value="Employed">Employed</option>
+            <option value="Unemployed">Unemployed</option>
+            <option value="Underemployed">Underemployed</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+          <select v-model="selectedLocation" class="border rounded px-2 py-1">
+            <option value="">All</option>
+            <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
+          </select>
+        </div>
+      </div>
+
       <!-- KPI Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
         <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
@@ -449,6 +536,7 @@ const referralHeatmapOption = computed(() => ({
           <span class="text-3xl font-bold text-blue-600">{{ totalGraduates }}</span>
         </div>
       </div>
+
       <div v-if="statusCounts && Object.keys(statusCounts).length" class="bg-white rounded-xl shadow p-8">
         <div class="flex flex-col lg:flex-row gap-12 items-center justify-between">
           <div class="w-full lg:w-2/5 mb-8 lg:mb-0">
@@ -470,6 +558,7 @@ const referralHeatmapOption = computed(() => ({
           </div>
         </div>
       </div>
+
       <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Employment By Program</h2>
 
       <!-- Stacked Bar Chart -->
@@ -547,16 +636,29 @@ const referralHeatmapOption = computed(() => ({
         <VueECharts :option="referralHeatmapOption" style="height: 400px; width: 100%;" />
       </div>
 
-      <!-- Bubble Map: Job Openings vs. Seekers -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Openings vs. Job Seekers by Location (Bubble Map)</h3>
-        <VueECharts :option="bubbleMapOption" style="height: 500px; width: 100%;" />
-      </div>
-
-      <!-- Heatmap: Referral Success Rate -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Success Rate by Location (Heatmap)</h3>
-        <VueECharts :option="referralHeatmapOption" style="height: 500px; width: 100%;" />
+      <!-- Example: Table of Filtered Graduates (optional) -->
+      <div class="bg-white rounded-xl shadow p-8 mt-12" v-if="filteredGraduates.length">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Filtered Graduates</h3>
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 text-left">Name</th>
+              <th class="px-2 py-1 text-left">Program</th>
+              <th class="px-2 py-1 text-left">Status</th>
+              <th class="px-2 py-1 text-left">Year</th>
+              <th class="px-2 py-1 text-left">Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="g in filteredGraduates" :key="g.id">
+              <td class="px-2 py-1">{{ g.name }}</td>
+              <td class="px-2 py-1">{{ g.program?.name }}</td>
+              <td class="px-2 py-1">{{ g.employment_status }}</td>
+              <td class="px-2 py-1">{{ g.schoolYear?.school_year_range }}</td>
+              <td class="px-2 py-1">{{ g.location }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </AppLayout>

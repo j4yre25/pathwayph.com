@@ -8,7 +8,7 @@ import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Checkbox from '@/Components/Checkbox.vue';
-
+import '@fortawesome/fontawesome-free/css/all.css';
 
 
 const selectedUserLevel = ref('');

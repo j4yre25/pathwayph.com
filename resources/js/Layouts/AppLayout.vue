@@ -155,8 +155,7 @@ console.log(page.props.permissions.canManageInstitution)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </NavLink>
-                                    <div
-                                        class="absolute left-0 mt-2 w-96 bg-white border rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto z-50 transition">
+                                    <div class="absolute left-0 mt-2 w-96 bg-white border rounded shadow-lg opacity-0 group-hover:opacity-100 z-50 transition">
                                         <div class="grid grid-cols-3 gap-1">
                                             <div v-for="report in reportTabs" :key="report.route">
                                             <Link

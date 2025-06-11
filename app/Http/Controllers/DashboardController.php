@@ -109,9 +109,16 @@ class DashboardController extends Controller
             }
         }
 
+        if ($user->hasRole('graduate')) {
+
+            $hasReferralLetter = $user->graduate && $user->graduate->referral_letter_submitted;
+        }
+
         return Inertia::render('Dashboard', [
             'userNotApproved' => !$user->is_approved,
+            'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
+                'isGraduate' => $user->hasRole('graduate'),
                 'isCompany' => $user->hasRole('company'),
                 'isInstitution' => $user->hasRole('institution'),
             ],
@@ -127,7 +134,7 @@ class DashboardController extends Controller
     public function companyStats()
     {
         $user = Auth::user();
-        
+
         if (!$user->hasRole('company')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
@@ -181,20 +188,20 @@ class DashboardController extends Controller
 
         // Graduate Pool Overview
         $graduateStats = [
-            'total_scouted' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'total_scouted' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds);
             })->count(),
-            'matched' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'matched' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds)
                     ->where('status', 'matched');
             })->count(),
-            'avg_qualification' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'avg_qualification' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds);
             })->avg('qualification_score') ?? 0,
         ];
 
         // Graduates by Study Field
-        $graduatesByField = Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+        $graduatesByField = Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
             $query->whereIn('job_id', $companyJobIds);
         })
             ->select('field_of_study', DB::raw('count(*) as count'))

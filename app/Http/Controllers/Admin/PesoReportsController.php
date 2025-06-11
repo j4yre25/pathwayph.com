@@ -18,7 +18,20 @@ class PesoReportsController extends Controller
     public function reports(Request $request)
     {
         // Employment Status Overview
-        $graduates = Graduate::with('schoolYear', 'program')->get();
+        $year = $request->input('year');
+        $graduatesQuery = Graduate::with('schoolYear', 'program');
+        if ($year) {
+            $graduatesQuery->whereHas('schoolYear', fn($q) => $q->where('school_year_range', $year));
+        }
+        $programId = $request->input('program_id');
+        if ($programId) {
+            $graduatesQuery->where('program_id', $programId);
+        }
+        $location = $request->input('location');
+        if ($location) {
+            $graduatesQuery->where('location', $location);
+        }
+        $graduates = $graduatesQuery->get();
 
         $summary = [
             'total_graduates' => $graduates->count(),
