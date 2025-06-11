@@ -112,4 +112,8 @@ class Graduate extends Model
     {
         return $this->hasOne(Resume::class);
     }
+    public function internshipPrograms()
+    {
+        return $this->belongsToMany(\App\Models\InternshipProgram::class, 'graduate_internship_program');
+    }
 }
