@@ -65,9 +65,7 @@ const goToPreviousStep = () => {
     currentStep.value = 'job-details'
   } else if (currentStep.value === 'description') {
     currentStep.value = 'salary-info'
-  } else if (currentStep.value === 'review') {
-    currentStep.value = 'description'
-  }
+  } 
 }
 
 // Navigate to next step

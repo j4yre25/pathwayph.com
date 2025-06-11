@@ -13,6 +13,10 @@ const props = defineProps({
   activeSection: {
     type: String,
     default: 'general'
+  },
+  educationEntries: {
+    type: Array,
+    default: () => []
   }
 });
 
@@ -518,16 +522,6 @@ onMounted(() => {
                   placeholder="Add other professional networks (one per line)"></textarea>
               </div>
             </div>
-
-            <!-- Contact Form Toggle -->
-            <div class="relative">
-              <label class="flex items-center">
-                <input type="checkbox" v-model="profile.enable_contact_form"
-                  class="form-checkbox h-5 w-5 text-indigo-600 transition duration-150 ease-in-out" />
-                <span class="ml-2 text-gray-700">Enable contact form for networking opportunities</span>
-              </label>
-              <p class="text-gray-500 text-sm mt-1 ml-7">Allow other users to contact you through your profile</p>
-            </div>
           </div>
         </div>
       </div>
@@ -675,6 +669,55 @@ onMounted(() => {
                     {{ degreeCompleted }}
                   </div>
                 </div>
+              </div>
+            </div>
+            
+            <!-- Additional Education Entries -->
+            <div class="mt-6">
+              <h3 class="text-lg font-medium mb-4">Additional Education</h3>
+              <div v-if="props.educationEntries && props.educationEntries.length > 0" class="grid grid-cols-1 gap-6">
+                <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-6 rounded-lg shadow relative">
+                  <div>
+                    <div class="border-b pb-2">
+                      <h4 class="text-xl font-bold">{{ entry.education || 'Unknown Institution' }}</h4>
+                      <p class="text-gray-600">
+                        {{ entry.program || 'Unknown Program' }} in {{ entry.field_of_study || 'Unknown Field' }}
+                      </p>
+                    </div>
+                    <div class="flex items-center text-gray-600 mt-2">
+                      <i class="far fa-calendar-alt mr-2"></i>
+                      <span>
+                        {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ?
+                          formatDisplayDate(entry.end_date) : 'present' }}
+                      </span>
+                    </div>
+                    <p class="mt-2">
+                      <strong>
+                        <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
+                      </strong>
+                      {{ entry.description || 'No description provided' }}
+                    </p>
+                    <p class="mt-2">
+                      <strong>
+                        <i class="fas fa-trophy text-gray-500 mr-2"></i> Achievements:
+                      </strong>
+                      <span v-if="entry.achievements && entry.achievements.includes(',')">
+                        <ul class="list-disc list-inside">
+                          <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index">
+                            {{ achievement.trim() }}
+                          </li>
+                        </ul>
+                      </span>
+                      <span v-else>
+                        {{ entry.achievements || 'None' }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <!-- If no education entries exist -->
+              <div v-else class="bg-white p-6 rounded-lg shadow">
+                <p class="text-gray-600">No additional education entries found.</p>
               </div>
             </div>
           </div>

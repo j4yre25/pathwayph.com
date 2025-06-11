@@ -23,21 +23,48 @@ const currentStep = ref('job-details');
 
 // Navigate to previous step
 const goToPreviousStep = () => {
-  if (currentStep.value === 'job-details') {
+  if (currentStep.value === 'salary-info') {
+    currentStep.value = 'job-details'
   } else if (currentStep.value === 'description') {
-    currentStep.value = 'job-details';
+    currentStep.value = 'salary-info'
   }
-};
+}
+
 
 // Navigate to next step
 const goToNextStep = () => {
   if (currentStep.value === 'job-details') {
+    currentStep.value = 'salary-info';
+  } else if (currentStep.value === 'salary-info') {
     currentStep.value = 'description';
   }
 };
 
 // Available categories based on sector
 const availableCategories = ref([]);
+
+// Salary validation
+const salaryError = ref('');
+
+const validateSalary = () => {
+    if (form.is_negotiable) {
+        salaryError.value = '';
+        return;
+    }
+    
+    const min = parseInt(form.job_min_salary);
+    const max = parseInt(form.job_max_salary);
+
+    if (isNaN(min) || min < 5000 || min > 100000) {
+        salaryError.value = 'Minimum salary must be between ₱5,000 and ₱100,000';
+    } else if (isNaN(max) || max < 5000 || max > 100000) {
+        salaryError.value = 'Maximum salary must be between ₱5,000 and ₱100,000';
+    } else if (min > max) {
+        salaryError.value = 'Minimum salary cannot be greater than maximum salary';
+    } else {
+        salaryError.value = '';
+    }
+};
 
 // Initialize form with job data
 const form = useForm({
@@ -52,6 +79,10 @@ const form = useForm({
     description: props.job.description || '',
     requirements: props.job.job_requirements || '',
     related_skills: props.job.skills ? props.job.skills.split(',').map(skill => skill.trim()) : [],
+    job_min_salary: props.job.job_min_salary || '',
+    job_max_salary: props.job.job_max_salary || '',
+    salary_type: props.job.salary_type || '',
+    is_negotiable: props.job.is_negotiable || false,
 });
 
 // Watch for sector changes to update categories
@@ -65,6 +96,11 @@ watch(() => form.sector, (newSector) => {
     } else {
         availableCategories.value = [];
     }
+});
+
+// Watch for is_negotiable changes to validate salary
+watch(() => form.is_negotiable, () => {
+    validateSalary();
 });
 
 // Initialize categories if sector is already selected
@@ -116,6 +152,12 @@ const submitForm = () => {
                         <i class="fas fa-briefcase text-xl mb-1"></i> 
                         <span>Basic Job Details</span>
                     </div>
+                    <div @click="currentStep = 'salary-info'" 
+                        :class="['px-4 py-2 cursor-pointer flex flex-col items-center', 
+                        currentStep === 'salary-info' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500']">
+                        <i class="fas fa-briefcase text-xl mb-1"></i> 
+                        <span>Salary Information</span>
+                    </div>
                     <div @click="currentStep === 'job-details' ? null : currentStep = 'description'" 
                         :class="['px-4 py-2 cursor-pointer flex flex-col items-center', 
                         currentStep === 'description' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
@@ -140,8 +182,7 @@ const submitForm = () => {
                                 type="text" 
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 placeholder="Enter job title"
-                                required
-                            />
+                                required/>
                             <p class="mt-1 text-xs text-gray-500">A clear and concise title will attract more qualified candidates.</p>
                             <InputError :message="form.errors.job_title" class="mt-1" />
                         </div>
@@ -158,8 +199,7 @@ const submitForm = () => {
                                 type="text" 
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 placeholder="Enter job location"
-                                required
-                            />
+                                required/>
                             <p class="mt-1 text-xs text-gray-500">Specify the city, state, or if it's a remote position.</p>
                             <InputError :message="form.errors.location" class="mt-1" />
                         </div>
@@ -174,8 +214,7 @@ const submitForm = () => {
                                 id="job_type"
                                 v-model="form.job_type"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                required
-                            >
+                                required>
                                 <option value="">Select Job Type</option>
                                 <option value="Full-time">Full-time</option>
                                 <option value="Part-time">Part-time</option>
@@ -190,15 +229,14 @@ const submitForm = () => {
                         <!-- Experience Level Field -->
                         <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
-                                <i class="fas fa-chart-line text-purple-500 mr-2"></i>
+                                <i class="fas fa-user-tie text-blue-500 mr-2"></i>
                                 <InputLabel for="experience_level" value="Experience Level*" class="font-medium text-gray-700" />
                             </div>
                             <select
                                 id="experience_level"
                                 v-model="form.experience_level"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                required
-                            >
+                                required>
                                 <option value="">Select Experience Level</option>
                                 <option value="Entry-level">Entry-level</option>
                                 <option value="Intermediate">Intermediate</option>
@@ -208,32 +246,31 @@ const submitForm = () => {
                             <p class="mt-1 text-xs text-gray-500">Indicate the level of experience required for this role.</p>
                             <InputError :message="form.errors.experience_level" class="mt-1" />
                         </div>
-
+                        
                         <!-- Work Environment Field -->
                         <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
-                                <i class="fas fa-building text-teal-500 mr-2"></i>
+                                <i class="fas fa-building text-blue-500 mr-2"></i>
                                 <InputLabel for="work_environment" value="Work Environment*" class="font-medium text-gray-700" />
                             </div>
                             <select
                                 id="work_environment"
                                 v-model="form.work_environment"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                required
-                            >
+                                required>
                                 <option value="">Select Work Environment</option>
                                 <option value="On-site">On-site</option>
                                 <option value="Remote">Remote</option>
                                 <option value="Hybrid">Hybrid</option>
                             </select>
-                            <p class="mt-1 text-xs text-gray-500">Specify the work environment for this position.</p>
+                            <p class="mt-1 text-xs text-gray-500">Specify whether this position is on-site, remote, or hybrid.</p>
                             <InputError :message="form.errors.work_environment" class="mt-1" />
                         </div>
                         
                         <!-- Number of Vacancies Field -->
                         <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
-                                <i class="fas fa-users text-green-500 mr-2"></i>
+                                <i class="fas fa-users text-blue-500 mr-2"></i>
                                 <InputLabel for="vacancy" value="Number of Vacancies*" class="font-medium text-gray-700" />
                             </div>
                             <TextInput 
@@ -241,16 +278,14 @@ const submitForm = () => {
                                 v-model="form.vacancy" 
                                 type="number" 
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                placeholder="Enter number of vacancies"
                                 min="1"
-                                required
-                            />
-                            <p class="mt-1 text-xs text-gray-500">Specify how many positions are available.</p>
+                                required/>
+                            <p class="mt-1 text-xs text-gray-500">Indicate how many positions are available.</p>
                             <InputError :message="form.errors.vacancy" class="mt-1" />
                         </div>
-
+                        
                         <!-- Sector Field -->
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200" v-if="props.sectors && props.sectors.length">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
                                 <i class="fas fa-industry text-blue-500 mr-2"></i>
                                 <InputLabel for="sector" value="Sector*" class="font-medium text-gray-700" />
@@ -259,30 +294,28 @@ const submitForm = () => {
                                 id="sector"
                                 v-model="form.sector"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                required
-                            >
+                                required>
                                 <option value="">Select Sector</option>
                                 <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
                                     {{ sector.name }}
                                 </option>
                             </select>
-                            <p class="mt-1 text-xs text-gray-500">Select the industry sector for this job.</p>
+                            <p class="mt-1 text-xs text-gray-500">Choose the industry sector for this position.</p>
                             <InputError :message="form.errors.sector" class="mt-1" />
                         </div>
-
+                        
                         <!-- Category Field -->
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200" v-if="props.sectors && props.sectors.length">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
-                                <i class="fas fa-tag text-orange-500 mr-2"></i>
+                                <i class="fas fa-tag text-blue-500 mr-2"></i>
                                 <InputLabel for="category" value="Category*" class="font-medium text-gray-700" />
                             </div>
                             <select
                                 id="category"
                                 v-model="form.category"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                required
-                                :disabled="!form.sector || !availableCategories.length"
-                            >
+                                :disabled="!form.sector"
+                                required>
                                 <option value="">Select Category</option>
                                 <option v-for="category in availableCategories" :key="category.id" :value="category.id">
                                     {{ category.name }}
@@ -292,7 +325,7 @@ const submitForm = () => {
                             <InputError :message="form.errors.category" class="mt-1" />
                         </div>
                     </div>
-
+                    
                     <div class="flex justify-between mt-6 py-4 px-6 bg-gray-100 rounded-lg">
                         <div></div>
                         <div class="flex space-x-3">
@@ -302,7 +335,113 @@ const submitForm = () => {
                         </div>
                     </div>
                 </div>
+                
+                <!-- Salary Information Tab -->
+                <div v-if="currentStep === 'salary-info'" class="space-y-6">
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
+                            <i class="fas fa-align-left text-blue-500 mr-2"></i>
+                            <InputLabel for="salary_type" value="Salary Type*" class="font-medium text-gray-700" />
+                        </div>
+                        <select
+                            id="salary_type"
+                            v-model="form.salary_type"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            required>
+                            <option value="">Select Salary Type</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="hourly">Hourly</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Specify the type of salary (e.g., monthly, hourly, commission).</p>
+                    </div>
 
+                    <!-- Negotiable Salary Checkbox -->
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center">
+                            <input
+                                id="is_negotiable"
+                                type="checkbox"
+                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                v-model="form.is_negotiable"
+                                @change="validateSalary"/>
+                            <label for="is_negotiable" class="ml-2 block text-sm text-gray-900">
+                                Salary is negotiable
+                            </label>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Check this if the salary is open to negotiation.</p>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
+                            <i class="fas fa-align-left text-blue-500 mr-2"></i>
+                            <InputLabel for="salary" value="Salary Range*" class="font-medium text-gray-700" />
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">₱</span>
+                                    </div>
+                                    <TextInput
+                                        id="job_min_salary"
+                                        v-model="form.job_min_salary"
+                                        type="number"
+                                        class="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="Enter minimum salary"
+                                        min="5000"
+                                        max="100000"
+                                        :disabled="form.is_negotiable"
+                                        @input="validateSalary"
+                                        required
+                                    />
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Enter amount between ₱5,000 and ₱100,000</p>
+                            </div>
+                            <div>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">₱</span>
+                                    </div>
+                                    <TextInput
+                                        id="job_max_salary"
+                                        v-model="form.job_max_salary"
+                                        type="number"
+                                        class="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        placeholder="Enter maximum salary"
+                                        min="5000"
+                                        max="100000"
+                                        :disabled="form.is_negotiable"
+                                        @input="validateSalary"
+                                        required
+                                    />
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Enter amount between ₱5,000 and ₱100,000</p>
+                            </div>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Specify the salary range for this position.</p>
+                        
+                        <!-- Salary Error Message -->
+                        <div v-if="salaryError" class="text-red-500 text-sm mt-2">
+                            {{ salaryError }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between mt-6 py-4 px-6 bg-gray-100 rounded-lg">
+                        <div class="flex space-x-3">
+                            <PrimaryButton @click="goToPreviousStep" type="button">
+                                <i class="fas fa-chevron-left mr-1"></i> 
+                                Previous
+                            </PrimaryButton>
+                        </div>
+                        <div class="flex space-x-3">
+                            <PrimaryButton @click="goToNextStep" type="button">
+                                Next <i class="fas fa-chevron-right ml-1"></i>
+                            </PrimaryButton>
+                        </div>
+                    </div>
+                </div>
+            
                 <!-- Description & Requirements Tab -->
                 <div v-if="currentStep === 'description'" class="space-y-6">
                     <!-- Job Description Field -->
@@ -311,50 +450,53 @@ const submitForm = () => {
                             <i class="fas fa-align-left text-blue-500 mr-2"></i>
                             <InputLabel for="description" value="Job Description*" class="font-medium text-gray-700" />
                         </div>
-                        <RichTextEditor 
+                        <RichTextEditor
                             id="description"
-                            v-model="form.description" 
-                            class="mt-1 block w-full"
-                            placeholder="Describe the job responsibilities and expectations"
+                            v-model="form.description"
+                            placeholder="Enter detailed job description"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                             required
                         />
-                        <p class="mt-1 text-xs text-gray-500">Provide detailed information about the role, responsibilities, and what a typical day looks like.</p>
+                        <p class="mt-1 text-xs text-gray-500">Provide a comprehensive description of the job responsibilities and expectations.</p>
                         <InputError :message="form.errors.description" class="mt-1" />
                     </div>
-
+                    
                     <!-- Job Requirements Field -->
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
-                            <i class="fas fa-list-check text-blue-500 mr-2"></i>
+                            <i class="fas fa-clipboard-check text-blue-500 mr-2"></i>
                             <InputLabel for="requirements" value="Job Requirements*" class="font-medium text-gray-700" />
                         </div>
-                        <RichTextEditor 
+                        <RichTextEditor
                             id="requirements"
-                            v-model="form.requirements" 
-                            class="mt-1 block w-full"
-                            placeholder="List the qualifications and skills required for this position"
+                            v-model="form.requirements"
+                            placeholder="Enter job requirements"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                             required
                         />
-                        <p class="mt-1 text-xs text-gray-500">Specify education, experience, skills, and any other qualifications needed for this role.</p>
+                        <p class="mt-1 text-xs text-gray-500">List qualifications, education, and experience required for this position.</p>
                         <InputError :message="form.errors.requirements" class="mt-1" />
                     </div>
-
-                    <!-- Skills Field -->
+                    
+                    <!-- Related Skills Field -->
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <div class="flex items-center mb-2 border-b border-gray-200 pb-2">
-                            <i class="fas fa-tags text-green-500 mr-2"></i>
+                            <i class="fas fa-tools text-blue-500 mr-2"></i>
                             <InputLabel for="related_skills" value="Related Skills" class="font-medium text-gray-700" />
                         </div>
-                        <div class="flex mt-1">
-                            <TextInput
+                        <div class="flex">
+                            <TextInput 
                                 id="related_skills"
-                                type="text"
-                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                v-model="newSkill"
+                                v-model="newSkill" 
+                                type="text" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 placeholder="Enter a skill"
-                                @keyup.enter.prevent="addSkill"/>
-                            <PrimaryButton type="button" @click="addSkill" class="ml-2">
-                                Add
+                            />
+                            <PrimaryButton 
+                                @click="addSkill" 
+                                type="button" 
+                                class="ml-2 mt-1">
+                                <i class="fas fa-plus"></i>
                             </PrimaryButton>
                         </div>
                         <p class="mt-1 text-xs text-gray-500">Add relevant skills required for this position (e.g., JavaScript, Project Management).</p>

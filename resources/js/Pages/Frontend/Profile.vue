@@ -27,10 +27,10 @@ import Employment from './ProfileSettings/Employment.vue';
 import CareerGoals from './ProfileSettings/CareerGoals.vue';
 import Resume from './ProfileSettings/Resume.vue';
 
-const activeSection = ref('general'); // Default section
+const activeSection = ref(localStorage.getItem('activeSection') || 'general'); // Initialize from localStorage or default to 'general'
 const setActiveSection = (section) => {
   activeSection.value = section;
-  // Optionally store in localStorage for persistence across page refreshes
+  // Store in localStorage for persistence across page refreshes
   localStorage.setItem('activeSection', section);
 };
 const refreshSkills = () => {
@@ -340,7 +340,7 @@ onMounted(() => {
           <!-- Tab Content -->
           <div class="mt-6">
             <!-- General Settings -->
-            <General :activeSection="activeSection" @close-all-modals="closeAllModals"
+            <General :activeSection="activeSection" :educationEntries="props.educationEntries" @close-all-modals="closeAllModals"
               @reset-all-states="resetAllStates" />
 
             <!-- Security Settings -->

@@ -12,16 +12,19 @@ use App\Models\Project;
 use App\Models\Resume;
 use App\Models\Testimonial;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class GraduateProfileController extends Controller
 {
-
-
     public function show($id)
     {
         $graduate = Graduate::with('user')->findOrFail($id);
 
-        return inertia('Frontend/GraduateProfile', [
+        // Get the authenticated user
+        $user = Auth::user();
+        
+        return inertia('Frontend/UpdatedGraduateProfile', [
             'graduate' => $graduate,
             'skills' => \App\Models\GraduateSkill::where('graduate_id', $graduate->id)
                 ->join('skills', 'graduate_skills.skill_id', '=', 'skills.id')
@@ -33,9 +36,13 @@ class GraduateProfileController extends Controller
             'achievements' => Achievement::where('graduate_id', $graduate->id)->get(),
             'certifications' => Certification::where('graduate_id', $graduate->id)->get(),
             'testimonials' => Testimonial::where('graduate_id', $graduate->id)->get(),
-            'employmentPreferences' => \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first(), // <-- Add this line
-            'careerGoals' => \App\Models\CareerGoal::where('graduate_id', $graduate->id)->first(), // <-- Add this line
+            'employmentPreferences' => \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first(),
+            'careerGoals' => \App\Models\CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
+            'auth' => [
+                'user' => $user,
+            ],
+            'roles' => $user ? $user->role : null,
         ]);
     }
 }

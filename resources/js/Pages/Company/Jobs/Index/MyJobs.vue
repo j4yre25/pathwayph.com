@@ -80,15 +80,16 @@ const getStatusText = (status) => {
                   :aria-label="`View details for ${job.job_title}`">
                   {{ job.job_title }}
               </h3>
+              
              <div class="flex flex-wrap items-center gap-x-4 text-sm text-gray-500">
+              <div v-if="job.posted_by" class="flex items-center">
+                <i class="fas fa-user mr-1" aria-hidden="true"></i>
+                <span>{{ job.posted_by }}</span>
+              </div> 
               <div v-if="job.locations.length" class="flex items-center">
                 <i class="fas fa-map-marker-alt mr-1" aria-hidden="true"></i>
                 <span>{{ job.locations.map(loc => loc.address).join(', ') }}</span>
-              </div>
-              <div v-if="job.work_environments.length" class="flex items-center">
-                <i class="fas fa-briefcase mr-1" aria-hidden="true"></i>
-                <span>{{ job.work_environments.map(env => env.environment_type).join(', ') }}</span>
-              </div>
+              </div> 
             </div>
             </div>
             
@@ -99,7 +100,10 @@ const getStatusText = (status) => {
                   {{ job.job_types.map(type => type.type).join(', ') }}
                 </span>
               </div>
-              
+              <div v-if="job.work_environments.length" class="flex items-center">
+                <i class="fas fa-briefcase mr-1" aria-hidden="true"></i>
+                <span>{{ job.work_environments.map(env => env.environment_type).join(', ') }}</span>
+              </div>
               <div v-if="job.salary" class="mr-4 mb-1 flex items-center text-sm text-gray-500">
                 <i class="fas fa-money-bill-wave mr-1" aria-hidden="true"></i>
                 <span>

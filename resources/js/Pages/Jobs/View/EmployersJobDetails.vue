@@ -316,6 +316,13 @@ const goBack = () => {
                                 </div>
                             </div>
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <h4 class="text-sm font-medium text-gray-500 mb-1">Posted by</h4>
+                                <div class="flex items-center">
+                                    <i class="fas fa-id-card text-gray-400 mr-2"></i>
+                                    <span class="text-gray-800">{{ job.posted_by }}</span>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                 <h4 class="text-sm font-medium text-gray-500 mb-1">Vacancies</h4>
                                 <div class="flex items-center">
                                     <i class="fas fa-users text-gray-400 mr-2"></i>

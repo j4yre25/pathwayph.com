@@ -69,6 +69,10 @@ const closeModal = () => {
                                 <span class="ml-2">{{ job.job_type }}</span>
                             </li>
                             <li class="flex items-center">
+                                <i class="fas fa-dollar-sign text-orange-500 w-5"></i>
+                                <span class="ml-2">{{ job.salary_range }}</span>
+                            </li>
+                            <li class="flex items-center">
                                 <i class="fas fa-calendar-alt text-purple-500 w-5"></i>
                                 <span class="ml-2">Posted on: {{ new Date(job.created_at).toLocaleDateString() }}</span>
                             </li>
