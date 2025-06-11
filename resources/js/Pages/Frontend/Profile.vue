@@ -22,6 +22,7 @@ import GraduateAccomplishments from './ProfileSettings/GraduateAccomplishments.v
 import Employment from './ProfileSettings/Employment.vue';
 import CareerGoals from './ProfileSettings/CareerGoals.vue';
 import Resume from './ProfileSettings/Resume.vue';
+import Internship from './ProfileSettings/Internship.vue';
 
 const activeSection = ref('general'); // Default section
 const setActiveSection = (section) => {
@@ -312,6 +313,12 @@ onMounted(() => {
               @click="setActiveSection('resume')">
               Resume
             </button>
+            <!-- Add this button to your tab navigation -->
+            <button class="py-2 px-4 whitespace-nowrap"
+              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'internship' }"
+              @click="setActiveSection('internship')">
+              Internship
+            </button>
           </div>
 
 
@@ -372,6 +379,14 @@ onMounted(() => {
             <!-- Resume Settings -->
             <Resume :activeSection="activeSection" :resume="props.resume" @close-all-modals="closeAllModals"
               @reset-all-states="resetAllStates" />
+
+            <!-- Internship Settings -->
+            <Internship
+              v-if="activeSection === 'internship'"
+              :internships="props.internships"
+              :programs="props.programs"
+              :careerOpportunities="props.careerOpportunities"
+            />
           </div>
         </div>
       </div>

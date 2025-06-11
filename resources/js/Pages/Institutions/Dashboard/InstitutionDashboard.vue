@@ -4,7 +4,10 @@ import { PieChart, BarChart, LineChart, DoughnutChart } from "vue-chart-3";
 import { Users, Briefcase, LineChart as LineIcon, Ban } from "lucide-vue-next";
 import { VueFlow } from '@vue-flow/core'
 import '@vue-flow/core/dist/style.css'
+import { TreemapController, TreemapElement } from 'chartjs-chart-treemap';
+import { Chart } from 'chart.js';
 
+Chart.register(TreemapController, TreemapElement);
 
 const props = defineProps({
   graduates: Array,
@@ -379,6 +382,92 @@ const lineEmploymentRateData = computed(() => {
   };
 });
 
+// Area Chart: Job Placement Trends Year by Year
+const areaJobPlacementData = computed(() => {
+  // Get all unique, sorted school year ranges and filter by line chart filters
+  let schoolYearLabels = (props.schoolYears ?? [])
+    .map(sy => sy.range)
+    .filter(Boolean)
+    .sort();
+
+  // Filter school years by selected start and end (from line chart filters)
+  if (lcSchoolYearStart.value && lcSchoolYearEnd.value) {
+    schoolYearLabels = schoolYearLabels.filter(
+      sy => sy >= lcSchoolYearStart.value && sy <= lcSchoolYearEnd.value
+    );
+  } else if (lcSchoolYearStart.value) {
+    schoolYearLabels = schoolYearLabels.filter(
+      sy => sy >= lcSchoolYearStart.value
+    );
+  } else if (lcSchoolYearEnd.value) {
+    schoolYearLabels = schoolYearLabels.filter(
+      sy => sy <= lcSchoolYearEnd.value
+    );
+  }
+
+  // Filter career opportunities by selected program (if any)
+  let careerOpportunities = props.institutionCareerOpportunities;
+  if (lcProgram.value) {
+    careerOpportunities = careerOpportunities.filter(co => co.program_id == lcProgram.value);
+  }
+  if (lcCareerOpportunity.value) {
+    careerOpportunities = careerOpportunities.filter(co => co.id == lcCareerOpportunity.value);
+  }
+
+  // Remove duplicates by id (guaranteed unique)
+  const seen = new Set();
+  careerOpportunities = careerOpportunities.filter(co => {
+    if (seen.has(co.id)) return false;
+    seen.add(co.id);
+    return true;
+  });
+
+  // Build datasets for each unique career opportunity
+  const datasets = careerOpportunities.map((co, idx) => ({
+    label: co.title,
+    data: schoolYearLabels.map(range => {
+      return props.graduates.filter(g =>
+        g.school_year_range === range &&
+        g.current_job_title === co.title &&
+        g.program_id == co.program_id && // <-- strictly match program
+        (!lcTerm.value || g.term === lcTerm.value) &&
+        (!lcGender.value || g.gender === lcGender.value)
+      ).length;
+    }),
+    fill: true,
+    backgroundColor: `rgba(${100 + (idx * 30) % 155},${180 + (idx * 50) % 75},${220 - (idx * 40) % 120},0.2)`,
+    borderColor: `hsl(${idx * 50}, 70%, 50%)`,
+    tension: 0.4,
+  }));
+
+  return {
+    labels: schoolYearLabels,
+    datasets,
+  };
+});
+const areaJobPlacementOptions = {
+  plugins: {
+    legend: {
+      position: "bottom",
+      labels: {
+        font: { size: 13 },
+        boxWidth: 18,
+        boxHeight: 18,
+        padding: 16,
+        usePointStyle: true,
+      },
+      maxHeight: 120,
+      align: "start",
+    }
+  },
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: { beginAtZero: true, title: { display: true, text: "Number of Graduates" } },
+    x: { title: { display: true, text: "School Year" } }
+  }
+};
+
 // Flowchart nodes and edges (use selectedFlowProgram)
 const nodes = computed(() => {
   if (!selectedFlowProgram.value) return [];
@@ -639,6 +728,100 @@ const filteredLcCareerOpportunities = computed(() => {
   if (!lcProgram.value) return uniqueCareerOpportunities.value;
   return uniqueCareerOpportunities.value.filter(co => co.program_id == lcProgram.value);
 });
+
+// 1. Tree Map Data: Industries where graduates are employed
+const industryTreeMapData = computed(() => {
+  // Assume each graduate has a field like g.industry or g.current_industry
+  // If not, adjust to match your data structure
+  const industryCounts = {};
+  props.graduates.forEach(g => {
+    const industry = g.industry || g.current_industry || g.sector || 'Unknown';
+    if (!industryCounts[industry]) industryCounts[industry] = 0;
+    industryCounts[industry]++;
+  });
+
+  return {
+    labels: Object.keys(industryCounts),
+    datasets: [
+      {
+        label: 'Industry Distribution',
+        data: Object.values(industryCounts),
+        backgroundColor: Object.keys(industryCounts).map(
+          (_, i) => `hsl(${i * 37 % 360}, 70%, 60%)`
+        ),
+      },
+    ],
+  };
+});
+
+// 2. Clustered Bar Chart: Top industries hiring graduates, compared across programs
+const clusteredIndustryBarData = computed(() => {
+  // Get all unique industries
+  const industries = Array.from(
+    new Set(props.graduates.map(g => g.industry || g.current_industry || g.sector || 'Unknown'))
+  );
+
+  // Get all unique programs
+  const programs = props.programs.map(p => p.name);
+
+  // Build a dataset for each program
+  const datasets = programs.map((program, idx) => {
+    const data = industries.map(industry =>
+      props.graduates.filter(
+        g =>
+          (g.program_name === program || g.program === program) &&
+          (g.industry || g.current_industry || g.sector || 'Unknown') === industry
+      ).length
+    );
+    return {
+      label: program,
+      data,
+      backgroundColor: `hsl(${idx * 50 % 360}, 70%, 60%)`,
+    };
+  });
+
+  return {
+    labels: industries,
+    datasets,
+  };
+});
+
+// --- Regional Career Trends Data (for static map) ---
+const graduatesWithLocation = computed(() =>
+  props.graduates
+    .filter(g => g.lat && g.lng)
+    .map(g => ({
+      name: [g.first_name, g.middle_name, g.last_name].filter(Boolean).join(' '),
+      current_job_title: g.current_job_title,
+      lat: g.lat,
+      lng: g.lng,
+      region: g.region,
+      city: g.city,
+    }))
+);
+
+// Bubble map data: aggregate by region/city
+const bubbleMapData = computed(() => {
+  const regionMap = {};
+  props.graduates.forEach(g => {
+    if (g.region && g.lat && g.lng) {
+      if (!regionMap[g.region]) {
+        regionMap[g.region] = { name: g.region, lat: g.lat, lng: g.lng, count: 0 };
+      }
+      regionMap[g.region].count++;
+    }
+  });
+  return Object.values(regionMap);
+});
+
+// Helper to convert lat/lng to x/y for SVG overlay (simple equirectangular projection)
+function latLngToXY(lat, lng, width, height) {
+  // Map bounds for the Philippines (adjust as needed)
+  const minLat = 4.5, maxLat = 21.0, minLng = 116.0, maxLng = 127.0;
+  const x = ((lng - minLng) / (maxLng - minLng)) * width;
+  const y = ((maxLat - lat) / (maxLat - minLat)) * height;
+  return { x, y };
+}
 </script>
 
 <template>
@@ -1050,7 +1233,109 @@ const filteredLcCareerOpportunities = computed(() => {
           <LineChart :chartData="lineEmploymentRateData"
             :options="{ plugins: { legend: { position: 'bottom' } }, responsive: true }" />
         </div>
+
+          <!-- Job Placement Trends (Area Chart) -->
+      <div class="mt-10">
+        <h4 class="text-lg font-semibold text-gray-600 mb-1">Job Placement Trends</h4>
+        <LineChart
+          :chartData="areaJobPlacementData"
+          :options="areaJobPlacementOptions"
+          style="height:450px;"
+        />
+      </div>
+      </section>
+
+      <!-- 3. Industry Insights -->
+      <section class="bg-white rounded-2xl shadow p-6 space-y-6 mt-10">
+        <h3 class="text-2xl font-bold text-gray-700 mb-2">Industry Insights</h3>
+        <!-- Textual Report -->
+        <div>
+          <h4 class="text-lg font-semibold text-gray-600 mb-1">Industry Distribution</h4>
+          <p class="text-gray-700">
+            This report shows the distribution of graduates across different.</p>
+        </div>
+
+        <!-- Tree Map: Industry Distribution -->
+        <div>
+          <h4 class="text-lg font-semibold text-gray-600 mb-1">Graduates Distribution by Industry</h4>
+          <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
+            <PieChart :chartData="industryTreeMapData" :options="{ plugins: { legend: { position: 'right' } } }" />
+          </div>
+        </div>
+
+        <!-- Clustered Bar Chart: Top Industries by Program -->
+        <div>
+          <h4 class="text-lg font-semibold text-gray-600 mb-1">Top Industries Hiring Graduates</h4>
+          <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
+            <BarChart :chartData="clusteredIndustryBarData"
+              :options="{ plugins: { legend: { position: 'bottom' } }, responsive: true }" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Regional Career Trends Section -->
+      <section class="bg-white rounded-2xl shadow p-6 space-y-6 mt-10">
+        <h3 class="text-2xl font-bold text-gray-700 mb-2">Regional Career Trends</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Static Map Visualization -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-600 mb-1">Geographic Distribution of Employment</h4>
+            <div style="position:relative;width:100%;height:350px;">
+              <!-- Static OSM Map Image (centered on PH, zoom 6) -->
+              <img
+                src="https://static-maps.yandex.ru/1.x/?lang=en-US&ll=121.7740,12.8797&z=6&l=map&size=600,350"
+                alt="Map"
+                style="width:100%;height:350px;object-fit:cover;border-radius:12px;"
+              />
+              <!-- SVG Overlay for Graduate Markers -->
+              <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" :width="600" :height="350">
+                <circle
+                  v-for="(g, idx) in graduatesWithLocation"
+                  :key="idx"
+                  :cx="latLngToXY(g.lat, g.lng, 600, 350).x"
+                  :cy="latLngToXY(g.lat, g.lng, 600, 350).y"
+                  r="6"
+                  fill="#3b82f6"
+                  fill-opacity="0.7"
+                  stroke="#fff"
+                  stroke-width="2"
+                >
+                  <title>{{ g.name }}&#10;{{ g.current_job_title || 'N/A' }}&#10;{{ g.region || g.city || 'Unknown' }}</title>
+                </circle>
+              </svg>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">Markers are approximate. Map: &copy; OpenStreetMap/Yandex</div>
+          </div>
+          <!-- Bubble Map (Hotspots) -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-600 mb-1">Job Placement Hotspots</h4>
+            <div style="position:relative;width:100%;height:350px;">
+              <img
+                src="https://static-maps.yandex.ru/1.x/?lang=en-US&ll=121.7740,12.8797&z=6&l=map&size=600,350"
+                alt="Map"
+                style="width:100%;height:350px;object-fit:cover;border-radius:12px;"
+              />
+              <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" :width="600" :height="350">
+                <circle
+                  v-for="(region, idx) in bubbleMapData"
+                  :key="idx"
+                  :cx="latLngToXY(region.lat, region.lng, 600, 350).x"
+                  :cy="latLngToXY(region.lat, region.lng, 600, 350).y"
+                  :r="10 + region.count * 2"
+                  fill="#60a5fa"
+                  fill-opacity="0.4"
+                  stroke="#3b82f6"
+                  stroke-width="2"
+                >
+                  <title>{{ region.name }}&#10;Placements: {{ region.count }}</title>
+                </circle>
+              </svg>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">Bubble size = number of placements. Map: &copy; OpenStreetMap/Yandex</div>
+          </div>
+        </div>
       </section>
     </div>
   </section>
 </template>
+
