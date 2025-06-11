@@ -26,7 +26,10 @@ const title = page.props.title;
 const showingNavigationDropdown = ref(false);
 
 
-
+const isAnyReportActive = () => {
+    // your logic here, or just return false if not used
+    return false;
+};
 
 // Safe logging
 console.log('Auth:', auth);
@@ -113,30 +116,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     Human Resource Accounts
                                 </NavLink>
 
-                               <div class="mt-5 relative group">
-                                    <NavLink
-                                        :href="route('company.reports.overview', { user: page.props.auth.user.id })"
-                                        :active="isAnyReportActive()"
-                                        :disabled="!page.props.auth.user.is_approved"
-                                        class="cursor-pointer"
-                                        >
-                                        Reports
-                                        <svg class="inline-block ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </NavLink>
-                                    <div class="absolute left-0 mt-2 w-96 bg-white border rounded shadow-lg opacity-0 group-hover:opacity-100 z-50 transition">
-                                        <div class="grid grid-cols-3 gap-1">
-                                            <div v-for="report in reportTabs" :key="report.route">
-                                            <Link
-                                                :href="route(report.route)"
-                                                class="block px-4 py-3 hover:bg-gray-100 text-gray-700 text-sm font-medium">
-                                                {{ report.label }}
-                                            </Link>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            
                                 <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.reports.list', { user: page.props.auth.user.id })"
                                     :active="route().current('company.reports.list')"
