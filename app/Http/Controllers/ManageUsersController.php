@@ -134,7 +134,7 @@ class ManageUsersController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-      $users->getCollection()->transform(function ($user) {
+        $users->getCollection()->transform(function ($user) {
             switch ($user->role) {
                 case 'company':
                     $user->full_name = $user->company
@@ -185,14 +185,20 @@ class ManageUsersController extends Controller
     {
         $user->is_approved = true;
 
+        // If company, set as main HR
         if ($user->role === 'company' && $user->hr) {
             $user->hr->is_main_hr = true;
             $user->hr->save();
         }
 
+        $verificationCode = rand(100000, 999999);
+        $user->verification_code = $verificationCode;
         $user->save();
 
-        return redirect()->route('admin.manage_users')->with('flash.banner', 'User  approved successfully.');
+        // Send the verification code via email
+        $user->notify(new \App\Notifications\VerifyEmailWithCode($verificationCode));
+
+        return redirect()->route('admin.manage_users')->with('flash.banner', 'User approved and verification code sent successfully.');
     }
 
     public function disapprove(User $user)

@@ -57,8 +57,8 @@ class CustomRegisteredUserController extends Controller
         $user->verification_code = $verificationCode;
         $user->save();
 
-        // Send the verification code via email
-        $user->notify(new VerifyEmailWithCode($verificationCode));
+        // // Send the verification code via email
+        // $user->notify(new VerifyEmailWithCode($verificationCode));
 
         if ($role === 'company') {
             $hr = $user->hr; 
