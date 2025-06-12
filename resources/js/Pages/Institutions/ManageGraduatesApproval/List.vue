@@ -4,6 +4,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { ref, computed } from 'vue';
+import { EyeIcon } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     graduates: {
@@ -139,33 +141,37 @@ const formatDate = (dateString) => {
             <div class="overflow-x-auto bg-white shadow rounded-2xl">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50 text-gray-600 text-sm uppercase tracking-wide">
-                        <tr>
-                            <th class="px-6 py-4 text-left">Name</th>
-                            <th class="px-6 py-4 text-left">Program</th>
-                            <th class="px-6 py-4 text-left">Date Created</th>
-                            <th class="px-6 py-4 text-left">Status</th>
-                        </tr>
+                      <tr>
+                        <th class="px-6 py-4 text-left">Name</th>
+                        <th class="px-6 py-4 text-left">Program</th>
+                        <th class="px-6 py-4 text-left">Date Created</th>
+                        <th class="px-6 py-4 text-left">Status</th>
+                        <th class="px-6 py-4 text-left"></th>
+                      </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 text-sm text-gray-800">
-                        <tr v-for="graduate in graduates.data" :key="graduate.id"
-                            class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
-                            </td>
-                            <td class="px-6 py-4">{{ graduate.program_name }}</td>
-                            <td class="px-6 py-4">{{ formatDate(graduate.created_at) }}</td>
-                            <td class="px-6 py-4">
-                                <span
-                                    :class="graduate.status === 'Active' ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'">
-                                    {{ graduate.status }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr v-if="graduates.data.length === 0">
-                            <td colspan="4" class="text-center text-gray-400 py-6">
-                                No graduates found with current filters.
-                            </td>
-                        </tr>
+                      <tr v-for="graduate in graduates.data" :key="graduate.id" class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4">
+                          {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
+                        </td>
+                        <td class="px-6 py-4">{{ graduate.program_name }}</td>
+                        <td class="px-6 py-4">{{ formatDate(graduate.created_at) }}</td>
+                        <td class="px-6 py-4">
+                          <span :class="graduate.status === 'Active' ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'">
+                            {{ graduate.status }}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                          <Link :href="route('graduates.profile', { id: graduate.id })" title="View Portfolio">
+                            <EyeIcon class="w-5 h-5 text-blue-600 hover:text-blue-800 transition" />
+                          </Link>
+                        </td>
+                      </tr>
+                      <tr v-if="graduates.data.length === 0">
+                        <td colspan="5" class="text-center text-gray-400 py-6">
+                          No graduates found with current filters.
+                        </td>
+                      </tr>
                     </tbody>
                 </table>
             </div>
