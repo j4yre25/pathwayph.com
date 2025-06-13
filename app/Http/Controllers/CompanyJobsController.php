@@ -62,6 +62,13 @@ class CompanyJobsController extends Controller
         $programs = Program::select('id', 'name')->get();
         $skills = Skill::orderBy('name')->pluck('name');
 
+        $departments = [];
+        if ($authUser->hr && $authUser->hr->company_id) {
+            $departments = \App\Models\Department::where('company_id', $authUser->hr->company_id)
+                ->select('id', 'department_name')
+                ->orderBy('department_name')
+                ->get();
+        }
 
 
         return Inertia::render('Company/Jobs/Index/CreateJobs', [
@@ -69,6 +76,7 @@ class CompanyJobsController extends Controller
             'programs' => $programs,
             'authUser' => $authUser,
             'skills' => $skills,
+            'departments' => $departments,  
         ]);
     }
 
@@ -122,6 +130,11 @@ class CompanyJobsController extends Controller
                 'string',
                 'max:255'
             ],
+            'department_id' => [
+                'nullable',
+                'integer',
+                'exists:departments,id'
+            ],
             'job_vacancies' => 'required|integer|min:1',
             'salary.job_min_salary' => 'nullable|numeric',
             'salary.job_max_salary' => 'nullable|numeric',
@@ -145,6 +158,8 @@ class CompanyJobsController extends Controller
         $location = $this->handleLocation($validated);
         $user->loadMissing('hr');
         $jobData = $this->prepareJobData($validated, $user, $salary, $location);
+            
+        $jobData['department_id'] = $validated['department_id'] ?? null;
 
         [$jobCode, $jobID] = $this->generateJobCodes($validated['sector'], $validated['category'], $validated['job_title']);
         $jobData['job_code'] = $jobCode;
@@ -204,7 +219,8 @@ class CompanyJobsController extends Controller
             'job_requirements' => $validated['job_requirements'],
             'sector_id' => $validated['sector'],
             'category_id' => $validated['category'],
-            'job_deadline' => \Carbon\Carbon::parse($validated['job_deadline'])->format('Y-m-d'),
+            'department_id' => $validated['department_id'] ?? null,
+            'job_deadline' => Carbon::parse($validated['job_deadline'])->format('Y-m-d'),
             'job_application_limit' => $validated['job_application_limit'] ?? null,
             'is_negotiable' => $validated['is_negotiable'],
             'job_salary_type' => $validated['salary']['salary_type'],

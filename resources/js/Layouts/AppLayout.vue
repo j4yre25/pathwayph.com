@@ -9,7 +9,7 @@ import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
 const props = defineProps({
-    graduates: Array,
+    graduates: { type: [Array, Object], default: () => [] },
 });
 
 const page = usePage();

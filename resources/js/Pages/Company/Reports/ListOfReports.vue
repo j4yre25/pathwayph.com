@@ -10,9 +10,23 @@ const reports = [
     { label: "Application Analysis", route: "company.reports.applicationAnalysis" },
     { label: "Skill and Qualification Analysis", route: "company.reports.skills" },
     { label: "Employment Type", route: "company.reports.employmentType" },
-    { label: "Salary Insights", route: "company.reports.salary"},
-    
-  
+    { label: "Salary Insights", route: "company.reports.salary" },
+    { label: "Diversity and Inclusion", route: "company.reports.diversity" },
+    { label: "Applicants Status Overview", route: "company.reports.applicantStatus"},
+    { label: "Candidate Screening Insights", route: "company.reports.screening"},
+    { label: "Interview Progress", route: "company.reports.interviewProgress" },
+    { label: "Skills and Competency Analysis", route: "company.reports.competency" },
+    { label: "Recruitment Efficiency", route: "company.reports.efficiency" },
+    { label: "Job Posting Performance", route: "company.reports.performance" },
+    { label: "Feedback and Satisfication", route: "company.reports.feedback" },
+    { label: "Graduate Pool Overview", route: "company.reports.graduatePool" },
+    { label: "Graduate Demographics", route: "company.reports.graduateDemographics" },
+    { label: "Academic Performance", route: "company.reports.academicPerformance" },
+    { label: "Employment Preferences", route: "company.reports.preferences" },
+    { label: "Matching Success Rate", route: "company.reports.matchingSuccess" },
+    { label: "Internship Experience", route: "company.reports.internship" },
+    { label: "Employer Feedback", route: "company.reports.employerFeedback" },
+    { label: "Future Potential", route: "company.reports.futurePotential" },
 ];
 
 function goToReport(routeName) {
