@@ -62,9 +62,15 @@ class ManageGraduatesApprovalController extends Controller
         }
 
         $user->is_approved = true;
+        // Generate and save verification code
+        $verificationCode = rand(100000, 999999);
+        $user->verification_code = $verificationCode;
         $user->save();
 
-        return redirect()->back()->with('flash.banner', 'Graduate approved successfully.');
+        // Send the verification code via email
+        $user->notify(new \App\Notifications\VerifyEmailWithCode($verificationCode));
+
+        return redirect()->back()->with('flash.banner', 'Graduate approved and verification code sent successfully.');
     }
 
     public function disapprove(User $user)
@@ -116,8 +122,12 @@ class ManageGraduatesApprovalController extends Controller
 
         // Use paginate instead of get
         $graduates = $query->orderBy('users.created_at', 'desc')
-            ->select('users.*', 'graduates.*', 'programs.name as program_name',
-                DB::raw("IF(users.deleted_at IS NULL, 'Active', 'Inactive') as status"))
+            ->select(
+                'users.*',
+                'graduates.*',
+                'programs.name as program_name',
+                DB::raw("IF(users.deleted_at IS NULL, 'Active', 'Inactive') as status")
+            )
             ->paginate(30)
             ->withQueryString();
 

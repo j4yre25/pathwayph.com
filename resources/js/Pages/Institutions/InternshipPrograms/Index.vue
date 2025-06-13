@@ -9,10 +9,12 @@ import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 
+
 const props = defineProps({
   internshipPrograms: Array,
   programs: Array,
   careerOpportunities: Array,
+  graduates: Array,
 });
 
 const filters = ref({
@@ -73,6 +75,9 @@ function cancelArchive() {
         </Link>
         <Link :href="route('internship-programs.archivedlist', { status: 'inactive' })">
           <PrimaryButton>Archived Internship</PrimaryButton>
+        </Link>
+        <Link :href="route('internship-programs.assign-page')">
+          <PrimaryButton>Assign Graduates</PrimaryButton>
         </Link>
       </div>
 

@@ -59,12 +59,15 @@ class DashboardController extends Controller
                     ->get()
                     ->map(function ($g) {
                         return [
+                            'first_name' => $g->first_name,
+                            'middle_name' => $g->middle_name,
+                            'last_name' => $g->last_name,
                             'program_id' => $g->program_id,
                             'current_job_title' => $g->current_job_title,
                             'employment_status' => ucfirst($g->employment_status),
                             'gender' => $g->gender,
                             'school_year_id' => $g->school_year_id,
-                            'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null, // <-- add this
+                            'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null,
                         ];
                     });
 
@@ -109,9 +112,16 @@ class DashboardController extends Controller
             }
         }
 
+        if ($user->hasRole('graduate')) {
+
+            $hasReferralLetter = $user->graduate && $user->graduate->referral_letter_submitted;
+        }
+
         return Inertia::render('Dashboard', [
             'userNotApproved' => !$user->is_approved,
+            'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
+                'isGraduate' => $user->hasRole('graduate'),
                 'isCompany' => $user->hasRole('company'),
                 'isInstitution' => $user->hasRole('institution'),
             ],
@@ -127,7 +137,7 @@ class DashboardController extends Controller
     public function companyStats()
     {
         $user = Auth::user();
-        
+
         if (!$user->hasRole('company')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
@@ -181,20 +191,20 @@ class DashboardController extends Controller
 
         // Graduate Pool Overview
         $graduateStats = [
-            'total_scouted' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'total_scouted' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds);
             })->count(),
-            'matched' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'matched' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds)
                     ->where('status', 'matched');
             })->count(),
-            'avg_qualification' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'avg_qualification' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds);
             })->avg('qualification_score') ?? 0,
         ];
 
         // Graduates by Study Field
-        $graduatesByField = Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+        $graduatesByField = Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
             $query->whereIn('job_id', $companyJobIds);
         })
             ->select('field_of_study', DB::raw('count(*) as count'))

@@ -13,6 +13,7 @@ import { defineProps, onMounted, ref, computed, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { Inertia } from '@inertiajs/inertia';
 import SectionBorder from '@/Components/SectionBorder.vue';
+import { useCompanySearch } from '@/Composables/useCompanySearch';
 
 const props = defineProps({
     insti_users: Array,
@@ -21,7 +22,7 @@ const props = defineProps({
     categories: Array,
     sectors: Array,
     degrees: Array, // <-- add this
-
+    companies: Array, // [{id, name}]
 });
 
 console.log('Categories:', props.categories);
@@ -145,7 +146,7 @@ const submit = () => {
         console.error('Unknown role:', form.role);
         return;
     }
-    
+
     form.post(route(routeName), {
         onFinish: () => {
             console.log("Form submission finished");
@@ -153,10 +154,16 @@ const submit = () => {
             form.reset('password', 'password_confirmation');
         },
         onSuccess: () => {
-            showVerificationModal.value = true; // Show verification modal
-            verificationForm.email = form.email;
+            // showVerificationModal.value = true; // Show verification modal
+            // verificationForm.email = form.email;
+            form.reset('password', 'password_confirmation');
+            showSuccessBanner.value = true;
+
+
         },
     });
+
+    const showSuccessBanner = ref(false);
 };
 
 const verifyCode = () => {
@@ -194,6 +201,9 @@ watch(() => form.graduate_school_graduated_from, (newVal) => {
 watch(() => form.graduate_degree, (newVal) => {
     form.graduate_program_completed = '';
 });
+
+const companies = computed(() => props.companies ?? []);
+const { companySearch, showSuggestions, filteredCompanies, selectCompany, clearCompany } = useCompanySearch(form, companies);
 </script>
 
 
@@ -250,16 +260,16 @@ watch(() => form.graduate_degree, (newVal) => {
                                 </div>
                             </div>
 
-                                <InputLabel for="category" value="Sectors" />
-                                <select id="category" v-model="form.category"
-                                    class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                    required>
-                                    <option value="">Select Sector</option>
-                                    <option v-for="category in categories" :key="category.id" :value="category.id">
-                                        {{ category.name }}
-                                    </option>
-                                </select>
-                                <InputError class="mt-2" :message="form.errors.category" />
+                            <InputLabel for="category" value="Sectors" />
+                            <select id="category" v-model="form.category"
+                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                required>
+                                <option value="">Select Sector</option>
+                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                    {{ category.name }}
+                                </option>
+                            </select>
+                            <InputError class="mt-2" :message="form.errors.category" />
 
                             <!-- Company Address -->
                             <div class="grid grid-cols-3 gap-4">
@@ -424,8 +434,7 @@ watch(() => form.graduate_degree, (newVal) => {
                                     <div>
                                         <TextInput id="middle_name" v-model="form.middle_name" placeholder="Dela Cruz"
                                             type="text"
-                                            class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
-                                            />
+                                            class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg" />
                                         <InputError class="mt-2" :message="form.errors.middle_name" />
                                     </div>
                                 </div>
@@ -778,21 +787,21 @@ watch(() => form.graduate_degree, (newVal) => {
                         <div class="grid grid-cols-1 gap-4">
 
                             <InputLabel for="first_name" value="First Name" />
-                            <TextInput id="first_name" v-model="form.first_name" type="text"
-                                class="mt-1 block w-full" required />
+                            <TextInput id="first_name" v-model="form.first_name" type="text" class="mt-1 block w-full"
+                                required />
                             <InputError class="mt-2" :message="form.errors.first_name" />
                         </div>
 
                         <!-- Graduate Middle Initial -->
                         <InputLabel for="middle_name" value="Middle Name" />
-                        <TextInput id="middle_name" v-model="form.middle_name" type="text"
-                            class="mt-1 block w-full" required />
+                        <TextInput id="middle_name" v-model="form.middle_name" type="text" class="mt-1 block w-full"
+                            required />
                         <InputError class="mt-2" :message="form.errors.middle_name" />
 
                         <!-- Graduate Last Name -->
                         <InputLabel for="last_name" value="Last Name" />
-                        <TextInput id="last_name" v-model="form.last_name" type="text"
-                            class="mt-1 block w-full" required />
+                        <TextInput id="last_name" v-model="form.last_name" type="text" class="mt-1 block w-full"
+                            required />
                         <InputError class="mt-2" :message="form.errors.last_name" />
 
                         <!-- Graduate Graduated From -->
@@ -844,7 +853,8 @@ watch(() => form.graduate_degree, (newVal) => {
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
                                 <option value="">Select Year</option>
-                                <option v-for="year in filteredSchoolYears" :key="year.id" :value="year.school_year_range">
+                                <option v-for="year in filteredSchoolYears" :key="year.id"
+                                    :value="year.school_year_range">
                                     {{ year.school_year_range }}
                                 </option>
                             </select>
@@ -933,6 +943,54 @@ watch(() => form.graduate_degree, (newVal) => {
                             </div>
                         </div>
 
+                        <!-- Company Name Search & Other Company Toggle -->
+                        <div class="mt-4" v-if="form.employment_status !== 'Unemployed'">
+                            <div v-if="!form.company_not_found">
+                                <InputLabel for="company_name" value="Company Name" />
+                                <div class="relative">
+                                    <TextInput
+                                        id="company_name"
+                                        v-model="companySearch"
+                                        @input="showSuggestions = true"
+                                        @focus="showSuggestions = true"
+                                        @blur="setTimeout(() => showSuggestions = false, 200)"
+                                        placeholder="Search for your company"
+                                        class="mt-1 block w-full"
+                                        autocomplete="off"
+                                    />
+                                    <div v-if="showSuggestions && filteredCompanies.length > 0"
+                                        class="absolute z-10 bg-white border mt-1 w-full rounded shadow max-h-40 overflow-auto">
+                                        <div v-for="company in filteredCompanies" :key="company.id"
+                                            @mousedown.prevent="selectCompany(company)"
+                                            class="px-3 py-2 hover:bg-indigo-100 cursor-pointer">
+                                            {{ company.name }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <InputError class="mt-2" :message="form.errors.company_name" />
+                            </div>
+
+                            <!-- Company Not Found Checkbox (always visible) -->
+                            <div class="mt-2">
+                                <input type="checkbox" id="company_not_found" v-model="form.company_not_found" @change="clearCompany" />
+                                <label for="company_not_found" class="ml-2 text-sm text-gray-600">Company not found</label>
+                            </div>
+
+                            <!-- Other Company Fields -->
+                            <div v-if="form.company_not_found" class="mt-4">
+                                <InputLabel for="other_company_name" value="Other Company Name" />
+                                <TextInput id="other_company_name" v-model="form.other_company_name" type="text" class="mt-1 block w-full" required />
+                                <InputError class="mt-2" :message="form.errors.other_company_name" />
+
+                                <InputLabel for="other_company_sector" value="Sector" class="mt-4" />
+                                <select id="other_company_sector" v-model="form.other_company_sector" class="mt-1 block w-full border-gray-300 rounded">
+                                    <option value="">Select Sector</option>
+                                    <option v-for="sector in sectors" :key="sector.id" :value="sector.id">{{ sector.name }}</option>
+                                </select>
+                                <InputError class="mt-2" :message="form.errors.other_company_sector" />
+                            </div>
+                        </div>
+
                         <div>
                             <!-- Current Job Title – conditionally shown -->
                             <div v-if="form.employment_status !== 'Unemployed'">
@@ -996,7 +1054,6 @@ watch(() => form.graduate_degree, (newVal) => {
                         </div>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-end mt-8 border-t border-gray-200 pt-12">
                     <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                         Register
@@ -1004,6 +1061,9 @@ watch(() => form.graduate_degree, (newVal) => {
                 </div>
             </form>
         </template>
+           <div v-if="showSuccessBanner" class="mb-4 p-3 rounded bg-green-100 text-green-800 text-center font-semibold border border-green-300">
+            Registration successful! Please wait for admin approval before verifying your email.
+        </div>
     </AuthenticationCard>
 
 

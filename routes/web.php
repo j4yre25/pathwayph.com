@@ -468,6 +468,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/internship-programs/{id}/restore', [InternshipProgramController::class, 'restore'])->name('internship-programs.restore');
     Route::post('/internship-programs/batch-upload', [InternshipProgramController::class, 'batchUpload'])->name('internship-programs.batch-upload');
     Route::post('/internship-programs/assign', [InternshipProgramController::class, 'assignToGraduate'])->name('internship-programs.assign');
+    Route::get('/institutions/internship-programs/assign', [InternshipProgramController::class, 'assignPage'])->name('internship-programs.assign-page');
+    Route::post('/institutions/internship-programs/remove-graduate', [InternshipProgramController::class, 'removeGraduate'])->name('internship-programs.remove-graduate');
 });
 
 //School Year Routes

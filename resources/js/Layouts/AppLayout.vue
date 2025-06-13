@@ -26,7 +26,10 @@ const title = page.props.title;
 const showingNavigationDropdown = ref(false);
 
 
-
+const isAnyReportActive = () => {
+    // your logic here, or just return false if not used
+    return false;
+};
 
 // Safe logging
 console.log('Auth:', auth);
@@ -113,6 +116,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     Human Resource Accounts
                                 </NavLink>
 
+                            
                                 <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.reports.list', { user: page.props.auth.user.id })"
                                     :active="route().current('company.reports.list')"

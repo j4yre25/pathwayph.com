@@ -24,6 +24,8 @@ function applyFilters() {
 }
 
 function onSearch() {
+  filters.value.page = 1;
+
   applyFilters();
 }
 
@@ -39,7 +41,7 @@ function goToPage(link) {
   onPageChange(page);
 }
 
-watch(filters, applyFilters, { deep: true });
+// watch(filters, applyFilters, { deep: true });
 
 </script>
 
