@@ -64,6 +64,10 @@
           <option value="">All Internship Programs</option>
           <option v-for="ip in internshipPrograms" :key="ip.id" :value="ip.id">{{ ip.title }}</option>
         </select>
+        <select v-model="filters.term" class="rounded-lg border-gray-300">
+          <option value="">All Terms</option>
+          <option v-for="t in terms" :key="t" :value="t">{{ t }}</option>
+        </select>
       </div>
 
       <!-- Table -->
@@ -72,7 +76,8 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">School Year</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year Graduated</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Degree</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employment Status</th>
@@ -82,16 +87,15 @@
           <tbody class="divide-y divide-gray-200">
             <tr v-for="g in paginatedGraduates" :key="g.id">
               <td class="px-4 py-2">{{ g.first_name }} {{ g.middle_name }} {{ g.last_name }}</td>
-              <td class="px-4 py-2">
-                {{ g.schoolYear?.school_year_range || g.school_year_range || 'N/A' }}
-              </td>
-              <td class="px-4 py-2">{{ g.program?.degree?.type || 'N/A' }}</td>
-              <td class="px-4 py-2">{{ g.program?.name || 'N/A' }}</td>
+              <td class="px-4 py-2">{{ g.school_year_range || 'N/A' }}</td>
+              <td class="px-4 py-2">{{ g.term || 'N/A' }}</td>
+              <td class="px-4 py-2">{{ g.degree || 'N/A' }}</td>
+              <td class="px-4 py-2">{{ g.program || 'N/A' }}</td>
               <td class="px-4 py-2">{{ g.employment_status }}</td>
               <td class="px-4 py-2">{{ g.current_job_title }}</td>
             </tr>
             <tr v-if="paginatedGraduates.length === 0">
-              <td colspan="6" class="text-center text-gray-400 py-6">No graduates found.</td>
+              <td colspan="7" class="text-center text-gray-400 py-6">No graduates found.</td>
             </tr>
           </tbody>
         </table>
@@ -128,6 +132,7 @@ const props = defineProps({
   careerOpportunities: Array,
   skills: Array,
   internshipPrograms: Array,
+  terms: Array, // <-- add this
 });
 
 // Filters
@@ -140,6 +145,7 @@ const filters = ref({
   careerOpportunity: '',
   skill: '',
   internshipProgram: '',
+  term: '', // <-- add this
 });
 
 // Real-time filtered graduates
@@ -167,6 +173,7 @@ const filteredGraduates = computed(() => {
       const hasInternship = (g.internshipPrograms || []).some(ip => ip.id == filters.value.internshipProgram);
       if (!hasInternship) return false;
     }
+    if (filters.value.term && g.term != filters.value.term) return false; // <-- add this
     return true;
   });
 });
