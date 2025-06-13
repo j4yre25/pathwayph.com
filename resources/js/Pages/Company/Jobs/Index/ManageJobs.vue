@@ -190,10 +190,6 @@ const getStatusText = (status) => {
                 <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
                 <span class="text-gray-700">{{ job.job_experience_level }}</span>
               </div>
-              <div class="flex items-center col-span-2">
-                <i class="fas fa-users text-blue-500 mr-2"></i>
-                <span class="text-gray-700">{{ job.applicants_count || 0 }} Applicant(s)</span>
-              </div>
             </div>
             
             <!-- Action buttons -->

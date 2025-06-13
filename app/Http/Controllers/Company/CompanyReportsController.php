@@ -78,23 +78,23 @@ class CompanyReportsController extends Controller
         $companyId = $hr->company_id;
 
         // Bar Chart: Number of job openings per department
-        $departmentCounts = Job::selectRaw('departments.name as department, COUNT(jobs.id) as total')
+        $departmentCounts = Job::selectRaw('departments.department_name as department, COUNT(jobs.id) as total')
             ->join('departments', 'jobs.department_id', '=', 'departments.id')
             ->where('jobs.company_id', $companyId)
             ->where('jobs.status', 'open')
-            ->groupBy('departments.name')
+            ->groupBy('departments.department_name')
             ->get();
 
         // Stacked Column Chart: Job postings by role level per department
-        $roleLevels = ['Entry', 'Mid', 'Senior'];
+        $roleLevels = ['Entry-level','Intermediate', 'Mid-level', 'Senior/Executive'];
         $stackedData = [];
         foreach ($roleLevels as $level) {
-            $stackedData[$level] = Job::selectRaw('departments.name as department, COUNT(jobs.id) as total')
+            $stackedData[$level] = Job::selectRaw('departments.department_name as department, COUNT(jobs.id) as total')
                 ->join('departments', 'jobs.department_id', '=', 'departments.id')
                 ->where('jobs.company_id', $companyId)
                 ->where('jobs.status', 'open')
-                ->where('jobs.role_level', $level)
-                ->groupBy('departments.name')
+                ->where('jobs.job_experience_level', $level)
+                ->groupBy('departments.department_name')
                 ->pluck('total', 'department')
                 ->toArray();
         }
