@@ -94,6 +94,7 @@ class CompanyJobApplicantController extends Controller
 
                 return [
                     'id' => $application->id,
+                    'graduate_picture' => $graduate->graduate_picture,
                     'name' => $graduate
                         ? $graduate->first_name . ' ' . $graduate->last_name
                         : 'N/A',

@@ -40,6 +40,11 @@ class CompanyApplicationController extends Controller
 
         $graduate = $application->graduate;
 
+        $resume = $graduate->resume;
+        if ($resume) {
+            $resume->file_url = \Storage::url('resumes/' . $resume->file_name); // or $resume->file_path
+        }
+
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,
             'graduate' => $graduate,
@@ -61,7 +66,11 @@ class CompanyApplicationController extends Controller
             'testimonials' => $graduate?->testimonials ?? [],
             'employmentPreferences' => $graduate?->employmentPreference,
             'careerGoals' => $graduate?->careerGoals,
-            'resume' => $graduate?->resume,
+            'resume' => ($resume = $graduate?->resume) ? [
+                'file_url' => \Storage::url($resume->file_path),
+                'file_type' => $resume->file_type,
+                'file_name' => $resume->file_name,
+            ] : null,
             'job' => $application->job,
         ]);
     }

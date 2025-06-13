@@ -9,9 +9,8 @@ const props = defineProps({
   activeListings: Number,
   rolesFilled: Number,
   typeCounts: Object,
-  // jobPostingTrends: Array, // for line chart
-  // areaChartLabels: Array,  // x-axis for area chart
-  // areaChartSeries: Array   // series for area chart
+  jobTypes: Array, // e.g. ['Full-Time', 'Part-Time', ...]
+  jobs: Array,     // [{type: 'Full-Time', ...}, ...] for filtering
 });
 
 // KPI Cards

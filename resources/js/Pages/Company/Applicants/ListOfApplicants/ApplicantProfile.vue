@@ -32,7 +32,7 @@ function copyToClipboard(text) {
 const activeTab = ref('Resume');
 
 // Fetch tab-specific data on viewApplicantDetails()
-const resume = ref(null);
+const resume = ref(props.resume);
 
 //For scheduling interview
 const {
@@ -403,11 +403,9 @@ onMounted(() => {
                     </div>
                   </section>
 
-                  <!-- Resume Preview (File-based, replaces the static preview) -->
+                  <!-- Resume Preview -->
                   <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <div class="flex flex-col md:flex-row gap-8">
-                      
-                      <!-- Resume Main Content -->
                       <div class="flex-1">
                         <div class="flex items-center justify-between mb-4">
                           <div class="text-gray-400 text-sm">Resume</div>
@@ -430,7 +428,7 @@ onMounted(() => {
                           </div>
                           <!-- For non-PDF files, just show info and download -->
                           <div v-else class="text-gray-600 text-base">
-                            <a :href="resume.file_path" download target="_blank" class="text-indigo-600 hover:underline font-semibold">
+                            <a :href="resume.file_url" download target="_blank" class="text-indigo-600 hover:underline font-semibold">
                               Download Resume
                             </a>
                           </div>

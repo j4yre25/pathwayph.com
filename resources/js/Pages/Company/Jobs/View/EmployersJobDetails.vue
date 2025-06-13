@@ -164,7 +164,7 @@ const goBack = () => {
                                 <i class="fas fa-align-left text-blue-500 mr-2"></i>
                                 Job Description
                             </h3>
-                            <div class="prose max-w-none text-gray-700" v-html="job.description"></div>
+                            <div class="prose max-w-none text-gray-700" v-html="job.job_description"></div>
                         </div>
  
                         <!-- Job Requirements -->

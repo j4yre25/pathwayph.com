@@ -117,11 +117,6 @@ const getStatusText = (status) => {
                   </template>
                 </span>
               </div>
-              
-              <div class="mb-1">
-                <i class="fas fa-users mr-1" aria-hidden="true"></i>
-                <span>{{ job.applicants_count || 0 }} applicants</span>
-              </div>
             </div>
           </div>
           
