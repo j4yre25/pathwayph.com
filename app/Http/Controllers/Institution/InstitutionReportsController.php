@@ -39,7 +39,12 @@ class InstitutionReportsController extends Controller
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($g) {
+            ->map(function ($g) use ($institution) {
+                // Get the term from institution_school_years
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
+                    ->where('school_year_range_id', $g->school_year_id)
+                    ->first();
+
                 return [
                     'id' => $g->id,
                     'first_name' => $g->first_name,
@@ -47,7 +52,7 @@ class InstitutionReportsController extends Controller
                     'last_name' => $g->last_name,
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $g->schoolYear?->term ?? null,
+                    'term' => $instSchoolYear?->term, // <-- fix here
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -96,7 +101,11 @@ class InstitutionReportsController extends Controller
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($g) {
+            ->map(function ($g) use ($institution) {
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
+                    ->where('school_year_range_id', $g->school_year_id)
+                    ->first();
+
                 return [
                     'id' => $g->id,
                     'first_name' => $g->first_name,
@@ -104,7 +113,7 @@ class InstitutionReportsController extends Controller
                     'last_name' => $g->last_name,
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $g->schoolYear?->term ?? null,
+                    'term' => $instSchoolYear?->term, // <-- updated here
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -162,7 +171,11 @@ class InstitutionReportsController extends Controller
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($g) {
+            ->map(function ($g) use ($institution) {
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
+                    ->where('school_year_range_id', $g->school_year_id)
+                    ->first();
+
                 return [
                     'id' => $g->id,
                     'first_name' => $g->first_name,
@@ -170,7 +183,7 @@ class InstitutionReportsController extends Controller
                     'last_name' => $g->last_name,
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $g->schoolYear?->term ?? null,
+                    'term' => $instSchoolYear?->term, // <-- updated here
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -232,7 +245,11 @@ class InstitutionReportsController extends Controller
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($g) {
+            ->map(function ($g) use ($institution) {
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
+                    ->where('school_year_range_id', $g->school_year_id)
+                    ->first();
+
                 return [
                     'id' => $g->id,
                     'first_name' => $g->first_name,
@@ -240,7 +257,7 @@ class InstitutionReportsController extends Controller
                     'last_name' => $g->last_name,
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $g->schoolYear?->term ?? null,
+                    'term' => $instSchoolYear?->term, // <-- updated here
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -291,15 +308,20 @@ class InstitutionReportsController extends Controller
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($g) {
+            ->map(function ($g) use ($institution) {
+                // Find the institution_school_year entry for this graduate's school_year_id and institution
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
+                    ->where('school_year_range_id', $g->school_year_id)
+                    ->first();
+
                 return [
                     'id' => $g->id,
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
                     'school_year_id' => $g->schoolYear?->id,
-                    'school_year_range' => $g->schoolYear?->school_year_range, // <-- THIS LINE IS IMPORTANT
-                    'term' => $g->schoolYear?->term ?? null,
+                    'school_year_range' => $g->schoolYear?->school_year_range,
+                    'term' => $instSchoolYear?->term, // <-- get term from institution_school_years
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
