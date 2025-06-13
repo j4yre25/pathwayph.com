@@ -102,7 +102,7 @@ const closeModal = () => {
           <div class="w-full md:w-1/3 mb-3 md:mb-0 md:mr-4 flex items-start space-x-4">
             <!-- Profile Image -->
             <img
-              :src="applicant.graduate_picture || '/default-avatar.png'"
+              :src="applicant.profile_picture || '/default-avatar.png'"
               alt="Profile"
               class="w-14 h-14 mr-2 rounded-full object-cover border border-gray-300"
             />
