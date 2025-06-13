@@ -21,7 +21,6 @@ const editHR = (hr) => {
 };
 
 const deleteHR = async (hrId) => {
-  // API call to delete HR
   if (confirm('Are you sure you want to delete this HR?')) {
     try {
       await axios.delete(`/api/hrs/${hrId}`);
@@ -43,6 +42,15 @@ const deleteHR = async (hrId) => {
         </template>
 
         <Container class="py-4">
+
+            <div class="flex flex-wrap gap-3 mb-6">
+                <Link :href="route('company.departments.index')" class="flex-shrink-0">
+                    <PrimaryButton class="flex items-center">
+                        <i class="fas fa-plus-circle mr-2"></i>
+                        Departments
+                    </PrimaryButton>
+                </Link>
+            </div>
             <!-- Desktop Table (Shown on large screens and above) -->
             <div class="hidden lg:block overflow-x-auto">
                 <table class="min-w-full bg-white border border-gray-300 table-fixed shadow rounded">

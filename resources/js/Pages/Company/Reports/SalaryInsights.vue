@@ -4,7 +4,6 @@ import VueECharts from "vue-echarts";
 
 const props = defineProps({
   boxPlotData: Array,
-  roles: Array,
   histogramBins: Array,
 });
 
@@ -36,24 +35,6 @@ const histogramOption = {
     data: props.histogramBins.map(b => b.range),
     name: "Salary Range",
     axisLabel: {
-      formatter: (value, idx) => {
-        const bin = props.histogramBins[idx];
-        // Show salary range and job titles below
-        if (bin.jobs && bin.jobs.length) {
-          return `${value}\n${bin.jobs.join(', ')}`;
-        }
-        return value;
-      },
-      fontSize: 11,
-      color: "#444",
-      lineHeight: 18,
-    }
-  },
-  xAxis: {
-    type: "category",
-    data: props.histogramBins.map(b => b.range),
-    name: "Salary Range",
-    axisLabel: {
         formatter: (value, idx) => {
         const bin = props.histogramBins[idx];
         if (bin.jobs && bin.jobs.length) {
@@ -64,7 +45,7 @@ const histogramOption = {
         },
         fontSize: 11,
         color: "#444",
-        lineHeight: 18,
+        lineHeight: 15,
         rotate: 30, // Rotates both lines, but this is the best ECharts can do
         }
     },
@@ -74,7 +55,7 @@ const histogramOption = {
     type: "bar",
     data: props.histogramBins.map(b => b.count),
     label: {
-      show: false // Hide label on top/bottom of bar
+      show: false 
     }
   }]
 };
@@ -92,7 +73,7 @@ const histogramOption = {
 
       <div class="bg-white rounded-xl shadow p-8 mb-8">
         <h3 class="text-lg font-semibold mb-6 text-gray-700">Histogram: Frequency of Salary Ranges</h3>
-        <VueECharts :option="histogramOption" style="height: 400px; width: 100%;" />
+        <VueECharts :option="histogramOption" style="height: 500px; width: 100%;" />
       </div>
     </div>
   </AppLayout>
