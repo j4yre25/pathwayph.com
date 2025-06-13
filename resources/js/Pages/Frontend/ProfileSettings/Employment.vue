@@ -55,7 +55,7 @@ const employmentPreferences = ref({
 });
 
 const employmentForm = useForm({
-  job_type: [],
+  job_types: [],
   employment_min_salary: '',
   employment_max_salary: '',
   salary_type: 'monthly',
@@ -68,11 +68,12 @@ const isAddLocationModalOpen = ref(false);
 
 // Employment Preferences Handlers
 const saveEmploymentPreferences = () => {
-  employmentForm.job_type = employmentPreferences.value.jobTypes.join(',');
+  employmentForm.job_types = [...employmentPreferences.value.jobTypes]; // array
   employmentForm.employment_min_salary = employmentPreferences.value.salaryExpectations.min;
   employmentForm.employment_max_salary = employmentPreferences.value.salaryExpectations.max;
   employmentForm.salary_type = employmentPreferences.value.salaryExpectations.frequency;
-employmentForm.preferred_locations = employmentPreferences.value.preferredLocations.join(',');  employmentForm.work_environment = employmentPreferences.value.workEnvironment;
+  employmentForm.preferred_locations = [...employmentPreferences.value.preferredLocations]; // array
+  employmentForm.work_environment = [...employmentPreferences.value.workEnvironment];
   employmentForm.additional_notes = employmentPreferences.value.additionalNotes;
 
   employmentForm.post(route('employment.preferences.updateEmploymentPreferences'), {
