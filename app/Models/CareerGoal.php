@@ -28,4 +28,9 @@ class CareerGoal extends Model
     {
         return $this->belongsTo(User::class, 'graduate_id', 'id');
     }
+
+    public function careerOpportunity()
+    {
+        return $this->belongsTo(\App\Models\CareerOpportunity::class, 'career_opportunity_id');
+    }
 }
