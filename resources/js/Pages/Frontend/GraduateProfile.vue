@@ -22,6 +22,8 @@ const fullName = computed(() =>
         .join(' ')
 );
 
+console.log(props.resume.file_url);
+
 console.log('Graduate Name:', fullName);
 
 console.log('Name:', props.graduate.first_name);
@@ -161,7 +163,7 @@ console.log('Education:', props.education);
                         <!-- PDF Preview -->
                         <div v-if="resume.file_type && resume.file_type.includes('pdf')"
                             class="border rounded mt-4 overflow-hidden">
-                            <iframe :src="resume.file_url ? `/storage/${resume.file_url}` : ''" width="100%" height="400px"></iframe>
+                           <iframe :src="resume.file_url || ''" width="100%" height="400px"></iframe>
                         </div>
                     </div>
                     <div v-else class="bg-white rounded-lg shadow-lg p-6 text-gray-600">
@@ -183,7 +185,8 @@ console.log('Education:', props.education);
                     <section class="bg-white rounded-lg shadow-lg p-6">
                         <h4 class="text-xl font-semibold text-gray-800 mb-4">Education</h4>
                         <ul class="space-y-4">
-                            <li v-for="edu in education.filter(e => !latestEducation || e.id !== latestEducation.id)" :key="edu.id"
+                            <li v-for="edu in education.filter(e => !latestEducation || e.id !== latestEducation.id)"
+                                :key="edu.id"
                                 class="flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50 rounded-lg p-4 shadow-sm">
                                 <div>
                                     <div class="text-lg font-semibold text-indigo-700">{{ edu.program }}</div>
@@ -386,11 +389,14 @@ console.log('Education:', props.education);
                             {{ latestEducation.is_current ? 'Current School' : 'Latest School Graduated From' }}
                         </h4>
                         <div class="text-lg font-bold text-indigo-700">{{ latestEducation.education }}</div>
-                        <div class="text-gray-600">{{ latestEducation.program }}<span v-if="latestEducation.field_of_study"> in {{ latestEducation.field_of_study }}</span></div>
+                        <div class="text-gray-600">{{ latestEducation.program }}<span
+                                v-if="latestEducation.field_of_study"> in {{ latestEducation.field_of_study }}</span>
+                        </div>
                         <div class="text-sm text-gray-500 mt-1">
                             {{ latestEducation.start_date ? formatDate(latestEducation.start_date) : '' }}
                             -
-                            {{ latestEducation.is_current ? 'Present' : (latestEducation.end_date ? formatDate(latestEducation.end_date) : '') }}
+                            {{ latestEducation.is_current ? 'Present' : (latestEducation.end_date ?
+                                formatDate(latestEducation.end_date) : '') }}
                         </div>
                     </section>
                 </main>

@@ -11,6 +11,7 @@ use App\Models\Skill;
 use App\Models\Sector;
 use App\Models\Location;
 use App\Models\JobInvitation;
+use App\Models\Salary;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -259,6 +260,77 @@ class PesoReportsController extends Controller
 
         $industryNames = $sectors->pluck('name');
 
+        // --- Salary Insights Data ---
+
+        // 1. Box Plot Data: Salary ranges per industry
+        $industries = \App\Models\Sector::all();
+        $industrySalaryBoxData = [];
+        foreach ($industries as $industry) {
+            $jobs = \App\Models\Job::where('sector_id', $industry->id)
+                ->where('is_approved', 1)
+                ->with('salary')
+                ->get();
+
+            $salaries = $jobs->pluck('salary')->filter()->map(function ($salary) {
+                return [
+                    'min' => $salary->job_min_salary,
+                    'max' => $salary->job_max_salary,
+                ];
+            })->filter(fn($s) => $s['min'] !== null && $s['max'] !== null);
+
+            $allSalaries = $salaries->flatMap(fn($s) => [$s['min'], $s['max']])->sort()->values();
+            if ($allSalaries->count() > 0) {
+                $industrySalaryBoxData[] = [
+                    'industry' => $industry->name,
+                    'salaries' => $allSalaries->toArray(),
+                ];
+            }
+        }
+
+        // 2. Stacked Bar: Entry, Mid, Senior salary per industry
+        $levels = [
+            'Entry-level' => 'Entry',
+            'Intermediate' => 'Mid',
+            'Mid-level' => 'Mid',
+            'Senior-level' => 'Senior',
+            'Director' => 'Senior',
+            'Executive' => 'Senior',
+        ];
+
+        $industryLevelSalaries = [];
+        foreach ($industries as $industry) {
+            $levelSalaries = ['Entry' => 0, 'Mid' => 0, 'Senior' => 0];
+            foreach ($levels as $dbLevel => $group) {
+                $jobs = \App\Models\Job::where('sector_id', $industry->id)
+                    ->where('is_approved', 1)
+                    ->where('job_experience_level', $dbLevel)
+                    ->get();
+
+                // Use job_min_salary and job_max_salary from jobs table directly
+                $avg = $jobs->pluck('job_min_salary')->merge($jobs->pluck('job_max_salary'))->filter()->avg();
+                if ($avg) {
+                    // If multiple dbLevels map to the same group, average them
+                    if ($levelSalaries[$group] === 0) {
+                        $levelSalaries[$group] = $avg;
+                    } else {
+                        $levelSalaries[$group] = ($levelSalaries[$group] + $avg) / 2;
+                    }
+                }
+            }
+            $industryLevelSalaries[] = [
+                'industry' => $industry->name,
+                'Entry' => round($levelSalaries['Entry'], 2),
+                'Mid' => round($levelSalaries['Mid'], 2),
+                'Senior' => round($levelSalaries['Senior'], 2),
+            ];
+        }
+
+        // 3. Histogram: Salary expectations (graduates) vs. offered (jobs)
+        $graduateMin = \App\Models\EmploymentPreference::pluck('employment_min_salary')->filter()->toArray();
+        $graduateMax = \App\Models\EmploymentPreference::pluck('employment_max_salary')->filter()->toArray();
+        $jobMin = Salary::pluck('job_min_salary')->filter()->toArray();
+        $jobMax = Salary::pluck('job_max_salary')->filter()->toArray();
+
         return Inertia::render('Admin/Reports/Reports', [
             'summary' => $summary,
             'statusCounts' => $statusCounts,
@@ -281,6 +353,14 @@ class PesoReportsController extends Controller
             'industryJobRoles' => $industryJobRoles,
             'industryApplicants' => $industryApplicants,
             'industryNames' => $industryNames,
+            'industrySalaryBoxData' => $industrySalaryBoxData,
+            'industryLevelSalaries' => $industryLevelSalaries,
+            'salaryExpectations' => [
+                'graduateMin' => $graduateMin,
+                'graduateMax' => $graduateMax,
+                'jobMin' => $jobMin,
+                'jobMax' => $jobMax,
+            ],
         ]);
     }
 

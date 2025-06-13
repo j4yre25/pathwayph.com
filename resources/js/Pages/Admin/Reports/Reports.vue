@@ -622,6 +622,205 @@ const employmentRateBarOption = computed(() => ({
     }
   ]
 }))
+
+// For Heatmap: Skill demand across industries (simulate with available data)
+const industries = industryNames // from backend, e.g. ['IT', 'Healthcare', ...]
+const skills = Object.keys(props.topSkillDemand) // top skills
+
+// Simulate demand matrix: random or zero if you don't have per-industry data
+const skillIndustryMatrix = computed(() =>
+  skills.map(skill =>
+    industries.map(() => Math.floor(Math.random() * 20)) // Replace with real data if available
+  )
+)
+
+// Heatmap data format for ECharts
+const skillIndustryHeatmapData = computed(() => {
+  const data = []
+  skills.forEach((skill, i) => {
+    industries.forEach((industry, j) => {
+      data.push([j, i, skillIndustryMatrix.value[i][j]])
+    })
+  })
+  return data
+})
+
+// Heatmap option
+const skillGapHeatmapOption = computed(() => ({
+  tooltip: {
+    position: 'top',
+    formatter: params =>
+      `Industry: ${industries[params.data[0]]}<br>Skill: ${skills[params.data[1]]}<br>Demand: ${params.data[2]}`
+  },
+  grid: { height: '60%', top: '10%' },
+  xAxis: {
+    type: 'category',
+    data: industries,
+    splitArea: { show: true },
+    axisLabel: { rotate: 30 }
+  },
+  yAxis: {
+    type: 'category',
+    data: skills,
+    splitArea: { show: true }
+  },
+  visualMap: {
+    min: 0,
+    max: 20,
+    calculable: true,
+    orient: 'horizontal',
+    left: 'center',
+    bottom: '5%',
+    inRange: { color: ['#fca5a5', '#fbbf24', '#22c55e'] }
+  },
+  series: [
+    {
+      name: 'Skill Demand',
+      type: 'heatmap',
+      data: skillIndustryHeatmapData.value,
+      label: { show: false }
+    }
+  ]
+}))
+
+// Bubble chart: Skill demand vs supply
+const skillBubbleData = computed(() =>
+  Object.keys(props.topSkillDemand).map(skill => ({
+    name: skill,
+    value: [
+      props.topSkillDemand[skill] ?? 0, // x: demand
+      props.topSkillSupply[skill] ?? 0, // y: supply
+      props.topSkillDemand[skill] ?? 0  // bubble size: demand
+    ]
+  }))
+)
+
+const skillGapBubbleOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: params =>
+      `Skill: ${params.data.name}<br>Demand: ${params.data.value[0]}<br>Supply: ${params.data.value[1]}`
+  },
+  xAxis: {
+    name: 'Demand (Jobs)',
+    type: 'value'
+  },
+  yAxis: {
+    name: 'Supply (Graduates)',
+    type: 'value'
+  },
+  series: [
+    {
+      name: 'Skills',
+      type: 'scatter',
+      symbolSize: val => Math.max(20, val[2] * 2),
+      data: skillBubbleData.value,
+      itemStyle: { color: '#3b82f6', opacity: 0.7 }
+    }
+  ]
+}))
+
+// Salary Insights
+const industrySalaryBoxData = page.props.industrySalaryBoxData ?? []
+const industryLevelSalaries = page.props.industryLevelSalaries ?? []
+const salaryExpectations = page.props.salaryExpectations ?? { graduateMin: [], graduateMax: [], jobMin: [], jobMax: [] }
+
+// Box Plot Option
+const boxPlotIndustries = industrySalaryBoxData.map(i => i.industry)
+const boxPlotData = industrySalaryBoxData.map(i => i.salaries)
+const salaryBoxPlotOption = computed(() => ({
+  tooltip: { trigger: 'item' },
+  xAxis: { type: 'category', data: boxPlotIndustries, axisLabel: { rotate: 30 } },
+  yAxis: { type: 'value', name: 'Salary (₱)' },
+  series: [
+    {
+      name: 'Salary Range',
+      type: 'boxplot',
+      data: boxPlotData,
+      itemStyle: { color: '#3b82f6' }
+    }
+  ]
+}))
+
+// Stacked Bar Chart Option
+const stackedIndustries = industryLevelSalaries.map(i => i.industry)
+const entryData = industryLevelSalaries.map(i => i.Entry)
+const midData = industryLevelSalaries.map(i => i.Mid)
+const seniorData = industryLevelSalaries.map(i => i.Senior)
+const salaryStackedBarOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['Entry', 'Mid', 'Senior'] },
+  xAxis: { type: 'category', data: stackedIndustries, axisLabel: { rotate: 30 } },
+  yAxis: { type: 'value', name: 'Average Salary (₱)' },
+  series: [
+    { name: 'Entry', type: 'bar', stack: 'level', data: entryData, itemStyle: { color: '#60a5fa' } },
+    { name: 'Mid', type: 'bar', stack: 'level', data: midData, itemStyle: { color: '#fbbf24' } },
+    { name: 'Senior', type: 'bar', stack: 'level', data: seniorData, itemStyle: { color: '#10b981' } },
+  ]
+}))
+
+// Histogram Option
+const salaryHistogramOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['Job Seekers (Min)', 'Job Seekers (Max)', 'Jobs (Min)', 'Jobs (Max)'] },
+  xAxis: { type: 'category', data: xLabels, name: 'Salary Range (₱)' },
+  yAxis: { type: 'value', name: 'Count' },
+  series: [
+    {
+      name: 'Job Seekers (Min)',
+      type: 'bar',
+      data: getCounts(gradMinBins, xLabels),
+      itemStyle: { color: '#3b82f6' }
+    },
+    {
+      name: 'Job Seekers (Max)',
+      type: 'bar',
+      data: getCounts(gradMaxBins, xLabels),
+      itemStyle: { color: '#60a5fa' }
+    },
+    {
+      name: 'Jobs (Min)',
+      type: 'bar',
+      data: getCounts(jobMinBins, xLabels),
+      itemStyle: { color: '#fbbf24' }
+    },
+    {
+      name: 'Jobs (Max)',
+      type: 'bar',
+      data: getCounts(jobMaxBins, xLabels),
+      itemStyle: { color: '#f59e42' }
+    }
+  ]
+}));
+
+const binSize = 5000;
+const gradMinBins = binData(salaryExpectations.graduateMin, binSize);
+const gradMaxBins = binData(salaryExpectations.graduateMax, binSize);
+const jobMinBins = binData(salaryExpectations.jobMin, binSize);
+const jobMaxBins = binData(salaryExpectations.jobMax, binSize);
+
+const allBins = [gradMinBins, gradMaxBins, jobMinBins, jobMaxBins].flat();
+const xLabels = [...new Set(allBins.map(b => `${b.min}-${b.max}`))];
+
+function getCounts(bins, xLabels) {
+  const map = Object.fromEntries(bins.map(b => [`${b.min}-${b.max}`, b.count]));
+  return xLabels.map(label => map[label] || 0);
+}
+
+function binData(data, binSize = 5000) {
+  if (!Array.isArray(data) || data.length === 0) return [];
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const bins = [];
+  for (let i = min; i <= max; i += binSize) {
+    bins.push({ min: i, max: i + binSize, count: 0 });
+  }
+  data.forEach(val => {
+    const idx = Math.floor((val - min) / binSize);
+    if (bins[idx]) bins[idx].count++;
+  });
+  return bins;
+}
 </script>
 
 <template>
@@ -631,25 +830,22 @@ const employmentRateBarOption = computed(() => ({
       <div class="border-b border-gray-200 mb-6 relative">
         <nav
           class="flex space-x-2 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
-          style="scrollbar-width: thin;"
-        >
-          <button
-            v-for="tab in allTabs"
-            :key="tab.key"
-            @click="activeTab = tab.key"
-            :class="[
-              'px-4 py-2 rounded-t font-semibold transition',
-              activeTab === tab.key
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-100'
-            ]"
-          >
+          style="scrollbar-width: thin;">
+          <button v-for="tab in allTabs" :key="tab.key" @click="activeTab = tab.key" :class="[
+            'px-4 py-2 rounded-t font-semibold transition',
+            activeTab === tab.key
+              ? 'bg-gray-200 text-gray-900'
+              : 'text-gray-600 hover:bg-gray-100'
+          ]">
             {{ tab.label }}
           </button>
         </nav>
         <!-- Fade effect at ends -->
-        <div class="pointer-events-none absolute top-0 left-0 h-full w-8 bg-gradient-to-r from-white/90 to-transparent"></div>
-        <div class="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white/90 to-transparent"></div>
+        <div class="pointer-events-none absolute top-0 left-0 h-full w-8 bg-gradient-to-r from-white/90 to-transparent">
+        </div>
+        <div
+          class="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white/90 to-transparent">
+        </div>
       </div>
 
       <!-- Employment Status Overview -->
@@ -841,7 +1037,17 @@ const employmentRateBarOption = computed(() => ({
       <!-- Skills Gap Analysis -->
       <div v-else-if="activeTab === 'skillsGap'">
         <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Skills Gap Analysis</h2>
-        <!-- Add your Skills Gap Analysis content here -->
+        <!-- Heatmap: Skill Demand Across Industries -->
+        <div class="bg-white rounded-xl shadow p-8 mb-12">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Skill Demand Across Industries (Heatmap)</h3>
+          <VueECharts :option="skillGapHeatmapOption" style="height: 500px; width: 100%;" />
+        </div>
+
+        <!-- Bubble Chart: Demand vs. Supply -->
+        <div class="bg-white rounded-xl shadow p-8">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Skill Demand vs. Supply (Bubble Chart)</h3>
+          <VueECharts :option="skillGapBubbleOption" style="height: 500px; width: 100%;" />
+        </div>
       </div>
 
       <!-- Unemployment Rate -->
@@ -859,7 +1065,23 @@ const employmentRateBarOption = computed(() => ({
       <!-- Salary Insights -->
       <div v-else-if="activeTab === 'salaryInsights'">
         <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Salary Insights</h2>
-        <!-- Add your Salary Insights content here -->
+        <!-- Box Plot: Salary Ranges Across Industries -->
+        <div class="bg-white rounded-xl shadow p-8 mb-12">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Salary Ranges Across Industries (Box Plot)</h3>
+          <VueECharts :option="salaryBoxPlotOption" style="height: 500px; width: 100%;" />
+        </div>
+
+        <!-- Stacked Bar Chart: Entry, Mid, Senior -->
+        <div class="bg-white rounded-xl shadow p-8 mb-12">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Average Salary by Level (Stacked Bar)</h3>
+          <VueECharts :option="salaryStackedBarOption" style="height: 500px; width: 100%;" />
+        </div>
+
+        <!-- Histogram: Salary Expectations vs. Offered -->
+        <div class="bg-white rounded-xl shadow p-8">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Salary Expectations vs. Offered (Histogram)</h3>
+          <VueECharts :option="salaryHistogramOption" style="height: 500px; width: 100%;" />
+        </div>
       </div>
 
       <!-- Career Progression -->
@@ -1020,10 +1242,12 @@ const employmentRateBarOption = computed(() => ({
 nav::-webkit-scrollbar {
   height: 6px;
 }
+
 nav::-webkit-scrollbar-thumb {
   background: #e5e7eb;
   border-radius: 3px;
 }
+
 nav::-webkit-scrollbar-track {
   background: transparent;
 }
