@@ -65,7 +65,7 @@ class CreateNewUser implements CreatesNewUsers
                     $rules['company_name'] = ['nullable', 'string', 'max:255'];
                 } else {
                     // Existing company: require company_name, other_company_name/sector are nullable
-                    $rules['company_name'] = ['nullable', 'string', 'max:255'];
+                    $rules['company_name'] = ['required', 'string', 'max:255'];
                     $rules['other_company_name'] = ['nullable', 'string', 'max:255'];
                     $rules['other_company_sector'] = ['nullable', 'exists:sectors,id'];
                 }

@@ -72,6 +72,9 @@ const form = useForm({
 
     employment_status: '',
     current_job_title: '',
+    company_not_found: false,
+    other_company_name: '',      // <-- add this
+    other_company_sector: '',    // <-- add this
 });
 
 // Determine user role based on URL
@@ -205,6 +208,15 @@ watch(() => form.graduate_degree, (newVal) => {
 
 const companies = computed(() => props.companies ?? []);
 const { companySearch, showSuggestions, filteredCompanies, selectCompany, clearCompany } = useCompanySearch(form, companies);
+
+watch(() => form.company_not_found, (val) => {
+    if (!val) {
+        form.other_company_name = '';
+        form.other_company_sector = '';
+    } else {
+        form.company_name = '';
+    }
+});
 </script>
 
 
@@ -973,7 +985,7 @@ const { companySearch, showSuggestions, filteredCompanies, selectCompany, clearC
 
                             <!-- Company Not Found Checkbox (always visible) -->
                             <div class="mt-2">
-                                <input type="checkbox" id="company_not_found" v-model="form.company_not_found" @change="clearCompany" />
+                                <input type="checkbox" id="company_not_found" :checked="!!form.company_not_found" @change="form.company_not_found = $event.target.checked; clearCompany()" />
                                 <label for="company_not_found" class="ml-2 text-sm text-gray-600">Company not found</label>
                             </div>
 
