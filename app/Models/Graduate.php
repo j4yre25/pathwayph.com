@@ -45,7 +45,7 @@ class Graduate extends Model
 
     public function schoolYear()
     {
-        return $this->belongsTo(SchoolYear::class);
+        return $this->belongsTo(\App\Models\SchoolYear::class, 'school_year_id');
     }
     public function education()
     {

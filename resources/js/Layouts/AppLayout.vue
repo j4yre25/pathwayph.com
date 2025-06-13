@@ -273,6 +273,12 @@ console.log(page.props.permissions.canManageInstitution)
                                     Graduate
                                 </NavLink>
 
+                                 <NavLink
+                                    v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
+                                    :href="route('institutions.reports.index')" :active="route().current('institutions.reports.index')">
+                                    Reports
+                                </NavLink>
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('school-years', { user: page.props.auth.user.id })"
@@ -316,11 +322,11 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
 
                                 <NavLink
-
                                     v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('internship-programs.index')" :active="route().current('internship-programs.index')">
                                     Manage Internship
                                 </NavLink>
+
 
                             </div>
                         </div>

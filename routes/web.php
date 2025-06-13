@@ -68,6 +68,7 @@ use App\Http\Controllers\CareerGoalsController;
 use App\Http\Controllers\JobsListController;
 use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
+use App\Http\Controllers\Institution\InstitutionReportsController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\Company\CompanyReportsController;
 
@@ -442,6 +443,17 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/categories/edit/{category}', [CategoryController::class, 'restore'])->name('categories.restore');
 });
 
+
+//Institution Reports Routes
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->prefix('institutions/reports')->group(function () {
+    Route::get('/', [InstitutionReportsController::class, 'index'])->name('institutions.reports.index');
+    Route::get('/school-year', [InstitutionReportsController::class, 'schoolYear'])->name('institutions.reports.schoolYear');
+    Route::get('/degree', [InstitutionReportsController::class, 'degree'])->name('institutions.reports.degree');
+    Route::get('/programs', [InstitutionReportsController::class, 'programs'])->name('institutions.reports.programs');
+    Route::get('/career', [InstitutionReportsController::class, 'career'])->name('institutions.reports.career');
+    Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
+    Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
+});
 
 //Internship Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {

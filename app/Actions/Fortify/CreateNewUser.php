@@ -31,6 +31,11 @@ class CreateNewUser implements CreatesNewUsers
 
     public function create(array $input): User
     {
+        // Force company_not_found to boolean for reliable validation
+        if (isset($input['company_not_found'])) {
+            $input['company_not_found'] = filter_var($input['company_not_found'], FILTER_VALIDATE_BOOLEAN);
+        }
+
         $role = $this->determineRole(request());
 
         $rules = [
@@ -49,26 +54,26 @@ class CreateNewUser implements CreatesNewUsers
                 $rules['graduate_school_graduated_from'] = ['required', 'integer', 'exists:users,id'];
                 $rules['graduate_program_completed'] = ['required', 'exists:programs,name'];
                 $rules['employment_status'] = ['required', 'in:Employed,Underemployed,Unemployed'];
-                $rules['current_job_title' ] = ['required_if:employment_status,Employed,Underemployed', 'nullable', 'string', 'max:255'];
+                $rules['current_job_title'] = ['required_if:employment_status,Employed,Underemployed', 'nullable', 'string', 'max:255'];
                 $rules['graduate_year_graduated'] = ['required', 'exists:school_years,school_year_range'];
                 $rules['graduate_degree'] = ['required', 'exists:degrees,id'];
 
-                if (isset($input['company_not_found']) && ($input['company_not_found'] === true || $input['company_not_found'] === 'true' || $input['company_not_found'] == 1)) {
+                if (!empty($input['company_not_found'])) {
                     // Company not found: require other_company_name and sector, but company_name is nullable
-                    $rules['other_company_name' ] = ['required', 'string', 'max:255'];
-                    $rules['other_company_sector' ] = ['required', 'exists:sectors,id'];
-                    $rules['company_name' ] = ['nullable', 'string', 'max:255'];
+                    $rules['other_company_name'] = ['required', 'string', 'max:255'];
+                    $rules['other_company_sector'] = ['required', 'exists:sectors,id'];
+                    $rules['company_name'] = ['nullable', 'string', 'max:255'];
                 } else {
                     // Existing company: require company_name, other_company_name/sector are nullable
-                    $rules['company_name' ] = ['nullable', 'string', 'max:255'];
-                    $rules['other_company_name' ] = ['nullable', 'string', 'max:255'];
-                    $rules['other_company_sector' ] = ['nullable', 'exists:sectors,id'];
+                    $rules['company_name'] = ['nullable', 'string', 'max:255'];
+                    $rules['other_company_name'] = ['nullable', 'string', 'max:255'];
+                    $rules['other_company_sector'] = ['nullable', 'exists:sectors,id'];
                 }
                 break;
             case 'company':
-                $rules['company_name' ] = ['required', 'string', 'max:255'];
-                $rules['company_street_address' ] = ['required', 'string', 'max:255'];
-                $rules['company_brgy' ] = ['required', 'string', 'max:255'];
+                $rules['company_name'] = ['required', 'string', 'max:255'];
+                $rules['company_street_address'] = ['required', 'string', 'max:255'];
+                $rules['company_brgy'] = ['required', 'string', 'max:255'];
                 $rules['company_city' ] = ['required', 'string', 'max:255'];
                 $rules['company_province' ] = ['required', 'string', 'max:255'];
                 $rules['company_zip_code' ] = ['required', 'string', 'max:4'];
@@ -176,14 +181,13 @@ class CreateNewUser implements CreatesNewUsers
         // Store in Companies table
         if ($role === 'company') {
             $category = \App\Models\Category::find($input['category']);
-           
             $company = Company::create([
                 'user_id' => $user->id,
                 'company_name' => $input['company_name'],
                 'company_street_address' => $input['company_street_address'],
                 'company_brgy' => $input['company_brgy'],
                 'company_city' => $input['company_city'],
-                'sector_id' => $category ? $category->sector_id : null, // <-- sector_id from category
+                'sector_id' => $category ? $category->sector_id : null,
                 'category_id' => $category->id,
                 'company_province' => $input['company_province'],
                 'company_zip_code' => $input['company_zip_code'],
@@ -193,8 +197,6 @@ class CreateNewUser implements CreatesNewUsers
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-             // Create main HR record associated with this company and user
             $user->hr()->create([
                 'first_name' => $input['first_name'],
                 'middle_name' => $input['middle_name'],
@@ -216,8 +218,8 @@ class CreateNewUser implements CreatesNewUsers
             $not_company_id = null;
             $sector_id = null;
 
-            if (!empty($input['company_not_found']) && !empty($input['other_company_name'])) {
-                // Create the not_company record and get its ID
+            if (!empty($input['company_not_found'])) {
+                // Always create a not_company record if company_not_found is checked
                 $notCompany = \App\Models\NotCompany::create([
                     'name' => $input['other_company_name'],
                     'sector_id' => $input['other_company_sector'] ?? null,
