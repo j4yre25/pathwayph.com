@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
-
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage()
 const props = defineProps({

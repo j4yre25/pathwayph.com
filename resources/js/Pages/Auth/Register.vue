@@ -151,6 +151,7 @@ const submit = () => {
             console.log("Form submission finished");
             console.log(form.errors);
             form.reset('password', 'password_confirmation');
+            showSuccessBanner.value = true;
         },
         onSuccess: () => {
             // showVerificationModal.value = true; // Show verification modal
@@ -1010,7 +1011,8 @@ watch(() => form.graduate_degree, (newVal) => {
                 </div>
             </form>
         </template>
-           <div v-if="showSuccessBanner" class="mb-4 p-3 rounded bg-green-100 text-green-800 text-center font-semibold border border-green-300">
+        <div v-if="showSuccessBanner"
+            class="mb-4 p-3 rounded bg-green-100 text-green-800 text-center font-semibold border border-green-300">
             Registration successful! Please wait for admin approval before verifying your email.
         </div>
     </AuthenticationCard>
@@ -1048,3 +1050,4 @@ watch(() => form.graduate_degree, (newVal) => {
     </Modal>
 
 </template>
+
