@@ -35,6 +35,7 @@ use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
 use App\Http\Controllers\CompanyDepartmentController;
+use App\Http\Controllers\Company\CompanyReportsController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -71,7 +72,6 @@ use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\Institution\InstitutionReportsController;
 use App\Http\Controllers\ResumeController;
-use App\Http\Controllers\Company\CompanyReportsController;
 
 use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;

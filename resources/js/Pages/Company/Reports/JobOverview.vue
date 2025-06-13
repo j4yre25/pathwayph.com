@@ -20,12 +20,36 @@ const selectedType = ref("");
 const selectedStatus = ref(""); 
 
 const filteredJobs = computed(() => {
-  return props.jobs.filter(job => {
-    if (selectedType.value && job.jobTypes !== selectedType.value) return false;
-    if (selectedStatus.value && job.status !== selectedStatus.value) return false;
-    return true;
+  return (props.jobs ?? []).filter(job => {
+    // Filter by job type (string or relation)
+    let matchesType = true;
+    if (selectedType.value) {
+      const hasRelationType = Array.isArray(job.jobTypes) && job.jobTypes.some(jt => jt.type === selectedType.value);
+      matchesType = hasStringType || hasRelationType;
+    }
+    // Filter by status
+    let matchesStatus = true;
+    if (selectedStatus.value) {
+      matchesStatus = selectedStatus.value === 'Active'
+        ? job.status === 'open'
+        : job.status !== 'open';
+    }
+    return matchesType && matchesStatus;
   });
 });
+
+const filteredTypeCounts = computed(() => {
+  const jobs = filteredJobs.value;
+  const counts = {};
+  props.jobTypes.forEach(type => {
+    counts[type] = jobs.filter(j =>
+      j.job_type === type ||
+      (Array.isArray(j.jobTypes) && j.jobTypes.some(jt => jt.type === type))
+    ).length;
+  });
+  return counts;
+});
+
 
 // --- SUMMARY & TEXTUAL REPORT ---
 const summaryText = computed(() => {
@@ -35,27 +59,28 @@ const summaryText = computed(() => {
 });
 
 const topType = computed(() => {
-  if (!props.typeCounts) return "N/A";
-  const sorted = Object.entries(props.typeCounts).sort((a, b) => b[1] - a[1]);
+  if (!filteredTypeCounts.value) return "N/A";
+  const sorted = Object.entries(filteredTypeCounts.value).sort((a, b) => b[1] - a[1]);
   return sorted.length ? sorted[0][0] : "N/A";
 });
 
 const textualReport = computed(() => {
   return `
     As of now, your company has posted a total of ${props.totalOpenings} job openings, with ${props.activeListings} currently active and ${props.rolesFilled} roles filled.
-    The most common job type is "${topType.value}".
-    Use the filters above to explore job types and statuses in detail.
-  `;
+    The most common job type is "${topType.value}".`;
 });
 
 
 
 // KPI Cards
-const kpis = [
-  { label: "Total Openings", value: computed(() => props.totalOpenings), color: "text-blue-600" },
-  { label: "Active Listings", value: computed(() => props.activeListings), color: "text-green-600" },
-  { label: "Roles Filled", value: computed(() => props.rolesFilled), color: "text-purple-600" },
-];
+const filteredKpis = computed(() => {
+  const jobs = filteredJobs.value;
+  return [
+    { label: "Total Job Posted", value: jobs.length, color: "text-blue-600" },
+    { label: "Active Listings", value: jobs.filter(j => j.is_approved && j.status === 'open').length, color: "text-green-600" },
+    { label: "Roles Filled", value: jobs.filter(j => j.status === 'filled').length, color: "text-purple-600" },
+  ];
+});
 
 
 // Pie Chart Option
@@ -72,7 +97,9 @@ const pieOption = ref({
       type: "pie",
       radius: "60%",
       center: ["60%", "50%"],
-      data: [],
+      data: Object.entries(filteredTypeCounts.value).map(
+        ([type, count]) => ({ name: type, value: count })
+      ),
       emphasis: {
         itemStyle: {
           shadowBlur: 10,
@@ -123,14 +150,14 @@ onMounted(updatePieChart);
       </div>
 
       <!-- SUMMARY -->
-      <div class="mb-6 bg-blue-50 rounded-lg p-4 text-blue-900 font-medium">
+      <!-- <div class="mb-6 bg-blue-50 rounded-lg p-4 text-blue-900 font-medium">
         {{ summaryText }}
-      </div>
+      </div> -->
 
       <!-- KPI Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
         <div
-          v-for="kpi in kpis"
+          v-for="kpi in filteredKpis"
           :key="kpi.label"
           class="bg-white rounded-lg shadow p-6 flex flex-col items-center"
         >
@@ -169,8 +196,8 @@ onMounted(updatePieChart);
             </thead>
             <tbody>
               <tr v-for="(job, idx) in filteredJobs" :key="idx" class="hover:bg-gray-50">
-                <td class="px-2 py-1">{{ job.title }}</td>
-                <td class="px-2 py-1">{{ job.type }}</td>
+                <td class="px-2 py-1">{{ job.job_title }}</td>
+                <td class="px-2 py-1">{{ job.job_type }}</td>
                 <td class="px-2 py-1">{{ job.status }}</td>
               </tr>
             </tbody>
