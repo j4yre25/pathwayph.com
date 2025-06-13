@@ -22,7 +22,6 @@ const props = defineProps({
         >
           <div class="mb-2">
             <span class="block text-lg font-semibold text-blue-700">{{ internship.title }}</span>
-            <span class="block text-xs text-gray-400">Internship ID: {{ internship.id }}</span>
           </div>
           <div>
             <span class="font-semibold text-gray-700">Programs:</span>
