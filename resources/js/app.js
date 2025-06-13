@@ -21,6 +21,7 @@ import {
   ScatterChart,
   RadarChart,
   BoxplotChart,
+  TreemapChart,
 } from 'echarts/charts';
 import {
   TitleComponent,
@@ -36,6 +37,7 @@ import VueECharts from 'vue-echarts';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 echarts.use([
+  TreemapChart,
   PieChart,
   LineChart,
   BarChart,

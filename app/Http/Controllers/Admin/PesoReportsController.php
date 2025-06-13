@@ -8,6 +8,7 @@ use App\Models\Program;
 use App\Models\Job;
 use App\Models\GraduateSkill;
 use App\Models\Skill;
+use App\Models\Sector;
 use App\Models\Location;
 use App\Models\JobInvitation;
 use Illuminate\Http\Request;
@@ -217,6 +218,47 @@ class PesoReportsController extends Controller
             ];
         }
 
+        // --- Employment by Industry Data ---
+
+
+
+        // Get all sectors (industries)
+        $sectors = Sector::all();
+
+        // 1. Graduates per industry (Bar/Clustered Column & Treemap)
+        $industryGraduateCounts = [];
+        foreach ($sectors as $sector) {
+            $count = Graduate::where('employment_status', 'Employed')
+                ->whereHas('user', function ($q) {
+                    $q->where('role', 'graduate');
+                })
+                ->whereHas('user', function ($q) use ($sector) {
+                    $q->whereHas('jobApplications.job', function ($q2) use ($sector) {
+                        $q2->where('sector_id', $sector->id);
+                    });
+                })
+                ->count();
+
+            $industryGraduateCounts[] = [
+                'name' => $sector->name,
+                'value' => $count,
+            ];
+        }
+
+        // 2. Job roles available & applicants per industry (Stacked Column)
+        $industryJobRoles = [];
+        $industryApplicants = [];
+        foreach ($sectors as $sector) {
+            $jobs = \App\Models\Job::where('sector_id', $sector->id)->where('is_approved', 1)->get();
+            $jobRoles = $jobs->count();
+            $applicants = \App\Models\JobApplication::whereIn('job_id', $jobs->pluck('id'))->distinct('graduate_id')->count();
+
+            $industryJobRoles[] = $jobRoles;
+            $industryApplicants[] = $applicants;
+        }
+
+        $industryNames = $sectors->pluck('name');
+
         return Inertia::render('Admin/Reports/Reports', [
             'summary' => $summary,
             'statusCounts' => $statusCounts,
@@ -235,6 +277,10 @@ class PesoReportsController extends Controller
             'jobSeekersByLocation' => $jobSeekersByLocation,
             'referralByLocation' => $referralByLocation,
             'referralSuccessHeatmap' => $referralSuccessHeatmap,
+            'industryGraduateCounts' => $industryGraduateCounts,
+            'industryJobRoles' => $industryJobRoles,
+            'industryApplicants' => $industryApplicants,
+            'industryNames' => $industryNames,
         ]);
     }
 
