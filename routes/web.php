@@ -423,6 +423,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/admin/manage-users/{user}/approve', [ManageUsersController::class, 'approve'])->name('admin.manage_users.approve');
     Route::post('/admin/manage-users/{user}/disapprove', [ManageUsersController::class, 'disapprove'])->name('admin.manage_users.disapprove');
     Route::post('/admin/manage-users/{user}/restore', [ManageUsersController::class, 'restore'])->name('admin.manage_users.restore');
+    Route::get('/admin/manage-users/upload', [ManageUsersController::class, 'batchPage'])->name('companies.batch.page');
+    Route::get('/admin/manage-users/download', [ManageUsersController::class, 'downloadTemplate'])->name('companies.template.download');
+    Route::post('/admin/manage-users/batch-upload', [ManageUsersController::class, 'batchUpload'])->name('companies.batch.upload');
 });
 
 // Sectors
@@ -875,7 +878,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/career-goals/save', [ProfileController::class, 'saveCareerGoals'])->name('career.goals.save');
     Route::get('/career-goals', [ProfileController::class, 'getCareerGoals'])->name('career.goals.get');
 
-     // Resume Routes
+    // Resume Routes
     Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
     Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');

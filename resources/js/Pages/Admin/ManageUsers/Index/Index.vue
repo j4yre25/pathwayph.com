@@ -66,6 +66,10 @@ const goTo = (url) => {
                     :active="route().current('admin.manage_users.archivedlist')">
                 <PrimaryButton>Archived Users</PrimaryButton>
                 </Link>
+                <Link class="ml-2" v-if="page.props.roles.isPeso" :href="route('companies.batch.page')"
+                    :active="route().current('companies.batch.page')">
+                <PrimaryButton>Batch Upload Companies</PrimaryButton>
+                </Link>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full bg-white border border-gray-200">
