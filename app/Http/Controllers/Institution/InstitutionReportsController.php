@@ -50,6 +50,7 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
+                    'gender' => $g->gender, // <-- add this
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
                     'term' => $instSchoolYear?->term, // <-- fix here
@@ -111,6 +112,7 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
+                    'gender' => $g->gender, // <-- add this
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
                     'term' => $instSchoolYear?->term, // <-- updated here
@@ -181,6 +183,7 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
+                    'gender' => $g->gender, // <-- add this
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
                     'term' => $instSchoolYear?->term, // <-- updated here
@@ -255,6 +258,7 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
+                    'gender' => $g->gender, // <-- add this
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
                     'term' => $instSchoolYear?->term, // <-- updated here
@@ -319,6 +323,7 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
+                    'gender' => $g->gender, // <-- add this
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
                     'term' => $instSchoolYear?->term, // <-- get term from institution_school_years
@@ -347,7 +352,15 @@ class InstitutionReportsController extends Controller
         $terms = $schoolYears->pluck('term')->unique()->filter()->values();
 
         // Degrees and programs present in graduates
-        $degrees = \App\Models\Degree::whereIn('id', $graduates->pluck('program.degree.id')->unique())->get();
+        $degrees = \App\Models\InstitutionDegree::with('degree')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->degree->id,
+                'type' => $item->degree->type,
+            ])
+            ->unique('id')
+            ->values();
         $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique())->get();
 
         // All institution career opportunities (not just those assigned to graduates)

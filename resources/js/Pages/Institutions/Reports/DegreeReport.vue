@@ -2,7 +2,7 @@
   <AppLayout>
     <div class="max-w-7xl mx-auto py-10 px-4">
       <h1 class="text-3xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-        <GraduationCap class="w-8 h-8 text-cyan-500" />
+        <BookMarked class="w-8 h-8 text-cyan-500" />
         Degrees Report
       </h1>
 
@@ -120,7 +120,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { GraduationCap } from 'lucide-vue-next';
+import { BookMarked } from 'lucide-vue-next';
 
 const props = defineProps({
   degrees: Array,
