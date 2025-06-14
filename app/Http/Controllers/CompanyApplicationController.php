@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\JobApplication;
 use App\Models\Interview;
 use App\Notifications\InterviewScheduledNotification;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class CompanyApplicationController extends Controller
@@ -42,7 +43,7 @@ class CompanyApplicationController extends Controller
 
         $resume = $graduate->resume;
         if ($resume) {
-            $resume->file_url = \Storage::url('resumes/' . $resume->file_name); // or $resume->file_path
+            $resume->file_url = Storage::url('resumes/' . $resume->file_name); // or $resume->file_path
         }
 
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
@@ -67,7 +68,7 @@ class CompanyApplicationController extends Controller
             'employmentPreferences' => $graduate?->employmentPreference,
             'careerGoals' => $graduate?->careerGoals,
             'resume' => ($resume = $graduate?->resume) ? [
-                'file_url' => \Storage::url($resume->file_path),
+                'file_url' => Storage::url($resume->file_path),
                 'file_type' => $resume->file_type,
                 'file_name' => $resume->file_name,
             ] : null,

@@ -18,7 +18,7 @@
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-green-100"
           >
             <div class="flex flex-col items-center">
-              <component :is="GraduationCap" class="w-8 h-8 mb-2" />
+              <component :is="BookMarked" class="w-8 h-8 mb-2" />
               <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Degree Report</span>
             </div>
           </Link>
@@ -67,5 +67,5 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Calendar, GraduationCap, ClipboardList, Briefcase, Sparkles } from 'lucide-vue-next';
+import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles } from 'lucide-vue-next';
 </script>
