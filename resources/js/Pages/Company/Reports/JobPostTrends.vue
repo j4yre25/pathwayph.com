@@ -54,8 +54,8 @@ const areaOption = ref({
 
       <div class="bg-white rounded-xl shadow p-8">
         <h3 class="text-lg font-semibold mb-6 text-gray-700">Area Chart: Department Activity</h3>
-        <!-- <VueECharts :option="areaOption" style="height: 350px; width: 100%;" /> -->
-        <div class="text-gray-400 text-center py-8">Coming soon...</div>
+        <VueECharts :option="areaOption" style="height: 350px; width: 100%;" />
+        <!-- <div class="text-gray-400 text-center py-8">Coming soon...</div>  -->
 
       </div>
     </div>

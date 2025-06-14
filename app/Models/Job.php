@@ -116,6 +116,11 @@ class Job extends Model
         return $this->belongsTo(Company::class);
     }
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
     public function institution()
     {
         return $this->belongsTo(Institution::class);
@@ -204,4 +209,6 @@ class Job extends Model
     {
         return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment');
     }
+
+    
 }

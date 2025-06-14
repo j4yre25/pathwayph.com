@@ -23,18 +23,20 @@ const pieOption = {
 };
 
 // Column Chart Option
-// const columnOption = {
-//   tooltip: { trigger: "axis" },
-//   legend: { data: props.types },
-//   xAxis: { type: "category", data: props.departments },
-//   yAxis: { type: "value", name: "Openings" },
-//   series: props.types.map(type => ({
-//     name: type,
-//     type: "bar",
-//     stack: false,
-//     data: props.departments.map(dept => props.columnData[type][dept] || 0)
-//   }))
-// };
+const columnOption = {
+  tooltip: { trigger: "axis" },
+  legend: { data: props.types },
+  xAxis: { type: "category", data: props.departments },
+  yAxis: { type: "value", name: "Openings" },
+  series: props.types.map(type => ({
+    name: type,
+    type: "bar",
+    stack: false,
+    data: props.departments.map(dept =>
+      (props.columnData[type]?.[dept]) || 0 // Use optional chaining and fallback to 0
+    )
+  }))
+};
 </script>
 
 <template>
@@ -49,8 +51,8 @@ const pieOption = {
 
       <div class="bg-white rounded-xl shadow p-8 mb-8">
         <h3 class="text-lg font-semibold mb-6 text-gray-700">Column Chart: Job Types Across Departments</h3>
-        <!-- <VueECharts :option="columnOption" style="height: 400px; width: 100%;" /> -->
-        <div class="text-gray-400 text-center py-8">Coming soon...</div>
+        <VueECharts :option="columnOption" style="height: 400px; width: 100%;" />
+        <!-- <div class="text-gray-400 text-center py-8">Coming soon...</div> -->
       </div>
     </div>
   </AppLayout>

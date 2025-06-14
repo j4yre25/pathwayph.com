@@ -26,7 +26,7 @@ class CompanyReportsController extends Controller
         
     }
 
-   public function overview(Request $request)
+    public function overview(Request $request)
     {
         $user = auth()->user();
         
@@ -34,11 +34,11 @@ class CompanyReportsController extends Controller
         $hr = $user->hr;
         $companyId = $hr->company_id;
         
-        $types = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'];
-        $typeCounts = [];
+        
+        $jobTypes = JobType::select('id', 'type')->get();
 
         $jobs = Job::where('company_id', $companyId)
-            ->select(['id', 'job_title', 'job_type', 'status', 'is_approved'])
+            ->select(['id', 'job_title', 'job_type', 'status'])
             ->with('jobTypes:id,type')
             ->get();
 
@@ -47,7 +47,6 @@ class CompanyReportsController extends Controller
                         ->count();
 
         $activeListings = Job::where('company_id', $companyId)
-                            ->where('is_approved', 1)
                             ->where('status', 'open')
                             ->count();
 
@@ -58,13 +57,13 @@ class CompanyReportsController extends Controller
 
         // Job types for pie chart
 
-        foreach ($types as $type) {
-        $typeCounts[$type] =
+        foreach ($jobTypes as $type) {
+        $typeCounts[$type->type] =
                 // Count jobs where job_type string matches
-                $jobs->where('job_type', $type)->count()
+                $jobs->where('job_type', $type->type)->count()
                 // Plus jobs where jobTypes relation contains this type
                 + $jobs->filter(function ($job) use ($type) {
-                    return $job->jobTypes->contains('type', $type);
+                    return $job->jobTypes->contains('type', $type->type);
                 })->count();
         }
 
@@ -74,7 +73,7 @@ class CompanyReportsController extends Controller
             'activeListings' => $activeListings,
             'rolesFilled' => $rolesFilled,
             'typeCounts' => $typeCounts,
-            'jobTypes' => $types,
+            'jobTypes' => $jobTypes,
             'jobs' => $jobs,
             
         ]);
@@ -217,10 +216,10 @@ class CompanyReportsController extends Controller
             ->get();
 
         // Area Chart: Job posting activity by department
-        $areaData = Job::selectRaw("departments.name AS department, DATE_FORMAT(jobs.created_at, '%Y-%m') AS month, COUNT(jobs.id) AS total")
+        $areaData = Job::selectRaw("departments.department_name AS department, DATE_FORMAT(jobs.created_at, '%Y-%m') AS month, COUNT(jobs.id) AS total")
             ->join('departments', 'jobs.department_id', '=', 'departments.id')
             ->where('jobs.company_id', $companyId)
-            ->groupBy('departments.name', 'month')
+            ->groupBy('departments.department_name', 'month')
             ->orderBy('month')
             ->get();
 
@@ -307,34 +306,34 @@ class CompanyReportsController extends Controller
         }
 
         // 4. Area Chart: Applications per department over time
-        // $departments = Job::where('company_id', $companyId)
-        //     ->join('departments', 'jobs.department_id', '=', 'departments.id')
-        //     ->select('departments.name')
-        //     ->groupBy('departments.name')
-        //     ->pluck('departments.name')
-        //     ->toArray();
+        $departments = Job::where('company_id', $companyId)
+            ->join('departments', 'jobs.department_id', '=', 'departments.id')
+            ->select('departments.department_name')
+            ->groupBy('departments.department_name')
+            ->pluck('departments.department_name')
+            ->toArray();
 
-        // $areaSeries = [];
-        // foreach ($departments as $dept) {
-        //     $data = [];
-        //     foreach ($months as $month) {
-        //         $data[] = JobApplication::whereHas('job', function($q) use ($companyId, $dept) {
-        //                 $q->where('company_id', $companyId)
-        //                 ->whereHas('department', function($q2) use ($dept) {
-        //                     $q2->where('name', $dept);
-        //                 });
-        //             })
-        //             ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$month])
-        //             ->count();
-        //     }
-        //     $areaSeries[] = [
-        //         'name' => $dept,
-        //         'type' => 'line',
-        //         'areaStyle' => [],
-        //         'stack' => 'total',
-        //         'data' => $data,
-        //     ];
-        // }
+        $areaSeries = [];
+        foreach ($departments as $dept) {
+            $data = [];
+            foreach ($months as $month) {
+                $data[] = JobApplication::whereHas('job', function($q) use ($companyId, $dept) {
+                        $q->where('company_id', $companyId)
+                        ->whereHas('department', function($q2) use ($dept) {
+                            $q2->where('name', $dept);
+                        });
+                    })
+                    ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$month])
+                    ->count();
+            }
+            $areaSeries[] = [
+                'name' => $dept,
+                'type' => 'line',
+                'areaStyle' => [],
+                'stack' => 'total',
+                'data' => $data,
+            ];
+        }
 
         return Inertia::render('Company/Reports/ApplicationAnalysis', [
             'jobTitles' => $jobTitles,
@@ -343,7 +342,7 @@ class CompanyReportsController extends Controller
             'months' => $months,
             'lineData' => $lineData,
             'allSkills' => $allSkills,
-            // 'areaSeries' => $areaSeries,
+            'areaSeries' => $areaSeries,
         ]);
     }
 
@@ -449,24 +448,26 @@ class CompanyReportsController extends Controller
         }
 
         // Column Chart: Job types across departments
-        // $departments = \App\Models\Department::pluck('name');
-        // $columnData = [];
-        // foreach ($types as $type) {
-        //     $columnData[$type] = [];
-        //     foreach ($departments as $dept) {
-        //         $columnData[$type][$dept] = Job::where('company_id', $companyId)
-        //             ->where('employment_type', $type)
-        //             ->whereHas('department', function($q) use ($dept) {
-        //                 $q->where('name', $dept);
-        //             })
-        //             ->count();
-        //     }
-        // }
+        $departments = \App\Models\Department::pluck('department_name');
+        $columnData = [];
+        foreach ($types as $type) {
+            $columnData[$type] = [];
+            foreach ($departments as $dept) {
+                $columnData[$type][$dept] = Job::where('company_id', $companyId)
+                        ->whereHas('jobTypes', function ($query) use ($type) {
+                            $query->where('type', $type);
+                        })
+                        ->whereHas('department', function($q) use ($dept) {
+                            $q->where('department_name', $dept);
+                        })
+                        ->count();
+            }
+        }
 
         return Inertia::render('Company/Reports/EmployType', [
             'typeCounts' => $typeCounts,
-            // 'departments' => $departments,
-            // 'columnData' => $columnData,
+            'departments' => $departments,
+            'columnData' => $columnData,
             'types' => $types,
         ]);
     }
@@ -691,18 +692,18 @@ class CompanyReportsController extends Controller
             ->toArray();
 
         // Clustered Column Chart: Screening results across departments or job roles
-        // $departments = \App\Models\Department::pluck('name')->toArray();
+        $departments = \App\Models\Department::pluck('department_name')->toArray();
         $jobRoles = Job::where('company_id', $companyId)->pluck('job_title')->unique()->toArray();
 
-        // $departmentScreened = [];
-        // foreach ($departments as $dept) {
-        //     $departmentScreened[$dept] = JobApplication::whereHas('job', function($q2) use ($companyId, $dept) {
-        //         $q2->where('company_id', $companyId)
-        //             ->whereHas('department', function($q3) use ($dept) {
-        //                 $q3->where('name', $dept);
-        //             });
-        //     })->where('stage', 'screened')->count();
-        // }
+        $departmentScreened = [];
+        foreach ($departments as $dept) {
+            $departmentScreened[$dept] = JobApplication::whereHas('job', function($q2) use ($companyId, $dept) {
+                $q2->where('company_id', $companyId)
+                    ->whereHas('department', function($q3) use ($dept) {
+                        $q3->where('department_name', $dept);
+                    });
+            })->where('stage', 'screened')->count();
+        }
 
         $jobRoleScreened = [];
         foreach ($jobRoles as $jobRole) {
@@ -717,9 +718,9 @@ class CompanyReportsController extends Controller
             'experienceCounts' => $experienceCounts,
             'topSkills' => array_keys($skills),
             'skillCounts' => $skills,
-            // 'departmentScreened' => $departmentScreened,
+            'departmentScreened' => $departmentScreened,
             'roleScreened' => $jobRoleScreened,
-            // 'departments' => $departments,
+            'departments' => $departments,
         ]);
     }
 

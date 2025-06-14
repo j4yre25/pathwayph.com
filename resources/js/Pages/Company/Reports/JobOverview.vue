@@ -21,35 +21,33 @@ const selectedStatus = ref("");
 
 const filteredJobs = computed(() => {
   return (props.jobs ?? []).filter(job => {
-    // Filter by job type (string or relation)
     let matchesType = true;
-    if (selectedType.value) {
-      const hasRelationType = Array.isArray(job.jobTypes) && job.jobTypes.some(jt => jt.type === selectedType.value);
-      matchesType = hasStringType || hasRelationType;
-    }
-    // Filter by status
-    let matchesStatus = true;
-    if (selectedStatus.value) {
-      matchesStatus = selectedStatus.value === 'Active'
-        ? job.status === 'open'
-        : job.status !== 'open';
-    }
-    return matchesType && matchesStatus;
+    if (!selectedType.value) return true;
+    // Check if jobTypes relation contains the selected type
+    return Array.isArray(job.jobTypes) && job.jobTypes.some(jt => jt.type === selectedType.value)
   });
 });
 
 const filteredTypeCounts = computed(() => {
   const jobs = filteredJobs.value;
   const counts = {};
-  props.jobTypes.forEach(type => {
-    counts[type] = jobs.filter(j =>
-      j.job_type === type ||
-      (Array.isArray(j.jobTypes) && j.jobTypes.some(jt => jt.type === type))
+  (props.jobTypes ?? []).forEach(jt => {
+    const typeName = jt.type;
+    counts[typeName] = jobs.filter(j =>
+      Array.isArray(j.jobTypes) && j.jobTypes.some(rel => rel.type === typeName)
     ).length;
   });
   return counts;
 });
 
+const jobTypeMap = computed(() => {
+  const map = {};
+  (props.jobTypes ?? []).forEach(jt => {
+    map[jt.id] = jt.type;
+    map[jt.type] = jt.type; // allow direct match if already a string
+  });
+  return map;
+});
 
 // --- SUMMARY & TEXTUAL REPORT ---
 const summaryText = computed(() => {
@@ -77,7 +75,7 @@ const filteredKpis = computed(() => {
   const jobs = filteredJobs.value;
   return [
     { label: "Total Job Posted", value: jobs.length, color: "text-blue-600" },
-    { label: "Active Listings", value: jobs.filter(j => j.is_approved && j.status === 'open').length, color: "text-green-600" },
+    { label: "Active Listings", value: jobs.filter(j => j.status === 'open').length, color: "text-green-600" },
     { label: "Roles Filled", value: jobs.filter(j => j.status === 'filled').length, color: "text-purple-600" },
   ];
 });
@@ -134,7 +132,7 @@ onMounted(updatePieChart);
           <label class="block text-xs font-medium text-gray-700 mb-1">Job Type</label>
           <select v-model="selectedType" class="rounded border-gray-300">
             <option value="">All</option>
-            <option v-for="type in props.jobTypes" :key="type" :value="type">{{ type }}</option>
+            <option v-for="jt in props.jobTypes" :key="jt.id" :value="jt.type">{{ jt.type }}</option>
           </select>
         </div>
         
@@ -197,7 +195,13 @@ onMounted(updatePieChart);
             <tbody>
               <tr v-for="(job, idx) in filteredJobs" :key="idx" class="hover:bg-gray-50">
                 <td class="px-2 py-1">{{ job.job_title }}</td>
-                <td class="px-2 py-1">{{ job.job_type }}</td>
+                <td class="px-2 py-1">
+                  <span v-if="job.job_type">{{ jobTypeMap[job.job_type] || job.job_type }}</span>
+                  <span v-if="job.jobTypes && job.jobTypes.length">
+                    <template v-if="job.job_type">, </template>
+                    {{ job.jobTypes.map(jt => jt.type).join(', ') }}
+                  </span>
+                </td>
                 <td class="px-2 py-1">{{ job.status }}</td>
               </tr>
             </tbody>
