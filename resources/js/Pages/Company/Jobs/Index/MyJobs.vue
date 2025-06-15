@@ -3,7 +3,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Container from '@/Components/Container.vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import '@fortawesome/fontawesome-free/css/all.css';
+
 
 const page = usePage()
 const props = defineProps({
@@ -80,16 +80,15 @@ const getStatusText = (status) => {
                   :aria-label="`View details for ${job.job_title}`">
                   {{ job.job_title }}
               </h3>
-              
              <div class="flex flex-wrap items-center gap-x-4 text-sm text-gray-500">
-              <div v-if="job.posted_by" class="flex items-center">
-                <i class="fas fa-user mr-1" aria-hidden="true"></i>
-                <span>{{ job.posted_by }}</span>
-              </div> 
               <div v-if="job.locations.length" class="flex items-center">
                 <i class="fas fa-map-marker-alt mr-1" aria-hidden="true"></i>
                 <span>{{ job.locations.map(loc => loc.address).join(', ') }}</span>
-              </div> 
+              </div>
+              <div v-if="job.work_environments.length" class="flex items-center">
+                <i class="fas fa-briefcase mr-1" aria-hidden="true"></i>
+                <span>{{ job.work_environments.map(env => env.environment_type).join(', ') }}</span>
+              </div>
             </div>
             </div>
             
@@ -100,10 +99,7 @@ const getStatusText = (status) => {
                   {{ job.job_types.map(type => type.type).join(', ') }}
                 </span>
               </div>
-              <div v-if="job.work_environments.length" class="flex items-center">
-                <i class="fas fa-briefcase mr-1" aria-hidden="true"></i>
-                <span>{{ job.work_environments.map(env => env.environment_type).join(', ') }}</span>
-              </div>
+              
               <div v-if="job.salary" class="mr-4 mb-1 flex items-center text-sm text-gray-500">
                 <i class="fas fa-money-bill-wave mr-1" aria-hidden="true"></i>
                 <span>
@@ -138,7 +134,7 @@ const getStatusText = (status) => {
             
             <!-- Action buttons -->
             <div class="flex space-x-2" @click.stop>
-              <Link :href="route('jobs.view', job.id)" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+              <Link :href="route('company.jobs.view', job.id)" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
                 <i class="fas fa-eye mr-1" aria-hidden="true"></i>
                 View Details
               </Link>

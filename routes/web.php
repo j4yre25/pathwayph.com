@@ -8,7 +8,9 @@ use App\Http\Controllers\ManageUsersController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\PesoCareerGuidanceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ManageJobReferralsController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRegisterController;
 use App\Http\Controllers\ApplicationController;
@@ -25,8 +27,8 @@ use App\Http\Controllers\DegreeController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\GraduateProfileController;
 use App\Http\Controllers\GraduateJobsController;
-use App\Http\Controllers\CompanyJobApplicantController;
 // Company 
+use App\Http\Controllers\CompanyJobApplicantController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
@@ -67,6 +69,7 @@ use App\Http\Controllers\JobsListController;
 use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\ResumeController;
+use App\Http\Controllers\Company\CompanyReportsController;
 
 use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -256,14 +259,44 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
 
         // Schedule interview
-        Route::post('{application}/schedule', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.schedule');
+        Route::post('{application}/schedule-interview', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.scheduleInterview');
 
         // View graduate portfolio
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
+
+        Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
     });
 });
 
 // Company Reports
+Route::prefix('company')->middleware(['auth'])->group(function () {
+    Route::get('/company-reports/{user}/reports/list', [CompanyReportsController::class, 'list'])->name('company.reports.list');
+    Route::get('/company-reports-jobOverview', [CompanyReportsController::class, 'overview'])->name('company.reports.overview');
+    Route::get('/company-reports/department', [CompanyReportsController::class, 'department'])->name('company.reports.department');
+    Route::get('/company-reports/hiring-funnel', [CompanyReportsController::class, 'hiringFunnel'])->name('company.reports.hiringFunnel');
+    Route::get('/company-reports/trends', [CompanyReportsController::class, 'trends'])->name('company.reports.trends');
+    Route::get('/company-reports/application-analysis', [CompanyReportsController::class, 'applicationAnalysis'])->name('company.reports.applicationAnalysis');
+    Route::get('/company-reports/skills', [CompanyReportsController::class, 'skills'])->name('company.reports.skills');
+    Route::get('/company-reports/employment-type', [CompanyReportsController::class, 'employmentType'])->name('company.reports.employmentType');
+    Route::get('/company-reports/salary', [CompanyReportsController::class, 'salaryInsights'])->name('company.reports.salary');
+    Route::get('/company-reports/diversity', [CompanyReportsController::class, 'diversity'])->name('company.reports.diversity');
+    Route::get('/company-reports/applicant-status', [CompanyReportsController::class, 'applicantStatus'])->name('company.reports.applicantStatus');
+    Route::get('/company-reports/screening', [CompanyReportsController::class, 'screening'])->name('company.reports.screening');
+    Route::get('/company-reports/interview-progress', [CompanyReportsController::class, 'interviewProgress'])->name('company.reports.interviewProgress');
+    Route::get('/company-reports/competency', [CompanyReportsController::class, 'competency'])->name('company.reports.competency');
+    Route::get('/company-reports/efficiency', [CompanyReportsController::class, 'efficiency'])->name('company.reports.efficiency');
+    Route::get('/company-reports/performance', [CompanyReportsController::class, 'performance'])->name('company.reports.performance');
+    Route::get('/company-reports/feedback', [CompanyReportsController::class, 'feedback'])->name('company.reports.feedback');
+    Route::get('/company-reports/graduate-pool', [CompanyReportsController::class, 'graduatePool'])->name('company.reports.graduatePool');
+    Route::get('/company-reports/graduate-demographics', [CompanyReportsController::class, 'graduateDemographics'])->name('company.reports.graduateDemographics');
+    Route::get('/company-reports/academic-performance', [CompanyReportsController::class, 'academicPerformance'])->name('company.reports.academicPerformance');
+    Route::get('/company-reports/preferences', [CompanyReportsController::class, 'preferences'])->name('company.reports.preferences');
+    Route::get('/company-reports/matching-success', [CompanyReportsController::class, 'matchingSuccess'])->name('company.reports.matchingSuccess');
+    Route::get('/company-reports/internship', [CompanyReportsController::class, 'internship'])->name('company.reports.internship');
+    Route::get('/company-reports/employer-feedback', [CompanyReportsController::class, 'employerFeedback'])->name('company.reports.employerFeedback');
+    Route::get('/company-reports/future-potential', [CompanyReportsController::class, 'futurePotential'])->name('company.reports.futurePotential');
+});
+
 
 // Manage HR Accounts 
 Route::middleware(['auth'])->group(function () {
@@ -281,6 +314,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
 });
+
+
+
 
 //End of Company Routes
 
@@ -408,15 +444,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 });
 
 
-//Career Counseling Routes
+//Internship Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/internship-programs', [InternshipProgramController::class, 'index'])->name('internship-programs.index');
+    Route::get('/internship-programs/list', [InternshipProgramController::class, 'list'])->name('internship-programs.list');
+    Route::get('/internship-programs/archivedlist', [InternshipProgramController::class, 'archivedList'])->name('internship-programs.archivedlist');
     Route::post('/internship-programs', [InternshipProgramController::class, 'store'])->name('internship-programs.store');
+    Route::get('/internship-programs/create', [InternshipProgramController::class, 'create'])->name('internship-programs.create');
+    Route::get('/internship-programs/edit/{id}', [InternshipProgramController::class, 'edit'])->name('internship-programs.edit');
     Route::put('/internship-programs/{id}', [InternshipProgramController::class, 'update'])->name('internship-programs.update');
     Route::delete('/internship-programs/{id}', [InternshipProgramController::class, 'archive'])->name('internship-programs.archive');
     Route::post('/internship-programs/{id}/restore', [InternshipProgramController::class, 'restore'])->name('internship-programs.restore');
     Route::post('/internship-programs/batch-upload', [InternshipProgramController::class, 'batchUpload'])->name('internship-programs.batch-upload');
     Route::post('/internship-programs/assign', [InternshipProgramController::class, 'assignToGraduate'])->name('internship-programs.assign');
+    Route::get('/institutions/internship-programs/assign', [InternshipProgramController::class, 'assignPage'])->name('internship-programs.assign-page');
+    Route::post('/institutions/internship-programs/remove-graduate', [InternshipProgramController::class, 'removeGraduate'])->name('internship-programs.remove-graduate');
 });
 
 //School Year Routes
@@ -736,8 +778,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-
-
 // Profile Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -812,7 +852,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/career-goals/save', [ProfileController::class, 'saveCareerGoals'])->name('career.goals.save');
     Route::get('/career-goals', [ProfileController::class, 'getCareerGoals'])->name('career.goals.get');
 
-    // Resume Routes
+     // Resume Routes
     Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
     Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
@@ -823,10 +863,21 @@ Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name(
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
-    Route::get('/graduate-jobs/recommendations', [\App\Http\Controllers\GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
+    Route::get('/graduate-jobs/recommendations', [GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
     // Graduate Portfolio+
-    Route::post('/jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
+
     Route::get('/company/profile/{id}', [CompanyProfileController::class, 'showPublic'])->name('company.profile.public');
 
     Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
 });
+
+Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
+
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
+    Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
+    Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
+});
+
+
+Route::prefix('admin')->middleware(['auth'])->group(function () {});

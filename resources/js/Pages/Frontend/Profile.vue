@@ -18,14 +18,11 @@ import General from './ProfileSettings/General.vue';
 import Security from './ProfileSettings/Security.vue';
 import Education from './ProfileSettings/Education.vue';
 import Skill from './ProfileSettings/Skill.vue';
-import Experience from './ProfileSettings/Experience.vue';
-import Project from './ProfileSettings/Project.vue';
-import Certification from './ProfileSettings/Certification.vue';
-import Achievement from './ProfileSettings/Achievement.vue';
-import Testimonial from './ProfileSettings/Testimonial.vue';
+import GraduateAccomplishments from './ProfileSettings/GraduateAccomplishments.vue';
 import Employment from './ProfileSettings/Employment.vue';
 import CareerGoals from './ProfileSettings/CareerGoals.vue';
 import Resume from './ProfileSettings/Resume.vue';
+import Internship from './ProfileSettings/Internship.vue';
 
 const activeSection = ref(localStorage.getItem('activeSection') || 'general'); // Initialize from localStorage or default to 'general'
 const setActiveSection = (section) => {
@@ -218,7 +215,7 @@ const saveProfile = () => {
     return;
   }
 
-  settingsForm.post(route('profile.updateProfile'), {
+  settingsForm.post(route('profile.update'), {
     onSuccess: (response) => {
       Object.assign(profile.value, settingsForm.data());
       modalState.value.profile = true;
@@ -282,42 +279,24 @@ onMounted(() => {
             <button class="py-2 px-4 whitespace-nowrap"
               :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'security' }"
               @click="setActiveSection('security')">
-              Credentials
+              Security
             </button>
             <button class="py-2 px-4 whitespace-nowrap"
               :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'education' }"
               @click="setActiveSection('education')">
               Education
             </button>
+            <!-- Combined Skills and Experiences tab -->
             <button class="py-2 px-4 whitespace-nowrap"
-              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'skills' }"
-              @click="setActiveSection('skills')">
-              Skills
+              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'skills-experience' }"
+              @click="setActiveSection('skills-experience')">
+              Skills and Experiences
             </button>
+            <!-- Graduate Accomplishments tab button (after Skills and Experiences) -->
             <button class="py-2 px-4 whitespace-nowrap"
-              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'experience' }"
-              @click="setActiveSection('experience')">
-              Experience
-            </button>
-            <button class="py-2 px-4 whitespace-nowrap"
-              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'projects' }"
-              @click="setActiveSection('projects')">
-              Projects
-            </button>
-            <button class="py-2 px-4 whitespace-nowrap"
-              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'certifications' }"
-              @click="setActiveSection('certifications')">
-              Certifications
-            </button>
-            <button class="py-2 px-4 whitespace-nowrap"
-              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'achievements' }"
-              @click="setActiveSection('achievements')">
-              Achievements
-            </button>
-            <button class="py-2 px-4 whitespace-nowrap"
-              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'testimonials' }"
-              @click="setActiveSection('testimonials')">
-              Testimonials
+              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'graduate-accomplishments' }"
+              @click="setActiveSection('graduate-accomplishments')">
+              Accomplishments
             </button>
             <button class="py-2 px-4 whitespace-nowrap"
               :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'employment' }"
@@ -333,6 +312,12 @@ onMounted(() => {
               :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'resume' }"
               @click="setActiveSection('resume')">
               Resume
+            </button>
+            <!-- Add this button to your tab navigation -->
+            <button class="py-2 px-4 whitespace-nowrap"
+              :class="{ 'text-indigo-600 border-b-2 border-indigo-600': activeSection === 'internship' }"
+              @click="setActiveSection('internship')">
+              Internship
             </button>
           </div>
 
@@ -350,38 +335,38 @@ onMounted(() => {
             <!-- Education Settings -->
             <Education :activeSection="activeSection" :educationEntries="props.educationEntries"
               :archivedEducationEntries="props.archivedEducationEntries" :institutions="props.institutions"
+              :graduate="props.graduate"
               @close-all-modals="closeAllModals" @reset-all-states="resetAllStates"
               @refresh-education="refreshEducation" />
 
-            <!-- Skills Settings -->
+            <!-- Skills and Experience Settings (combined) -->
+            <Skill
+              v-if="activeSection === 'skills-experience'"
+              :activeSection="activeSection"
+              :skillEntries="props.skillEntries"
+              :archivedSkillEntries="props.archivedSkillEntries"
+              :experienceEntries="props.experienceEntries"
+              :archivedExperienceEntries="props.archivedExperienceEntries"
+              @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates"
+              @refresh-skills="refreshSkills"
+            />
 
-            <Skill :activeSection="activeSection" :skillEntries="props.skillEntries"
-              :archivedSkillEntries="props.archivedSkillEntries" @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates" @refresh-skills="refreshSkills" />
-
-
-            <!-- Experience Settings -->
-            <Experience :activeSection="activeSection" :experienceEntries="props.experienceEntries"
-              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
-
-            <!-- Projects Settings -->
-            <Project :activeSection="activeSection" :projectsEntries="props.projectsEntries"
-              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
-
-            <!-- Certification Settings -->
-
-            <!-- Profile.vue -->
-            <Certification :activeSection="activeSection" :certificationsEntries="props.certificationsEntries"
-              @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
-            <!-- Achievement Settings -->
-            <Achievement :activeSection="activeSection" @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates" :achievementEntries="props.achievementEntries"
-              :archivedAchievementEntries="props.archivedAchievementEntries" />
-
-            <!-- Testimonial Settings -->
-            <Testimonial :activeSection="activeSection" :testimonialEntries="props.testimonialsEntries"
-              :archivedTestimonialEntries="props.archivedTestimonialsEntries" @close-all-modals="closeAllModals"
-              @reset-all-states="resetAllStates" />
+            <!-- Graduate Accomplishments Settings -->
+            <GraduateAccomplishments
+              v-if="activeSection === 'graduate-accomplishments'"
+              :activeSection="activeSection"
+              :projectsEntries="props.projectsEntries"
+              :archivedProjectsEntries="props.archivedProjectsEntries"
+              :certificationsEntries="props.certificationsEntries"
+              :archivedCertificationsEntries="props.archivedCertificationsEntries"
+              :achievementEntries="props.achievementEntries"
+              :archivedAchievementEntries="props.archivedAchievementEntries"
+              :testimonialEntries="props.testimonialsEntries"
+              :archivedTestimonialEntries="props.archivedTestimonialsEntries"
+              @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates"
+            />
 
             <!-- Employment Settings -->
             <Employment :activeSection="activeSection" :employmentPreferences="props.employmentPreferences"
@@ -394,6 +379,14 @@ onMounted(() => {
             <!-- Resume Settings -->
             <Resume :activeSection="activeSection" :resume="props.resume" @close-all-modals="closeAllModals"
               @reset-all-states="resetAllStates" />
+
+            <!-- Internship Settings -->
+            <Internship
+              v-if="activeSection === 'internship'"
+              :internships="props.internships"
+              :programs="props.programs"
+              :careerOpportunities="props.careerOpportunities"
+            />
           </div>
         </div>
       </div>

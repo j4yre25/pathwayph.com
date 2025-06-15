@@ -145,7 +145,7 @@ const submit = () => {
         console.error('Unknown role:', form.role);
         return;
     }
-    
+
     form.post(route(routeName), {
         onFinish: () => {
             console.log("Form submission finished");
@@ -153,10 +153,16 @@ const submit = () => {
             form.reset('password', 'password_confirmation');
         },
         onSuccess: () => {
-            showVerificationModal.value = true; // Show verification modal
-            verificationForm.email = form.email;
+            // showVerificationModal.value = true; // Show verification modal
+            // verificationForm.email = form.email;
+            form.reset('password', 'password_confirmation');
+            showSuccessBanner.value = true;
+
+
         },
     });
+
+    const showSuccessBanner = ref(false);
 };
 
 const verifyCode = () => {
@@ -250,16 +256,16 @@ watch(() => form.graduate_degree, (newVal) => {
                                 </div>
                             </div>
 
-                                <InputLabel for="category" value="Sectors" />
-                                <select id="category" v-model="form.category"
-                                    class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                    required>
-                                    <option value="">Select Sector</option>
-                                    <option v-for="category in categories" :key="category.id" :value="category.id">
-                                        {{ category.name }}
-                                    </option>
-                                </select>
-                                <InputError class="mt-2" :message="form.errors.category" />
+                            <InputLabel for="category" value="Sectors" />
+                            <select id="category" v-model="form.category"
+                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                required>
+                                <option value="">Select Sector</option>
+                                <option v-for="category in categories" :key="category.id" :value="category.id">
+                                    {{ category.name }}
+                                </option>
+                            </select>
+                            <InputError class="mt-2" :message="form.errors.category" />
 
                             <!-- Company Address -->
                             <div class="grid grid-cols-3 gap-4">
@@ -424,8 +430,7 @@ watch(() => form.graduate_degree, (newVal) => {
                                     <div>
                                         <TextInput id="middle_name" v-model="form.middle_name" placeholder="Dela Cruz"
                                             type="text"
-                                            class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
-                                            />
+                                            class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg" />
                                         <InputError class="mt-2" :message="form.errors.middle_name" />
                                     </div>
                                 </div>
@@ -778,21 +783,21 @@ watch(() => form.graduate_degree, (newVal) => {
                         <div class="grid grid-cols-1 gap-4">
 
                             <InputLabel for="first_name" value="First Name" />
-                            <TextInput id="first_name" v-model="form.first_name" type="text"
-                                class="mt-1 block w-full" required />
+                            <TextInput id="first_name" v-model="form.first_name" type="text" class="mt-1 block w-full"
+                                required />
                             <InputError class="mt-2" :message="form.errors.first_name" />
                         </div>
 
                         <!-- Graduate Middle Initial -->
                         <InputLabel for="middle_name" value="Middle Name" />
-                        <TextInput id="middle_name" v-model="form.middle_name" type="text"
-                            class="mt-1 block w-full" required />
+                        <TextInput id="middle_name" v-model="form.middle_name" type="text" class="mt-1 block w-full"
+                            required />
                         <InputError class="mt-2" :message="form.errors.middle_name" />
 
                         <!-- Graduate Last Name -->
                         <InputLabel for="last_name" value="Last Name" />
-                        <TextInput id="last_name" v-model="form.last_name" type="text"
-                            class="mt-1 block w-full" required />
+                        <TextInput id="last_name" v-model="form.last_name" type="text" class="mt-1 block w-full"
+                            required />
                         <InputError class="mt-2" :message="form.errors.last_name" />
 
                         <!-- Graduate Graduated From -->
@@ -844,7 +849,8 @@ watch(() => form.graduate_degree, (newVal) => {
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
                                 <option value="">Select Year</option>
-                                <option v-for="year in filteredSchoolYears" :key="year.id" :value="year.school_year_range">
+                                <option v-for="year in filteredSchoolYears" :key="year.id"
+                                    :value="year.school_year_range">
                                     {{ year.school_year_range }}
                                 </option>
                             </select>
@@ -1004,6 +1010,9 @@ watch(() => form.graduate_degree, (newVal) => {
                 </div>
             </form>
         </template>
+           <div v-if="showSuccessBanner" class="mb-4 p-3 rounded bg-green-100 text-green-800 text-center font-semibold border border-green-300">
+            Registration successful! Please wait for admin approval before verifying your email.
+        </div>
     </AuthenticationCard>
 
 

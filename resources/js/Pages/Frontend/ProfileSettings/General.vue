@@ -207,6 +207,10 @@ const saveProfile = () => {
 
   console.log('Submitting form:', settingsForm);
 
+  if (!settingsForm.graduate_picture) {
+  delete settingsForm.graduate_picture;
+}
+
   // Submit form
   settingsForm.post(route('profile.updateProfile'), {
     forceFormData: true,

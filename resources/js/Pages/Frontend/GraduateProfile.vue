@@ -1,7 +1,6 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { defineProps, ref, watch, computed } from "vue";
-import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
     graduate: Object,
@@ -64,6 +63,21 @@ function fileIcon(url) {
     if (url.match(/\.(jpg|jpeg|png|gif)$/i)) return "fas fa-image text-green-500";
     return "fas fa-paperclip";
 }
+
+const latestEducation = computed(() => {
+    if (!props.education || props.education.length === 0) return null;
+    // Prefer current education
+    const current = props.education.find(e => e.is_current);
+    if (current) return current;
+    // Otherwise, get the one with the latest end_date
+    return [...props.education]
+        .filter(e => e.end_date)
+        .sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0] || props.education[0];
+});
+
+const education = computed(() => props.education || []);
+
+console.log('Education:', props.education);
 </script>
 
 <template>
@@ -147,7 +161,7 @@ function fileIcon(url) {
                         <!-- PDF Preview -->
                         <div v-if="resume.file_type && resume.file_type.includes('pdf')"
                             class="border rounded mt-4 overflow-hidden">
-                            <iframe :src="resume.file_url" width="100%" height="400px"></iframe>
+                            <iframe :src="resume.file_url ? `/storage/${resume.file_url}` : ''" width="100%" height="400px"></iframe>
                         </div>
                     </div>
                     <div v-else class="bg-white rounded-lg shadow-lg p-6 text-gray-600">
@@ -169,7 +183,7 @@ function fileIcon(url) {
                     <section class="bg-white rounded-lg shadow-lg p-6">
                         <h4 class="text-xl font-semibold text-gray-800 mb-4">Education</h4>
                         <ul class="space-y-4">
-                            <li v-for="edu in education" :key="edu.id"
+                            <li v-for="edu in education.filter(e => !latestEducation || e.id !== latestEducation.id)" :key="edu.id"
                                 class="flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50 rounded-lg p-4 shadow-sm">
                                 <div>
                                     <div class="text-lg font-semibold text-indigo-700">{{ edu.program }}</div>
@@ -363,6 +377,20 @@ function fileIcon(url) {
                             </p>
                             <p><strong>Career Path:</strong> {{ careerGoals.career_path || 'N/A' }}</p>
                             <p><strong>Additional Notes:</strong> {{ careerGoals.additional_notes || 'N/A' }}</p>
+                        </div>
+                    </section>
+
+                    <!-- Latest Education Section - Show at the top -->
+                    <section v-if="latestEducation" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-2">
+                            {{ latestEducation.is_current ? 'Current School' : 'Latest School Graduated From' }}
+                        </h4>
+                        <div class="text-lg font-bold text-indigo-700">{{ latestEducation.education }}</div>
+                        <div class="text-gray-600">{{ latestEducation.program }}<span v-if="latestEducation.field_of_study"> in {{ latestEducation.field_of_study }}</span></div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            {{ latestEducation.start_date ? formatDate(latestEducation.start_date) : '' }}
+                            -
+                            {{ latestEducation.is_current ? 'Present' : (latestEducation.end_date ? formatDate(latestEducation.end_date) : '') }}
                         </div>
                     </section>
                 </main>

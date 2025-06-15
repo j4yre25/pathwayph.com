@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\HumanResource;
+use App\Models\HrInfoView;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 
@@ -18,31 +19,21 @@ class CompanyManageHRController extends Controller
      */
     public function index()
     {
-                /** @var \App\Models\User $user */
+        /** @var \App\Models\User $user */
+         $user = Auth::user();
 
-        $user = Auth::user();
-
-        $user->load('hr');
-
-        // Fetch HRs linked to the same company (filter via human_resources table)
+        // Get the company_id linked to the currently logged-in HR
         $companyId = $user->hr->company_id;
 
-        $hrs = User::where('role', 'company')
-            ->whereHas('hr', function ($query) use ($companyId) {
-                $query->where('company_id', $companyId)
-                    ->where('is_main_hr', false);
-            })
+        // Query your view and filter by company_id
+        $hrs = DB::table('company_hr_view')
+            ->where('company_id', $companyId)
             ->get();
-
-
-       
 
         return inertia('Company/ManageHR/Index/Index', [
             'hrs' => $hrs,
-
         ]);
     }
-
 
 
     public function edit($id)
@@ -112,27 +103,21 @@ class CompanyManageHRController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy($id)
-    {
-        $user = Auth::user(); // Get the logged-in user (company)
 
-        // Ensure only main HR can delete HRs
-        if ($user->role !== 'company' || !$user->is_main_hr) {
-            abort(403, 'Unauthorized access.');
-        }
+    public function archive($id) {
+        $user = User::findOrFail($id);
+        $user->archived_at = now();
+        $user->save();
 
-        // Fetch the HR to delete
-        $hr = User::findOrFail($id);
-
-        // Ensure the HR belongs to the same company
-        if ($hr->company_email !== $user->company_email) {
-            abort(403, 'Unauthorized access.');
-        }
-
-        // Delete the HR account
-        $hr->delete();
-
-        return redirect()->route('company.manage-hrs')
-            ->with('success', 'HR account deleted successfully!');
+        return back()->with('success', 'User archived successfully.');
     }
+
+    public function unarchive($id) {
+        $user = User::findOrFail($id);
+        $user->archived_at = null;
+        $user->save();
+
+        return back()->with('success', 'User restored successfully.');
+    }
+
 }

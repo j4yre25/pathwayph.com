@@ -12,6 +12,7 @@ import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 
+
 // Define props
 const props = defineProps({
   activeSection: {
@@ -21,7 +22,7 @@ const props = defineProps({
   employmentPreferences: {
     type: Object,
     default: () => ({
-      job_types: '',
+      job_type: '',
       salary_expectations: '',
       preferred_locations: '',
       work_environment: '',
@@ -36,23 +37,25 @@ console.log('Employment Reference:', props);
 const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // Employment Data
 const employmentPreferences = ref({
-  jobTypes: props.employmentPreferences?.job_types
-    ? props.employmentPreferences.job_types.split(',')
+  jobTypes: props.employmentPreferences?.job_type
+    ? props.employmentPreferences.job_type.split(',').map(s => s.trim()).filter(Boolean)
     : [],
-  salaryExpectations: props.employmentPreferences?.salary_expectations
-    ? JSON.parse(props.employmentPreferences.salary_expectations)
-    : { min: '', max: '', frequency: 'monthly' },
-  preferredLocations: props.employmentPreferences?.preferred_locations
-    ? props.employmentPreferences.preferred_locations.split(',')
+  salaryExpectations: {
+    min: props.employmentPreferences?.employment_min_salary || '',
+    max: props.employmentPreferences?.employment_max_salary || '',
+    frequency: props.employmentPreferences?.salary_type || 'monthly'
+  },
+  preferredLocations: props.employmentPreferences?.location
+    ? props.employmentPreferences.location.split(',').map(s => s.trim()).filter(Boolean)
     : [],
   workEnvironment: props.employmentPreferences?.work_environment
-    ? props.employmentPreferences.work_environment.split(',')
+    ? props.employmentPreferences.work_environment.split(',').map(s => s.trim()).filter(Boolean)
     : [],
   additionalNotes: props.employmentPreferences?.additional_notes || ''
 });
 
 const employmentForm = useForm({
-  job_types: [],
+  job_type: [],
   employment_min_salary: '',
   employment_max_salary: '',
   salary_type: 'monthly',
@@ -65,12 +68,11 @@ const isAddLocationModalOpen = ref(false);
 
 // Employment Preferences Handlers
 const saveEmploymentPreferences = () => {
-  employmentForm.job_types = employmentPreferences.value.jobTypes;
+  employmentForm.job_type = employmentPreferences.value.jobTypes.join(',');
   employmentForm.employment_min_salary = employmentPreferences.value.salaryExpectations.min;
   employmentForm.employment_max_salary = employmentPreferences.value.salaryExpectations.max;
   employmentForm.salary_type = employmentPreferences.value.salaryExpectations.frequency;
-  employmentForm.preferred_locations = employmentPreferences.value.preferredLocations;
-  employmentForm.work_environment = employmentPreferences.value.workEnvironment;
+employmentForm.preferred_locations = employmentPreferences.value.preferredLocations.join(',');  employmentForm.work_environment = employmentPreferences.value.workEnvironment;
   employmentForm.additional_notes = employmentPreferences.value.additionalNotes;
 
   employmentForm.post(route('employment.preferences.updateEmploymentPreferences'), {
@@ -152,14 +154,20 @@ watch(
   () => props.employmentPreferences,
   (newVal) => {
     employmentPreferences.value = {
-      jobTypes: newVal?.job_types ? newVal.job_types.split(',') : [],
-      salaryExpectations: newVal?.salary_expectations
-        ? JSON.parse(newVal.salary_expectations)
-        : { min: '', max: '', frequency: 'monthly' },
-      preferredLocations: newVal?.preferred_locations
-        ? newVal.preferred_locations.split(',') : [],
+      jobTypes: newVal?.job_type
+        ? newVal.job_type.split(',').map(s => s.trim()).filter(Boolean)
+        : [],
+      salaryExpectations: {
+        min: newVal?.employment_min_salary || '',
+        max: newVal?.employment_max_salary || '',
+        frequency: newVal?.salary_type || 'monthly'
+      },
+      preferredLocations: newVal?.location
+        ? newVal.location.split(',').map(s => s.trim()).filter(Boolean)
+        : [],
       workEnvironment: newVal?.work_environment
-        ? newVal.work_environment.split(',') : [],
+        ? newVal.work_environment.split(',').map(s => s.trim()).filter(Boolean)
+        : [],
       additionalNotes: newVal?.additional_notes || ''
     };
   },
@@ -228,10 +236,10 @@ watch(
               v-if="employmentPreferences.salaryExpectations.min && employmentPreferences.salaryExpectations.max">
               {{ employmentPreferences.salaryExpectations.min }} - {{ employmentPreferences.salaryExpectations.max }}
               pesos
-              {{ employmentPreferences.salaryExpectations.frequency === 'monthly' ? 'Monthly' : 'Hourly' }}
+              {{ employmentPreferences.salaryExpectations.frequency === 'monthly' ? ', Monthly' : ', Hourly' }}
             </span>
             <span v-else>
-              
+
             </span>
           </p>
           <p><strong>Preferred Locations:</strong> {{ employmentPreferences.preferredLocations.join(', ') }}</p>

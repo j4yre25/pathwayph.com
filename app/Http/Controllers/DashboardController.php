@@ -11,37 +11,37 @@ use Inertia\Inertia;
 use App\Models\Job;
 use App\Models\Application;
 use Illuminate\Support\Facades\DB;
+use App\Models\InstitutionSchoolYear;
+use App\Models\SchoolYear;
+use App\Models\InstitutionCareerOpportunity;
+use App\Models\CareerOpportunity;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-        $summary = [
-            'total_jobs' => 0,
-            'total_applications' => 0,
-            'total_hires' => 0,
-        ];
 
-        $graduates = [];
-        $programs = [];
-        $careerOpportunities = [];
+        // Always initialize variables
+        $summary = [
+            'total_graduates' => 0,
+            'employed' => 0,
+            'underemployed' => 0,
+            'unemployed' => 0,
+        ];
+        $graduates = collect();
+        $programs = collect();
+        $careerOpportunities = collect();
+        $schoolYears = collect();
+        $institutionCareerOpportunities = collect();
 
         if ($user->hasRole('institution')) {
-            // Get the institution model for this user
             $institution = Institution::where('user_id', $user->id)->first();
 
             if ($institution) {
                 $institutionId = $institution->id;
 
-                $summary = [
-                    'total_graduates' => Graduate::where('institution_id', $institutionId)->count(),
-                    'employed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'employed')->count(),
-                    'underemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'underemployed')->count(),
-                    'unemployed' => Graduate::where('institution_id', $institutionId)->where('employment_status', 'unemployed')->count(),
-                ];
-
-                // Get institution-specific programs
+                // Programs
                 $programs = InstitutionProgram::with('program', 'degree')
                     ->where('institution_id', $institutionId)
                     ->get()
@@ -49,27 +49,79 @@ class DashboardController extends Controller
                         return [
                             'id' => $item->program->id,
                             'name' => $item->program->name,
-                            'code' => $item->program_code,
                             'degree' => $item->degree->type ?? null,
                         ];
                     });
 
-                // Graduates
-                $graduates = Graduate::where('institution_id', $institutionId)->get();
+                // Graduates (with all fields needed for dashboard)
+                $graduates = Graduate::where('institution_id', $institutionId)
+                    ->with('schoolYear') // eager load the schoolYear relation
+                    ->get()
+                    ->map(function ($g) {
+                        return [
+                            'first_name' => $g->first_name,
+                            'middle_name' => $g->middle_name,
+                            'last_name' => $g->last_name,
+                            'program_id' => $g->program_id,
+                            'current_job_title' => $g->current_job_title,
+                            'employment_status' => ucfirst($g->employment_status),
+                            'gender' => $g->gender,
+                            'school_year_id' => $g->school_year_id,
+                            'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null,
+                        ];
+                    });
 
-                // Career Opportunities (from graduates' job titles)
+                // Career Opportunities (unique job titles)
                 $careerOpportunities = $graduates
-                    ->whereNotNull('current_job_title')
-                    ->where('current_job_title', '!=', 'N/A')
                     ->pluck('current_job_title')
+                    ->filter(fn($title) => $title && $title !== 'N/A')
                     ->unique()
                     ->values();
+
+                // Get all school years for this institution (with range)
+                $schoolYears = InstitutionSchoolYear::with('schoolYear')
+                    ->where('institution_id', $institutionId)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->schoolYear->id,
+                            'range' => $item->schoolYear->school_year_range,
+                            'term' => $item->term,
+                        ];
+                    });
+
+                // Get all institution career opportunities with program info
+                $institutionCareerOpportunities = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
+                    ->where('institution_id', $institutionId)
+                    ->get()
+                    ->map(function ($ico) {
+                        return [
+                            'id' => $ico->careerOpportunity->id,
+                            'title' => $ico->careerOpportunity->title,
+                            'program_id' => $ico->program_id,
+                            'program_name' => $ico->program ? $ico->program->name : null,
+                        ];
+                    });
+
+                $summary = [
+                    'total_graduates' => $graduates->count(),
+                    'employed' => $graduates->where('employment_status', 'Employed')->count(),
+                    'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
+                    'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
+                ];
             }
+        }
+
+        if ($user->hasRole('graduate')) {
+
+            $hasReferralLetter = $user->graduate && $user->graduate->referral_letter_submitted;
         }
 
         return Inertia::render('Dashboard', [
             'userNotApproved' => !$user->is_approved,
+            'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
+                'isGraduate' => $user->hasRole('graduate'),
                 'isCompany' => $user->hasRole('company'),
                 'isInstitution' => $user->hasRole('institution'),
             ],
@@ -77,13 +129,15 @@ class DashboardController extends Controller
             'graduates' => $graduates,
             'programs' => $programs,
             'careerOpportunities' => $careerOpportunities,
+            'schoolYears' => $schoolYears,
+            'institutionCareerOpportunities' => $institutionCareerOpportunities,
         ]);
     }
 
     public function companyStats()
     {
         $user = Auth::user();
-        
+
         if (!$user->hasRole('company')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
@@ -137,20 +191,20 @@ class DashboardController extends Controller
 
         // Graduate Pool Overview
         $graduateStats = [
-            'total_scouted' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'total_scouted' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds);
             })->count(),
-            'matched' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'matched' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds)
                     ->where('status', 'matched');
             })->count(),
-            'avg_qualification' => Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+            'avg_qualification' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
                 $query->whereIn('job_id', $companyJobIds);
             })->avg('qualification_score') ?? 0,
         ];
 
         // Graduates by Study Field
-        $graduatesByField = Graduate::whereHas('applications', function($query) use ($companyJobIds) {
+        $graduatesByField = Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
             $query->whereIn('job_id', $companyJobIds);
         })
             ->select('field_of_study', DB::raw('count(*) as count'))

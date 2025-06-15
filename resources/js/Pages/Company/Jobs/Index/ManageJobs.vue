@@ -1,15 +1,13 @@
 <script setup>
+import { router, usePage, Link } from '@inertiajs/vue3'; 
+import { ref, computed } from 'vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Link } from '@inertiajs/vue3';
 import Container from '@/Components/Container.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { router } from '@inertiajs/vue3';
-import { usePage } from '@inertiajs/vue3';
 import DangerButton from '@/Components/DangerButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
-import { ref, computed } from 'vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import '@fortawesome/fontawesome-free/css/all.css';
+
 
 const page = usePage()
 
@@ -177,7 +175,7 @@ const getStatusText = (status) => {
             </div>
             <div class="mt-2 text-sm text-gray-600 flex items-center">
               <i class="fas fa-map-marker-alt text-gray-500 mr-1"></i>
-              <span>{{ job.job_location }}</span>
+              <span>{{ job.locations.map(loc => loc.address).join(', ') }}</span>
             </div>
           </div>
           
@@ -186,7 +184,7 @@ const getStatusText = (status) => {
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="flex items-center">
                 <i class="fas fa-briefcase text-blue-500 mr-2"></i>
-                <span class="text-gray-700">{{ job.job_employment_type }}</span>
+                <span class="text-gray-700"> {{ job.job_types.map(type => type.type).join(', ') }}</span>
               </div>
               <div class="flex items-center">
                 <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
@@ -230,56 +228,8 @@ const getStatusText = (status) => {
           </Link>
         </div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="mt-8 min-w-full bg-white border border-gray-200">
-          <thead>
-            <tr class="bg-blue-500 text-white uppercase text-sm leading-normal">
-              <th class="py-2 px-4 text-left border">Job Title</th>
-              <th class="py-2 px-4 text-left border">Location</th>
-              <th class="py-2 px-4 text-left border">Employment Type</th>
-              <th class="py-2 px-4 text-left border">Experience Level</th>
-              <th class="py-2 px-4 text-left border">Status</th>
-              <th class="py-2 px-4 text-left border">Action</th>
-            </tr>
-          </thead>
-          <tbody class="text-gray-600 text-sm font-light">
-            <tr v-for="job in jobs" :key="job.id" class="border-b border-gray-200 hover:bg-blue-100 even:bg-gray-50 odd:bg-white">
-              <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
-              <!-- Employment Type -->
-              <td class="border border-gray-300 px-6 py-4">
-                <span v-if="job.locations && job.job_types.length">
-                  {{ job.job_types.map(type => type.type).join(', ') }}
-                </span>
-                <span v-else>-</span>
-              </td>
-              <!-- Employment Type -->
-              <td class="border border-gray-300 px-6 py-4">
-                <span v-if="job.job_types && job.job_types.length">
-                  {{ job.job_types.map(type => type.type).join(', ') }}
-                </span>
-                <span v-else>-</span>
-              </td>
-              <td class="border border-gray-200 px-6 py-4">{{ job.job_experience_level }}</td>
-              <td class="border border-gray-200 px-6 py-4">
-                <span v-if="job.status === 'open'" class="text-green-600 font-semibold">Open</span>
-                <span v-else-if="job.status === 'closed'" class="text-red-600 font-semibold">Closed</span>
-                <span v-else class="text-yellow-600 font-semibold">Pending</span>
-              </td>
-              <td class="border border-gray-200 px-6 py-4">
-                <Link :href="route('company.jobs.view', { job: job.id })">
-                <PrimaryButton class="mr-2">View</PrimaryButton>
-                </Link>
-                <Link :href="route('company.jobs.edit', { job: job.id })">
-                <PrimaryButton class="mr-2">Edit</PrimaryButton>
-                </Link>
-                <button @click="confirmArchive(job)">
-                  <DangerButton class="mr-2">Archive</DangerButton>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+
+      <!-- Confirmation Modal -->
       <ConfirmationModal @close="showModal = false" :show="showModal">
         <template #title>
           Archive Job

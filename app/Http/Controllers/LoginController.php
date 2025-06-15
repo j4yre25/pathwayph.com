@@ -24,6 +24,13 @@ class LoginController extends Controller
             ]);
         }
 
+        // ✅ Block archived users
+        if ($user->archived_at) {
+            throw ValidationException::withMessages([
+                'email' => 'Your account has been archived. Please contact the administrator.',
+            ]);
+        }
+
         if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'password' => 'The password you entered is incorrect.',

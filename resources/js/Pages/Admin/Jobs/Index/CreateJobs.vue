@@ -11,8 +11,11 @@ import MultiSelect from '@/Components/MultiSelect.vue';
 import RichTextEditor from '@/Components/RichTextEditor.vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import { ref, watch } from 'vue';
-
+import { ref, watch, computed, watchEffect } from 'vue';
+import { useSectorCategories } from '@/Composables/useSectorCategories';
+import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
+import { useSalaryValidation } from '@/Composables/useSalaryValidation';
+import { useSkills } from '@/Composables/useSkills';
 
 const page = usePage()
 
@@ -22,98 +25,103 @@ const props = defineProps({
     categories: Array,
     programs: Array,
     user: Object,
+    skills: Array,
 
 })
 
 const programs = props.programs;
 
-console.log('User ID:', page.props);
-console.log('Programs:', programs);
+const postedBy = computed(() => {
+    return props.user.peso
+        ? `${props.user.peso.peso_first_name} ${props.user.peso.peso_last_name}`
+        : props.user.name;
+});
+
+
+const jobTypes = [
+    { id: 1, type: 'Full-time' },
+    { id: 2, type: 'Part-time' },
+    { id: 3, type: 'Contract' },
+    { id: 4, type: 'Freelance' },
+    { id: 5, type: 'Internship' }
+];
+
+const workEnvironments = [
+    { id: 1, environment_type: 'On-site' },
+    { id: 2, environment_type: 'Remote' },
+    { id: 3, environment_type: 'Hybrid' },
+];
+
+const selectedJobTypeLabel = computed(() => {
+    const found = jobTypes.find(jt => jt.id === form.job_type);
+    return found ? found.type : 'Not provided';
+});
+
+const selectedWorkEnvironmentLabel = computed(() => {
+    const found = workEnvironments.find(env => env.id === form.work_environment);
+    return found ? found.environment_type : 'Not provided';
+});
+
+
 
 const form = useForm({
     job_title: '',
-    job_location: 'PESO',
+    location: 'PESO',
     program_id: [],
-    job_vacancies: '', // was vacancy
-    job_min_salary: '', // was min_salary
-    job_max_salary: '', // was max_salary
+    job_vacancies: '',
+    salary: {
+        salary_type: '',
+        job_min_salary: '',
+        job_max_salary: '',
+    },
     is_negotiable: false,
-    job_employment_type: '',
-    job_experience_level: '', // was experience_level
-    job_description: '', // was description
-    job_requirements: '', // was requirements
-    job_deadline: '', // was expiration_date
-    job_application_limit: '', // was applicants_limit
-    related_skills: [], // was skills
-    sector_id: '',
-    category_id: '',
-    posted_by: props.user.peso
-        ? `${props.user.peso.peso_first_name} ${props.user.peso.peso_last_name}`
-        : props.user.name,
+    job_type: '', // should be integer
+    job_experience_level: '',
+    job_description: '',
+    job_requirements: '',
+    skills: [], // <-- was skills
+    sector: '', // <-- was sector_id
+    category: '', // <-- was category_id
+    work_environment: '', // <-- add this
+    job_deadline: '',
+    job_application_limit: '',
+    posted_by: postedBy.value,
     peso_id: props.user.peso ? props.user.peso.id : null,
-    company_id: page.props.auth.user.company_id,
     error: {}
 });
 
-console.log('PESO:', page.props.auth.user);
+watchEffect(() => {
+    form.posted_by = postedBy.value;
+});
+
+const currentStep = ref('job-details');
+const today = new Date();
+
+const { newSkill, isFocused, filteredSkills, addSkill, removeSkill, selectSuggestion } = useSkills(form, props.skills);
 
 
-// Tabs setup
-const activeTab = ref('basic');
-const tabs = [
-    { name: 'Basic Job Details', id: 'basic' },
-    { name: 'Job Description & Requirements', id: 'description' },
-    { name: 'Other informations', id: 'others' },
-];
-// Navigation between tabs
-const goToNextTab = () => {
-    const currentIndex = tabs.findIndex(tab => tab.id === activeTab.value);
-    if (currentIndex < tabs.length - 1) {
-        activeTab.value = tabs[currentIndex + 1].id;
-    }
-};
-
-const goToPreviousTab = () => {
-    const currentIndex = tabs.findIndex(tab => tab.id === activeTab.value);
-    if (currentIndex > 0) {
-        activeTab.value = tabs[currentIndex - 1].id;
-    }
-};
-// End for the tabs setup
-
-
-const expirationDate = ref(null)
-const today = new Date()
-
-
-
-// This is for the categories & sector dropdown
-const availableCategories = ref([])
-
-watch(() => form.sector_id, (newSectorId) => {
+const availableCategories = ref([]);
+watch(() => form.sector, (newSectorId) => {
     if (newSectorId) {
         const selectedSector = props.sectors.find(sector => sector.id === newSectorId);
         availableCategories.value = selectedSector ? selectedSector.categories : [];
-        form.category_id = '';
+        form.category = '';
     } else {
         availableCategories.value = [];
-        form.category_id = '';
+        form.category = '';
     }
 });
 
-
-// Salary Setup
+// Salary validation
 const salaryError = ref('');
-
+const salaryWarning = ref('');
 const validateSalary = () => {
     if (form.is_negotiable) {
         salaryError.value = '';
         return;
     }
-
-    const min = parseInt(form.min_salary);
-    const max = parseInt(form.max_salary);
-
+    const min = parseInt(form.salary.job_min_salary);
+    const max = parseInt(form.salary.job_max_salary);
     if (isNaN(min) || min < 5000 || min > 100000) {
         salaryError.value = 'Minimum salary must be between ₱5,000 and ₱100,000';
     } else if (isNaN(max) || max < 5000 || max > 100000) {
@@ -125,322 +133,450 @@ const validateSalary = () => {
     }
 };
 
-watch(() => form.is_negotiable, () => {
-    validateSalary();
-});
+watch(() => form.is_negotiable, validateSalary);
 
-// End of Salary Setup
+// Skills
 
 
-console.log(form.program_id); // It should print something like [1, 2]
-
-const newSkill = ref('');
-
-
-const addSkill = () => {
-    if (newSkill.value.trim() !== '') {
-        form.related_skills.push(newSkill.value.trim());
-        newSkill.value = '';
-    }
+// Step navigation
+const goToPreviousStep = () => {
+    if (currentStep.value === 'job-details') return;
+    if (currentStep.value === 'salary-info') currentStep.value = 'job-details';
+    else if (currentStep.value === 'description') currentStep.value = 'salary-info';
+    else if (currentStep.value === 'review') currentStep.value = 'description';
 };
-
-const removeSkill = (index) => {
-    form.related_skills.splice(index, 1);
-};
-
-// Extract selected program IDs (new function)
-const extractProgramIds = () => {
-    // Extract only the ids from the selected programs
-    form.program_id = form.program_id.map(program => program.id);  // Make sure we're only passing program ids (not full objects)
+const goToNextStep = () => {
+    if (currentStep.value === 'job-details') currentStep.value = 'salary-info';
+    else if (currentStep.value === 'salary-info') currentStep.value = 'description';
+    else if (currentStep.value === 'description') currentStep.value = 'review';
 };
 
 const createJob = () => {
-    console.log('Form data:', form);
-
-
+    // Flatten program_id to just IDs
     form.program_id = form.program_id.map(program => program.id ?? program);
+
+    // Flatten salary fields for backend compatibility
+    form.job_min_salary = form.salary.job_min_salary;
+    form.job_max_salary = form.salary.job_max_salary;
+    form.salary_type = form.salary.salary_type;
 
     form.post(route('peso.jobs.store', { user: page.props.auth.user.id }), {
         onSuccess: () => {
-            // form.reset();
             router.visit(route('peso.pesojobs', { user: page.props.auth.user.id }));
         },
         onError: (errors) => {
             console.log('Validation errors:', errors);
         }
     });
-
-    console.log('Route:', route('peso.jobs.store', { user: page.props.auth.user.id }));
 }
-
 </script>
-
 
 <template>
     <AppLayout title="Post a New Job">
         <Container class="py-15">
             <div class="mt-8">
                 <FormSection @submitted="createJob()">
-                    <template #title>m
-                        Post a New Job
-                    </template>
-
-                    <template #description>
-                        Fill in the detailc below to post a new job.
-                    </template>
-
-
                     <template #form>
-                        <div class="tabs mb-4">
-                            <div class="flex justify-center space-x-8">
-                                <div v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
-                                    :class="{ 'font-bold border-b-2 border-blue-600': activeTab === tab.id, 'cursor-pointer': true }">
-                                    {{ tab.name }}
-                                </div>
+                        <!-- Progress Tabs -->
+                        <div class="flex justify-center mb-8 border-b">
+                            <div @click="currentStep = 'job-details'"
+                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
+                                    currentStep === 'job-details' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500']">
+                                <i class="fas fa-briefcase text-xl mb-1"></i>
+                                <span>Basic Job Details</span>
+                            </div>
+                            <div @click="currentStep === 'job-details' ? null : currentStep = 'salary-info'" :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
+                                currentStep === 'salary-info' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
+                                currentStep === 'job-details' ? 'opacity-50 cursor-not-allowed' : '']">
+                                <i class="fas fa-money-bill-wave text-xl mb-1"></i>
+                                <span>Salary Information</span>
+                            </div>
+                            <div @click="currentStep === 'job-details' || currentStep === 'salary-info' ? null : currentStep = 'description'"
+                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
+                                    currentStep === 'description' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
+                                    currentStep === 'job-details' || currentStep === 'salary-info' ? 'opacity-50 cursor-not-allowed' : '']">
+                                <i class="fas fa-clipboard-list text-xl mb-1"></i>
+                                <span>Description & Requirements</span>
+                            </div>
+                            <div @click="currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? null : currentStep = 'review'"
+                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
+                                    currentStep === 'review' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
+                                    currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? 'opacity-50 cursor-not-allowed' : '']">
+                                <i class="fas fa-info-circle text-xl mb-1"></i>
+                                <span>Other Information</span>
                             </div>
                         </div>
 
-                        <div class="w-full border-t border-gray-300 mb-6"></div>
-
-                        <div v-if="activeTab === 'basic'">
-                            <div class=" col-span-6 sm:col-span-4 mx-6">
-                                <InputLabel for="job_title" value="Job Title" class="mb-2" />
-                                <TextInput id="job_title" v-model="form.job_title" type="text" placeholder="Job Title"
-                                    class="mt-1 mb-5 block w-full p-2 border rounded-lg" required />
-                                <InputError :message="form.errors.job_title" class="mt-2" />
+                        <!-- Basic Job Details Tab -->
+                        <div v-if="currentStep === 'job-details'" class="space-y-6">
+                            <div>
+                                <InputLabel for="job_title" value="Job Title" />
+                                <TextInput id="job_title" type="text" class="mt-1 block w-full" v-model="form.job_title"
+                                    required autofocus />
+                                <InputError class="mt-2" :message="form.errors.job_title" />
                             </div>
-
-
-                            <div class="grid grid-cols-3 gap-4 mx-6 mt-4">
-
-
-
-                                <div class="col-span-1">
-                                    <InputLabel for="job_employment_type" value="Job Type" class="mb-2" />
-                                    <select v-model="form.job_employment_type" id="job_employment_type"
-                                        class="w-full mt-1 mb-2 p-2 border rounded-lg">
-                                        <option value="">Select Employment Type</option>
-                                        <option value="full-time">Full-Time</option>
-                                        <option value="part-time">Part-Time</option>
-                                    </select>
-                                    <InputError :message="form.errors.job_employment_type" class="mt-2" />
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <InputLabel for="program_id" value="Program" />
+                                    <MultiSelect id="program_id" class="mt-1 block w-full" v-model="form.program_id"
+                                        :options="programs" label="name" track-by="id" :searchable="true"
+                                        :multiple="true" placeholder="Select programs" />
+                                    <InputError class="mt-2" :message="form.errors.program_id" />
                                 </div>
-
-                                <div class="col-span-1">
-                                    <InputLabel for="experience_level" value="Experience Level" class="mb-2" />
-                                    <select v-model="form.job_experience_level" id="job_experience_level"
-                                        class="w-full mt-1 mb-2 p-2 border rounded-lg">
+                                <div>
+                                    <InputLabel for="job_type" value="Job Type" />
+                                    <select id="job_type"
+                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                        v-model="form.job_type" required>
+                                        <option value="">Select Job Type</option>
+                                        <option v-for="type in jobTypes" :key="type.id" :value="type.id">
+                                            {{ type.type }}
+                                        </option>
+                                    </select>
+                                    <InputError class="mt-2" :message="form.errors.job_type" />
+                                </div>
+                                <div>
+                                    <InputLabel for="job_experience_level" value="Experience Level" />
+                                    <select id="job_experience_level"
+                                        class="mt-1 block w-full border-gray-300 rounded-md"
+                                        v-model="form.job_experience_level" required>
                                         <option value="">Select Experience Level</option>
                                         <option value="entry-level">Entry-level</option>
                                         <option value="intermediate">Intermediate</option>
                                         <option value="mid-level">Mid-level</option>
                                         <option value="senior-executive">Senior/Executive-level</option>
                                     </select>
-                                    <InputError :message="form.errors.job_experience_level" class="mt-2" />
+                                    <InputError class="mt-2" :message="form.errors.job_experience_level" />
                                 </div>
-                            </div>
-
-                            <div class="grid grid-cols-4 gap-4 mx-6 mt-4">
-                                <div class="col-span-1">
-                                    <div class="flex items-center mb-2">
-                                        <InputLabel for="program_id" value="Program Graduated" class="mb-0" />
-                                        <div class="relative ml-2 group cursor-pointer">
-                                            <span class="text-blue-500 font-bold">?</span>
-                                            <div
-                                                class="absolute z-10 w-64 p-2 text-sm text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -top-2 left-6">
-                                                Select the degree or program related to the job. (e.g., BSIT, BEED,
-                                                BSA).
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <MultiSelect v-model="form.program_id" :options="programs" :multiple="true"
-                                        label="name" track-by="id" placeholder="Select programs" />
-
-                                    <InputError :message="form.errors.program_id" class="mt-2" />
+                                <div>
+                                    <InputLabel for="job_vacancies" value="Number of Vacancies" />
+                                    <TextInput id="job_vacancies" type="number" class="mt-1 block w-full"
+                                        v-model="form.job_vacancies" required min="1" />
+                                    <InputError class="mt-2" :message="form.errors.job_vacancies" />
                                 </div>
-                                <div class="col-span-1">
-                                    <InputLabel for="sector_id" value="Sector" class="mb-2" />
-                                    <select v-model="form.sector_id" id="sector_id"
-                                        class="w-full mt-1 mb-2 p-2 border rounded-lg" required>
-                                        <option value="" disabled class="text-gray-400">Select Sector</option>
+                                <div>
+                                    <InputLabel for="sector_id" value="Sector" />
+                                    <select id="sector_id" class="mt-1 block w-full border-gray-300 rounded-md"
+                                        v-model="form.sector" required>
+                                        <option value="">Select Sector</option>
                                         <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
                                             {{ sector.name }}
                                         </option>
                                     </select>
-                                    <InputError :message="form.errors.sector_id" class="mt-2" />
+                                    <InputError class="mt-2" :message="form.errors.sector_id" />
                                 </div>
-
-                                <div class="col-span-1">
-                                    <InputLabel for="category_id" value="Category" class="mb-2" />
-                                    <select v-model="form.category_id" id="category_id"
-                                        class="w-full mt-1 mb-2 p-2 border rounded-lg" :disabled="!form.sector_id"
-                                        required>
-                                        <option value="" disabled class="text-gray-400">Select Category</option>
+                                <div>
+                                    <InputLabel for="category_id" value="Category" />
+                                    <select id="category_id" class="mt-1 block w-full border-gray-300 rounded-md"
+                                        v-model="form.category" required :disabled="!form.sector_id">
+                                        <option value="">Select Category</option>
                                         <option v-for="category in availableCategories" :key="category.id"
                                             :value="category.id">
                                             {{ category.name }}
                                         </option>
                                     </select>
-                                    <InputError :message="form.errors.category" class="mt-2" />
-                                    <p class="text-red-500 text-sm mt-1">{{ form.errors.category }}</p>
+                                    <InputError class="mt-2" :message="form.errors.category_id" />
                                 </div>
 
-                                <div class="col-span-1">
-                                    <InputLabel for="vacancy" value="No. of Vacancies" class="mb-2" />
-                                    <TextInput id="job_vacancies" v-model="form.job_vacancies" type="number"
-                                        placeholder="No. of Vacancies" class="w-50 mt-1 p-2 border rounded-lg"
-                                        required />
-                                    <InputError :message="form.errors.vacancy" class="mt-2" />
+                                <!-- Work Environment -->
+                                <div>
+                                    <InputLabel for="work_environment" value="Work Environment" />
+                                    <select id="work_environment"
+                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                        v-model="form.work_environment" required>
+                                        <option v-for="environment in workEnvironments" :key="environment.id"
+                                            :value="environment.id">
+                                            {{ environment.environment_type }}
+                                        </option>
+                                    </select>
+                                    <InputError class="mt-2" :message="form.errors.work_environment" />
+                                </div>
+
+                            </div>
+                            <div class="flex justify-end">
+                                <PrimaryButton @click="goToNextStep" type="button">
+                                    Next <i class="fas fa-chevron-right ml-1"></i>
+                                </PrimaryButton>
+                            </div>
+                        </div>
+
+                        <!-- Salary Information Tab -->
+                        <div v-if="currentStep === 'salary-info'" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <InputLabel for="salary_type" value="Salary Type" />
+                                    <select id="salary_type" class="mt-1 block w-full border-gray-300 rounded-md"
+                                        v-model="form.salary.salary_type" @change="validateSalary">
+                                        <option value="">Select Salary Type</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="hourly">Hourly</option>
+                                    </select>
+                                    <InputError class="mt-2" :message="form.errors['salary.salary_type']" />
+                                </div>
+                                <div class="flex items-center mt-6">
+                                    <input id="is_negotiable" type="checkbox"
+                                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                        v-model="form.is_negotiable" @change="validateSalary" />
+                                    <label for="is_negotiable" class="ml-2 block text-sm text-gray-900">
+                                        Salary is negotiable
+                                    </label>
+                                </div>
+                                <div>
+                                    <InputLabel for="job_min_salary" value="Minimum Salary" />
+                                    <div class="relative mt-1">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500 sm:text-sm">₱</span>
+                                        </div>
+                                        <TextInput id="job_min_salary" type="number" class="pl-7 block w-full"
+                                            v-model="form.salary.job_min_salary" :disabled="form.is_negotiable"
+                                            @input="validateSalary" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <InputLabel for="job_max_salary" value="Maximum Salary" />
+                                    <div class="relative mt-1">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500 sm:text-sm">₱</span>
+                                        </div>
+                                        <TextInput id="job_max_salary" type="number" class="pl-7 block w-full"
+                                            v-model="form.salary.job_max_salary" :disabled="form.is_negotiable"
+                                            @input="validateSalary" />
+                                    </div>
                                 </div>
                             </div>
-
-                            <div class="w-full border-t border-gray-300 my-6"></div>
-
-                            <div class="grid grid-cols-1 gap-4 mx-6 mt-4">
-                                <h2 class="font-bold">Wage/Salary per Month</h2>
+                            <div v-if="salaryError" class="text-red-500 text-sm">
+                                {{ salaryError }}
                             </div>
+                            <div v-if="salaryWarning" class="text-yellow-600 text-sm">
+                                {{ salaryWarning }}
+                            </div>
+                            <div class="flex justify-between">
+                                <PrimaryButton @click="goToPreviousStep" type="button"
+                                    class="bg-gray-500 hover:bg-gray-600">
+                                    <i class="fas fa-chevron-left mr-1"></i>Previous
+                                </PrimaryButton>
+                                <PrimaryButton @click="goToNextStep" type="button">
+                                    Next <i class="fas fa-chevron-right ml-1"></i>
+                                </PrimaryButton>
+                            </div>
+                        </div>
 
-                            <div class="grid grid-cols-5 gap-4 mx-6 mt-4">
-                                <div class="col-span-2">
-                                    <div class="flex items-center mb-2">
-                                        <InputLabel for="min_salary" value="Salary Range" class="mb-0" />
-                                        <div class="relative ml-2 group cursor-pointer">
-                                            <span class="text-blue-500 font-bold">?</span>
-                                            <div
-                                                class="absolute z-10 w-64 p-2 text-sm text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -top-2 left-6">
-                                                Enter the minimum and maximum salary for this job. Range must be between
-                                                ₱5,000 to ₱100,000.
+                        <!-- Description & Requirements Tab -->
+                        <div v-if="currentStep === 'description'" class="space-y-6">
+                            <div>
+                                <InputLabel for="job_description" value="Job Description" />
+                                <RichTextEditor id="job_description" v-model="form.job_description"
+                                    class="mt-1 block w-full" placeholder="Enter job description" />
+                                <p class="mt-1 text-xs text-gray-500">Provide a detailed description of the job
+                                    responsibilities and duties.</p>
+                                <InputError class="mt-2" :message="form.errors.job_description" />
+                            </div>
+                            <div>
+                                <InputLabel for="job_requirements" value="Job Requirements" />
+                                <RichTextEditor id="job_requirements" v-model="form.job_requirements"
+                                    class="mt-1 block w-full" placeholder="Enter job requirements" />
+                                <p class="mt-1 text-xs text-gray-500">List the qualifications, skills, and experience
+                                    required for this position.</p>
+                                <InputError class="mt-2" :message="form.errors.job_requirements" />
+                            </div>
+                          
+                            <!-- Skills -->
+                            <div>
+                                <InputLabel for="skills" value="Skills" />
+
+                                <div class="relative">
+                                    <!-- Input Field -->
+                                    <div class="flex mt-1">
+                                        <TextInput id="skills" type="text" class="block w-full" v-model="newSkill"
+                                            placeholder="Enter a skill" @input="filterSuggestions"
+                                            @keyup.enter.prevent="addSkill" @focus="showSuggestions = true" />
+                                        <PrimaryButton type="button" @click="addSkill" class="ml-2">
+                                            Add
+                                        </PrimaryButton>
+                                    </div>
+
+                                    <!-- Suggestions Dropdown -->
+                                    <div v-if="showSuggestions && filteredSkills.length > 0"
+                                        class="absolute z-10 bg-white border mt-1 w-full rounded shadow max-h-40 overflow-auto">
+                                        <div v-for="(suggestion, i) in filteredSkills" :key="i"
+                                            @click="selectSuggestion(suggestion)"
+                                            class="px-3 py-2 hover:bg-indigo-100 cursor-pointer">
+                                            {{ suggestion }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Add relevant skills required for this position (e.g., JavaScript, Project
+                                    Management).
+                                </p>
+
+                                <!-- Skills List -->
+                                <div v-if="form.skills.length > 0" class="mt-3 flex flex-wrap gap-2">
+                                    <div v-for="(skill, index) in form.skills" :key="index"
+                                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center">
+                                        <span>{{ skill }}</span>
+                                        <button type="button" @click="removeSkill(index)"
+                                            class="ml-2 text-blue-600 hover:text-blue-800 focus:outline-none">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <InputError class="mt-2" :message="form.errors.skills" />
+                            </div>
+                            <div class="flex justify-between">
+                                <PrimaryButton @click="goToPreviousStep" type="button"
+                                    class="bg-gray-500 hover:bg-gray-600">
+                                    Previous <i class="fas fa-chevron-left mr-1"></i>
+                                </PrimaryButton>
+                                <PrimaryButton @click="goToNextStep" type="button">
+                                    Next <i class="fas fa-chevron-right ml-1"></i>
+                                </PrimaryButton>
+                            </div>
+                        </div>
+
+                        <!-- Other Information Tab -->
+                        <div v-if="currentStep === 'review'" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <InputLabel for="posted_by" value="Posted By" />
+                                    <TextInput id="posted_by" type="text" class="mt-1 block w-full"
+                                        v-model="form.posted_by" required disabled />
+                                    <InputError class="mt-2" :message="form.errors.posted_by" />
+                                </div>
+                                <div>
+                                    <InputLabel for="job_deadline" value="Application Deadline" />
+                                    <Datepicker v-model="form.job_deadline" :enable-time-picker="false"
+                                        input-class-name="w-full p-2 border rounded-lg mt-2" :min-date="today"
+                                        placeholder="Select date" required />
+                                    <InputError class="mt-2" :message="form.errors.job_deadline" />
+                                </div>
+                                <div>
+                                    <InputLabel for="job_application_limit" value="Application Limit" />
+                                    <TextInput id="job_application_limit" type="number" class="mt-1 block w-full"
+                                        v-model="form.job_application_limit" min="1" />
+                                    <p class="mt-1 text-xs text-gray-500">Maximum number of applications to accept
+                                        (leave empty for unlimited)</p>
+                                    <InputError class="mt-2" :message="form.errors.job_application_limit" />
+                                </div>
+                            </div>
+                            <!-- Job Posting Preview -->
+                            <div class="mt-8 border rounded-lg p-6 bg-gray-50">
+                                <h2 class="text-xl font-semibold mb-4">Job Posting Preview</h2>
+                                <div class="space-y-4">
+                                    <div>
+                                        <h3 class="font-medium text-gray-700">Basic Job Details</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Job Title</p>
+                                                <p>{{ form.job_title || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Job Type</p>
+                                                <p>{{ form.job_type || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Experience Level</p>
+                                                <p>{{ form.job_experience_level || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Location</p>
+                                                <p>{{ form.location || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Vacancies</p>
+                                                <p>{{ form.job_vacancies || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Programs</p>
+                                                <p v-if="form.program_id.length > 0">
+                                                    {{form.program_id.map(p => typeof p === 'object' ? p.name :
+                                                        p).join(', ')}}
+                                                </p>
+                                                <p v-else>Not provided</p>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <TextInput id="job_min_salary" v-model="form.job_min_salary"
-                                                :disabled="form.is_negotiable" placeholder="Minimum Salary"
-                                                type="number" class="mt-1 p-2 border rounded-lg w-full text-center"
-                                                min="5000" max="100000" @input="validateSalary" />
-                                            <InputError :message="form.errors.min_salary" class="mt-2" />
-                                        </div>
-
-                                        <div>
-                                            <TextInput id="job_max_salary" v-model="form.job_max_salary"
-                                                :disabled="form.is_negotiable" placeholder="Maximum Salary"
-                                                type="number" class="mt-1 p-2 border rounded-lg w-full text-center"
-                                                min="5000" max="100000" @input="validateSalary" />
-                                            <InputError :message="form.errors.max_salary" class="mt-2" />
+                                    <div>
+                                        <h3 class="font-medium text-gray-700">Salary Information</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                            <div v-if="form.is_negotiable">
+                                                <p class="text-sm font-medium text-gray-500">Salary</p>
+                                                <p>Negotiable</p>
+                                            </div>
+                                            <div v-else>
+                                                <p class="text-sm font-medium text-gray-500">Salary Range</p>
+                                                <p v-if="form.salary.job_min_salary && form.salary.job_max_salary">
+                                                    ₱{{ form.salary.job_min_salary }} - ₱{{ form.salary.job_max_salary
+                                                    }}
+                                                </p>
+                                                <p v-else>Not provided</p>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div class="mt-3">
-                                        <label class="inline-flex items-center">
-                                            <input type="checkbox" v-model="form.is_negotiable"
-                                                class="form-checkbox text-blue-600" />
-                                            <span class="ml-2 text-sm text-gray-700">Salary is negotiable</span>
-                                        </label>
+                                    <div>
+                                        <h3 class="font-medium text-gray-700">Description & Requirements</h3>
+                                        <div class="mt-2">
+                                            <p class="text-sm font-medium text-gray-500">Job Description</p>
+                                            <div v-if="form.job_description" v-html="form.job_description"></div>
+                                            <p v-else>Not provided</p>
+                                        </div>
+                                        <div class="mt-4">
+                                            <p class="text-sm font-medium text-gray-500">Job Requirements</p>
+                                            <div v-if="form.job_requirements" v-html="form.job_requirements"></div>
+                                            <p v-else>Not provided</p>
+                                        </div>
+                                        <div class="mt-4">
+                                            <p class="text-sm font-medium text-gray-500">Skills</p>
+                                            <div v-if="form.skills.length > 0"
+                                                class="flex flex-wrap gap-2 mt-1">
+                                                <span v-for="(skill, index) in form.skills" :key="index"
+                                                    class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                                                    {{ skill }}
+                                                </span>
+                                            </div>
+                                            <p v-else>Not provided</p>
+                                        </div>
                                     </div>
-
-                                    <p class="text-gray-500 text-sm mt-2">Salary Range: Min ₱5,000 - Max ₱100,000</p>
-                                    <p v-if="salaryError" class="text-red-500 text-sm mt-1">{{ salaryError }}</p>
+                                    <div>
+                                        <h3 class="font-medium text-gray-700">Other Information</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Posted By</p>
+                                                <p>{{ form.posted_by || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Application Deadline</p>
+                                                <p>{{ form.job_deadline || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Application Limit</p>
+                                                <p>{{ form.job_application_limit || 'Unlimited' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div class="w-full border-t border-gray-300 my-6"></div>
-
-
-                        </div>
-
-
-                        <div v-if="activeTab === 'description'">
-                            <div class="col-span-6 sm:col-span-4 mt-5">
-                                <InputLabel for="description" value="Job Description" />
-                                <RichTextEditor id="description" v-model="form.job_description"
-                                    placeholder="Write a detailed job description..." class="mt-2" required>
-                                </RichTextEditor>
-                                <InputError :message="form.errors.description" class="mt-2" />
-                            </div>
-
-                            <div class="col-span-6 sm:col-span-4 mt-5">
-                                <InputLabel for="requirements" value="Requirements/Qualifications" />
-                                <RichTextEditor id="requirements" v-model="form.job_requirements"
-                                    placeholder="List the required qualifications..." class="mt-2" required>
-                                </RichTextEditor>
-                                <InputError :message="form.errors.requirements" class="mt-2" />
-                            </div>
-                            <div class="mt-4">
-                                <InputLabel value="Skills" />
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    <span v-for="(skill, index) in form.related_skills" :key="index"
-                                        class="px-3 py-1 bg-gray-200 rounded-full flex items-center">
-                                        {{ skill }}
-                                        <button @click="removeSkill(index)"
-                                            class="ml-2 text-red-500 font-bold">×</button>
-                                    </span>
-                                </div>
-                                <div class="mt-2 flex">
-                                    <TextInput v-model="newSkill" type="text" placeholder="Add a skill"
-                                        class="p-2 border rounded-lg w-full" />
-                                    <button @click="addSkill" type="button"
-                                        class="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg">+</button>
-                                    <InputError :message="form.errors.newSkill" class="mt-2" />
+                            <div class="flex justify-between">
+                                <PrimaryButton @click="goToPreviousStep" type="button"
+                                    class="bg-gray-500 hover:bg-gray-600">
+                                    Previous <i class="fas fa-chevron-left mr-1"></i>
+                                </PrimaryButton>
+                                <div class="flex space-x-3">
+                                    <PrimaryButton type="submit" :disabled="form.processing">
+                                        {{ form.processing ? 'Posting...' : 'Post Job' }} <i
+                                            class="fas fa-chevron-right ml-1"></i>
+                                    </PrimaryButton>
                                 </div>
                             </div>
-                        </div>
-
-                        <div v-if="activeTab === 'others'">
-                            <!-- Posted By -->
-                            <div class="col-span-6 sm:col-span-4 mt-5">
-                                <InputLabel for="posted_by" value="Posted By" />
-                                <TextInput id="posted_by" v-model="form.posted_by"
-                                    class="w-full p-2 border rounded-lg mt-2" required disabled />
-                            </div>
-
-                            <!-- Application Deadline -->
-                            <div class="col-span-6 sm:col-span-4 mt-5">
-                                <InputLabel for="expiration_date" value="Application Deadline" />
-                                <Datepicker v-model="form.job_deadline" :enable-time-picker="false"
-                                    input-class-name="w-full p-2 border rounded-lg mt-2" :min-date="today"
-                                    placeholder="Select date" required />
-                                <InputError :message="form.errors.expiration_date" class="mt-2" />
-                            </div>
-
-                            <!-- Application Limit -->
-                            <div class="col-span-6 sm:col-span-4 mt-5">
-                                <InputLabel for="applicants_limit" value="Application Limit (optional)" />
-                                <TextInput id="job_application_limit" v-model="form.job_application_limit" type="number"
-                                    min="1" class="w-full p-2 border rounded-lg mt-2" />
-                                <InputError :message="form.errors.applicants_limit" class="mt-2" />
-                            </div>
-                        </div>
-
-
-                    </template>
-                    <template #actions>
-                        <!-- NAVIGATION BUTTONS -->
-                        <div class="flex justify-between gap-4 mt-10">
-                            <button type="button" @click="goToPreviousTab"
-                                class="bg-gray-200 hover:bg-gray-300 text-black font-medium py-2 px-4 rounded"
-                                :hidden="activeTab === 'basic'">
-                                Previous
-                            </button>
-                            <button type="button" @click="goToNextTab"
-                                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
-                                :hidden="activeTab === 'others'">
-                                Next
-                            </button>
-                            <PrimaryButton v-if="activeTab === 'others'" type="submit"
-                                :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                                Post Job
-                            </PrimaryButton>
                         </div>
                     </template>
                 </FormSection>
-
-
             </div>
-
         </Container>
-
     </AppLayout>
 </template>

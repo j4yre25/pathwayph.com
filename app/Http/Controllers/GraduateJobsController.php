@@ -161,7 +161,6 @@ class GraduateJobsController extends Controller
             $cleanSkills = array_map(function ($skill) {
                 $skill = trim($skill);
                 // Remove spaces inside the skill (turn "P y t h o n" into "Python")
-                $skill = str_replace(' ', '', $skill);
                 return $skill;
             }, $skillsArray);
 
@@ -182,119 +181,172 @@ class GraduateJobsController extends Controller
     }
 
 
-    public function recommendations()
-    {
-        $user = Auth::user();
-        $graduate = $user->graduate;
+ public function recommendations()
+{
+    $user = Auth::user();
+    $graduate = $user->graduate;
 
-        // Get graduate's skills (array of skill names)
-        $graduateSkills = \App\Models\GraduateSkill::where('graduate_id', $graduate->id)
-            ->with('skill')
-            ->get()
-            ->pluck('skill.name')
-            ->filter()
-            ->unique()
-            ->toArray();
+    // Get graduate's skills (array of skill names)
+    $graduateSkills = \App\Models\GraduateSkill::where('graduate_id', $graduate->id)
+        ->with('skill')
+        ->get()
+        ->pluck('skill.name')
+        ->filter()
+        ->unique()
+        ->toArray();
 
-        // Get graduate's education (e.g., program or degree)
-        $education = \App\Models\Education::where('graduate_id', $graduate->id)->first();
-        $program = $education ? $education->program : null;
+    // Get graduate's education (e.g., program or degree)
+    $education = \App\Models\Education::where('graduate_id', $graduate->id)->first();
+    $program = $education ? $education->program : null;
 
-        // Get graduate's experience (e.g., job titles)
-        $experiences = \App\Models\Experience::where('graduate_id', $graduate->id)->get();
-        $experienceTitles = $experiences->pluck('job_title')->filter()->unique()->toArray();
+    // Get graduate's experience (e.g., job titles)
+    $experiences = \App\Models\Experience::where('graduate_id', $graduate->id)->get();
+    $experienceTitles = $experiences->pluck('job_title')->filter()->unique()->toArray();
 
-        // Get employment preferences
-        $preferences = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
-        $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
-        $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
-        $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
-        $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
-        $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
-        $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
+    // Get employment preferences
+    $preferences = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
+    $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
+    $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
+    $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
+    $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
+    $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
+    $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
 
-        $pastKeywords = \App\Models\JobSearchHistory::where('graduate_id', $graduate->id)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->pluck('keywords')
-            ->unique()
-            ->toArray();
+    $pastKeywords = \App\Models\JobSearchHistory::where('graduate_id', $graduate->id)
+        ->orderBy('created_at', 'desc')
+        ->limit(10)
+        ->pluck('keywords')
+        ->unique()
+        ->toArray();
 
-        // Build the recommendation query
-        $jobs = \App\Models\Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+    // Build the recommendation query
+    $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
 
-        $recommendations = [];
+    $recommendations = [];
 
-        foreach ($jobs as $job) {
-            $labels = [];
+    foreach ($jobs as $job) {
+        $labels = [];
+        $score = 0;
+        $criteria = 0;
 
-            // Skills
-            foreach ($graduateSkills as $skill) {
-                if (stripos(json_encode($job->skills), $skill) !== false) {
-                    $labels[] = 'Skills';
-                    break;
-                }
-            }
-
-            // Education
-            if ($program && stripos($job->job_requirements, $program) !== false) {
-                $labels[] = 'Education';
-            }
-
-            // Experience
-            foreach ($experienceTitles as $title) {
-                if (stripos($job->job_title, $title) !== false) {
-                    $labels[] = 'Experience';
-                    break;
-                }
-            }
-
-            // Employment Preferences
-            if (in_array($job->job_type, $preferredJobTypes)) {
-                $labels[] = 'Preferred Job Type';
-            }
-            if (in_array($job->location, $preferredLocations)) {
-                $labels[] = 'Preferred Location';
-            }
-            if (in_array($job->work_environment, $preferredWorkEnvironments)) {
-                $labels[] = 'Preferred Work Environment';
-            }
-            if ($minSalary && $job->job_min_salary >= $minSalary) {
-                $labels[] = 'Preferred Min Salary';
-            }
-            if ($maxSalary && $job->job_max_salary <= $maxSalary) {
-                $labels[] = 'Preferred Max Salary';
-            }
-            if ($salaryType && stripos($job->job_salary_type, $salaryType) !== false) {
-                $labels[] = 'Preferred Salary Type';
-            }
-
-            // Past Keywords
-            foreach ($pastKeywords as $keyword) {
-                if (
-                    stripos($job->job_title, $keyword) !== false ||
-                    stripos($job->job_description, $keyword) !== false
-                ) {
-                    $labels[] = 'Past Search';
-                    break;
-                }
-            }
-
-            // Only include jobs with at least one label (i.e., a match)
-            if (!empty($labels)) {
-                $job->match_labels = array_unique($labels);
-                $recommendations[] = $job;
+        // Skills
+        $criteria++;
+        $skillMatch = false;
+        foreach ($graduateSkills as $skill) {
+            if (stripos(json_encode($job->skills), $skill) !== false) {
+                $labels[] = 'Skills';
+                $skillMatch = true;
+                break;
             }
         }
+        if ($skillMatch) $score++;
 
-        // Limit to 5 recommendations
-        $recommendations = array_slice($recommendations, 0, 5);
+        // Education
+        $criteria++;
+        $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
+        if ($educationMatch) {
+            $labels[] = 'Education';
+            $score++;
+        }
 
-        return response()->json(['recommendations' => $recommendations]);
+        // Experience
+        $criteria++;
+        $experienceMatch = false;
+        foreach ($experienceTitles as $title) {
+            if (stripos($job->job_title, $title) !== false) {
+                $labels[] = 'Experience';
+                $experienceMatch = true;
+                break;
+            }
+        }
+        if ($experienceMatch) $score++;
+
+        // Preferred Job Type
+        $criteria++;
+        $jobTypeMatch = in_array($job->job_type, $preferredJobTypes);
+        if ($jobTypeMatch) {
+            $labels[] = 'Preferred Job Type';
+            $score++;
+        }
+
+        // Preferred Location
+        $criteria++;
+        $locationMatch = in_array($job->location, $preferredLocations);
+        if ($locationMatch) {
+            $labels[] = 'Preferred Location';
+            $score++;
+        }
+
+        // Preferred Work Environment
+        $criteria++;
+        $workEnvMatch = in_array($job->work_environment, $preferredWorkEnvironments);
+        if ($workEnvMatch) {
+            $labels[] = 'Preferred Work Environment';
+            $score++;
+        }
+
+        // Preferred Min Salary
+        $criteria++;
+        $minSalaryMatch = $minSalary && $job->job_min_salary >= $minSalary;
+        if ($minSalaryMatch) {
+            $labels[] = 'Preferred Min Salary';
+            $score++;
+        }
+
+        // Preferred Max Salary
+        $criteria++;
+        $maxSalaryMatch = $maxSalary && $job->job_max_salary <= $maxSalary;
+        if ($maxSalaryMatch) {
+            $labels[] = 'Preferred Max Salary';
+            $score++;
+        }
+
+        // Preferred Salary Type
+        $criteria++;
+        $salaryTypeMatch = $salaryType && stripos($job->job_salary_type, $salaryType) !== false;
+        if ($salaryTypeMatch) {
+            $labels[] = 'Preferred Salary Type';
+            $score++;
+        }
+
+        // Past Search Keywords
+        $criteria++;
+        $pastKeywordMatch = false;
+        foreach ($pastKeywords as $keyword) {
+            if (
+                stripos($job->job_title, $keyword) !== false ||
+                stripos($job->job_description, $keyword) !== false
+            ) {
+                $labels[] = 'Past Search';
+                $pastKeywordMatch = true;
+                break;
+            }
+        }
+        if ($pastKeywordMatch) $score++;
+
+        // Only include jobs with at least one label (i.e., a match)
+        if (!empty($labels)) {
+            $job->match_labels = array_unique($labels);
+            $job->match_score = $score;
+            $job->match_percentage = round(($score / $criteria) * 100);
+            $recommendations[] = $job;
+        }
     }
+
+    // Sort by match score descending
+    usort($recommendations, fn($a, $b) => $b->match_score <=> $a->match_score);
+
+    // Limit to 5 recommendations
+    $recommendations = array_slice($recommendations, 0, 5);
+
+    return response()->json(['recommendations' => $recommendations]);
+}
 
     public function oneClickApply(Request $request)
     {
+        if (!Auth::check()) {
+        return response()->json(['error' => 'Unauthenticated'], 401);
+    }
         $user = Auth::user();
         $graduate = $user->graduate;
 
@@ -305,6 +357,7 @@ class GraduateJobsController extends Controller
         $coverLetter = $graduate->cover_letter ?? '';
 
         \App\Models\JobApplication::create([
+            'user_id' => auth()->id(),
             'graduate_id' => $graduate->id,
             'job_id' => $request->job_id,
             'status' => 'applied',

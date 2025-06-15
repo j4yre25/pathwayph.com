@@ -12,24 +12,27 @@ import '@fortawesome/fontawesome-free/css/all.css';
 const { props } = usePage();
 
 // State Management
-const activeSection = ref(localStorage.getItem('activeSection') || 'opportunities');
+const activeSection = ref(localStorage.getItem('activeSection') || 'applications');
 const setActiveSection = (section) => {
     activeSection.value = section;
     localStorage.setItem('activeSection', section);
 };
 
-// Modal States
-const isViewDetailsModalOpen = ref(false);
 const selectedApplication = ref(null);
+const isViewDetailsModalOpen = ref(false);
+function openApplicationDetails(application) {
+    selectedApplication.value = application;
+    isViewDetailsModalOpen.value = true;
+}
 
 // useJobs composable
 const {
-  opportunities,
-  applications,
-  hasApplied,
-  applyForJob,
-  archiveJobOpportunity,
-  activeApplications,
+    opportunities,
+    applications,
+    hasApplied,
+    applyForJob,
+    archiveJobOpportunity,
+    activeApplications,
 } = useJobs(props.jobOpportunities, props.jobApplications);
 
 // useNotifications composable
@@ -53,66 +56,49 @@ onMounted(() => {
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
                     <div class="border-b border-gray-200">
                         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                            <button
-                                @click="setActiveSection('opportunities')"
-                                :class="[
-                                    activeSection === 'opportunities'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
-                                ]"
-                            >
-                                Opportunities
-                            </button>
-                            <button
-                                @click="setActiveSection('applications')"
-                                :class="[
-                                    activeSection === 'applications'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
-                                ]"
-                            >
+
+                            <button @click="setActiveSection('applications')" :class="[
+                                activeSection === 'applications'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
+                            ]">
                                 Applications
                             </button>
-                            <button
-                                @click="setActiveSection('notifications')"
-                                :class="[
-                                    activeSection === 'notifications'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                                    'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm relative'
-                                ]"
-                            >
+                            <button @click="setActiveSection('notifications')" :class="[
+                                activeSection === 'notifications'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm relative'
+                            ]">
                                 Notifications
-                                <span v-if="notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                <span v-if="notifications.length"
+                                    class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                                     {{ notifications.length }}
                                 </span>
                             </button>
                         </nav>
                     </div>
-                    
+
                     <div class="mt-6">
                         <div class="max-w-[1280px] mx-auto px-4 py-6">
                             <header class="flex justify-between items-center pb-3 mb-6">
                                 <div>
                                     <h1 class="text-lg font-extrabold leading-6">
                                         {{ activeSection === 'opportunities' ? 'Job Opportunities' :
-                                           activeSection === 'applications' ? 'My Applications' :
-                                           'Notifications' }}
+                                            activeSection === 'applications' ? 'My Applications' :
+                                                'Notifications' }}
                                     </h1>
                                     <p class="text-xs text-[#374151] mt-1">
-                                        {{ activeSection === 'opportunities' ? 'Browse and apply for available positions' :
-                                           activeSection === 'applications' ? 'Track your job applications' :
-                                           'Stay updated with your application status' }}
+                                        {{ activeSection === 'opportunities' ? 'Browse and apply for availabl positions'
+                                            :
+                                            activeSection === 'applications' ? 'Track your job applications' :
+                                                'Stay updated with your application status' }}
                                     </p>
                                 </div>
                                 <div class="flex items-center space-x-3">
-                                    <button
-                                        v-if="activeSection !== 'notifications'"
-                                        type="button"
-                                        class="flex items-center gap-1 text-xs text-[#374151] border border-[#d1d5db] rounded px-3 py-[6px] hover:bg-gray-100"
-                                    >
+                                    <button v-if="activeSection !== 'notifications'" type="button"
+                                        class="flex items-center gap-1 text-xs text-[#374151] border border-[#d1d5db] rounded px-3 py-[6px] hover:bg-gray-100">
                                         <i class="fas fa-filter text-[10px]"></i> Filter
                                     </button>
                                 </div>
@@ -135,19 +121,17 @@ onMounted(() => {
                                 </div>
 
                                 <!-- Job Opportunities List -->
-                                <div v-else v-for="opportunity in opportunities" :key="opportunity.id" class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                <div v-else v-for="opportunity in opportunities" :key="opportunity.id"
+                                    class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 class="text-lg font-semibold text-gray-900">{{ opportunity.title }}</h3>
                                             <p class="text-sm text-gray-600">{{ opportunity.company }}</p>
                                         </div>
                                         <div class="flex space-x-2">
-                                            <PrimaryButton
-                                              :disabled="hasApplied(opportunity.id)"
-                                              @click="applyForJob(opportunity.id)"
-                                              class="text-sm"
-                                            >
-                                              {{ hasApplied(opportunity.id) ? 'Already Applied' : 'Apply Now' }}
+                                            <PrimaryButton :disabled="hasApplied(opportunity.id)"
+                                                @click="applyForJob(opportunity.id)" class="text-sm">
+                                                {{ hasApplied(opportunity.id) ? 'Already Applied' : 'Apply Now' }}
                                             </PrimaryButton>
                                         </div>
                                     </div>
@@ -171,7 +155,8 @@ onMounted(() => {
                                     </div>
                                     <p class="text-sm text-gray-600 mb-4">{{ opportunity.description }}</p>
                                     <div class="flex flex-wrap gap-2">
-                                        <span v-for="skills in opportunity.required_skills" :key="skills" class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                        <span v-for="skills in opportunity.required_skills" :key="skills"
+                                            class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
                                             {{ skills }}
                                         </span>
                                     </div>
@@ -195,24 +180,25 @@ onMounted(() => {
                                 </div>
 
                                 <!-- Applications List -->
-                                <div v-else v-for="application in activeApplications" :key="application.id" class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                <div v-else v-for="application in activeApplications" :key="application.id"
+                                    class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">{{ application.job_title }}</h3>
+                                            <h3 class="text-lg font-semibold text-gray-900">{{ application.job_title }}
+                                            </h3>
                                             <p class="text-sm text-gray-600">{{ application.company }}</p>
                                         </div>
                                         <div class="flex items-center space-x-2">
-                                            <span :class="[
-                                                'px-3 py-1 text-xs font-medium rounded-full',
-                                                application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                application.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                                application.status === 'rejected' ? 'bg-red-100 text-red-800' :'bg-gray-100 text-gray-800']">
+                                            <span
+                                                :class="[
+                                                    'px-3 py-1 text-xs font-medium rounded-full',
+                                                    application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                        application.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                            application.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800']">
                                                 {{ application.status }}
                                             </span>
-                                            <PrimaryButton
-                                                @click="() => { selectedApplication.value = application; isViewDetailsModalOpen.value = true }"
-                                                class="text-xs">
-                                                    View Details
+                                            <PrimaryButton @click="openApplicationDetails(application)" class="text-xs">
+                                                View Details
                                             </PrimaryButton>
                                         </div>
                                     </div>
@@ -231,22 +217,40 @@ onMounted(() => {
                                     <p>No new job notifications</p>
                                 </div>
                                 <div v-else>
-                                    <div
-                                        v-for="notification in notifications"
-                                        :key="notification.id"
+                                    <div v-for="notification in notifications" :key="notification.id"
                                         class="border border-yellow-300 bg-yellow-50 rounded p-3 hover:bg-yellow-100 cursor-pointer"
-                                        @click="markNotificationAsRead(notification.id)"
-                                    >
+                                        @click="markNotificationAsRead(notification.id)">
                                         <p class="text-sm text-gray-700">
-                                            <span class="font-bold">{{ notification.title }}</span>
-                                            <span v-if="notification.company"> at {{ notification.company }}</span>
+                                            <span v-if="notification.type === 'InterviewScheduledNotification'">
+                                                Interview scheduled
+                                                <span v-if="notification.data.job_title">
+                                                    for <b>{{ notification.data.job_title }}</b>
+                                                </span>
+                                                <span v-if="notification.data.company">
+                                                    at <b>{{ notification.data.company }}</b>
+                                                </span>
+                                                on <b>{{ new
+                                                    Date(notification.data.scheduled_at).toLocaleString('en-US', {
+                                                        year:
+                                                            'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:
+                                                            '2-digit'
+                                                    }) }}</b>
+                                                <span v-if="notification.data.location"> ({{ notification.data.location
+                                                }})</span>.
+                                            </span>
+                                            <span v-else>
+                                                <span class="font-bold">{{ notification.data?.title }}</span>
+                                                <span v-if="notification.data?.company"> at {{
+                                                    notification.data?.company }}</span>
+                                            </span>
                                         </p>
                                         <p class="text-xs text-gray-500">{{ notification.created_at }}</p>
-                                        <PrimaryButton
-                                            v-if="notification.job_id"
-                                            @click="router.visit(`/jobs/${notification.job_id}`)"
-                                            class="mt-2 text-xs"
-                                        >View Job</PrimaryButton>
+                                        <PrimaryButton v-if="notification.data?.job_id"
+                                            @click="router.visit(`/jobs/${notification.data?.job_id}`)"
+                                            class="mt-2 text-xs">View Job</PrimaryButton>
+                                        <PrimaryButton v-else-if="notification.data?.action_url"
+                                            @click="router.visit(notification.data?.action_url)" class="mt-2 text-xs">
+                                            View Application</PrimaryButton>
                                     </div>
                                 </div>
                             </div>

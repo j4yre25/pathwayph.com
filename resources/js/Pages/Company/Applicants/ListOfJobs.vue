@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
-import '@fortawesome/fontawesome-free/css/all.css';
+
 
 const page = usePage()
 const props = defineProps({
@@ -34,7 +34,7 @@ const goToJob = (jobId) => {
 
 // Function to get status class based on job status
 const getStatusClass = (status) => {
-  if (status === 1 || status === 'active') return 'bg-green-100 text-green-800';
+  if (status === 1 || status === 'open') return 'bg-green-100 text-green-800';
   if (status === 0 || status === 'closed') return 'bg-red-100 text-red-800';
   if (status === 'draft') return 'bg-yellow-100 text-yellow-800';
   return 'bg-gray-100 text-gray-800';
@@ -42,7 +42,7 @@ const getStatusClass = (status) => {
 
 // Function to get status text
 const getStatusText = (status) => {
-  if (status === 1 || status === 'active') return 'Active';
+  if (status === 1 || status === 'open') return 'Active';
   if (status === 0 || status === 'closed') return 'Closed';
   if (status === 'draft') return 'Draft';
   return 'Unknown';
@@ -78,7 +78,7 @@ const getStatusText = (status) => {
               </h3>
               <div class="flex items-center text-sm text-gray-500 mt-1 md:mt-0">
                 <i class="fas fa-map-marker-alt mr-1" aria-hidden="true"></i>
-                <span>{{ job.location || 'Remote' }}</span>
+                <span>{{ job.locations.map(loc => loc.address).join(', ') }}</span>
               </div>
             </div>
             
@@ -86,7 +86,7 @@ const getStatusText = (status) => {
             <div class="flex flex-wrap items-center mt-2 text-sm text-gray-600">
               <div class="mr-4 mb-1">
                 <span class="inline-block bg-gray-100 rounded-full px-2 py-0.5 text-xs font-medium text-gray-800">
-                  {{ job.job_type || job.type || 'Full-time' }}
+                  {{ job.job_types.map(type => type.type).join(', ') }}
                 </span>
               </div>
               
@@ -110,9 +110,9 @@ const getStatusText = (status) => {
           <!-- Status and actions (right side) -->
           <div class="flex items-center justify-between md:justify-end space-x-4">
             <!-- Status badge -->
-            <span :class="[getStatusClass(job.status || job.is_approved), 'text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap']">
-              {{ getStatusText(job.status || job.is_approved) }}
-            </span>
+            <span :class="getStatusClass(job.status)" class="px-2 py-1 text-xs font-medium rounded-full">
+                {{ getStatusText(job.status) }}
+              </span>
             
             <!-- Action buttons -->
             <div class="flex space-x-2" @click.stop>

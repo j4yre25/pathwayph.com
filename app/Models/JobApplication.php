@@ -16,6 +16,7 @@ class JobApplication extends Model
      */
     protected $fillable = [
         'graduate_id',
+        'user_id',
         'job_id',
         'status',
         'stage',
@@ -23,8 +24,32 @@ class JobApplication extends Model
         'resume_id',
         'cover_letter',
         'additional_documents',
-        'interview_date',
         'notes'
+    ];
+
+    protected static function booted()
+    {
+         static::created(function ($application) {
+        // Log initial stage on creation
+            \App\Models\JobApplicationStage::create([
+                'job_application_id' => $application->id,
+                'stage' => $application->stage,
+                'changed_at' => now(),
+            ]);
+        });
+
+        static::updated(function ($application) {
+            if ($application->isDirty('stage')) {
+                \App\Models\JobApplicationStage::create([
+                    'job_application_id' => $application->id,
+                    'stage' => $application->stage,
+                    'changed_at' => now(),
+                ]);
+            }
+        });
+    }
+    protected $attributes = [
+        'stage' => 'applied', 
     ];
 
     /**
@@ -50,6 +75,14 @@ class JobApplication extends Model
     }
 
     /**
+     * Get the graduate that owns the job application.
+     */ 
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
+    }
+
+    /**
      * Get the job that the application is for.
      */
     public function job()
@@ -64,5 +97,20 @@ class JobApplication extends Model
     {
         return $this->belongsTo(Resume::class);
     }
+   
+    /**
+     * Get the interviews associated with the job application.
+     */
+    public function interviews()
+    {
+        return $this->hasMany(Interview::class);
+    }
 
+    /**
+     * Get the stages associated with the job application.
+     */
+    public function stages()
+    {
+        return $this->hasMany(JobApplicationStage::class);
+    }
 }

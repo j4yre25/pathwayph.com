@@ -26,7 +26,7 @@ class GraduateProfileController extends Controller
         
         return inertia('Frontend/UpdatedGraduateProfile', [
             'graduate' => $graduate,
-            'skills' => \App\Models\GraduateSkill::where('graduate_id', $graduate->id)
+            'skills' => GraduateSkill::where('graduate_id', $graduate->id)
                 ->join('skills', 'graduate_skills.skill_id', '=', 'skills.id')
                 ->select('graduate_skills.*', 'skills.name as skill_name')
                 ->get(),

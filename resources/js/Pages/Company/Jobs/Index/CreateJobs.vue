@@ -1,5 +1,5 @@
 <script setup>
-import { router, usePage, useForm } from '@inertiajs/vue3'
+import { router, usePage, useForm, Link } from '@inertiajs/vue3'
 import { ref, watch, computed, watchEffect } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Container from '@/Components/Container.vue'
@@ -12,11 +12,12 @@ import MultiSelect from '@/Components/MultiSelect.vue';
 import RichTextEditor from '@/Components/RichTextEditor.vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import '@fortawesome/fontawesome-free/css/all.css';
+
 import { useSectorCategories } from '@/Composables/useSectorCategories';
 import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
 import { useSalaryValidation } from '@/Composables/useSalaryValidation';
 import { useSkills } from '@/Composables/useSkills';
+
 
 const page = usePage()
 
@@ -26,7 +27,7 @@ const props = defineProps({
     categories: Array,
     programs: Array,
     authUser: Object,
-    skills: Array, 
+    skills: Array,
 })
 
 const programs = props.programs;
@@ -93,20 +94,32 @@ watchEffect(() => {
     form.posted_by = postedBy.value;
 });
 
+
 // Tabs setup
 const currentStep = ref('job-details');
-
+// Navigate to previous step
 const goToPreviousStep = () => {
-    if (currentStep.value === 'salary-info') currentStep.value = 'job-details';
-    else if (currentStep.value === 'description') currentStep.value = 'salary-info';
-    else if (currentStep.value === 'review') currentStep.value = 'description';
+    if (currentStep.value === 'job-details') {
+    } else if (currentStep.value === 'salary-info') {
+        currentStep.value = 'job-details';
+    } else if (currentStep.value === 'description') {
+        currentStep.value = 'salary-info';
+    } else if (currentStep.value === 'review') {
+        currentStep.value = 'description';
+    }
 };
 
+// Navigate to next step
 const goToNextStep = () => {
-    if (currentStep.value === 'job-details') currentStep.value = 'salary-info';
-    else if (currentStep.value === 'salary-info') currentStep.value = 'description';
-    else if (currentStep.value === 'description') currentStep.value = 'review';
+    if (currentStep.value === 'job-details') {
+        currentStep.value = 'salary-info';
+    } else if (currentStep.value === 'salary-info') {
+        currentStep.value = 'description';
+    } else if (currentStep.value === 'description') {
+        currentStep.value = 'review';
+    }
 };
+// End for the tabs setup
 
 
 const expirationDate = ref(null)
@@ -117,8 +130,8 @@ const { validateLocation } = useWorkEnvironmentValidation(form);
 const { salaryError, salaryWarning, validateSalary } = useSalaryValidation(form);
 const { newSkill, isFocused, filteredSkills, addSkill, removeSkill, selectSuggestion } = useSkills(form, props.skills);
 
-// Extract selected program IDs
 const extractProgramIds = () => {
+    // Extract only the ids from the selected programs
     form.program_id = form.program_id.map(program => program.id);
 };
 
@@ -143,70 +156,65 @@ const createJob = () => {
 
     console.log('Route:', route('company.jobs.store', { user: page.props.auth.user.id }));
 }
+
 </script>
 
 
-
 <template>
-   <AppLayout title ="Post a New Job">
-    <template #header>
-        <div>
-            <div class="flex items-center">
-                <Link :href="route('company.jobs', { user: page.props.auth.user.id })" class="text-gray-500 hover:text-gray-700 mr-3">
+    <AppLayout title="Post a New Job">
+        <template #header>
+            <div>
+                <div class="flex items-center">
+                    <Link :href="route('company.jobs', { user: page.props.auth.user.id })"
+                        class="text-gray-500 hover:text-gray-700 mr-3">
                     <i class="fas fa-chevron-left"></i>
-                </Link>
-                <i class="fas fa-folder-plus text-blue-500 text-xl mr-2"></i>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Create New Job Posting       
-                </h2>
+                    </Link>
+                    <i class="fas fa-folder-plus text-blue-500 text-xl mr-2"></i>
+                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                        Create New Job Posting
+                    </h2>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Please fill in the details below to create a new job posting.</p>
             </div>
-            <p class="text-sm text-gray-500 mt-2">Please fill in the details below to create a new job posting.</p>
-        </div>
-    </template>
+        </template>
 
         <Container class="py-15">
             <div class="mt-8">
                 <FormSection @submitted="createJob()">
                     <template #form>
-                        <h1 class="text-2xl font-bold ">Create New Job Posting</h1>
-                        <p class="text-sm text-gray-500 mb-6">Please fill in the details below to create a new job
-                            posting.</p>
                         <!-- Progress Tabs -->
                         <div class="flex justify-center mb-8 border-b">
-                            <div @click="currentStep = 'job-details'" :class="[
-                                'px-4 py-2 cursor-pointer',
-                                currentStep === 'job-details' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500'
-                            ]">
-                                Basic Job Details
+                            <div @click="currentStep = 'job-details'"
+                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
+                                    currentStep === 'job-details' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500']">
+                                <i class="fas fa-briefcase text-xl mb-1"></i>
+                                <span>Basic Job Details</span>
                             </div>
-                            <div @click="currentStep === 'job-details' ? null : currentStep = 'salary-info'" :class="[
-                                'px-4 py-2 cursor-pointer',
+                            <div @click="currentStep === 'job-details' ? null : currentStep = 'salary-info'" :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
                                 currentStep === 'salary-info' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
-                                currentStep === 'job-details' ? 'opacity-50 cursor-not-allowed' : ''
-                            ]">
-                                Salary Information
+                                currentStep === 'job-details' ? 'opacity-50 cursor-not-allowed' : '']">
+                                <i class="fas fa-money-bill-wave text-xl mb-1"></i>
+                                <span>Salary Information</span>
                             </div>
                             <div @click="currentStep === 'job-details' || currentStep === 'salary-info' ? null : currentStep = 'description'"
-                                :class="[
-                                    'px-4 py-2 cursor-pointer',
+                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
                                     currentStep === 'description' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
-                                    currentStep === 'job-details' || currentStep === 'salary-info' ? 'opacity-50 cursor-not-allowed' : ''
-                                ]">
-                                Description & Requirements
+                                    currentStep === 'job-details' || currentStep === 'salary-info' ? 'opacity-50 cursor-not-allowed' : '']">
+                                <i class="fas fa-clipboard-list text-xl mb-1"></i>
+                                <span>Description & Requirements</span>
                             </div>
                             <div @click="currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? null : currentStep = 'review'"
-                                :class="[
-                                    'px-4 py-2 cursor-pointer',
+                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
                                     currentStep === 'review' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
-                                    currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? 'opacity-50 cursor-not-allowed' : ''
-                                ]">
-                                Other Information
+                                    currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? 'opacity-50 cursor-not-allowed' : '']">
+                                <i class="fas fa-info-circle text-xl mb-1"></i>
+                                <span>Other Information</span>
                             </div>
                         </div>
 
                         <!-- Basic Job Details Tab -->
                         <div v-if="currentStep === 'job-details'" class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
                                 <!-- Job Title -->
                                 <div>
                                     <InputLabel for="job_title" value="Job Title" />
@@ -214,6 +222,10 @@ const createJob = () => {
                                         v-model="form.job_title" required autofocus />
                                     <InputError class="mt-2" :message="form.errors.job_title" />
                                 </div>
+
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                                 <!-- Program Selection -->
                                 <div>
@@ -253,11 +265,18 @@ const createJob = () => {
                                     <InputError class="mt-2" :message="form.errors.job_experience_level" />
                                 </div>
 
+                                <!-- Number of Vacancies -->
+                                <div>
+                                    <InputLabel for="job_vacancies" value="Number of Vacancies" />
+                                    <TextInput id="job_vacancies" type="number" class="mt-1 block w-full"
+                                        v-model="form.job_vacancies" required min="1" />
+                                    <InputError class="mt-2" :message="form.errors.job_vacancies" />
+                                </div>
+
                                 <!-- Sector -->
                                 <div>
                                     <InputLabel for="sector" value="Sector" />
-                                    <select id="sector"
-                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                    <select id="sector" class="mt-1 block w-full border-gray-300 rounded-md"
                                         v-model="form.sector" required>
                                         <option value="">Select Sector</option>
                                         <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
@@ -270,8 +289,7 @@ const createJob = () => {
                                 <!-- Category -->
                                 <div>
                                     <InputLabel for="category" value="Category" />
-                                    <select id="category"
-                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                    <select id="category" class="mt-1 block w-full border-gray-300 rounded-md"
                                         v-model="form.category" required :disabled="!form.sector">
                                         <option value="">Select Category</option>
                                         <option v-for="category in availableCategories" :key="category.id"
@@ -282,45 +300,35 @@ const createJob = () => {
                                     <InputError class="mt-2" :message="form.errors.category" />
                                 </div>
 
-                                <!-- Number of Vacancies -->
-                                <div>
-                                    <InputLabel for="job_vacancies" value="Number of Vacancies" />
-                                    <TextInput id="job_vacancies" type="number" class="mt-1 block w-full"
-                                        v-model="form.job_vacancies" required min="1" />
-                                    <InputError class="mt-2" :message="form.errors.job_vacancies" />
-                                </div>
 
                                 <!-- Work Environment -->
                                 <div>
-                                    <InputLabel for="job_work_environment" value="Work Environment" />
+                                    <InputLabel for="work_environment" value="Work Environment" />
                                     <select id="work_environment"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.work_environment" required>
-                                        <option v-for="environment in workEnvironments" :key="environment.id" :value="environment.id">
+                                        <option v-for="environment in workEnvironments" :key="environment.id"
+                                            :value="environment.id">
                                             {{ environment.environment_type }}
                                         </option>
                                     </select>
-                                    <InputError class="mt-2" :message="form.errors.job_work_environment" />
+                                    <InputError class="mt-2" :message="form.errors.work_environment" />
                                 </div>
 
                                 <!-- Job Location (disabled if Remote is selected) -->
                                 <div>
                                     <InputLabel for="location" value="Job Location" />
-                                    <TextInput
-                                        id="location"
-                                        type="text"
-                                        class="mt-1 block w-full"
-                                        v-model="form.location"
-                                        :disabled="form.work_environment == 2"
+                                    <TextInput id="location" type="text" class="mt-1 block w-full"
+                                        v-model="form.location" :disabled="form.work_environment == 2"
                                         :required="form.work_environment != 2"
-                                        :placeholder="form.work_environment == 2 ? 'Remote job — no location needed' : 'Enter job location'"/>
+                                        :placeholder="form.work_environment == 2 ? 'Remote job — no location needed' : 'Enter job location'" />
                                     <InputError class="mt-2" :message="form.errors.location" />
                                 </div>
                             </div>
 
                             <div class="flex justify-end">
                                 <PrimaryButton @click="goToNextStep" type="button">
-                                    Next
+                                    Next <i class="fas fa-chevron-right ml-1"></i>
                                 </PrimaryButton>
                             </div>
                         </div>
@@ -332,27 +340,22 @@ const createJob = () => {
                                 <!-- Salary Type -->
                                 <div>
                                     <InputLabel for="job_salary_type" value="Salary Type" />
-                                    <select
-                                        id="salary_type"
+                                    <select id="salary_type"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        v-model="form.salary.salary_type"
-                                        @change="validateSalary">
-                                            <option value="">Select Salary Type</option>
-                                            <option value="monthly">Monthly</option>
-                                            <option value="weekly">Weekly</option>
-                                            <option value="hourly">Hourly</option>
+                                        v-model="form.salary.salary_type" @change="validateSalary">
+                                        <option value="">Select Salary Type</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="hourly">Hourly</option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors['salary.salary_type']" />
                                 </div>
 
                                 <!-- Negotiable Salary Checkbox -->
                                 <div class="flex items-center mt-6">
-                                    <input
-                                        id="is_negotiable"
-                                        type="checkbox"
+                                    <input id="is_negotiable" type="checkbox"
                                         class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
-                                        v-model="form.is_negotiable"
-                                        @change="validateSalary"/>
+                                        v-model="form.is_negotiable" @change="validateSalary" />
                                     <label for="is_negotiable" class="ml-2 block text-sm text-gray-900">
                                         Salary is negotiable
                                     </label>
@@ -362,16 +365,13 @@ const createJob = () => {
                                 <div>
                                     <InputLabel for="job_min_salary" value="Minimum Salary" />
                                     <div class="relative mt-1">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
-                                        <TextInput
-                                            id="job_min_salary"
-                                            type="number"
-                                            class="pl-7 block w-full"
-                                            v-model="form.salary.job_min_salary"
-                                            :disabled="form.is_negotiable"
-                                            @input="validateSalary"/>
+                                        <TextInput id="job_min_salary" type="number" class="pl-7 block w-full"
+                                            v-model="form.salary.job_min_salary" :disabled="form.is_negotiable"
+                                            @input="validateSalary" />
                                     </div>
                                 </div>
 
@@ -379,16 +379,13 @@ const createJob = () => {
                                 <div>
                                     <InputLabel for="job_max_salary" value="Maximum Salary" />
                                     <div class="relative mt-1">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
-                                        <TextInput
-                                            id="max_salary"
-                                            type="number"
-                                            class="pl-7 block w-full"
-                                            v-model="form.salary.job_max_salary"
-                                            :disabled="form.is_negotiable"
-                                            @input="validateSalary"/>
+                                        <TextInput id="max_salary" type="number" class="pl-7 block w-full"
+                                            v-model="form.salary.job_max_salary" :disabled="form.is_negotiable"
+                                            @input="validateSalary" />
                                     </div>
                                 </div>
                             </div>
@@ -404,15 +401,15 @@ const createJob = () => {
                             </div>
 
                             <div class="flex justify-between">
-                                <PrimaryButton @click="goToPreviousStep" type="button" class="bg-gray-500 hover:bg-gray-600">
-                                    Previous
+                                <PrimaryButton @click="goToPreviousStep" type="button"
+                                    class="bg-gray-500 hover:bg-gray-600">
+                                    <i class="fas fa-chevron-left mr-1"></i>Previous
                                 </PrimaryButton>
                                 <PrimaryButton @click="goToNextStep" type="button">
-                                    Next
+                                    Next <i class="fas fa-chevron-right ml-1"></i>
                                 </PrimaryButton>
                             </div>
                         </div>
-
 
                         <!-- Description & Requirements Tab -->
                         <div v-if="currentStep === 'description'" class="space-y-6">
@@ -443,47 +440,37 @@ const createJob = () => {
                                 <div class="relative">
                                     <!-- Input Field -->
                                     <div class="flex mt-1">
-                                        <TextInput
-                                            id="skills"
-                                            type="text"
-                                            class="block w-full"
-                                            v-model="newSkill"
-                                            placeholder="Enter a skill"
-                                            @input="filterSuggestions"
-                                            @keyup.enter.prevent="addSkill"
-                                            @focus="showSuggestions = true"
-                                        />
+                                        <TextInput id="skills" type="text" class="block w-full" v-model="newSkill"
+                                            placeholder="Enter a skill" @input="filterSuggestions"
+                                            @keyup.enter.prevent="addSkill" @focus="showSuggestions = true" />
                                         <PrimaryButton type="button" @click="addSkill" class="ml-2">
                                             Add
                                         </PrimaryButton>
                                     </div>
 
                                     <!-- Suggestions Dropdown -->
-                                    <div v-if="showSuggestions && filteredSkills.length > 0" class="absolute z-10 bg-white border mt-1 w-full rounded shadow max-h-40 overflow-auto">
-                                        <div
-                                            v-for="(suggestion, i) in filteredSkills"
-                                            :key="i"
+                                    <div v-if="showSuggestions && filteredSkills.length > 0"
+                                        class="absolute z-10 bg-white border mt-1 w-full rounded shadow max-h-40 overflow-auto">
+                                        <div v-for="(suggestion, i) in filteredSkills" :key="i"
                                             @click="selectSuggestion(suggestion)"
-                                            class="px-3 py-2 hover:bg-indigo-100 cursor-pointer"
-                                        >
+                                            class="px-3 py-2 hover:bg-indigo-100 cursor-pointer">
                                             {{ suggestion }}
                                         </div>
                                     </div>
                                 </div>
 
                                 <p class="mt-1 text-xs text-gray-500">
-                                    Add relevant skills required for this position (e.g., JavaScript, Project Management).
+                                    Add relevant skills required for this position (e.g., JavaScript, Project
+                                    Management).
                                 </p>
 
                                 <!-- Skills List -->
                                 <div v-if="form.skills.length > 0" class="mt-3 flex flex-wrap gap-2">
-                                    <div
-                                        v-for="(skill, index) in form.skills"
-                                        :key="index"
-                                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
-                                    >
+                                    <div v-for="(skill, index) in form.skills" :key="index"
+                                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center">
                                         <span>{{ skill }}</span>
-                                        <button type="button" @click="removeSkill(index)" class="ml-2 text-blue-600 hover:text-blue-800 focus:outline-none">
+                                        <button type="button" @click="removeSkill(index)"
+                                            class="ml-2 text-blue-600 hover:text-blue-800 focus:outline-none">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
@@ -492,14 +479,13 @@ const createJob = () => {
                                 <InputError class="mt-2" :message="form.errors.skills" />
                             </div>
 
-
                             <div class="flex justify-between">
                                 <PrimaryButton @click="goToPreviousStep" type="button"
                                     class="bg-gray-500 hover:bg-gray-600">
-                                    Previous
+                                    Previous <i class="fas fa-chevron-left mr-1"></i>
                                 </PrimaryButton>
                                 <PrimaryButton @click="goToNextStep" type="button">
-                                    Next
+                                    Next <i class="fas fa-chevron-right ml-1"></i>
                                 </PrimaryButton>
                             </div>
                         </div>
@@ -557,7 +543,7 @@ const createJob = () => {
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Work Environment</p>
-                                                <p>{{ selectedWorkEnvironmentLabel  || 'Not provided' }}</p>
+                                                <p>{{ selectedWorkEnvironmentLabel || 'Not provided' }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Location</p>
@@ -643,11 +629,12 @@ const createJob = () => {
                             <div class="flex justify-between">
                                 <PrimaryButton @click="goToPreviousStep" type="button"
                                     class="bg-gray-500 hover:bg-gray-600">
-                                    Previous
+                                    Previous <i class="fas fa-chevron-left mr-1"></i>
                                 </PrimaryButton>
                                 <div class="flex space-x-3">
                                     <PrimaryButton type="submit" :disabled="form.processing">
-                                        {{ form.processing ? 'Posting...' : 'Post Job' }}
+                                        {{ form.processing ? 'Posting...' : 'Post Job' }} <i
+                                            class="fas fa-chevron-right ml-1"></i>
                                     </PrimaryButton>
                                 </div>
                             </div>

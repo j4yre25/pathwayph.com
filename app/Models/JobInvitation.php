@@ -14,10 +14,10 @@ class JobInvitation extends Model
 
     // Mass assignable attributes
     protected $fillable = [
-        'job_id', 
-        'graduate_id', 
-        'company_id', 
-        'status', 
+        'job_id',
+        'graduate_id',
+        'company_id',
+        'status',
         'message'
     ];
 
@@ -29,7 +29,7 @@ class JobInvitation extends Model
 
     public function graduate()
     {
-        return $this->belongsTo(User::class, 'graduate_id');
+        return $this->belongsTo(\App\Models\Graduate::class);
     }
 
     public function company()

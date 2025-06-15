@@ -7,7 +7,7 @@ import { useForm } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 import MyJobs from './MyJobs.vue'
 import { ref, computed } from 'vue';
-import '@fortawesome/fontawesome-free/css/all.css';
+
 
 const page = usePage()
 
@@ -78,14 +78,14 @@ const form = useForm({
         <Container class="py-6">
             <!-- Action buttons -->
             <div class="flex flex-wrap gap-3 mb-6">
-                <Link :href="route('jobs.create', { user: page.props.auth.user.id })" class="flex-shrink-0">
+                <Link :href="route('company.jobs.create', { user: page.props.auth.user.id })" class="flex-shrink-0">
                     <PrimaryButton class="flex items-center">
                         <i class="fas fa-plus-circle mr-2"></i>
                         Post Jobs
                     </PrimaryButton>
                 </Link>
 
-                <Link :href="route('jobs.manage', { user: page.props.auth.user.id })" class="flex-shrink-0">
+                <Link :href="route('company.jobs.manage', { user: page.props.auth.user.id })" class="flex-shrink-0">
                     <PrimaryButton class="flex items-center">
                         <i class="fas fa-tasks mr-2"></i>
                         Manage Posted Jobs
@@ -139,9 +139,6 @@ const form = useForm({
                                         {{ category }}
                                     </option>
                                 </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                    <i class="fas fa-chevron-down text-gray-400"></i>
-                                </div>
                             </div>
                         </div>
                         
@@ -159,9 +156,6 @@ const form = useForm({
                                         {{ sector }}
                                     </option>
                                 </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                    <i class="fas fa-chevron-down text-gray-400"></i>
-                                </div>
                             </div>
                         </div>
                         
@@ -180,9 +174,7 @@ const form = useForm({
                                     <option value="Contract">Contract</option>
                                     <option value="Internship">Internship</option>
                                 </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                    <i class="fas fa-chevron-down text-gray-400"></i>
-                                </div>
+                               
                             </div>
                         </div>
                     </div>
