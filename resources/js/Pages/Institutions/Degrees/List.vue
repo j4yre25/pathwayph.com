@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import { usePage, router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 // Add FontAwesome CSS
 const faCSS = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
@@ -14,7 +14,6 @@ const props = defineProps({
 });
 
 const selectedStatus = ref('all');
-const appliedStatus = ref('all');
 const searchQuery = ref('');
 
 // Computed property for filtering degrees by status and search query
@@ -22,9 +21,9 @@ const filteredDegrees = computed(() => {
   let filtered = props.degrees;
   
   // Filter by status
-  if (appliedStatus.value !== 'all') {
+  if (selectedStatus.value !== 'all') {
     filtered = filtered.filter(degree =>
-      appliedStatus.value === 'active' ? !degree.deleted_at : degree.deleted_at
+      selectedStatus.value === 'active' ? !degree.deleted_at : degree.deleted_at
     );
   }
   
@@ -49,14 +48,19 @@ const stats = computed(() => {
   return { total, active, inactive };
 });
 
-function applyFilter() {
-  appliedStatus.value = selectedStatus.value;
-}
-
 // Function to go back to dashboard
 const goBack = () => {
-  router.visit(route('dashboard'));
+  window.history.back();
 };
+
+// Watch for changes to apply filters immediately
+watch(selectedStatus, () => {
+  // No need for explicit apply function
+});
+
+watch(searchQuery, () => {
+  // No need for explicit apply function
+});
 </script>
 
 <template>
@@ -67,7 +71,7 @@ const goBack = () => {
           <i class="fas fa-chevron-left"></i>
         </button>
         <h2 class="text-xl font-semibold text-gray-800 flex items-center">
-          <i class="fas fa-graduation-cap mr-2"></i> Manage Degrees
+          <i class="fas fa-graduation-cap text-blue-500 text-xl mr-2"></i> Manage Degrees
         </h2>
       </div>
     </template>
@@ -77,38 +81,38 @@ const goBack = () => {
     <Container class="py-6 space-y-6">
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
-          <div class="flex items-center">
-            <div class="p-3 rounded-full bg-blue-100 mr-4">
-              <i class="fas fa-graduation-cap text-blue-500 text-xl"></i>
-            </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden">
+          <div class="flex justify-between items-start">
             <div>
-              <p class="text-sm font-medium text-gray-600">Total Degrees</p>
-              <p class="text-2xl font-semibold text-gray-800">{{ stats.total }}</p>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">Total Degrees</h3>
+              <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+            </div>
+            <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
+              <i class="fas fa-graduation-cap text-blue-600"></i>
             </div>
           </div>
         </div>
         
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
-          <div class="flex items-center">
-            <div class="p-3 rounded-full bg-green-100 mr-4">
-              <i class="fas fa-check-circle text-green-500 text-xl"></i>
-            </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden">
+          <div class="flex justify-between items-start">
             <div>
-              <p class="text-sm font-medium text-gray-600">Active</p>
-              <p class="text-2xl font-semibold text-gray-800">{{ stats.active }}</p>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">Active</h3>
+              <p class="text-3xl font-bold text-gray-800">{{ stats.active }}</p>
+            </div>
+            <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
+              <i class="fas fa-check-circle text-green-600"></i>
             </div>
           </div>
         </div>
         
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
-          <div class="flex items-center">
-            <div class="p-3 rounded-full bg-red-100 mr-4">
-              <i class="fas fa-times-circle text-red-500 text-xl"></i>
-            </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 relative overflow-hidden">
+          <div class="flex justify-between items-start">
             <div>
-              <p class="text-sm font-medium text-gray-600">Inactive</p>
-              <p class="text-2xl font-semibold text-gray-800">{{ stats.inactive }}</p>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">Inactive</h3>
+              <p class="text-3xl font-bold text-gray-800">{{ stats.inactive }}</p>
+            </div>
+            <div class="bg-red-100 rounded-full p-3 flex items-center justify-center">
+              <i class="fas fa-times-circle text-red-600"></i>
             </div>
           </div>
         </div>
@@ -130,9 +134,6 @@ const goBack = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <button @click="applyFilter" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center">
-            <i class="fas fa-check mr-2"></i> Apply
-          </button>
         </div>
         
         <div class="relative">

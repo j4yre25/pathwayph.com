@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
@@ -44,6 +44,25 @@ const disapproveGraduate = (id) => {
     },
   });
 };
+
+// Pagination
+const currentPage = ref(1);
+const itemsPerPage = 30;
+const totalPages = computed(() => Math.ceil(graduates.value.length / itemsPerPage));
+const paginatedGraduates = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  return graduates.value.slice(startIndex, endIndex);
+});
+
+const goToPage = (page) => {
+  currentPage.value = page;
+};
+
+// Reset pagination when component is mounted
+onMounted(() => {
+  currentPage.value = 1;
+});
 </script>
 
 <template>
@@ -58,7 +77,7 @@ const disapproveGraduate = (id) => {
     <Container class="py-8">
       <!-- Stats Summary -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md">
+        <div class="bg-white rounded-lg p-6 shadow-sm border-l-4 border-blue-500 transition-all duration-200 hover:shadow-md relative overflow-hidden">
           <div class="flex justify-between items-start">
             <div>
               <h3 class="text-gray-600 text-sm font-medium mb-2">Total Graduates</h3>
@@ -71,7 +90,7 @@ const disapproveGraduate = (id) => {
             </div>
           </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md">
+        <div class="bg-white rounded-lg p-6 shadow-sm border-l-4 border-yellow-500 transition-all duration-200 hover:shadow-md relative overflow-hidden">
           <div class="flex justify-between items-start">
             <div>
               <h3 class="text-gray-600 text-sm font-medium mb-2">Pending</h3>
@@ -84,7 +103,7 @@ const disapproveGraduate = (id) => {
             </div>
           </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md">
+        <div class="bg-white rounded-lg p-6 shadow-sm border-l-4 border-green-500 transition-all duration-200 hover:shadow-md relative overflow-hidden">
           <div class="flex justify-between items-start">
             <div>
               <h3 class="text-gray-600 text-sm font-medium mb-2">Approved</h3>
@@ -97,7 +116,7 @@ const disapproveGraduate = (id) => {
             </div>
           </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md">
+        <div class="bg-white rounded-lg p-6 shadow-sm border-l-4 border-red-500 transition-all duration-200 hover:shadow-md relative overflow-hidden">
           <div class="flex justify-between items-start">
             <div>
               <h3 class="text-gray-600 text-sm font-medium mb-2">Disapproved</h3>
@@ -121,15 +140,15 @@ const disapproveGraduate = (id) => {
             <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ totalGraduates }} total</span>
           </div>
           <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
-            <Link :href="route('graduates.pending')" 
+            <Link :href="route('graduates.manage')" 
                   class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
               <i class="fas fa-clock text-yellow-500 mr-2"></i> Pending
             </Link>
-            <Link :href="route('graduates.approved')" 
+            <Link :href="route('graduates.list', { status: 'approved' })" 
                   class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
               <i class="fas fa-check-circle text-green-500 mr-2"></i> Approved
             </Link>
-            <Link :href="route('graduates.disapproved')" 
+            <Link :href="route('graduates.list', { status: 'disapproved' })" 
                   class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
               <i class="fas fa-times-circle text-red-500 mr-2"></i> Disapproved
             </Link>
@@ -149,7 +168,7 @@ const disapproveGraduate = (id) => {
             </thead>
             <tbody class="divide-y divide-gray-200">
               <tr
-                v-for="graduate in graduates"
+                v-for="graduate in paginatedGraduates"
                 :key="graduate.id"
                 class="hover:bg-gray-50 transition-colors"
               >
@@ -212,6 +231,45 @@ const disapproveGraduate = (id) => {
               </tr>
             </tbody>
           </table>
+          
+          <!-- Pagination Controls -->
+          <div v-if="totalPages > 1" class="px-6 py-4 bg-white border-t border-gray-200 flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+              Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
+              <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, graduates.length) }}</span> of
+              <span class="font-medium">{{ graduates.length }}</span> results
+            </div>
+            <div class="flex space-x-2">
+              <button 
+                @click="goToPage(currentPage - 1)" 
+                :disabled="currentPage === 1"
+                class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <div class="flex space-x-1">
+                <button 
+                  v-for="page in totalPages" 
+                  :key="page" 
+                  @click="goToPage(page)"
+                  :class="{
+                    'bg-blue-600 text-white': page === currentPage,
+                    'bg-white text-gray-700 hover:bg-gray-50': page !== currentPage
+                  }"
+                  class="px-3 py-1 rounded border border-gray-300 text-sm font-medium"
+                >
+                  {{ page }}
+                </button>
+              </div>
+              <button 
+                @click="goToPage(currentPage + 1)" 
+                :disabled="currentPage === totalPages"
+                class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </Container>

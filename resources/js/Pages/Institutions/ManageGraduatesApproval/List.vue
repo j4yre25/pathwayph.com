@@ -38,7 +38,8 @@ const stats = computed(() => {
             icon: 'fas fa-user-graduate',
             iconBg: 'bg-blue-100',
             iconColor: 'text-blue-600',
-            tooltip: 'Total number of graduates in the system'
+            tooltip: 'Total number of graduates in the system',
+            border: 'border-l-4 border-blue-500'
         },
         {
             title: 'Active Graduates',
@@ -46,7 +47,8 @@ const stats = computed(() => {
             icon: 'fas fa-check-circle',
             iconBg: 'bg-green-100',
             iconColor: 'text-green-600',
-            tooltip: 'Number of graduates currently active'
+            tooltip: 'Number of graduates currently active',
+            border: 'border-l-4 border-green-500'
         },
         {
             title: 'Inactive Graduates',
@@ -54,7 +56,8 @@ const stats = computed(() => {
             icon: 'fas fa-times-circle',
             iconBg: 'bg-red-100',
             iconColor: 'text-red-600',
-            tooltip: 'Number of graduates who are not currently active'
+            tooltip: 'Number of graduates who are not currently active',
+            border: 'border-l-4 border-red-500'
         },
         {
             title: 'Programs',
@@ -62,7 +65,8 @@ const stats = computed(() => {
             icon: 'fas fa-graduation-cap',
             iconBg: 'bg-purple-100',
             iconColor: 'text-purple-600',
-            tooltip: 'Number of programs offered'
+            tooltip: 'Number of programs offered',
+            border: 'border-l-4 border-purple-500'
         }
     ];
 });
@@ -121,29 +125,33 @@ const goBack = () => {
     window.history.back();
 };
 </script>
+
 <template>
     <AppLayout title="Graduate List">
-        <Container>
-            <!-- Back Button and Header -->
-            <div class="flex items-center mt-6 mb-4">
-                <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
+        <template #header>
+            <div>
                 <div class="flex items-center">
+                    <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
                     <i class="fas fa-user-graduate text-blue-500 text-xl mr-2"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Graduate List</h1>
+                    <h2 class="text-2xl font-bold text-gray-800">Graduate List</h2>
                 </div>
+                <p class="text-sm text-gray-500 mb-1">Manage and filter graduate records by program, date, and status.</p>
             </div>
-            <p class="text-sm text-gray-500 mb-6">Manage and filter graduate records by program, date, and status.</p>
+        </template>
 
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Container class="py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <div v-for="(stat, index) in stats" :key="index" 
-                     class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+                    :class="[
+                        'bg-white rounded-lg shadow-sm p-6 relative overflow-hidden',
+                        stat.border
+                    ]">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-sm text-gray-500 mb-1">{{ stat.title }}</p>
-                            <p class="text-2xl font-bold">{{ stat.value }}</p>
+                            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+                            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
                         </div>
                         <div :class="[stat.iconBg, 'rounded-full p-3 flex items-center justify-center']">
                             <i :class="[stat.icon, stat.iconColor]"></i>
@@ -171,7 +179,6 @@ const goBack = () => {
                                 </option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
-                                <i class="fas fa-chevron-down text-xs"></i>
                             </div>
                         </div>
                     </div>
@@ -210,7 +217,6 @@ const goBack = () => {
                                 <option value="inactive">Inactive</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
-                                <i class="fas fa-chevron-down text-xs"></i>
                             </div>
                         </div>
                     </div>
@@ -297,33 +303,33 @@ const goBack = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <!-- Pagination Controls -->
-            <div class="mt-6 flex justify-center">
-                <nav
-                    v-if="graduates.links && graduates.links.length > 3"
-                    class="inline-flex rounded-md shadow-sm -space-x-px overflow-hidden"
-                >
-                    <button
-                        v-for="(link, i) in graduates.links"
-                        :key="i"
-                        type="button"
-                        :disabled="!link.url"
-                        @click="$inertia.get(link.url)"
-                        :class="[
-                            'px-4 py-2 border text-sm font-medium',
-                            link.active ? 'z-10 bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                            'focus:z-20 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500',
-                            i === 0 ? 'rounded-l-md' : '',
-                            i === graduates.links.length - 1 ? 'rounded-r-md' : ''
-                        ]"
+                
+                <!-- Pagination Controls - Moved inside the white container -->
+                <div class="p-4 border-t border-gray-200 flex justify-center">
+                    <nav
+                        v-if="graduates.links && graduates.links.length > 3"
+                        class="inline-flex rounded-md shadow-sm -space-x-px overflow-hidden"
                     >
-                        <span v-if="link.label === '&laquo;'"><i class="fas fa-chevron-left"></i></span>
-                        <span v-else-if="link.label === '&raquo;'"><i class="fas fa-chevron-right"></i></span>
-                        <span v-else v-html="link.label"></span>
-                    </button>
-                </nav>
+                        <button
+                            v-for="(link, i) in graduates.links"
+                            :key="i"
+                            type="button"
+                            :disabled="!link.url"
+                            @click="$inertia.get(link.url)"
+                            :class="[
+                                'px-4 py-2 border text-sm font-medium',
+                                link.active ? 'z-10 bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                                'focus:z-20 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500',
+                                i === 0 ? 'rounded-l-md' : '',
+                                i === graduates.links.length - 1 ? 'rounded-r-md' : ''
+                            ]"
+                        >
+                            <span v-if="link.label === '&laquo;'"><i class="fas fa-chevron-left"></i></span>
+                            <span v-else-if="link.label === '&raquo;'"><i class="fas fa-chevron-right"></i></span>
+                            <span v-else v-html="link.label"></span>
+                        </button>
+                    </nav>
+                </div>
             </div>
         </Container>
     </AppLayout>

@@ -57,27 +57,28 @@ const stats = computed(() => {
 
 <template>
     <AppLayout title="Archived Graduates">
-        <Container>
-            <!-- Back Button and Header -->
-            <div class="flex items-center mt-6 mb-4">
-                <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
+        <template #header>
+            <div>
                 <div class="flex items-center">
+                    <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
                     <i class="fas fa-archive text-orange-500 text-xl mr-2"></i>
-                    <h1 class="text-2xl font-bold text-gray-800">Archived Graduates</h1>
+                    <h2 class="text-2xl font-bold text-gray-800">Archived Graduates</h2>
                 </div>
+                <p class="text-sm text-gray-500 mb-1">View the full list of archived graduates or restore them.</p>
             </div>
-            <p class="text-sm text-gray-500 mb-6 ml-9">View the full list of archived graduates or restore them.</p>
-
+        </template>
+            
+        <Container class="py-8">
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mb-6">
                 <div v-for="(stat, index) in stats" :key="index" 
-                     class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+                     class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500 relative overflow-hidden">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-sm text-gray-500 mb-1">{{ stat.title }}</p>
-                            <p class="text-2xl font-bold">{{ stat.value }}</p>
+                            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+                            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
                         </div>
                         <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
                             <i :class="[stat.icon, stat.color]"></i>

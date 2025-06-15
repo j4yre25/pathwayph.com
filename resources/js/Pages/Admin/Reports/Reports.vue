@@ -484,181 +484,305 @@ onMounted(() => {
 
 <template>
   <AppLayout title="PESO Reports">
-    <div class="max-w-5xl mx-auto py-8 px-4">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800">Employment Status Overview</h2>
-
-      <!-- FILTER CONTROLS -->
-      <div class="flex flex-wrap gap-4 mb-8">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
-          <select v-model="selectedYear" class="border rounded px-2 py-1">
-            <option value="">All</option>
-            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
-          <select v-model="selectedProgram" class="border rounded px-2 py-1">
-            <option value="">All</option>
-            <option v-for="program in programs" :key="program.id" :value="program.id">{{ program.name }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select v-model="selectedStatus" class="border rounded px-2 py-1">
-            <option value="">All</option>
-            <option value="Employed">Employed</option>
-            <option value="Unemployed">Unemployed</option>
-            <option value="Underemployed">Underemployed</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-          <select v-model="selectedLocation" class="border rounded px-2 py-1">
-            <option value="">All</option>
-            <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
-          </select>
-        </div>
+    <template #header>
+      <div class="flex items-center">
+        <i class="fas fa-chart-line text-blue-500 text-xl mr-2"></i>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Employment Analytics Dashboard</h2>
       </div>
+    </template>
 
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
-        <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-          <span class="text-gray-500 text-sm">Employed</span>
-          <span class="text-3xl font-bold text-green-600">{{ employed }}</span>
-        </div>
-        <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-          <span class="text-gray-500 text-sm">Unemployed</span>
-          <span class="text-3xl font-bold text-red-600">{{ unemployed }}</span>
-        </div>
-        <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-          <span class="text-gray-500 text-sm">Total Graduates</span>
-          <span class="text-3xl font-bold text-blue-600">{{ totalGraduates }}</span>
-        </div>
-      </div>
-
-      <div v-if="statusCounts && Object.keys(statusCounts).length" class="bg-white rounded-xl shadow p-8">
-        <div class="flex flex-col lg:flex-row gap-12 items-center justify-between">
-          <div class="w-full lg:w-2/5 mb-8 lg:mb-0">
-            <h3 class="text-lg font-semibold mb-6 text-gray-700">Detailed Status</h3>
-            <ul class="space-y-4">
-              <li v-for="(count, status) in statusCounts" :key="status"
-                class="flex justify-between items-center px-4 py-2 rounded hover:bg-gray-50 transition">
-                <span class="capitalize text-gray-600">{{ status }}</span>
-                <span class="font-semibold text-gray-900">{{ count }}</span>
-              </li>
-            </ul>
-          </div>
-          <div class="w-full lg:w-3/5 flex justify-center">
-            <div class="bg-gray-50 rounded-lg p-4 w-full flex justify-center">
-              <VueECharts v-if="pieOption.series[0].data.length" :option="pieOption"
-                style="height: 350px; width: 100%; max-width: 420px;" />
-              <div v-else class="text-gray-400 text-center py-8">No chart data available.</div>
+    <div class="py-8">
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <!-- Filter Controls Card -->
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+          <div class="p-6 bg-white border-b border-gray-200">
+            <div class="flex items-center mb-4">
+              <i class="fas fa-filter text-blue-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Filter Reports</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                <select v-model="selectedYear" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                  <option value="">All Years</option>
+                  <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
+                <select v-model="selectedProgram" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                  <option value="">All Programs</option>
+                  <option v-for="program in programs" :key="program.id" :value="program.id">{{ program.name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select v-model="selectedStatus" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                  <option value="">All Statuses</option>
+                  <option value="Employed">Employed</option>
+                  <option value="Unemployed">Unemployed</option>
+                  <option value="Underemployed">Underemployed</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <select v-model="selectedLocation" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                  <option value="">All Locations</option>
+                  <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Employment By Program</h2>
-
-      <!-- Stacked Bar Chart -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment by Program (Stacked Bar)</h3>
-        <VueECharts :option="barOption" style="height: 400px; width: 100%;" />
-      </div>
-
-      <!-- Heatmap -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Program Employment Rate Heatmap</h3>
-        <VueECharts :option="heatmapOption" style="height: 350px; width: 100%;" />
-      </div>
-
-      <!-- Skills and Roles Analysis -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Skills and Roles Analysis</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h4 class="font-semibold mb-2">Top Job Roles (Employed Graduates)</h4>
-            <ul class="flex flex-wrap gap-2">
-              <li v-for="[role, count] in topRoles" :key="role"
-                class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                {{ role }} <span class="font-bold">({{ count }})</span>
-              </li>
-            </ul>
-            <h4 class="font-semibold mt-6 mb-2">Top Skills (Employed Graduates)</h4>
-            <ul class="flex flex-wrap gap-2">
-              <li v-for="[skill, count] in topSkills" :key="skill"
-                class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                {{ skill }} <span class="font-bold">({{ count }})</span>
-              </li>
-            </ul>
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Employed</p>
+                <h3 class="text-3xl font-bold text-green-600 mt-1">{{ employed }}</h3>
+              </div>
+              <div class="bg-green-100 rounded-full p-3">
+                <i class="fas fa-user-check text-green-600"></i>
+              </div>
+            </div>
           </div>
-          <div>
-            <h4 class="font-semibold mb-2">Top Skills: Demand vs. Supply</h4>
-            <VueECharts :option="skillBarOption" style="height: 320px; width: 100%;" />
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Unemployed</p>
+                <h3 class="text-3xl font-bold text-red-600 mt-1">{{ unemployed }}</h3>
+              </div>
+              <div class="bg-red-100 rounded-full p-3">
+                <i class="fas fa-user-times text-red-600"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Total Graduates</p>
+                <h3 class="text-3xl font-bold text-blue-600 mt-1">{{ totalGraduates }}</h3>
+              </div>
+              <div class="bg-blue-100 rounded-full p-3">
+                <i class="fas fa-user-graduate text-blue-600"></i>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Unemployment Rate Pie Chart -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment Rate Distribution</h3>
-        <VueECharts :option="unemploymentPieOption" style="height: 350px; width: 100%; max-width: 420px;" />
-      </div>
+        <!-- Employment Status Overview -->
+        <div v-if="statusCounts && Object.keys(statusCounts).length" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Employment Status Overview</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="flex flex-col lg:flex-row gap-8 items-center justify-between">
+              <div class="w-full lg:w-2/5 mb-6 lg:mb-0">
+                <h4 class="text-base font-medium text-gray-700 mb-4">Detailed Status</h4>
+                <ul class="space-y-3">
+                  <li v-for="(count, status) in statusCounts" :key="status"
+                    class="flex justify-between items-center px-4 py-2 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+                    <span class="capitalize text-gray-700">{{ status }}</span>
+                    <span class="font-semibold text-gray-900">{{ count }}</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="w-full lg:w-3/5 flex justify-center">
+                <div class="bg-gray-50 rounded-lg p-4 w-full flex justify-center">
+                  <VueECharts v-if="pieOption.series[0].data.length" :option="pieOption"
+                    style="height: 350px; width: 100%; max-width: 420px;" />
+                  <div v-else class="text-gray-400 text-center py-8">No chart data available.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <!-- Unemployment Rate Over Time Area Chart -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment Rate Over Time</h3>
-        <VueECharts :option="areaOption" style="height: 350px; width: 100%;" />
-      </div>
+        <!-- Employment By Program -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Employment By Program</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <VueECharts :option="barOption" style="height: 400px; width: 100%;" />
+          </div>
+        </div>
 
-      <!-- Employment Trend Over Time Line Chart -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment Trend Over Time</h3>
-        <VueECharts :option="employmentTrendOption" style="height: 350px; width: 100%;" />
-      </div>
+        <!-- Program Employment Rate Heatmap -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-th text-indigo-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Program Employment Rate Heatmap</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <VueECharts :option="heatmapOption" style="height: 350px; width: 100%;" />
+          </div>
+        </div>
 
-      <!-- Job Placement Rate Over Time Area Chart -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Placement Rate Over Time</h3>
-        <VueECharts :option="jobPlacementOption" style="height: 350px; width: 100%;" />
-      </div>
+        <!-- Skills and Roles Analysis -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-tools text-purple-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Skills and Roles Analysis</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h4 class="text-base font-medium text-gray-700 mb-3">Top Job Roles (Employed Graduates)</h4>
+                <ul class="flex flex-wrap gap-2">
+                  <li v-for="[role, count] in topRoles" :key="role"
+                    class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                    {{ role }} <span class="font-bold">({{ count }})</span>
+                  </li>
+                </ul>
+                <h4 class="text-base font-medium text-gray-700 mt-6 mb-3">Top Skills (Employed Graduates)</h4>
+                <ul class="flex flex-wrap gap-2">
+                  <li v-for="[skill, count] in topSkills" :key="skill"
+                    class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                    {{ skill }} <span class="font-bold">({{ count }})</span>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="text-base font-medium text-gray-700 mb-3">Top Skills: Demand vs. Supply</h4>
+                <VueECharts :option="skillBarOption" style="height: 320px; width: 100%;" />
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <!-- Job Openings and Seekers Bubble Map -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Openings vs. Job Seekers</h3>
-        <VueECharts :option="bubbleMapOption" style="height: 400px; width: 100%;" />
-      </div>
+        <!-- Unemployment Rate Distribution -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-chart-pie text-orange-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Unemployment Rate Distribution</h3>
+            </div>
+          </div>
+          <div class="p-6 flex justify-center">
+            <VueECharts :option="unemploymentPieOption" style="height: 350px; width: 100%; max-width: 420px;" />
+          </div>
+        </div>
 
-      <!-- Referral Success Rate Heatmap -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Success Rate Heatmap</h3>
-        <VueECharts :option="referralHeatmapOption" style="height: 400px; width: 100%;" />
-      </div>
+        <!-- Unemployment Rate Over Time -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-chart-area text-red-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Unemployment Rate Over Time</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <VueECharts :option="areaOption" style="height: 350px; width: 100%;" />
+          </div>
+        </div>
 
-      <!-- Example: Table of Filtered Graduates (optional) -->
-      <div class="bg-white rounded-xl shadow p-8 mt-12" v-if="filteredGraduates.length">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Filtered Graduates</h3>
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr>
-              <th class="px-2 py-1 text-left">Name</th>
-              <th class="px-2 py-1 text-left">Program</th>
-              <th class="px-2 py-1 text-left">Status</th>
-              <th class="px-2 py-1 text-left">Year</th>
-              <th class="px-2 py-1 text-left">Location</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="g in filteredGraduates" :key="g.id">
-              <td class="px-2 py-1">{{ g.name }}</td>
-              <td class="px-2 py-1">{{ g.program?.name }}</td>
-              <td class="px-2 py-1">{{ g.employment_status }}</td>
-              <td class="px-2 py-1">{{ g.schoolYear?.school_year_range }}</td>
-              <td class="px-2 py-1">{{ g.location }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <!-- Employment Trend Over Time -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Employment Trend Over Time</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <VueECharts :option="employmentTrendOption" style="height: 350px; width: 100%;" />
+          </div>
+        </div>
+
+        <!-- Job Placement Rate Over Time -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-chart-area text-green-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Job Placement Rate Over Time</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <VueECharts :option="jobPlacementOption" style="height: 350px; width: 100%;" />
+          </div>
+        </div>
+
+        <!-- Job Openings vs. Job Seekers -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-map-marked-alt text-indigo-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Job Openings vs. Job Seekers</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <VueECharts :option="bubbleMapOption" style="height: 400px; width: 100%;" />
+          </div>
+        </div>
+
+        <!-- Referral Success Rate Heatmap -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-fire text-orange-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Referral Success Rate Heatmap</h3>
+            </div>
+          </div>
+          <div class="p-6">
+            <VueECharts :option="referralHeatmapOption" style="height: 400px; width: 100%;" />
+          </div>
+        </div>
+
+        <!-- Filtered Graduates Table -->
+        <div v-if="filteredGraduates.length" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
+              <h3 class="text-lg font-medium text-gray-900">Filtered Graduates</h3>
+            </div>
+          </div>
+          <div class="p-6 overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="g in filteredGraduates" :key="g.id" class="hover:bg-gray-50 transition-colors duration-150">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ g.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ g.program?.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span :class="{
+                      'px-2 py-1 rounded-full text-xs font-medium': true,
+                      'bg-green-100 text-green-800': g.employment_status === 'Employed',
+                      'bg-red-100 text-red-800': g.employment_status === 'Unemployed',
+                      'bg-yellow-100 text-yellow-800': g.employment_status === 'Underemployed',
+                      'bg-blue-100 text-blue-800': g.employment_status === 'Further Studies'
+                    }">
+                      {{ g.employment_status }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ g.schoolYear?.school_year_range }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ g.location }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </AppLayout>

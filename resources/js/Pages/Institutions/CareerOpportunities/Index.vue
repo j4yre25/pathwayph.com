@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
@@ -18,9 +18,33 @@ const userId = page.props.auth.user.id;
 const opportunities = ref([...page.props.opportunities ?? []]);
 const programs = page.props.programs ?? [];
 
+// Add filters object
+const filters = reactive({
+  search: ''
+});
+
 const selectedProgram = ref('');
 const showConfirmModal = ref(false);
 const opportunityToArchive = ref(null);
+
+// Pagination
+const currentPage = ref(1);
+const itemsPerPage = 30;
+const totalPages = computed(() => Math.ceil(filteredOpportunities.value.length / itemsPerPage));
+const paginatedOpportunities = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  return filteredOpportunities.value.slice(startIndex, endIndex);
+});
+
+const goToPage = (page) => {
+  currentPage.value = page;
+};
+
+// Reset pagination when filters change
+onMounted(() => {
+  currentPage.value = 1;
+});
 
 // Stats for display
 const totalOpportunities = computed(() => opportunities.value.length);
@@ -35,7 +59,9 @@ const uniqueTitles = computed(() => {
 
 const filteredOpportunities = computed(() => {
   return opportunities.value.filter((opp) => {
-    return !selectedProgram.value || String(opp.program_id) === String(selectedProgram.value);
+    const matchesProgram = !selectedProgram.value || String(opp.program_id) === String(selectedProgram.value);
+    const matchesSearch = !filters.search || (opp.career_opportunity?.title?.toLowerCase().includes(filters.search.toLowerCase()));
+    return matchesProgram && matchesSearch;
   });
 });
 
@@ -45,6 +71,12 @@ function applyFilter() {
     preserveState: true,
     preserveScroll: true,
   });
+}
+
+// Add function to apply filters including search
+function applyFilters() {
+  // This function can be used for debouncing search if needed
+  // For now, we're using the computed property directly
 }
 
 function confirmArchive(opp) {
@@ -206,7 +238,7 @@ function cancelArchive() {
             </thead>
             <tbody class="divide-y divide-gray-200">
               <tr
-                v-for="opp in filteredOpportunities"
+                v-for="opp in paginatedOpportunities"
                 :key="opp.id"
                 class="hover:bg-gray-50 transition-colors"
               >
@@ -248,6 +280,45 @@ function cancelArchive() {
               </tr>
             </tbody>
           </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div v-if="totalPages > 1" class="px-6 py-4 bg-white border-t border-gray-200 flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
+            <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredOpportunities.length) }}</span> of
+            <span class="font-medium">{{ filteredOpportunities.length }}</span> results
+          </div>
+          <div class="flex space-x-2">
+            <button 
+              @click="goToPage(currentPage - 1)" 
+              :disabled="currentPage === 1"
+              class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <div class="flex space-x-1">
+              <button 
+                v-for="page in totalPages" 
+                :key="page" 
+                @click="goToPage(page)"
+                :class="{
+                  'bg-blue-600 text-white': page === currentPage,
+                  'bg-white text-gray-700 hover:bg-gray-50': page !== currentPage
+                }"
+                class="px-3 py-1 rounded border border-gray-300 text-sm font-medium"
+              >
+                {{ page }}
+              </button>
+            </div>
+            <button 
+              @click="goToPage(currentPage + 1)" 
+              :disabled="currentPage === totalPages"
+              class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 

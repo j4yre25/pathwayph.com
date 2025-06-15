@@ -234,13 +234,13 @@ const stats = computed(() => {
     </div>
 
     <!-- Stats Cards (only show when data is loaded) -->
-    <div v-if="parsedRows.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 mb-6">
+    <div v-if="parsedRows.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 mb-6">
       <div v-for="(stat, index) in stats" :key="index" 
-           class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+           class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-sm text-gray-500 mb-1">{{ stat.title }}</p>
-            <p class="text-2xl font-bold">{{ stat.value }}</p>
+            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
           </div>
           <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
             <i :class="[stat.icon, stat.color]"></i>
@@ -396,10 +396,6 @@ const stats = computed(() => {
           <i class="fas fa-file-upload text-gray-300 text-5xl mb-4"></i>
           <h3 class="text-lg font-medium text-gray-700 mb-2">No Data to Preview</h3>
           <p class="text-gray-500 mb-6">Upload a CSV file to see a preview of the data</p>
-          <button @click="triggerFileInput" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
-            <i class="fas fa-upload mr-2"></i>
-            Select CSV File
-          </button>
         </div>
 
         <!-- Submit Button -->

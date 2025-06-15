@@ -57,21 +57,24 @@ const stats = computed(() => {
       value: total,
       icon: 'fas fa-calendar-alt',
       color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      bgColor: 'bg-blue-100',
+      border: 'border-l-4 border-blue-500'
     },
     {
       title: 'Active',
       value: active,
       icon: 'fas fa-check-circle',
       color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      bgColor: 'bg-green-100',
+      border: 'border-l-4 border-green-500'
     },
     {
       title: 'Inactive',
       value: inactive,
       icon: 'fas fa-times-circle',
       color: 'text-red-600',
-      bgColor: 'bg-red-100'
+      bgColor: 'bg-red-100',
+      border: 'border-l-4 border-red-500'
     }
   ];
 });
@@ -83,27 +86,31 @@ const goBack = () => {
 
 <template>
   <AppLayout title="Manage School Years">
-    <Container class="py-8">
-      <!-- Back Button and Header -->
-      <div class="flex items-center mb-4">
+    <template #header>
+      <div>
+        <div class="flex items-center">
         <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
           <i class="fas fa-chevron-left"></i>
         </button>
-        <div class="flex items-center">
           <i class="fas fa-calendar-alt text-blue-500 text-xl mr-2"></i>
-          <h1 class="text-2xl font-bold text-gray-800">Manage School Years</h1>
+          <h2 class="text-2xl font-bold text-gray-800">Manage School Years</h2>
         </div>
+        <p class="text-sm text-gray-500 mb-1">View and manage all school years in the system.</p>
       </div>
-      <p class="text-sm text-gray-500 mb-6 ml-9">View and manage all school years in the system.</p>
+    </template>
 
+    <Container class="py-8">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div v-for="(stat, index) in stats" :key="index" 
-             class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+             :class="[
+              'bg-white rounded-lg shadow-sm p-6 relative overflow-hidden',
+              stat.border
+            ]">
           <div class="flex justify-between items-start">
             <div>
-              <p class="text-sm text-gray-500 mb-1">{{ stat.title }}</p>
-              <p class="text-2xl font-bold">{{ stat.value }}</p>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+              <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
             </div>
             <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
               <i :class="[stat.icon, stat.color]"></i>
@@ -131,7 +138,6 @@ const goBack = () => {
                 <option value="inactive">Inactive</option>
               </select>
               <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                <i class="fas fa-chevron-down text-xs"></i>
               </div>
             </div>
             <button 

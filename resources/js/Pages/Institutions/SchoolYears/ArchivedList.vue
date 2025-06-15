@@ -55,8 +55,9 @@ const stats = computed(() => {
       title: 'Total Archived',
       value: props.all_school_years.length,
       icon: 'fas fa-archive',
+      iconBg: 'bg-orange-100',
       color: 'text-orange-600',
-      bgColor: 'bg-orange-100'
+      border: 'border-l-4 border-orange-500'
     }
   ];
 });
@@ -64,34 +65,39 @@ const stats = computed(() => {
 
 <template>
   <AppLayout title="Archived School Years">
-    <Container class="py-8">
-      <!-- Back Button and Header -->
-      <div class="flex items-center mb-4">
-        <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
-          <i class="fas fa-chevron-left"></i>
-        </button>
+    <template #header>
+      <div>
         <div class="flex items-center">
+          <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+            <i class="fas fa-chevron-left"></i>
+          </button>
           <i class="fas fa-archive text-orange-500 text-xl mr-2"></i>
           <h1 class="text-2xl font-bold text-gray-800">Archived School Years</h1>
         </div>
+        <p class="text-sm text-gray-500 mb-1">View and restore archived school years.</p>
       </div>
-      <p class="text-sm text-gray-500 mb-6 ml-9">View and restore archived school years.</p>
+    </template>
+
+    <Container class="py-8">
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div v-for="(stat, index) in stats" :key="index" 
-             class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm relative overflow-hidden">
+      <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mb-6">
+      <div v-for="(stat, index) in stats" :key="index" 
+          :class="[
+              'bg-white rounded-lg shadow-sm p-6 relative overflow-hidden',
+              stat.border
+          ]">
           <div class="flex justify-between items-start">
-            <div>
-              <p class="text-sm text-gray-500 mb-1">{{ stat.title }}</p>
-              <p class="text-2xl font-bold">{{ stat.value }}</p>
-            </div>
-            <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
-              <i :class="[stat.icon, stat.color]"></i>
-            </div>
+              <div>
+                  <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+                  <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
+              </div>
+              <div :class="[stat.iconBg, 'rounded-full p-3 flex items-center justify-center']">
+                  <i :class="[stat.icon, stat.iconColor]"></i>
+              </div>
           </div>
-        </div>
       </div>
+  </div>
 
       <!-- Search Section -->
       <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">

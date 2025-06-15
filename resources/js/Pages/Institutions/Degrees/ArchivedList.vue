@@ -67,7 +67,7 @@ const goBack = () => {
           <i class="fas fa-chevron-left"></i>
         </button>
         <h2 class="text-xl font-semibold text-gray-800 flex items-center">
-          <i class="fas fa-archive mr-2"></i> Archived Degrees
+          <i class="fas fa-archive text-orange-500 text-xl mr-2"></i> Archived Degrees
         </h2>
       </div>
     </template>
@@ -76,14 +76,14 @@ const goBack = () => {
 
     <Container class="py-6 space-y-6">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500">
+      <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+        <div class="bg-white rounded-lg shadow-sm p-5 border-l-4 border-orange-500">
           <div class="flex items-center">
             <div class="p-3 rounded-full bg-orange-100 mr-4">
               <i class="fas fa-archive text-orange-500 text-xl"></i>
             </div>
             <div>
-              <p class="text-sm font-medium text-gray-600">Total Archived</p>
+              <p class="text-sm font-medium text-gray-500">Total Archived</p>
               <p class="text-2xl font-semibold text-gray-800">{{ stats.totalArchived }}</p>
             </div>
           </div>
@@ -91,7 +91,7 @@ const goBack = () => {
       </div>
 
       <!-- Search -->
-      <div class="bg-white p-4 rounded-lg shadow-sm">
+      <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i class="fas fa-search text-gray-400"></i>
@@ -99,8 +99,8 @@ const goBack = () => {
           <input
             type="text"
             v-model="searchQuery"
-            placeholder="Search archived degrees..."
-            class="pl-10 border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none w-full"
+            placeholder="Search by degree type or code..."
+            class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
           />
         </div>
       </div>

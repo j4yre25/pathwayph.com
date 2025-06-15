@@ -70,23 +70,38 @@ function cancelArchive() {
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <!-- Stats Summary -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
-            <h3 class="text-gray-600 text-sm font-medium mb-2">Total Graduates</h3>
-            <p class="text-3xl font-bold text-blue-600">
-              {{ graduates.total || 0 }}
-            </p>
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Total Graduates</h3>
+                <p class="text-3xl font-bold text-gray-800">{{ graduates.total || 0 }}</p>
+              </div>
+              <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-user-graduate text-blue-600"></i>
+              </div>
+            </div>
           </div>
-          <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
-            <h3 class="text-gray-600 text-sm font-medium mb-2">Active Graduates</h3>
-            <p class="text-3xl font-bold text-green-600">
-              {{ graduates.data.length || 0 }}
-            </p>
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Active Graduates</h3>
+                <p class="text-3xl font-bold text-gray-800">{{ graduates.data.length || 0 }}</p>
+              </div>
+              <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-check-circle text-green-600"></i>
+              </div>
+            </div>
           </div>
-          <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-indigo-500">
-            <h3 class="text-gray-600 text-sm font-medium mb-2">Programs</h3>
-            <p class="text-3xl font-bold text-indigo-600">
-              {{ programs.length || 0 }}
-            </p>
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500 relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Programs</h3>
+                <p class="text-3xl font-bold text-gray-800">{{ programs.length || 0 }}</p>
+              </div>
+              <div class="bg-purple-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-graduation-cap text-purple-600"></i>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -109,7 +124,7 @@ function cancelArchive() {
               </button>
               <button @click="$inertia.get(route('graduates.create'))" 
                       class="text-sm px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 flex items-center">
-                <i class="fas fa-plus mr-2"></i> Add Graduate
+                <i class="fas fa-plus-circle mr-2"></i> Add Graduate
               </button>
               <button @click="$inertia.get(route('graduates.batch.page'))" 
                       class="text-sm px-4 py-2 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition-colors duration-200 flex items-center">
@@ -171,23 +186,42 @@ function cancelArchive() {
           </div>
           
           <!-- Pagination Controls -->
-          <div class="px-6 py-4 border-t border-gray-200">
-            <nav v-if="graduates.links && graduates.links.length > 3" class="flex justify-center">
-              <ul class="flex items-center space-x-1">
-                <li v-for="(link, i) in graduates.links" :key="i">
-                  <button
-                    v-html="link.label"
-                    :disabled="!link.url"
+          <div v-if="graduates.links && graduates.links.length > 3" class="px-6 py-4 bg-white border-t border-gray-200 flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+              Showing <span class="font-medium">{{ graduates.from }}</span> to
+              <span class="font-medium">{{ graduates.to }}</span> of
+              <span class="font-medium">{{ graduates.total }}</span> results
+            </div>
+            <div class="flex space-x-2">
+              <button 
+                @click="$inertia.get(graduates.prev_page_url)"
+                :disabled="!graduates.prev_page_url"
+                class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <div class="flex space-x-1">
+                <template v-for="(link, i) in graduates.links.slice(1, -1)" :key="i">
+                  <button 
                     @click="$inertia.get(link.url)"
-                    :class="[
-                      'px-3 py-1 rounded-md text-sm',
-                      link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300',
-                      !link.url && 'opacity-50 cursor-not-allowed'
-                    ]"
-                  ></button>
-                </li>
-              </ul>
-            </nav>
+                    :class="{
+                      'bg-blue-600 text-white': link.active,
+                      'bg-white text-gray-700 hover:bg-gray-50': !link.active
+                    }"
+                    class="px-3 py-1 rounded border border-gray-300 text-sm font-medium"
+                  >
+                    {{ link.label }}
+                  </button>
+                </template>
+              </div>
+              <button 
+                @click="$inertia.get(graduates.next_page_url)"
+                :disabled="!graduates.next_page_url"
+                class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </div>

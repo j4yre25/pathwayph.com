@@ -80,7 +80,7 @@ const uniqueDegreeTypes = new Set(degrees.value.map(d => d.degree?.type));
           <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
             <Link :href="route('degrees.create', { user: page.props.auth.user.id })" 
                   class="text-sm px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 flex items-center">
-              <i class="fas fa-plus mr-2"></i> Add Degree
+              <i class="fas fa-plus-circle mr-2"></i> Add Degree
             </Link>
             <Link :href="route('degrees.list', { user: page.props.auth.user.id })" 
                   class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">

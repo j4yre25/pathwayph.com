@@ -7,6 +7,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+import ProgramEditModal from './ProgramEditModal.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage();
@@ -14,6 +15,7 @@ const programs = ref([...page.props.programs]);
 
 const selectedProgram = ref(null);
 const open = ref(false);
+const showEditModal = ref(false);
 
 // Stats for display
 const totalPrograms = computed(() => programs.value.length);
@@ -42,6 +44,21 @@ const archiveProgram = () => {
 const confirmArchive = (program) => {
   selectedProgram.value = program;
   open.value = true;
+};
+
+const openEditModal = (program) => {
+  selectedProgram.value = program;
+  showEditModal.value = true;
+};
+
+const closeEditModal = () => {
+  showEditModal.value = false;
+  selectedProgram.value = null;
+};
+
+const handleProgramUpdated = () => {
+  // Refresh the programs list
+  router.reload({ only: ['programs'] });
 };
 </script>
 
@@ -159,9 +176,9 @@ const confirmArchive = (program) => {
                   <span class="text-sm text-gray-700 font-mono">{{ prog.program_code || 'N/A' }}</span>
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <Link :href="route('programs.edit', { id: prog.id })" class="text-blue-500 hover:text-blue-700 mr-3">
+                  <button @click="openEditModal(prog)" class="text-blue-500 hover:text-blue-700 mr-3">
                     <i class="fas fa-edit"></i>
-                  </Link>
+                  </button>
                   <button @click="confirmArchive(prog)" class="text-red-500 hover:text-red-700">
                     <i class="fas fa-archive"></i>
                   </button>
@@ -205,6 +222,15 @@ const confirmArchive = (program) => {
           </div>
         </template>
       </ConfirmationModal>
+
+      <!-- Edit Program Modal -->
+      <ProgramEditModal 
+        :show="showEditModal" 
+        :institution-program="selectedProgram" 
+        :degrees="page.props.degrees || []" 
+        @close="closeEditModal"
+        @updated="handleProgramUpdated"
+      />
     </Container>
   </AppLayout>
 </template>

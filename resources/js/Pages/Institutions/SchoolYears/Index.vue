@@ -51,23 +51,38 @@ const uniqueTerms = new Set(school_years.value.map(sy => sy.term));
     <Container class="py-8">
       <!-- Stats Summary -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
-          <h3 class="text-gray-600 text-sm font-medium mb-2">Total School Years</h3>
-          <p class="text-3xl font-bold text-blue-600">
-            {{ school_years.length }}
-          </p>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">Total School Years</h3>
+              <p class="text-3xl font-bold text-grey-800">{{ school_years.length }}</p>
+            </div>
+            <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
+              <i class="fas fa-calendar-alt text-blue-500 text-lg"></i>
+            </div>
+          </div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
-          <h3 class="text-gray-600 text-sm font-medium mb-2">Unique Years</h3>
-          <p class="text-3xl font-bold text-green-600">
-            {{ uniqueYears.size }}
-          </p>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">Years</h3>
+              <p class="text-3xl font-bold text-gray-800">{{ uniqueYears.size }}</p>
+            </div>
+            <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
+              <i class="fas fa-calendar-alt text-green-500 text-lg"></i>
+            </div>
+          </div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-indigo-500">
-          <h3 class="text-gray-600 text-sm font-medium mb-2">Terms</h3>
-          <p class="text-3xl font-bold text-indigo-600">
-            {{ uniqueTerms.size }}
-          </p>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500 relative overflow-hidden">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">Terms</h3>
+              <p class="text-3xl font-bold text-indigo-600">{{ uniqueTerms.size }}</p>
+            </div>
+            <div class="bg-purple-100 rounded-full p-3 flex items-center justify-center">
+              <i class="fas fa-calendar-alt text-purple-500 text-lg"></i>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -82,7 +97,7 @@ const uniqueTerms = new Set(school_years.value.map(sy => sy.term));
           <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
             <Link :href="route('school-years.create', { user: page.props.auth.user.id })" 
                   class="text-sm px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 flex items-center">
-              <i class="fas fa-plus mr-2"></i> Add School Year
+              <i class="fas fa-plus-circle mr-2"></i> Add School Year
             </Link>
             <Link :href="route('school-years.list', { user: page.props.auth.user.id })" 
                   class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
