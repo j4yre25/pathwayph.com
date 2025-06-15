@@ -24,8 +24,7 @@ class Job extends Model
         'status',
         'sector_id',
         'category_id',
-        'departme
-        nt_id',
+        'department_id',
         'job_title',
         'salary_id',
         'job_description',

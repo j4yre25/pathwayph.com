@@ -3,6 +3,8 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 import { ref } from "vue";
 import { router, Link } from "@inertiajs/vue3";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
+import * as XLSX from 'xlsx'
+import Papa from 'papaparse'
 
 // Props
 const props = defineProps({ 
@@ -16,6 +18,60 @@ const newDepartment = ref("");
 const batchDepartments = ref([]); // Array for batch add
 const editing = ref(null);
 const editName = ref("");
+
+// Batch Uploading setup
+const uploadFile = ref(null)
+const uploadError = ref('')
+
+function handleFileChange(e) {
+  uploadError.value = ''
+  const file = e.target.files[0]
+  if (!file) return
+
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (ext === 'csv') {
+    Papa.parse(file, {
+      complete: results => {
+        const header = results.data[0].map(h => String(h).trim().toLowerCase())
+        const nameIdx = header.indexOf('department_name')
+        if (nameIdx === -1) {
+          uploadError.value = 'CSV must have a "department_name" column.'
+          return
+        }
+        results.data.slice(1).forEach(row => {
+          const name = row[nameIdx] && String(row[nameIdx]).trim()
+          if (name && !batchDepartments.value.includes(name)) {
+            batchDepartments.value.push(name)
+          }
+        })
+      },
+      error: () => uploadError.value = 'Failed to parse CSV file.'
+    })
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      const workbook = XLSX.read(evt.target.result, { type: 'binary' })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+      const header = rows[0].map(h => String(h).trim().toLowerCase())
+      const nameIdx = header.indexOf('department_name')
+      if (nameIdx === -1) {
+        uploadError.value = 'Sheet must have a "department_name" column.'
+        return
+      }
+      rows.slice(1).forEach(row => {
+        const name = row[nameIdx] && String(row[nameIdx]).trim()
+        if (name && !batchDepartments.value.includes(name)) {
+          batchDepartments.value.push(name)
+        }
+      })
+    }
+    reader.readAsBinaryString(file)
+  } else {
+    uploadError.value = 'Only CSV, XLSX, or XLS files are supported.'
+  }
+}
+//End Batch Uploading setup
 
 // Add to batch list
 function addToBatch() {
@@ -85,12 +141,27 @@ function deleteDepartment(dep) {
 
       <!-- Add Department Modal (Batch Add) -->
       <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-        <div class="bg-white rounded shadow-lg p-6 w-full max-w-sm">
+        <div class="bg-white rounded shadow-lg p-6 w-full max-w-sm" style="max-height: 90vh; overflow-y: auto;">
           <h3 class="text-lg font-semibold mb-4">Add Departments</h3>
           <form @submit.prevent="addToBatch" class="flex gap-2 mb-4">
             <input v-model="newDepartment" class="border rounded px-2 py-1 flex-1" placeholder="Department Name" />
             <button type="submit" class="px-3 py-1 rounded bg-blue-600 text-white">Add</button>
           </form>
+          <!-- Batch Upload Section -->
+          <div class="mb-2">
+            <label class="block font-medium mb-1">Batch Upload (CSV/XLSX):</label>
+            <a
+              v-if="!uploadFile"
+              :href="route('company.departments.batch.template')"
+              class="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mb-4"
+              download
+              >
+                ⬇ Download CSV Template
+            </a>
+            <input type="file" accept=".csv,.xlsx,.xls" @change="e => { handleFileChange(e); uploadFile.value = e.target.files[0] }" class="mb-1" />
+            <div v-if="uploadError" class="text-red-600 text-xs">{{ uploadError }}</div>
+            <div class="text-xs text-gray-500">File must have a <b>department_name</b> column.</div>
+          </div>
           <ul class="mb-4">
             <li v-for="(dep, idx) in batchDepartments" :key="dep" class="flex items-center gap-2 mb-1">
               <span class="flex-1">{{ dep }}</span>

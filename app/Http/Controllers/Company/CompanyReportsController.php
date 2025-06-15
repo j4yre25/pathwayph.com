@@ -593,20 +593,20 @@ class CompanyReportsController extends Controller
         }
 
         // Survey Results: Assume you have a CandidateSurvey model with 'question', 'answer', 'job_id'
-        $surveyResults = \App\Models\CandidateSurvey::whereHas('job', function($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })
-            ->select('question', 'answer')
-            ->get()
-            ->groupBy('question')
-            ->map(function($answers) {
-                return $answers->groupBy('answer')->map->count();
-            });
+        // $surveyResults = CandidateSurvey::whereHas('job', function($q) use ($companyId) {
+        //         $q->where('company_id', $companyId);
+        //     })
+        //     ->select('question', 'answer')
+        //     ->get()
+        //     ->groupBy('question')
+        //     ->map(function($answers) {
+        //         return $answers->groupBy('answer')->map->count();
+        //     });
 
         return Inertia::render('Company/Reports/DiversityInclusion', [
             'inclusiveCounts' => $inclusiveCounts,
             'tagCounts' => $tagCounts,
-            'surveyResults' => $surveyResults,
+            // 'surveyResults' => $surveyResults,
             'diversityTags' => $diversityTags,
         ]);
     }

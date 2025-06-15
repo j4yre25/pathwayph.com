@@ -13,7 +13,7 @@ use App\Models\Salary;
 use App\Models\Skill;
 use App\Notifications\JobInviteNotification;
 use App\Notifications\NewJobPostingNotification;
-
+use App\Services\JobCreationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +23,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Models\JobType;
+use App\Models\WorkEnvironment;
+use App\Models\Category;
+use App\Models\Department;
+use Illuminate\Support\Facades\Validator;
 
 
 class CompanyJobsController extends Controller
@@ -43,7 +49,7 @@ class CompanyJobsController extends Controller
 
         // dd($jobs->toArray()) ; // Debugging line to check the jobs data
         $sectors = Sector::pluck('name');
-        $categories = \App\Models\Category::pluck('name');
+        $categories = Category::pluck('name');
 
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
@@ -64,7 +70,7 @@ class CompanyJobsController extends Controller
 
         $departments = [];
         if ($authUser->hr && $authUser->hr->company_id) {
-            $departments = \App\Models\Department::where('company_id', $authUser->hr->company_id)
+            $departments = Department::where('company_id', $authUser->hr->company_id)
                 ->select('id', 'department_name')
                 ->orderBy('department_name')
                 ->get();
@@ -82,14 +88,10 @@ class CompanyJobsController extends Controller
 
     public function archivedlist(User $user)
     {
-
-
         $all_jobs = Job::with('user')->onlyTrashed()->get();
 
         return Inertia::render('Company/Jobs/Index/ArchivedList', [
             'all_jobs' => $all_jobs
-
-
         ]);
     }
 
@@ -131,7 +133,7 @@ class CompanyJobsController extends Controller
                 'max:255'
             ],
             'department_id' => [
-                'nullable',
+                'required',
                 'integer',
                 'exists:departments,id'
             ],
@@ -154,24 +156,9 @@ class CompanyJobsController extends Controller
             'program_id.*' => 'exists:programs,id',
         ]);
 
-        $salary = $this->createSalary($validated);
-        $location = $this->handleLocation($validated);
         $user->loadMissing('hr');
-        $jobData = $this->prepareJobData($validated, $user, $salary, $location);
-            
-        $jobData['department_id'] = $validated['department_id'] ?? null;
-
-        [$jobCode, $jobID] = $this->generateJobCodes($validated['sector'], $validated['category'], $validated['job_title']);
-        $jobData['job_code'] = $jobCode;
-        $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
-
-        $new_job = Job::create($jobData);
-        $new_job->jobTypes()->sync([$validated['job_type']]);
-        if ($location) {
-            $new_job->locations()->sync([$location->id]);
-        }
-        $new_job->workEnvironments()->sync([$validated['work_environment']]);
-        $new_job->programs()->attach($validated['program_id']);
+        $jobService = new JobCreationService();
+        $new_job = $jobService->createJob($validated, $user);
 
         // Notify graduates of the new job posting
         $this->notifyGraduates($new_job);
@@ -182,70 +169,298 @@ class CompanyJobsController extends Controller
         return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
     }
 
-    private function createSalary(array $validated): Salary
+    public function batchPage()
     {
-        return Salary::create([
-            'job_min_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_min_salary'],
-            'job_max_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_max_salary'],
-            'salary_type' => $validated['salary']['salary_type'],
+        return Inertia::render('Company/Jobs/Index/BatchUploadPreview');
+    }
+    public function fuzzyFind($model, $column, $value) {
+        if (!$value) return null;
+        // Try exact match (case-insensitive)
+        $record = $model::whereRaw('LOWER(' . $column . ') = ?', [strtolower(trim($value))])->first();
+        if ($record) return $record;
+        // Try partial match
+        $match = $model::where($column, 'LIKE', '%' . trim($value) . '%')->first();
+        if ($match) return $match;
+        // Try removing spaces and compare
+        $match = $model::whereRaw("REPLACE(LOWER($column), ' ', '') = ?", [str_replace(' ', '', strtolower(trim($value)))])->first();
+        return $match;
+    }
+
+    public function excelSerialToDate($serial)
+    {
+        // Excel's epoch starts at 1900-01-01
+        $unix = ($serial - 25569) * 86400;
+        return gmdate('Y-m-d', $unix);
+    }
+
+    // 2. Batch Upload Handler
+    public function batchUpload(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt,xlsx,xls',
         ]);
-    }
 
-    private function handleLocation(array $validated): ?Location
-    {
-        if ($validated['work_environment'] != 2) {
-            return Location::firstOrCreate(['address' => $validated['location']]);
+        $extension = $request->file('csv_file')->getClientOriginalExtension();
+
+        if (in_array($extension, ['xlsx', 'xls'])) {
+            // Parse Excel
+            $rows = Excel::toArray(new \stdClass(), $request->file('csv_file'))[0];
+            $header = array_map(fn($h) => strtolower(trim($h)), $rows[0]);
+            $dataRows = array_slice($rows, 1);
+        } else {
+            // Parse CSV as before
+            $file = $request->file('csv_file');
+            $handle = fopen($file, 'r');
+            $header = fgetcsv($handle, 0, ',');
+            if (isset($header[0])) {
+                $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+            }
+            $header = array_map(fn($h) => strtolower(trim($h)), $header);
+            $dataRows = [];
+            while (($data = fgetcsv($handle, 0, ',')) !== false) {
+                $dataRows[] = $data;
+            }
+            fclose($handle);
         }
-        return null;
+
+        $errors = [];
+        $validRows = [];
+        $rowNum = 2;
+
+        foreach ($dataRows as $data) {
+            $row = array_combine($header, $data);
+            \Log::info('BatchUpload: Raw row', $row);
+
+            // Skip empty rows
+            if (!$row || !is_array($row) || empty(array_filter($row))) {
+                $rowNum++;
+                continue;
+            }
+
+            // --- Department ---
+            if (!empty($row['department_name'])) {
+                $department = $this->fuzzyFind(Department::class, 'department_name', $row['department_name']);
+                \Log::info('BatchUpload: Department Lookup', [
+                     'input_raw' => $row['department_name'],
+                        'input_trimmed' => trim($row['department_name']),
+                    ]);
+                $row['department_id'] = $department ? $department->id : null;
+            }
+
+            // --- Sector ---
+            if (!empty($row['sector_name'])) {
+                $sector = $this->fuzzyFind(Sector::class, 'name', $row['sector_name']);
+                \Log::info('BatchUpload: Sector Lookup', [
+                    'input' => $row['sector_name'],
+                    'found' => $sector ? $sector->name : null
+                ]);
+                $row['sector_id'] = $sector ? $sector->id : null;
+            }
+
+            // After category lookup
+            if (!empty($row['category_name']) && !empty($row['sector_id'])) {
+                $category = Category::where('sector_id', $row['sector_id'])
+                    ->whereRaw('LOWER(name) = ?', [strtolower(trim($row['category_name']))])
+                    ->first();
+                if (!$category) {
+                    // Try partial/fuzzy match within sector
+                    $category = Category::where('sector_id', $row['sector_id'])
+                        ->where('name', 'LIKE', '%' . trim($row['category_name']) . '%')
+                        ->first();
+                }
+                \Log::info('BatchUpload: Category Lookup', [
+                    'input' => $row['category_name'],
+                    'sector_id' => $row['sector_id'],
+                    'found' => $category ? $category->name : null
+                ]);
+                $row['category_id'] = $category ? $category->id : null;
+            }
+
+            // --- Program ---
+            $row['program_id'] = []; // Always start as array
+            if (!empty($row['program_name'])) {
+                $programNames = array_map('trim', explode(',', $row['program_name']));
+                foreach ($programNames as $progName) {
+                    $program = $this->fuzzyFind(Program::class, 'name', $progName);
+                    \Log::info('BatchUpload: Program Lookup', [
+                        'input' => $progName,
+                        'found' => $program ? $program->name : null
+                    ]);
+                    if ($program) {
+                        $row['program_id'][] = $program->id;
+                    }
+                }
+            }
+            // If no valid programs found, set to null for validation to catch
+            if (empty($row['program_id'])) {
+                $row['program_id'] = null;
+            }
+
+            // --- Work Environment ---
+            $row['work_environment'] = null;
+            if (!empty($row['work_environment_type'])) {
+                $workEnv = $this->fuzzyFind(WorkEnvironment::class, 'environment_type', $row['work_environment_type']);
+                $row['work_environment'] = $workEnv ? $workEnv->id : null;
+            }
+
+            // --- Job Types (comma-separated) ---
+            $jobTypeIds = [];
+            if (!empty($row['job_types'])) {
+                $typeNames = array_map('trim', explode(',', $row['job_types']));
+                foreach ($typeNames as $typeName) {
+                    $jobType = $this->fuzzyFind(JobType::class, 'type', $typeName);
+                    if ($jobType) {
+                        $jobTypeIds[] = $jobType->id;
+                    }
+                }
+            }
+            $row['job_type_ids'] = $jobTypeIds;
+            $row['job_type'] = !empty($jobTypeIds) ? $jobTypeIds[0] : null;
+
+            // --- Job Experience Level (enum) ---
+            $allowed = [
+                'Entry-level',
+                'Intermediate',
+                'Mid-level',
+                'Senior/Executive'
+            ];
+            $input = strtolower(trim($row['job_experience_level'] ?? ''));
+            $matched = collect($allowed)->first(function($level) use ($input) {
+                $levelLower = strtolower($level);
+                return $levelLower === $input
+                    || str_contains($levelLower, $input)
+                    || str_contains($input, $levelLower)
+                    || preg_replace('/[^a-z]/', '', $levelLower) === preg_replace('/[^a-z]/', '', $input);
+            });
+            $row['job_experience_level'] = $matched ?? $allowed[0];
+
+            // --- Skills as array ---
+            if (!empty($row['skills'])) {
+                $row['skills'] = array_map('trim', explode(',', $row['skills']));
+            }
+
+            // --- job_application_limit ---
+            $row['job_application_limit'] = isset($row['job_application_limit']) && $row['job_application_limit'] !== '' ? (int)$row['job_application_limit'] : null;
+
+            // --- Salary fields ---
+            $row['job_min_salary'] = isset($row['job_min_salary']) && $row['job_min_salary'] !== '' ? $row['job_min_salary'] : null;
+            $row['job_max_salary'] = isset($row['job_max_salary']) && $row['job_max_salary'] !== '' ? $row['job_max_salary'] : null;
+
+            // --- Location ---
+            $row['location'] = $row['location'] ?? null;
+
+            if (isset($row['job_deadline']) && trim($row['job_deadline']) !== '') {
+                if (is_numeric($row['job_deadline'])) {
+                    // Convert Excel serial to date
+                    $row['job_deadline'] = $this->excelSerialToDate($row['job_deadline']);
+                } else {
+                    $date = str_replace(['/', '.'], '-', $row['job_deadline']);
+                    try {
+                        $carbon = Carbon::createFromFormat('Y-m-d', $date);
+                    } catch (\Exception $e) {
+                        $carbon = null;
+                    }
+                    $row['job_deadline'] = $carbon ? $carbon->format('Y-m-d') : null;
+                }
+            } else {
+                $row['job_deadline'] = null;
+            }
+
+            // --- Is Negotiable ---
+            if (isset($row['is_negotiable']) && strtolower(trim($row['is_negotiable'])) === 'yes') {
+                $row['is_negotiable'] = 1;
+            } else {
+                $row['is_negotiable'] = 0;
+            }
+
+            // --- Status and Approval ---
+            $row['status'] = $row['status'] ?? 'pending';
+            $row['is_approved'] = $row['is_approved'] ?? null;
+
+            // --- Salary array for service ---
+            $row['salary'] = [
+                'job_min_salary' => $row['job_min_salary'],
+                'job_max_salary' => $row['job_max_salary'],
+                'salary_type' => $row['salary_type'] ?? 'Monthly',
+            ];
+
+            // --- Validation ---
+            $validator = \Validator::make($row, [
+                'job_title' => 'required|string|max:255',
+                'department_id' => 'required|exists:departments,id',
+                'job_description' => 'required|string',
+                'job_requirements' => 'required|string',
+                'job_min_salary' => 'nullable|numeric',
+                'job_max_salary' => 'nullable|numeric',
+                'location' => 'nullable|string|max:255',
+                'work_environment' => 'required|exists:work_environments,id',
+                'program_id' => 'required|array',
+                'program_id.*' => 'exists:programs,id',
+                'category_id' => 'required|exists:categories,id',
+                'sector_id' => 'required|exists:sectors,id',
+                'job_experience_level' => 'required|string|max:255',
+                'status' => 'nullable|string|max:255',
+                'is_approved' => 'nullable|boolean',
+                'skills' => 'required|array',
+                'job_deadline' => 'required|date|after:today',
+                'job_application_limit' => 'nullable|integer|min:1',
+            ]);
+
+            if ($validator->fails()) {
+                $errors[] = [
+                    'row' => $rowNum,
+                    'messages' => $validator->errors()->all(),
+                ];
+            } else {
+                $validRows[] = $row;
+            }
+
+            $rowNum++;
+        }
+
+        if (count($errors)) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        $user = auth()->user();
+        $jobService = new JobCreationService();
+        
+        foreach ($validRows as $row) {
+            // Map to expected keys for JobCreationService
+            $row['sector'] = $row['sector_id'] ?? null;
+            $row['category'] = $row['category_id'] ?? null;
+
+            // --- Duplicate Check ---
+            $existingJob = Job::where('job_title', $row['job_title'])
+                ->where('user_id', $user->id)
+                ->where('location', $row['location'])
+                ->first();
+            if ($existingJob) {
+                continue; 
+            }
+            
+            $job = $jobService->createJob($row, $user);
+            // Attach all job types if multiple
+            if (!empty($row['job_type_ids'])) {
+                $job->jobTypes()->sync($row['job_type_ids']);
+            }
+        }
+
+        return redirect()
+            ->route('company.jobs', ['user' => auth()->id()])
+            ->with('flash.banner', 'Batch upload successful! All jobs have been posted.');
     }
 
-    private function prepareJobData(array $validated, User $user, Salary $salary, $location): array
+
+    // 3. Download CSV Template
+    public function downloadTemplate()
     {
-        return [
-            'user_id' => $user->id,
-            'posted_by' => $user->hr->full_name,
-            'company_id' => $user->hr->company_id,
-            'status' => 'pending',
-            'job_title' => $validated['job_title'],
-            'location' => $location ? $location->id : null,
-            'salary_id' => $salary->id,
-            'is_approved' => null,
-            'job_type' => $validated['job_type'],
-            'job_experience_level' => $validated['job_experience_level'],
-            'work_environment' => $validated['work_environment'],
-            'skills' => json_encode($validated['skills']),
-            'job_vacancies' => $validated['job_vacancies'],
-            'job_description' => $validated['job_description'],
-            'job_requirements' => $validated['job_requirements'],
-            'sector_id' => $validated['sector'],
-            'category_id' => $validated['category'],
-            'department_id' => $validated['department_id'] ?? null,
-            'job_deadline' => Carbon::parse($validated['job_deadline'])->format('Y-m-d'),
-            'job_application_limit' => $validated['job_application_limit'] ?? null,
-            'is_negotiable' => $validated['is_negotiable'],
-            'job_salary_type' => $validated['salary']['salary_type'],
-            'job_min_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_min_salary'],
-            'job_max_salary' => $validated['is_negotiable'] ? null : $validated['salary']['job_max_salary'],
-        ];
+        return response()->download(public_path('templates/job_template.xlsx'));
     }
-
-    private function generateJobCodes($sectorId, $categoryId, $jobTitle): array
-    {
-        $sector = Sector::find($sectorId);
-        $category = \App\Models\Category::find($categoryId);
-        $sectorCode = $sector->sector_id;
-        $divisionCodes = $sector->division_codes;
-        $categoryCode = $category->division_code;
-        $initials = collect(explode(' ', $jobTitle))
-            ->map(fn($word) => Str::substr($word, 0, 1))
-            ->implode('');
-        $initials = strtoupper($initials);
-        $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
-        $jobCount = Job::count() + 1;
-        $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT);
-        return [$jobCode, $jobID];
-    }
-
+    
     public function view(Job $job)
     {
         $job->load('company', 'category', 'user');
