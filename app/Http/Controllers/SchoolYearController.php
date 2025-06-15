@@ -77,7 +77,7 @@ class SchoolYearController extends Controller
 
         $request->validate([
             'school_year_range' => ['required', 'regex:/^\d{4}-\d{4}$/'],
-            'term' => ['required', 'integer', 'between:1,5'],
+            'term' => ['required', 'string', 'in:1,2,3,4,5,off-semester'],
         ]);
 
         [$start, $end] = explode('-', $request->school_year_range);
@@ -136,7 +136,7 @@ class SchoolYearController extends Controller
 
         $request->validate([
             'school_year_range' => ['required', 'regex:/^\d{4}-\d{4}$/'],
-            'term' => ['required', 'integer', 'between:1,5'],
+            'term' => ['required', 'string', 'in:1,2,3,4,5,off-semester'],
         ]);
 
         [$start, $end] = explode('-', $request->school_year_range);

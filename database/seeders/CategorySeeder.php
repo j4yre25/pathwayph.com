@@ -56,7 +56,7 @@ class CategorySeeder extends Seeder
             // 4 - D - Electricity, Gas, Steam, and Air Conditioning Supply
             ['id' => '35', 'name' => 'Electricity, Gas, Steam, and Air Conditioning Supply', 'sector_id' => '4', 'division_code' => '35'],
 
-            // 5 - E - Water Supply, Sewerage, Waste Management, and Remediation Activities
+            // 5 - E -  
             ['id' => '36', 'name' => 'Water collection, treatment, and supply', 'sector_id' => '5', 'division_code' => '36'],
             ['id' => '37', 'name' => 'Sewerage', 'sector_id' => '5', 'division_code' => '37'],
             ['id' => '38', 'name' => 'Waste Collection Treatments and Disposal Activities, Materials Recovery', 'sector_id' => '5', 'division_code' => '38'],
@@ -87,7 +87,8 @@ class CategorySeeder extends Seeder
             ['id' => '59', 'name' => 'Motion Picture, Video and Television Program Production, Sound Recording and Music Publishing Activities', 'sector_id' => '10', 'division_code' => '59'],
             ['id' => '60', 'name' => 'Programming and Broadcasting Activities', 'sector_id' => '10', 'division_code' => '60'],
             ['id' => '61', 'name' => 'Telecommunications', 'sector_id' => '10', 'division_code' => '61'],
-            ['id' => '62', 'name' => 'Information Service Activities', 'sector_id' => '10', 'division_code' => '62'],
+            ['id' => '62', 'name' => 'Computer Programming, Consultancy and Related Activities', 'sector_id' => '10', 'division_code' => '62'],
+            ['id' => '63', 'name' => 'Information Service Activities', 'sector_id' => '10', 'division_code' => '63'],
 
             // 11 - K - Financial and Insurance Activities
             ['id' => '64', 'name' => 'Financial Service Activities, Except Insurance and Pension Funding', 'sector_id' => '11', 'division_code' => '64'],
