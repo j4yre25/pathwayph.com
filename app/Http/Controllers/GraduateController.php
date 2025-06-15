@@ -172,7 +172,43 @@ class GraduateController extends Controller
 
     public function batchPage()
     {
-        return Inertia::render('Graduates/BatchUploadPreview');
+        $institutionId = Auth::user()->institution->id;
+
+        // Fetch degree codes for this institution
+        $degreeCodes = DB::table('institution_degrees')
+            ->where('institution_id', $institutionId)
+            ->pluck('degree_code');
+
+        // Fetch program codes for this institution
+        $programCodes = DB::table('institution_programs')
+            ->where('institution_id', $institutionId)
+            ->pluck('program_code');
+
+        $companyNames = \App\Models\Company::pluck('company_name')->map(fn($n) => strtolower(trim($n)))->toArray();
+        $companyNamesMap = \App\Models\Company::all()
+            ->mapWithKeys(function ($company) {
+                return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
+            })
+            ->toArray();
+
+        $institutionSchoolYears = \App\Models\InstitutionSchoolYear::where('institution_id', $institutionId)
+            ->with('schoolYear')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'school_year_range' => $item->schoolYear->school_year_range,
+                    'term' => $item->term,
+                ];
+            })
+            ->toArray();
+
+        return Inertia::render('Graduates/BatchUploadPreview', [
+            'degreeCodes' => $degreeCodes,
+            'programCodes' => $programCodes,
+            'companyNames' => $companyNames,
+            'companyNamesMap' => $companyNamesMap,
+            'institutionSchoolYears' => $institutionSchoolYears,
+        ]);
     }
 
     public function batchUpload(Request $request)
@@ -199,6 +235,12 @@ class GraduateController extends Controller
         $validRows = [];
         $rowNum = 2;
         $institutionId = Auth::user()->institution->id;
+
+        // Fetch all company names (lowercased, trimmed => original)
+        $companyNamesMap = \App\Models\Company::all()
+            ->mapWithKeys(function ($company) {
+                return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
+            });
 
         while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
             $row = array_combine($header, $data);
@@ -266,6 +308,45 @@ class GraduateController extends Controller
                 continue;
             }
 
+            // Company Name Validation
+            $employmentStatus = strtoupper(trim($row['employment_status'] ?? ''));
+            $inputCompanyName = trim($row['company_name'] ?? '');
+
+            if ($employmentStatus === 'UNEMPLOYED') {
+                if (strtoupper($inputCompanyName) !== 'N/A') {
+                    $errors[] = [
+                        'row' => $rowNum,
+                        'messages' => ['For unemployed graduates, company name must be "N/A".'],
+                    ];
+                    $rowNum++;
+                    continue;
+                }
+                $row['company_name'] = 'N/A';
+                $row['company_id'] = null;
+            } else {
+                // Must match a company (case-insensitive, ignore extra spaces)
+                $normalized = strtolower(preg_replace('/\s+/', ' ', $inputCompanyName));
+                if (!$inputCompanyName) {
+                    $errors[] = [
+                        'row' => $rowNum,
+                        'messages' => ['Company name is required for employed/underemployed graduates.'],
+                    ];
+                    $rowNum++;
+                    continue;
+                }
+                if (!isset($companyNamesMap[$normalized])) {
+                    $errors[] = [
+                        'row' => $rowNum,
+                        'messages' => ["Company name '{$inputCompanyName}' does not exist in the system."],
+                    ];
+                    $rowNum++;
+                    continue;
+                }
+                // Use the exact format from the database
+                $row['company_name'] = $companyNamesMap[$normalized];
+                $row['company_id'] = \App\Models\Company::where('company_name', $companyNamesMap[$normalized])->value('id');
+            }
+
             if ($validator->fails()) {
                 $errors[] = [
                     'row' => $rowNum,
@@ -327,7 +408,7 @@ class GraduateController extends Controller
                 'institution_id' => $institutionId,
                 'degree_id' => $degreeId,
                 'program_id' => $programId,
-                'school_year_id' => $this->getYearId($row['year_graduated']),
+                'school_year_id' => $this->getInstitutionSchoolYearId($row['year_graduated'], $row['term'], $institutionId),
                 'employment_status' => $row['employment_status'],
                 'current_job_title' => in_array($row['employment_status'], ['Employed', 'Underemployed'])
                     ? $this->toTitleCase($row['current_job_title'])
@@ -335,6 +416,7 @@ class GraduateController extends Controller
                 'gender' => $row['gender'],
                 'dob' => $row['dob'],
                 'contact_number' => $row['contact_number'],
+                'company_id' => $row['company_id'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -421,5 +503,18 @@ class GraduateController extends Controller
     private function toTitleCase($string)
     {
         return mb_convert_case(mb_strtolower(trim($string)), MB_CASE_TITLE, "UTF-8");
+    }
+
+    private function getInstitutionSchoolYearId($schoolYearRange, $term, $institutionId)
+    {
+        $schoolYearId = \DB::table('school_years')
+            ->where('school_year_range', $schoolYearRange)
+            ->value('id');
+
+        return \DB::table('institution_school_years')
+            ->where('institution_id', $institutionId)
+            ->where('school_year_range_id', $schoolYearId)
+            ->where('term', $term)
+            ->value('id');
     }
 }
