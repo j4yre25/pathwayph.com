@@ -122,6 +122,26 @@
           @click="page++"
         >Next</button>
       </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
+        <!-- Stacked Bar Chart: Gender vs Employment Status -->
+        <div class="bg-white rounded-xl shadow p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-700">Employment Status by Gender</h3>
+          <VueECharts :option="genderStackedBarOption" style="height: 400px; width: 100%;" />
+        </div>
+        <!-- Pie/Doughnut Chart: Employment Rate -->
+        <div class="bg-white rounded-xl shadow p-6 flex flex-col items-center justify-center">
+          <h3 class="text-lg font-semibold mb-4 text-gray-700">Employment Rate Distribution</h3>
+          <VueECharts :option="employmentPieOption" style="height: 350px; width: 100%; max-width: 400px;" />
+          <div class="mt-4 text-center">
+            <div class="text-2xl font-bold text-green-700">
+              {{ total ? ((employed + underemployed) / total * 100).toFixed(1) : 0 }}%
+            </div>
+            <div class="text-gray-500">Employment Rate</div>
+          </div>
+        </div>
+      </div>
     </div>
   </AppLayout>
 </template>
@@ -130,6 +150,7 @@
 import { ref, computed, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { GraduationCap } from 'lucide-vue-next';
+import VueECharts from 'vue-echarts';
 
 const props = defineProps({
   graduates: Array,
@@ -194,4 +215,72 @@ watch(filteredGraduates, () => { page.value = 1; });
 const employedCount = computed(() => filteredGraduates.value.filter(g => g.employment_status === 'Employed').length);
 const underemployedCount = computed(() => filteredGraduates.value.filter(g => g.employment_status === 'Underemployed').length);
 const unemployedCount = computed(() => filteredGraduates.value.filter(g => g.employment_status === 'Unemployed').length);
+
+// --- Stacked Bar Chart: Gender vs Employment Status ---
+const genderEmploymentData = computed(() => {
+  const genders = ['Male', 'Female']
+  const statuses = ['Employed', 'Underemployed', 'Unemployed']
+  // Count graduates by gender and status
+  const counts = genders.map(gender =>
+    statuses.map(status =>
+      props.graduates.filter(g =>
+        g.gender === gender && g.employment_status === status
+      ).length
+    )
+  )
+  return { genders, statuses, counts }
+})
+
+const genderStackedBarOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  legend: { data: genderEmploymentData.value.statuses },
+  xAxis: { type: 'category', data: genderEmploymentData.value.genders },
+  yAxis: { type: 'value' },
+  series: genderEmploymentData.value.statuses.map((status, idx) => ({
+    name: status,
+    type: 'bar',
+    stack: 'total',
+    data: genderEmploymentData.value.genders.map(
+      (_, gIdx) => genderEmploymentData.value.counts[gIdx][idx]
+    ),
+    itemStyle: {
+      color: ['#22c55e', '#facc15', '#ef4444'][idx]
+    }
+  }))
+}))
+
+// --- Pie/Doughnut Chart: Employment Rate ---
+const employed = computed(() =>
+  props.graduates.filter(g => g.employment_status === 'Employed').length
+)
+const underemployed = computed(() =>
+  props.graduates.filter(g => g.employment_status === 'Underemployed').length
+)
+const unemployed = computed(() =>
+  props.graduates.filter(g => g.employment_status === 'Unemployed').length
+)
+const total = computed(() => employed.value + underemployed.value + unemployed.value)
+
+const employmentPieOption = computed(() => ({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  legend: { orient: 'vertical', left: 'left' },
+  series: [
+    {
+      name: 'Employment Status',
+      type: 'pie',
+      radius: ['60%', '80%'], // doughnut style
+      avoidLabelOverlap: false,
+      label: {
+        show: true,
+        formatter: '{b}: {d}%',
+        fontWeight: 'bold'
+      },
+      data: [
+        { value: employed.value, name: 'Employed', itemStyle: { color: '#22c55e' } },
+        { value: underemployed.value, name: 'Underemployed', itemStyle: { color: '#facc15' } },
+        { value: unemployed.value, name: 'Unemployed', itemStyle: { color: '#ef4444' } },
+      ]
+    }
+  ]
+}))
 </script>
