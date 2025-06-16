@@ -273,6 +273,17 @@ function submitToBackend() {
         </ul>
       </div>
 
+       <!-- Submit Button -->
+      <div v-if="parsedRows.length" class="flex justify-end">
+        <button
+          @click="submitToBackend"
+          :disabled="!isValid"
+          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          Submit Data
+        </button>
+      </div>
+
       <!-- Preview Table -->
       <div v-if="parsedRows.length" class="overflow-x-auto">
         <table class="w-full border text-sm">
