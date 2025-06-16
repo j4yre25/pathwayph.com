@@ -5,11 +5,11 @@ import { useForm, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
-import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
   activeSection: { type: String, default: 'education' },
   user: { type: Object, default: () => ({}) },
+  graduate: { type: Object, default: () => ({}) }, // <-- add this
   educationEntries: Array,
   archivedEducationEntries: { type: Array, default: () => [] },
 });
@@ -527,7 +527,7 @@ const handleNoAchievements = () => {
 
       <!-- Active Education Entries -->
       <div>
-        <h2 class="text-lg font-medium mb-4">Active Education</h2>
+        <h2 class="text-lg font-medium mb-4">Education</h2>
         <div v-if="educationEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
             <div>
@@ -595,16 +595,14 @@ const handleNoAchievements = () => {
             <div class="border-b pb-2">
               <h2 class="text-xl font-bold">{{ education.education || 'Unknown Institution' }}</h2>
               <p class="text-gray-600">
-                {{ education.program || 'Unknown Program' }} in {{
-                  education.field_of_study || 'Unknown Field' }}
+                {{ education.program || 'Unknown Program' }} in {{ education.field_of_study || 'Unknown Field' }}
               </p>
             </div>
             <div class="flex items-center text-gray-600 mt-2">
               <i class="far fa-calendar-alt mr-2"></i>
               <span>
-                {{ formatDisplayDate(education.start_date) }} - {{
-                  education.end_date ? formatDisplayDate(education.end_date) :
-                    'present' }}
+                {{ formatDisplayDate(education.start_date) }} - {{ education.end_date ? formatDisplayDate(education.end_date) :
+                  'present' }}
               </span>
             </div>
             <div v-if="education.term" class="flex items-center text-gray-600 mt-2">
@@ -795,6 +793,37 @@ const handleNoAchievements = () => {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graduate School Information (always visible) -->
+    <div class="bg-white p-6 rounded-lg border border-gray-200 mb-8">
+      <h2 class="text-xl font-semibold mb-2">Education</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div>
+          <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
+          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+            {{ graduate?.institution?.institution_name || 'Not specified' }}
+          </div>
+        </div>
+        <div>
+          <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
+          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+            {{ graduate?.school_year?.school_year_range || 'Not specified' }}
+          </div>
+        </div>
+        <div>
+          <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
+          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+            {{ graduate?.program?.name || 'Not specified' }}
+          </div>
+        </div>
+        <div>
+          <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
+          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+            {{ graduate?.program?.degree?.type || graduate?.degree?.type || 'Not specified' }}
+          </div>
         </div>
       </div>
     </div>

@@ -116,4 +116,8 @@ class Graduate extends Model
     {
         return $this->belongsToMany(\App\Models\InternshipProgram::class, 'graduate_internship_program');
     }
+    public function institutionSchoolYear()
+    {
+        return $this->belongsTo(\App\Models\InstitutionSchoolYear::class, 'school_year_id');
+    }
 }

@@ -17,14 +17,15 @@ use Carbon\Carbon;
 
 class GraduateController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $institutionId = Auth::user()->institution->id;
 
-        $graduates = DB::table('graduates')
+        $query = DB::table('graduates')
             ->join('users', 'graduates.user_id', '=', 'users.id')
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
-            ->join('school_years', 'graduates.school_year_id', '=', 'school_years.id')
+            ->join('institution_school_years', 'graduates.school_year_id', '=', 'institution_school_years.id')
+            ->join('school_years', 'institution_school_years.school_year_range_id', '=', 'school_years.id')
             ->where('users.role', 'graduate')
             ->where('graduates.institution_id', $institutionId)
             ->where('users.is_approved', true)
@@ -42,12 +43,38 @@ class GraduateController extends Controller
                 'graduates.school_year_id',
                 'programs.name as program_name',
                 'school_years.school_year_range as year_graduated',
+                'institution_school_years.term as term',
                 'graduates.current_job_title',
                 'graduates.employment_status',
                 'users.email'
-            )
-            ->orderBy('graduates.created_at', 'desc')
-            ->paginate(30); // <-- Add pagination
+            );
+
+        // Apply filters from request
+        if ($request->filled('name') && $request->input('name') !== 'all') {
+            $name = $request->input('name');
+            $query->where(function($q) use ($name) {
+                $q->where('graduates.first_name', 'like', "%$name%")
+                  ->orWhere('graduates.middle_name', 'like', "%$name%")
+                  ->orWhere('graduates.last_name', 'like', "%$name%");
+            });
+        }
+        if ($request->filled('year') && $request->input('year') !== 'all') {
+            $query->where('school_years.school_year_range', $request->input('year'));
+        }
+        if ($request->filled('term') && $request->input('term') !== 'all') {
+            $query->where('institution_school_years.term', $request->input('term'));
+        }
+        if ($request->filled('gender') && $request->input('gender') !== 'all') {
+            $query->where('graduates.gender', $request->input('gender'));
+        }
+        if ($request->filled('careerOpportunity') && $request->input('careerOpportunity') !== 'all') {
+            $query->where('graduates.current_job_title', $request->input('careerOpportunity'));
+        }
+        if ($request->filled('program') && $request->input('program') !== 'all') {
+            $query->where('graduates.program_id', $request->input('program'));
+        }
+
+        $graduates = $query->orderBy('graduates.created_at', 'desc')->paginate(30)->withQueryString();
 
         // Fetch programs via the pivot table
         $programs = DB::table('institution_programs')
@@ -57,18 +84,39 @@ class GraduateController extends Controller
             ->select('programs.*')
             ->get();
 
-        // Fetch school years for this institution
+        // Unique school years (no duplicates)
         $years = DB::table('institution_school_years')
             ->join('school_years', 'institution_school_years.school_year_range_id', '=', 'school_years.id')
             ->where('institution_school_years.institution_id', $institutionId)
             ->whereNull('school_years.deleted_at')
-            ->select('school_years.*')
-            ->get();
+            ->select('school_years.school_year_range as year_graduated')
+            ->distinct()
+            ->orderBy('school_years.school_year_range', 'desc')
+            ->pluck('year_graduated');
+
+        // Unique terms (no duplicates, for this institution)
+        $terms = DB::table('institution_school_years')
+            ->where('institution_id', $institutionId)
+            ->select('term')
+            ->distinct()
+            ->pluck('term');
+
+        // Unique career opportunities (no duplicates, for this institution)
+        $careerOpportunities = DB::table('institution_career_opportunities')
+            ->join('career_opportunities', 'institution_career_opportunities.career_opportunity_id', '=', 'career_opportunities.id')
+            ->where('institution_career_opportunities.institution_id', $institutionId)
+            ->select('career_opportunities.title')
+            ->distinct()
+            ->pluck('title');
 
         return Inertia::render('Graduates/Index', [
             'graduates' => $graduates, // This is now a paginator object
             'programs' => $programs,
             'years' => $years,
+            'terms' => $terms,
+            'genders' => ['Male', 'Female'],
+            'careerOpportunities' => $careerOpportunities,
+            'filters' => $request->only(['name', 'year', 'term', 'gender', 'careerOpportunity', 'program']),
         ]);
     }
 

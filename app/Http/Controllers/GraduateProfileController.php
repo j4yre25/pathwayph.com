@@ -19,19 +19,40 @@ class GraduateProfileController extends Controller
 {
     public function show($id)
     {
-        $graduate = Graduate::with('user')->findOrFail($id);
+        $graduate = Graduate::with([
+            'user',
+            'institution',
+            'program',
+            'institutionSchoolYear.schoolYear'
+        ])->findOrFail($id);
+
+        // Get year graduated and term
+        $yearGraduated = null;
+        $term = null;
+        if ($graduate->institutionSchoolYear) {
+            $yearGraduated = optional($graduate->institutionSchoolYear->schoolYear)->school_year_range;
+            $term = $graduate->institutionSchoolYear->term;
+        }
 
         // Get the authenticated user
         $user = Auth::user();
         
         return inertia('Frontend/UpdatedGraduateProfile', [
             'graduate' => $graduate,
+            'originalInstitution' => [
+                'name' => optional($graduate->institution)->institution_name,
+                'program' => optional($graduate->program)->name,
+                'year_graduated' => $yearGraduated,
+                'term' => $term,
+            ],
             'skills' => GraduateSkill::where('graduate_id', $graduate->id)
                 ->join('skills', 'graduate_skills.skill_id', '=', 'skills.id')
                 ->select('graduate_skills.*', 'skills.name as skill_name')
                 ->get(),
             'experiences' => Experience::where('graduate_id', $graduate->id)->get(),
-            'education' => Education::where('graduate_id', $graduate->id)->get(),
+            'education' => Education::with('institution')
+                ->where('graduate_id', $graduate->id)
+                ->get(),
             'projects' => Project::where('graduate_id', $graduate->id)->get(),
             'achievements' => Achievement::where('graduate_id', $graduate->id)->get(),
             'certifications' => Certification::where('graduate_id', $graduate->id)->get(),
