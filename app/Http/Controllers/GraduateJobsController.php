@@ -30,6 +30,8 @@ class GraduateJobsController extends Controller
 
         // Fetch jobs with relationships for poster info
         $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
+            ->where('status', 'open')
+            ->where('is_approved', 1)
             ->when($request->keywords, function ($query, $keywords) {
                 $query->where(function ($q) use ($keywords) {
                     $q->where('job_title', 'like', "%{$keywords}%")
@@ -122,6 +124,8 @@ class GraduateJobsController extends Controller
 
         // Fetch jobs with relationships for poster info (same as index)
         $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
+            ->where('status', 'open')
+            ->where('is_approved', 1)
             ->when($request->keywords, function ($query, $keywords) {
                 $query->where(function ($q) use ($keywords) {
                     $q->where('job_title', 'like', "%{$keywords}%")
@@ -356,15 +360,20 @@ class GraduateJobsController extends Controller
         // Get default cover letter (assuming it's stored on the graduate profile)
         $coverLetter = $graduate->cover_letter ?? '';
 
-        \App\Models\JobApplication::create([
+        $application =\App\Models\JobApplication::create([
             'user_id' => auth()->id(),
             'graduate_id' => $graduate->id,
             'job_id' => $request->job_id,
             'status' => 'applied',
+            'stage' => 'screening',
             'applied_at' => now(),
             'resume_id' => $resume ? $resume->id : null,
             'cover_letter' => $coverLetter,
         ]);
+
+        // Immediately move to screening (auto-screening logic here if needed)
+        $application->stage = 'screening';
+        $application->save();
 
         return response()->json(['success' => true, 'message' => 'Applied with your latest resume and cover letter!']);
     }

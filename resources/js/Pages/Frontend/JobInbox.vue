@@ -216,12 +216,20 @@ onMounted(() => {
                                     <i class="fas fa-bell-slash text-4xl mb-4"></i>
                                     <p>No new job notifications</p>
                                 </div>
-                                <div v-else>
+                               <div v-else>
                                     <div v-for="notification in notifications" :key="notification.id"
                                         class="border border-yellow-300 bg-yellow-50 rounded p-3 hover:bg-yellow-100 cursor-pointer"
                                         @click="markNotificationAsRead(notification.id)">
                                         <p class="text-sm text-gray-700">
-                                            <span v-if="notification.type === 'InterviewScheduledNotification'">
+                                            <!-- Application Status Updated Notification -->
+                                            <span v-if="notification.type.includes('ApplicationStatusUpdated')">
+                                                Your application for
+                                                <b>{{ notification.data.job_title }}</b>
+                                                has been updated to:
+                                                <b>{{ notification.data.status }}</b>.
+                                            </span>
+                                            <!-- Interview Scheduled Notification -->
+                                            <span v-else-if="notification.type.includes('InterviewScheduledNotification')">
                                                 Interview scheduled
                                                 <span v-if="notification.data.job_title">
                                                     for <b>{{ notification.data.job_title }}</b>
@@ -229,19 +237,15 @@ onMounted(() => {
                                                 <span v-if="notification.data.company">
                                                     at <b>{{ notification.data.company }}</b>
                                                 </span>
-                                                on <b>{{ new
-                                                    Date(notification.data.scheduled_at).toLocaleString('en-US', {
-                                                        year:
-                                                            'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:
-                                                            '2-digit'
-                                                    }) }}</b>
-                                                <span v-if="notification.data.location"> ({{ notification.data.location
-                                                }})</span>.
+                                                on <b>{{ new Date(notification.data.scheduled_at).toLocaleString('en-US', {
+                                                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                }) }}</b>
+                                                <span v-if="notification.data.location"> ({{ notification.data.location }})</span>.
                                             </span>
+                                            <!-- Fallback for other notifications -->
                                             <span v-else>
                                                 <span class="font-bold">{{ notification.data?.title }}</span>
-                                                <span v-if="notification.data?.company"> at {{
-                                                    notification.data?.company }}</span>
+                                                <span v-if="notification.data?.company"> at {{ notification.data?.company }}</span>
                                             </span>
                                         </p>
                                         <p class="text-xs text-gray-500">{{ notification.created_at }}</p>

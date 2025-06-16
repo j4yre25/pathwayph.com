@@ -24,8 +24,7 @@ class Job extends Model
         'status',
         'sector_id',
         'category_id',
-        'departme
-        nt_id',
+        'department_id',
         'job_title',
         'salary_id',
         'job_description',
@@ -116,6 +115,11 @@ class Job extends Model
         return $this->belongsTo(Company::class);
     }
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
     public function institution()
     {
         return $this->belongsTo(Institution::class);
@@ -204,4 +208,6 @@ class Job extends Model
     {
         return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment');
     }
+
+    
 }

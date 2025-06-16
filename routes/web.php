@@ -35,6 +35,8 @@ use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
 use App\Http\Controllers\CompanyDepartmentController;
+use App\Http\Controllers\CompanyJobBatchUploadController;
+use App\Http\Controllers\Company\CompanyReportsController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -71,7 +73,6 @@ use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\Institution\InstitutionReportsController;
 use App\Http\Controllers\ResumeController;
-use App\Http\Controllers\Company\CompanyReportsController;
 
 use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -200,43 +201,25 @@ Route::middleware(['auth'])->group(function () {
 
 // Company Jobs Routes
 // Route::prefix('user')->group(function () {
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}', [CompanyJobsController::class, 'index'])
-    ->name('company.jobs');
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::get('company/jobs/{user}', [CompanyJobsController::class, 'index'])->name('company.jobs');
+    Route::get('company/jobs/{user}/archivedlist', [CompanyJobsController::class, 'archivedlist'])->name('company.jobs.archivedlist');
+    Route::get('company/jobs/{user}/create', [CompanyJobsController::class, 'create'])->name('company.jobs.create');
+    Route::post('company/jobs/{user}', [CompanyJobsController::class, 'store'])->name('company.jobs.store');
+    Route::get('company/jobs/manage/{user}', [CompanyJobsController::class, 'manage'])->name('company.jobs.manage');
+    Route::get('company/jobs/view/{job}', [CompanyJobsController::class, 'view'])->name('company.jobs.view');
+    Route::get('company/jobs/edit/{job}', [CompanyJobsController::class, 'edit'])->name('company.jobs.edit');
+    Route::put('company/jobs/edit/{job}', [CompanyJobsController::class, 'update'])->name('company.jobs.update');
+    Route::delete('company/jobs/edit/{job}', [CompanyJobsController::class, 'delete'])->name('company.jobs.delete');
+    Route::post('company/jobs/{job}/auto-invite', [CompanyJobsController::class, 'autoInvite'])->name('company.jobs.auto-invite');
+    Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
+    Route::post('company/jobs/{job}/approve', [CompanyJobsController::class, 'approve'])->name('company.jobs.approve');
+    Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
 
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}/archivedlist', [CompanyJobsController::class, 'archivedlist'])
-    ->name('company.jobs.archivedlist');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}/create', [CompanyJobsController::class, 'create'])
-    ->name('company.jobs.create');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->post('company/jobs/{user}', [CompanyJobsController::class, 'store'])
-    ->name('company.jobs.store');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->get('company/jobs/manage/{user}', [CompanyJobsController::class, 'manage'])
-    ->name('company.jobs.manage');
-
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/view/{job}', [CompanyJobsController::class, 'view'])
-    ->name('company.jobs.view');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/edit/{job}', [CompanyJobsController::class, 'edit'])
-    ->name('company.jobs.edit');
-
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->put('company/jobs/edit/{job}', [CompanyJobsController::class, 'update'])
-    ->name('company.jobs.update');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->delete('company/jobs/edit/{job}', [CompanyJobsController::class, 'delete'])
-    ->name('company.jobs.delete');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->post('company/jobs/{job}/auto-invite', [CompanyJobsController::class, 'autoInvite'])
-    ->name('company.jobs.auto-invite');
-
-Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
-Route::post('company/jobs/{job}/approve', [CompanyJobsController::class, 'approve'])->name('company.jobs.approve');
-Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
-
+    Route::get('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchPage'])->name('company.jobs.batch.page');
+    Route::post('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchUpload'])->name('company.jobs.batch.upload');
+    Route::get('/company/post-jobs/download', [CompanyJobsController::class, 'downloadTemplate'])->name('company.jobs.template.download');
+});
 
 //Manage Applicants Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
@@ -262,10 +245,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
         // Schedule interview
         Route::post('{application}/schedule-interview', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.scheduleInterview');
-
+        Route::put('/company/applications/{application}/stage', [CompanyApplicationController::class, 'updateStage'])->name('company.applications.updateStage');
         // View graduate portfolio
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
-
         Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
     });
 });
@@ -313,6 +295,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/company/departments', [CompanyDepartmentController::class, 'index'])->name('company.departments.index');
     Route::post('/company/departments', [CompanyDepartmentController::class, 'store'])->name('company.departments.store');
     Route::post('/company/departments/batch', [CompanyDepartmentController::class, 'batchStore'])->name('company.departments.batch');
+    Route::post('/company/departments/batch-upload', [CompanyDepartmentController::class, 'batchUpload'])->name('company.departments.batch.upload');
+    Route::get('/company/departments/batch-template', [CompanyDepartmentController::class, 'downloadTemplate'])->name('company.departments.batch.template');
     Route::get('/company/departments/manage', [CompanyDepartmentController::class, 'manage'])->name('company.departments.manage');
     Route::put('/company/departments/{department}', [CompanyDepartmentController::class, 'update'])->name('company.departments.update');
     Route::delete('/company/departments/{department}', [CompanyDepartmentController::class, 'destroy'])->name('company.departments.destroy');

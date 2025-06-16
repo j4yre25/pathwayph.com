@@ -7,27 +7,35 @@ const props = defineProps({
 })
 
 // Display stages in order for progress bar logic
-const stages = ['Applying', 'Screening', 'Interview', 'Test', 'Onboarding']
+const stages = [
+  'Applying',
+  'Screening',
+  'Testing',
+  'Final Interview',
+  'Onboarding'
+]
 
 // Map backend stage keys to internal stage names
 const stageMap = {
   applying: 'Applying',
-  applied: 'Applying', 
-  screened: 'Screening',
+  applied: 'Applying',
   screening: 'Screening',
-  interviewed: 'Interview',
-  interview: 'Interview',
-  testing: 'Test',
-  test: 'Test',
+  screened: 'Screening',
+  testing: 'Testing',
+  tested: 'Testing',
+  'final interview': 'Final Interview',
+  final_interview: 'Final Interview',
+  finalinterview: 'Final Interview',
   onboarding: 'Onboarding',
+  onboarded: 'Onboarding',
 }
 
 // Human-readable display labels
 const displayLabelMap = {
   Applying: 'Applied',
   Screening: 'Screened',
-  Interview: 'Interviewed',
-  Test: 'Tested',
+  Testing: 'Tested',
+  'Final Interview': 'Final Interviewed',
   Onboarding: 'Onboarding',
 }
 
@@ -44,7 +52,7 @@ const currentStageIndex = stages.findIndex(s => s === normalizedStage)
           class="text-xs text-gray-600 ml-1"
           :class="index === currentStageIndex ? 'font-semibold text-blue-600' : ''"
         >
-          {{ displayLabelMap[step] || step }}
+          {{ index < currentStageIndex ? displayLabelMap[step] : step }}
         </span>
         <div
           :class="[

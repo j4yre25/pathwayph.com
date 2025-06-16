@@ -37,6 +37,25 @@ const interviewNotes = ref('');
 const rejectionReason = ref('');
 const formErrors = ref({});
 
+
+const filters = ref({
+  keywords: '',
+  min_experience: '',
+  degree: '',
+});
+
+function applyFilters() {
+  console.log('Applying filters:', filters.value); // Log the filter values
+  router.get(window.location.pathname, {
+    ...filters.value,
+  }, { 
+    preserveState: true,
+    onSuccess(page) {
+      console.log('Filter result applicants:', page.props.applicants); // Log the returned applicants
+    }
+  });
+}
+
 // Function to get status class based on applicant status
 const getStatusClass = (status) => {
   if (status === 'accepted' || status === 'hired') return 'bg-green-100 text-green-800';
@@ -90,6 +109,13 @@ const closeModal = () => {
       <button @click="actionError = null" class="absolute top-0 bottom-0 right-0 px-4 py-3" aria-label="Close alert">
         <i class="fas fa-times"></i>
       </button>
+    </div>
+
+    <div class=" mb-4 flex flex-wrap gap-2 justify-end">
+      <input v-model="filters.keywords" placeholder="Search by name, skill, degree..." class="border px-2 py-1 rounded" />
+      <input v-model.number="filters.min_experience" type="number" min="0" placeholder="Min Years Experience" class="border px-2 py-1 rounded" />
+      <input v-model="filters.degree" placeholder="Degree (e.g. Bachelor)" class="border px-2 py-1 rounded" />
+      <PrimaryButton @click="applyFilters">Filter</PrimaryButton>
     </div>
     
     <!-- Applicant listings as rows -->

@@ -190,11 +190,22 @@ const createJob = () => {
                     </h2>
                 </div>
                 <p class="text-sm text-gray-500 mt-2">Please fill in the details below to create a new job posting.</p>
+
             </div>
         </template>
-
+        
+        
         <Container class="py-15">
             <div class="mt-8">
+                <Link
+                    :href="route('company.jobs.batch.page')"
+                    class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:outline-none focus:border-blue-700 focus:ring focus:ring-blue-200 active:bg-blue-600 disabled:opacity-25 transition"
+                >
+                    <i class="fas fa-upload mr-2"></i>
+                    Batch Upload Jobs
+                </Link>
+            </div>
+            <div>
                 <FormSection @submitted="createJob()">
                     <template #form>
                         <!-- Progress Tabs -->
