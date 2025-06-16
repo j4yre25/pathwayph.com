@@ -22,6 +22,34 @@ const props = defineProps({
   resume: { type: Object, default: null },
 });
 
+// Stages setup
+const stageOrder = [
+  'applying',
+  'screening',
+  'testing',
+  'final interview',
+  'onboarding'
+]
+
+const currentStage = ref(props.applicant.stage || 'applying')
+
+function moveStage() {
+  const idx = stageOrder.indexOf(currentStage.value)
+  if (idx < stageOrder.length - 1) {
+    const nextStage = stageOrder[idx + 1]
+    router.put(
+      route('company.applications.updateStage', props.applicant.id),
+      { stage: nextStage },
+      {
+        onSuccess: () => {
+          currentStage.value = nextStage
+        }
+      }
+    )
+  }
+}
+// End of stages setup
+
 // Copy to clipboard function
 function copyToClipboard(text) {
   if (!text) return;
@@ -350,12 +378,15 @@ onMounted(() => {
                     <div class="flex items">
                     <h4 class="text-base font-semibold text-gray-800 mb-4">Hiring Process</h4>
                     <span class="flex-1 flex justify-end">
-                      <button class="bg-gray-200 text-gray-700 px-6 py-2 rounded-full font-semibold">
+                      <button class="bg-gray-200 text-gray-700 px-6 py-2 rounded-full font-semibold"
+                        @click="moveStage"
+                        :disabled="stageOrder.indexOf(currentStage) === stageOrder.length - 1"
+                      >
                         Move Stage &gt;
                       </button>
                     </span>
                     </div>
-                    <CandidatePipeline :stage="props.applicant.status" />
+                    <CandidatePipeline :stage="currentStage" />
                   </section>
 
                   <!-- Professional Skills -->

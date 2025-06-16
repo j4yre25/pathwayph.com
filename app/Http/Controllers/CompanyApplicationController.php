@@ -113,4 +113,14 @@ class CompanyApplicationController extends Controller
 
         return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
     }
+
+    public function updateStage(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'stage' => 'required|string|in:applying,screening,testing,final interview,onboarding'
+        ]);
+        $application->stage = $request->stage;
+        $application->save();
+        return back()->with('success', 'Stage updated.');
+    }
 }

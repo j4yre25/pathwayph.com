@@ -326,7 +326,7 @@ public function peso(User $user)
         $job->status = 'open';
         $job->save();
 
-        return redirect()->route('peso.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');
+        return redirect()->route('peso.jobs.manage', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');
     }
 
     public function disapprove(Job $job)

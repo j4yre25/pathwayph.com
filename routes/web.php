@@ -245,10 +245,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
         // Schedule interview
         Route::post('{application}/schedule-interview', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.scheduleInterview');
-
+        Route::put('/company/applications/{application}/stage', [CompanyApplicationController::class, 'updateStage'])->name('company.applications.updateStage');
         // View graduate portfolio
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
-
         Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
     });
 });
