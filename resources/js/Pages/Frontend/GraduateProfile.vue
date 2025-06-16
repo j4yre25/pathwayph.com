@@ -14,7 +14,9 @@ const props = defineProps({
     resume: Object,
     careerGoals: Object,
     employmentPreferences: Object,
+    originalInstitution: Object, // <-- Add this line
 });
+
 
 const fullName = computed(() =>
     [props.graduate_first_name, props.graduate_last_name]
@@ -181,26 +183,71 @@ console.log('Education:', props.education);
                         <p class="text-gray-600">{{ localAboutMe || 'No description available.' }}</p>
                     </section>
 
-                    <!-- Education -->
+                    <!-- Education Section -->
                     <section class="bg-white rounded-lg shadow-lg p-6">
-                        <h4 class="text-xl font-semibold text-gray-800 mb-4">Education</h4>
-                        <ul class="space-y-4">
-                            <li v-for="edu in education.filter(e => !latestEducation || e.id !== latestEducation.id)"
-                                :key="edu.id"
-                                class="flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50 rounded-lg p-4 shadow-sm">
-                                <div>
-                                    <div class="text-lg font-semibold text-indigo-700">{{ edu.program }}</div>
-                                    <div class="text-gray-600">{{ edu.education }}</div>
-                                </div>
-                                <div class="mt-2 md:mt-0 text-sm text-gray-500 md:text-right">
-                                    <span class="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
-                                        {{ edu.start_date ? formatDate(edu.start_date.substring(0, 10)) : 'N/A' }}
-                                        -
-                                        {{ edu.end_date ? formatDate(edu.end_date.substring(0, 10)) : 'N/A' }}
-                                    </span>
-                                </div>
-                            </li>
-                        </ul>
+                      <h4 class="text-xl font-semibold text-gray-800 mb-4">Education</h4>
+          
+                      <!-- Always show the original institution card if it exists -->
+                      <div
+                        v-if="originalInstitution && originalInstitution.name"
+                        class="mb-6 border border-indigo-200 rounded-lg p-4 bg-indigo-50 shadow"
+                      >
+                        <div class="text-lg font-bold text-indigo-700">
+                          {{ originalInstitution.name }}
+                        </div>
+                        <div class="text-gray-700">
+                          <span class="font-semibold"></span>
+                          {{ originalInstitution.program || 'N/A' }}
+                        </div>
+                        <div class="text-gray-700">
+                          <span class="font-semibold"></span>
+                          {{ originalInstitution.year_graduated || 'N/A' }}
+                          <template v-if="originalInstitution.term"></template>
+                        </div>
+                      </div>
+          
+                      <!-- Other education entries (if any) -->
+                      <ul v-if="education.length" class="space-y-4">
+                        <li
+                          v-for="edu in education"
+                          :key="edu.id"
+                          class="flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50 rounded-lg p-4 shadow-sm"
+                        >
+                          <div>
+                            <div class="text-lg font-semibold text-indigo-700">
+                              {{ edu.institution?.institution_name || edu.education || 'Institution N/A' }}
+                            </div>
+                            <div class="text-gray-700">
+                              <span class="font-semibold"></span>
+                              {{ edu.program || 'N/A' }}
+                            </div>
+                          </div>
+                          <div class="mt-2 md:mt-0 text-sm text-gray-500 md:text-right">
+                            <span class="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                              {{ edu.start_date ? formatDate(edu.start_date) : 'N/A' }}
+                              -
+                              {{ edu.end_date ? formatDate(edu.end_date) : (edu.is_current ? 'Present' : 'N/A') }}
+                            </span>
+                          </div>
+                        </li>
+                      </ul>
+                       <!-- Latest Education Section - Show at the top -->
+                    <section v-if="latestEducation" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-2">
+                            {{ latestEducation.is_current ? 'Current School' : 'Latest School Graduated From' }}
+                        </h4>
+                        <div class="text-lg font-bold text-indigo-700">{{ latestEducation.education }}</div>
+                        <div class="text-gray-600">{{ latestEducation.program }}<span
+                                v-if="latestEducation.field_of_study"> in {{ latestEducation.field_of_study }}</span>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            {{ latestEducation.start_date ? formatDate(latestEducation.start_date) : '' }}
+                            -
+                            {{ latestEducation.is_current ? 'Present' : (latestEducation.end_date ?
+                                formatDate(latestEducation.end_date) : '') }}
+                        </div>
+                    </section>
+            
                     </section>
 
                     <!-- Experience -->
@@ -380,23 +427,6 @@ console.log('Education:', props.education);
                             </p>
                             <p><strong>Career Path:</strong> {{ careerGoals.career_path || 'N/A' }}</p>
                             <p><strong>Additional Notes:</strong> {{ careerGoals.additional_notes || 'N/A' }}</p>
-                        </div>
-                    </section>
-
-                    <!-- Latest Education Section - Show at the top -->
-                    <section v-if="latestEducation" class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                        <h4 class="text-xl font-semibold text-gray-800 mb-2">
-                            {{ latestEducation.is_current ? 'Current School' : 'Latest School Graduated From' }}
-                        </h4>
-                        <div class="text-lg font-bold text-indigo-700">{{ latestEducation.education }}</div>
-                        <div class="text-gray-600">{{ latestEducation.program }}<span
-                                v-if="latestEducation.field_of_study"> in {{ latestEducation.field_of_study }}</span>
-                        </div>
-                        <div class="text-sm text-gray-500 mt-1">
-                            {{ latestEducation.start_date ? formatDate(latestEducation.start_date) : '' }}
-                            -
-                            {{ latestEducation.is_current ? 'Present' : (latestEducation.end_date ?
-                                formatDate(latestEducation.end_date) : '') }}
                         </div>
                     </section>
                 </main>

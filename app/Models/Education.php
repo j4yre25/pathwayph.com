@@ -66,4 +66,12 @@ class Education extends Model
     /**
      * Get the institution associated with the education record.
      */
+    public function institution()
+    {
+        return $this->belongsTo(\App\Models\Institution::class, 'institution_id');
+    }
+    public function programRelation()
+    {
+        return $this->belongsTo(\App\Models\Program::class, 'program', 'name'); // or use program_id if available
+    }
 }
