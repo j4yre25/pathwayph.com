@@ -41,8 +41,8 @@ class InstitutionReportsController extends Controller
             ->get()
             ->map(function ($g) use ($institution) {
                 // Get the term from institution_school_years
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
-                    ->where('school_year_range_id', $g->school_year_id)
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
+                    ->where('id', $g->school_year_id)
                     ->first();
 
                 return [
@@ -103,8 +103,8 @@ class InstitutionReportsController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($g) use ($institution) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
-                    ->where('school_year_range_id', $g->school_year_id)
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
+                    ->where('id', $g->school_year_id)
                     ->first();
 
                 return [
@@ -174,8 +174,8 @@ class InstitutionReportsController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($g) use ($institution) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
-                    ->where('school_year_range_id', $g->school_year_id)
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
+                    ->where('id', $g->school_year_id)
                     ->first();
 
                 return [
@@ -249,8 +249,8 @@ class InstitutionReportsController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($g) use ($institution) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
-                    ->where('school_year_range_id', $g->school_year_id)
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
+                    ->where('id', $g->school_year_id)
                     ->first();
 
                 return [
@@ -312,10 +312,9 @@ class InstitutionReportsController extends Controller
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($g) use ($institution) {
-                // Find the institution_school_year entry for this graduate's school_year_id and institution
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
-                    ->where('school_year_range_id', $g->school_year_id)
+            ->map(function ($g) {
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
+                    ->where('id', $g->school_year_id)
                     ->first();
 
                 return [
@@ -323,10 +322,10 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
-                    'gender' => $g->gender, // <-- add this
-                    'school_year_id' => $g->schoolYear?->id,
-                    'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term, // <-- get term from institution_school_years
+                    'gender' => $g->gender,
+                    'school_year_id' => $instSchoolYear?->schoolYear?->id,
+                    'school_year_range' => $instSchoolYear?->schoolYear?->school_year_range,
+                    'term' => $instSchoolYear?->term,
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
