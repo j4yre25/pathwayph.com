@@ -154,20 +154,6 @@ const goToPage = (page) => {
             <h3 class="text-lg font-semibold text-gray-800">Applicants List</h3>
             <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredApplications.length }} applicants</span>
           </div>
-          <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
-            <div class="relative">
-              <input 
-                type="search" 
-                id="search"
-                v-model="searchQuery" 
-                placeholder="Search by name..." 
-                class="border border-gray-300 rounded-lg px-4 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500 w-64"
-              />
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                <i class="fas fa-search"></i>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

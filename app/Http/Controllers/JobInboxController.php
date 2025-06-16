@@ -82,7 +82,7 @@ class JobInboxController extends Controller
             ->whereNull('read_at')
             ->whereIn('type', [
                 \App\Notifications\NewJobPostingNotification::class,
-
+                \App\Notifications\ApplicationStatusUpdated::class,
                 \App\Notifications\InterviewScheduledNotification::class,
                 \App\Notifications\JobInviteNotification::class
             ])

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\JobApplication;
 use App\Models\Interview;
 use App\Notifications\InterviewScheduledNotification;
+use App\Notifications\ApplicationStatusUpdated;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -121,6 +122,11 @@ class CompanyApplicationController extends Controller
         ]);
         $application->stage = $request->stage;
         $application->save();
+
+        // ... inside your method after saving the new status:
+        if ($application->graduate && $application->graduate->user) {
+            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->stage));
+        }
         return back()->with('success', 'Stage updated.');
     }
 }

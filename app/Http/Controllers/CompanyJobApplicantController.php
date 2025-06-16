@@ -73,10 +73,49 @@ class CompanyJobApplicantController extends Controller
         ]);
     }
 
-    public function show(Job $job)
+    public function show(Job $job, Request $request)
     {
-        $applicationsQuery = JobApplication::where('job_id', $job->id);
+        
+    $applicationsQuery = JobApplication::where('job_id', $job->id)
+        ->with(['graduate.user', 'graduate.graduateSkills.skill', 'graduate.education', 'graduate.experience']);
 
+
+        // Keyword filter (name, email, skill, degree, job title)
+        if ($request->filled('keywords')) {
+            $keywords = $request->input('keywords');
+            $applicationsQuery->where(function ($q) use ($keywords) {
+                $q->whereHas('graduate.user', function ($userQ) use ($keywords) {
+                    $userQ->where('first_name', 'like', "%$keywords%")
+                        ->orWhere('last_name', 'like', "%$keywords%")
+                        ->orWhere('email', 'like', "%$keywords%");
+                })
+                ->orWhereHas('graduate.graduateSkills.skill', function ($skillQ) use ($keywords) {
+                    $skillQ->where('name', 'like', "%$keywords%");
+                })
+                ->orWhereHas('graduate.education', function ($eduQ) use ($keywords) {
+                    $eduQ->where('education', 'like', "%$keywords%");
+                })
+                ->orWhereHas('graduate.experience', function ($expQ) use ($keywords) {
+                    $expQ->where('title', 'like', "%$keywords%");
+                });
+            });
+        }
+
+        // Degree filter
+        if ($request->filled('degree')) {
+            $degree = $request->input('degree');
+            $applicationsQuery->whereHas('graduate.education', function ($eduQ) use ($degree) {
+                $eduQ->where('education', 'like', "%$degree%");
+            });
+        }
+
+        // Minimum experience filter (in years)
+        if ($request->filled('min_experience')) {
+            $minExp = (int)$request->input('min_experience');
+            $applicationsQuery->whereHas('graduate.experience', function ($expQ) use ($minExp) {
+                $expQ->whereRaw('TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURDATE())) >= ?', [$minExp]);
+            });
+        }
         // Stats
         $totalApplicants = $applicationsQuery->count();
         $hiredCount = (clone $applicationsQuery)->where('status', 'hired')->count();
@@ -119,6 +158,7 @@ class CompanyJobApplicantController extends Controller
                 'interviews' => $interviewsCount,
                 'pending' => $pendingCount,
             ],
+            'filters' => $request->only(['keywords', 'min_experience', 'degree']),
         ]);
     }
 
