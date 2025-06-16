@@ -17,7 +17,7 @@ class CompanyBatchUploadController extends Controller
     // 1. Batch Upload Preview Page
     public function batchPage()
     {
-        return Inertia::render('Companies/BatchUploadPreview');
+        return Inertia::render('Admin/ManageUsers/Index/BatchUploadPreview');
     }
 
     // 2. Batch Upload Handler

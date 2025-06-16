@@ -13,6 +13,7 @@ import { defineProps, onMounted, ref, computed, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { Inertia } from '@inertiajs/inertia';
 import SectionBorder from '@/Components/SectionBorder.vue';
+import { useCompanySearch } from '@/Composables/useCompanySearch';
 
 const props = defineProps({
     insti_users: Array,
@@ -21,7 +22,7 @@ const props = defineProps({
     categories: Array,
     sectors: Array,
     degrees: Array, // <-- add this
-
+    companies: Array, // [{id, name}]
 });
 
 console.log('Categories:', props.categories);
@@ -71,6 +72,9 @@ const form = useForm({
 
     employment_status: '',
     current_job_title: '',
+    company_not_found: false,
+    other_company_name: '',      // <-- add this
+    other_company_sector: '',    // <-- add this
 });
 
 // Determine user role based on URL
@@ -151,6 +155,7 @@ const submit = () => {
             console.log("Form submission finished");
             console.log(form.errors);
             form.reset('password', 'password_confirmation');
+            showSuccessBanner.value = true;
         },
         onSuccess: () => {
             // showVerificationModal.value = true; // Show verification modal
@@ -199,6 +204,18 @@ watch(() => form.graduate_school_graduated_from, (newVal) => {
 
 watch(() => form.graduate_degree, (newVal) => {
     form.graduate_program_completed = '';
+});
+
+const companies = computed(() => props.companies ?? []);
+const { companySearch, showSuggestions, filteredCompanies, selectCompany, clearCompany } = useCompanySearch(form, companies);
+
+watch(() => form.company_not_found, (val) => {
+    if (!val) {
+        form.other_company_name = '';
+        form.other_company_sector = '';
+    } else {
+        form.company_name = '';
+    }
 });
 </script>
 
@@ -939,6 +956,54 @@ watch(() => form.graduate_degree, (newVal) => {
                             </div>
                         </div>
 
+                        <!-- Company Name Search & Other Company Toggle -->
+                        <div class="mt-4" v-if="form.employment_status !== 'Unemployed'">
+                            <div v-if="!form.company_not_found">
+                                <InputLabel for="company_name" value="Company Name" />
+                                <div class="relative">
+                                    <TextInput
+                                        id="company_name"
+                                        v-model="companySearch"
+                                        @input="showSuggestions = true"
+                                        @focus="showSuggestions = true"
+                                        @blur="setTimeout(() => showSuggestions = false, 200)"
+                                        placeholder="Search for your company"
+                                        class="mt-1 block w-full"
+                                        autocomplete="off"
+                                    />
+                                    <div v-if="showSuggestions && filteredCompanies.length > 0"
+                                        class="absolute z-10 bg-white border mt-1 w-full rounded shadow max-h-40 overflow-auto">
+                                        <div v-for="company in filteredCompanies" :key="company.id"
+                                            @mousedown.prevent="selectCompany(company)"
+                                            class="px-3 py-2 hover:bg-indigo-100 cursor-pointer">
+                                            {{ company.name }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <InputError class="mt-2" :message="form.errors.company_name" />
+                            </div>
+
+                            <!-- Company Not Found Checkbox (always visible) -->
+                            <div class="mt-2">
+                                <input type="checkbox" id="company_not_found" :checked="!!form.company_not_found" @change="form.company_not_found = $event.target.checked; clearCompany()" />
+                                <label for="company_not_found" class="ml-2 text-sm text-gray-600">Company not found</label>
+                            </div>
+
+                            <!-- Other Company Fields -->
+                            <div v-if="form.company_not_found" class="mt-4">
+                                <InputLabel for="other_company_name" value="Other Company Name" />
+                                <TextInput id="other_company_name" v-model="form.other_company_name" type="text" class="mt-1 block w-full" required />
+                                <InputError class="mt-2" :message="form.errors.other_company_name" />
+
+                                <InputLabel for="other_company_sector" value="Sector" class="mt-4" />
+                                <select id="other_company_sector" v-model="form.other_company_sector" class="mt-1 block w-full border-gray-300 rounded">
+                                    <option value="">Select Sector</option>
+                                    <option v-for="sector in sectors" :key="sector.id" :value="sector.id">{{ sector.name }}</option>
+                                </select>
+                                <InputError class="mt-2" :message="form.errors.other_company_sector" />
+                            </div>
+                        </div>
+
                         <div>
                             <!-- Current Job Title – conditionally shown -->
                             <div v-if="form.employment_status !== 'Unemployed'">
@@ -1002,7 +1067,6 @@ watch(() => form.graduate_degree, (newVal) => {
                         </div>
                     </div>
                 </div>
-
                 <div class="flex items-center justify-end mt-8 border-t border-gray-200 pt-12">
                     <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                         Register
@@ -1010,7 +1074,8 @@ watch(() => form.graduate_degree, (newVal) => {
                 </div>
             </form>
         </template>
-           <div v-if="showSuccessBanner" class="mb-4 p-3 rounded bg-green-100 text-green-800 text-center font-semibold border border-green-300">
+        <div v-if="showSuccessBanner"
+            class="mb-4 p-3 rounded bg-green-100 text-green-800 text-center font-semibold border border-green-300">
             Registration successful! Please wait for admin approval before verifying your email.
         </div>
     </AuthenticationCard>
@@ -1048,3 +1113,4 @@ watch(() => form.graduate_degree, (newVal) => {
     </Modal>
 
 </template>
+

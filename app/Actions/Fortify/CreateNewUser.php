@@ -31,6 +31,11 @@ class CreateNewUser implements CreatesNewUsers
 
     public function create(array $input): User
     {
+        // Force company_not_found to boolean for reliable validation
+        if (isset($input['company_not_found'])) {
+            $input['company_not_found'] = filter_var($input['company_not_found'], FILTER_VALIDATE_BOOLEAN);
+        }
+
         $role = $this->determineRole(request());
 
         $rules = [
@@ -47,32 +52,44 @@ class CreateNewUser implements CreatesNewUsers
         switch ($role) {
             case 'graduate':
                 $rules['graduate_school_graduated_from'] = ['required', 'integer', 'exists:users,id'];
-                $rules['graduate_program_completed'] = ['required', 'exists:programs,name']; // ✅ Ensure it matches a valid program name
+                $rules['graduate_program_completed'] = ['required', 'exists:programs,name'];
                 $rules['employment_status'] = ['required', 'in:Employed,Underemployed,Unemployed'];
                 $rules['current_job_title'] = ['required_if:employment_status,Employed,Underemployed', 'nullable', 'string', 'max:255'];
                 $rules['graduate_year_graduated'] = ['required', 'exists:school_years,school_year_range'];
                 $rules['graduate_degree'] = ['required', 'exists:degrees,id'];
+
+                if (!empty($input['company_not_found'])) {
+                    // Company not found: require other_company_name and sector, but company_name is nullable
+                    $rules['other_company_name'] = ['required', 'string', 'max:255'];
+                    $rules['other_company_sector'] = ['required', 'exists:sectors,id'];
+                    $rules['company_name'] = ['nullable', 'string', 'max:255'];
+                } else {
+                    // Existing company: require company_name, other_company_name/sector are nullable
+                    $rules['company_name'] = ['required', 'string', 'max:255'];
+                    $rules['other_company_name'] = ['nullable', 'string', 'max:255'];
+                    $rules['other_company_sector'] = ['nullable', 'exists:sectors,id'];
+                }
                 break;
             case 'company':
-                $rules['company_name' ] = ['required', 'string', 'max:255'];
+                $rules['company_name'] = ['required', 'string', 'max:255'];
                 $rules['company_street_address'] = ['required', 'string', 'max:255'];
                 $rules['company_brgy'] = ['required', 'string', 'max:255'];
-                $rules['company_city'] = ['required', 'string', 'max:255'];
-                $rules['company_province'] = ['required', 'string', 'max:255'];
-                $rules['company_zip_code'] = ['required', 'string', 'max:4'];
-                $rules['company_email'] = ['required', 'string', 'email', 'max:255'];
-                $rules['company_mobile_phone'] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
-                $rules['category'] = 'required|exists:categories,id';
+                $rules['company_city' ] = ['required', 'string', 'max:255'];
+                $rules['company_province' ] = ['required', 'string', 'max:255'];
+                $rules['company_zip_code' ] = ['required', 'string', 'max:4'];
+                $rules['company_email' ] = ['required', 'string', 'email', 'max:255'];
+                $rules['company_mobile_phone' ] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
+                $rules['category' ] = 'required|exists:categories,id';
 
                 break;
             case 'institution':
-                $rules['institution_type'] = ['required', 'string'];
-                $rules['institution_name'] = ['required', 'string'];
-                $rules['institution_address'] = ['required', 'string'];
-                $rules['institution_president_last_name'] = ['required', 'string', 'max:255'];
-                $rules['institution_president_first_name'] = ['required', 'string', 'max:255'];
-                $rules['first_name'] = ['nullable', 'string', 'max:255'];
-                $rules['last_name'] = ['nullable', 'string', 'max:255'];
+                $rules['institution_type' ] = ['required', 'string'];
+                $rules['institution_name' ] = ['required', 'string'];
+                $rules['institution_address' ] = ['required', 'string'];
+                $rules['institution_president_last_name' ] = ['required', 'string', 'max:255'];
+                $rules['institution_president_first_name' ] = ['required', 'string', 'max:255'];
+                $rules['first_name' ] = ['nullable', 'string', 'max:255'];
+                $rules['last_name' ] = ['nullable', 'string', 'max:255'];
 
                 break;
             default:
@@ -164,14 +181,13 @@ class CreateNewUser implements CreatesNewUsers
         // Store in Companies table
         if ($role === 'company') {
             $category = \App\Models\Category::find($input['category']);
-           
             $company = Company::create([
                 'user_id' => $user->id,
                 'company_name' => $input['company_name'],
                 'company_street_address' => $input['company_street_address'],
                 'company_brgy' => $input['company_brgy'],
                 'company_city' => $input['company_city'],
-                'sector_id' => $category ? $category->sector_id : null, // <-- sector_id from category
+                'sector_id' => $category ? $category->sector_id : null,
                 'category_id' => $category->id,
                 'company_province' => $input['company_province'],
                 'company_zip_code' => $input['company_zip_code'],
@@ -181,8 +197,6 @@ class CreateNewUser implements CreatesNewUsers
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-             // Create main HR record associated with this company and user
             $user->hr()->create([
                 'first_name' => $input['first_name'],
                 'middle_name' => $input['middle_name'],
@@ -200,12 +214,31 @@ class CreateNewUser implements CreatesNewUsers
 
         // Store in Graduates table
         if ($role === 'graduate') {
+            $company_id = null;
+            $not_company_id = null;
+            $sector_id = null;
+
+            if (!empty($input['company_not_found'])) {
+                // Always create a not_company record if company_not_found is checked
+                $notCompany = \App\Models\NotCompany::create([
+                    'name' => $input['other_company_name'],
+                    'sector_id' => $input['other_company_sector'] ?? null,
+                ]);
+                $not_company_id = $notCompany->id;
+                $sector_id = $input['other_company_sector'] ?? null;
+            } else {
+                // Existing company selected
+                $company = Company::where('company_name', $input['company_name'])->first();
+                $company_id = $company ? $company->id : null;
+                $sector_id = $company ? $company->sector_id : null;
+            }
+
             DB::table('graduates')->insert([
                 'user_id' => $user->id,
                 'first_name' => $input['first_name'],
                 'last_name' => $input['last_name'],
                 'middle_name' => $input['middle_name'],
-                'dob' => $input['dob'], // <-- Add this line
+                'dob' => $input['dob'],
                 'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
                 'employment_status' => $input['employment_status'],
                 'contact_number' => $input['mobile_number'],
@@ -213,12 +246,15 @@ class CreateNewUser implements CreatesNewUsers
                 'program_id' => $this->getProgramId($input['graduate_program_completed']),
                 'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
                 'degree_id' => $input['graduate_degree'],
+                'company_id' => $company_id,
+                'not_company' => $not_company_id,
+                'sector_id' => $sector_id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            
+
             $user->assignRole($role);
-            return $user; // <-- Ensure return here
+            return $user;
         }
 
         $user->assignRole($role);

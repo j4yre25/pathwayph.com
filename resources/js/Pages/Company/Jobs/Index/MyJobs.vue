@@ -3,7 +3,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Container from '@/Components/Container.vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage()
 const props = defineProps({
@@ -116,11 +116,6 @@ const getStatusText = (status) => {
                     /{{ job.salary.salary_type }}
                   </template>
                 </span>
-              </div>
-              
-              <div class="mb-1">
-                <i class="fas fa-users mr-1" aria-hidden="true"></i>
-                <span>{{ job.applicants_count || 0 }} applicants</span>
               </div>
             </div>
           </div>

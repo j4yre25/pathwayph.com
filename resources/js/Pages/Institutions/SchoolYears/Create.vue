@@ -74,23 +74,14 @@ const goBack = () => {
                                 </div>
                                 <InputError :message="form.errors.school_year_range" class="mt-2" />
                             </div>
-                        
-                            <div class="flex flex-col">
-                                <InputLabel for="term" value="Term" class="text-sm font-medium text-gray-700 mb-1" />
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-sort-numeric-up text-gray-400"></i>
-                                    </div>
-                                    <TextInput 
-                                        id="term" 
-                                        v-model="form.term" 
-                                        type="number" 
-                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none" 
-                                        min="1" 
-                                        max="5" 
-                                        placeholder="1"
-                                    />
-                                </div>
+
+                            <div class="col-span-6 sm:col-span-4">
+                                <InputLabel for="term" value="Term" />
+                                <select id="term" v-model="form.term" class="mt-1 block w-full">
+                                    <option value="">Select Term</option>
+                                    <option v-for="n in 5" :key="n" :value="String(n)">{{ n }}</option>
+                                    <option value="off-semester">Off-Semester</option>
+                                </select>
                                 <InputError :message="form.errors.term" class="mt-2" />
                                 <p class="text-xs text-gray-500 mt-1">Enter a value between 1 and 5</p>
                             </div>

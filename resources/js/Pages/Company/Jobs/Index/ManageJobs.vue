@@ -7,7 +7,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage()
 
@@ -189,10 +189,6 @@ const getStatusText = (status) => {
               <div class="flex items-center">
                 <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
                 <span class="text-gray-700">{{ job.job_experience_level }}</span>
-              </div>
-              <div class="flex items-center col-span-2">
-                <i class="fas fa-users text-blue-500 mr-2"></i>
-                <span class="text-gray-700">{{ job.applicants_count || 0 }} Applicant(s)</span>
               </div>
             </div>
             

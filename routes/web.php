@@ -34,6 +34,7 @@ use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
+use App\Http\Controllers\CompanyDepartmentController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -68,6 +69,7 @@ use App\Http\Controllers\CareerGoalsController;
 use App\Http\Controllers\JobsListController;
 use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
+use App\Http\Controllers\Institution\InstitutionReportsController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\Company\CompanyReportsController;
 
@@ -283,7 +285,7 @@ Route::prefix('company')->middleware(['auth'])->group(function () {
     Route::get('/company-reports/applicant-status', [CompanyReportsController::class, 'applicantStatus'])->name('company.reports.applicantStatus');
     Route::get('/company-reports/screening', [CompanyReportsController::class, 'screening'])->name('company.reports.screening');
     Route::get('/company-reports/interview-progress', [CompanyReportsController::class, 'interviewProgress'])->name('company.reports.interviewProgress');
-    Route::get('/company-reports/competency', [CompanyReportsController::class, 'competency'])->name('company.reports.competency');
+    Route::get('/company-reports/competency', [CompanyReportsController::class, 'skillsCompetency'])->name('company.reports.competency');
     Route::get('/company-reports/efficiency', [CompanyReportsController::class, 'efficiency'])->name('company.reports.efficiency');
     Route::get('/company-reports/performance', [CompanyReportsController::class, 'performance'])->name('company.reports.performance');
     Route::get('/company-reports/feedback', [CompanyReportsController::class, 'feedback'])->name('company.reports.feedback');
@@ -304,6 +306,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/company/manage-hrs/{id}/edit', [CompanyManageHRController::class, 'edit'])->name('company.manage-hrs.edit');
     Route::put('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'update'])->name('company.manage-hrs.update');
     Route::delete('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'destroy'])->name('company.manage-hrs.destroy');
+});
+
+//Deparment Routes
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage users'])->group(function () {
+    Route::get('/company/departments', [CompanyDepartmentController::class, 'index'])->name('company.departments.index');
+    Route::post('/company/departments', [CompanyDepartmentController::class, 'store'])->name('company.departments.store');
+    Route::post('/company/departments/batch', [CompanyDepartmentController::class, 'batchStore'])->name('company.departments.batch');
+    Route::get('/company/departments/manage', [CompanyDepartmentController::class, 'manage'])->name('company.departments.manage');
+    Route::put('/company/departments/{department}', [CompanyDepartmentController::class, 'update'])->name('company.departments.update');
+    Route::delete('/company/departments/{department}', [CompanyDepartmentController::class, 'destroy'])->name('company.departments.destroy');
 });
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
@@ -411,6 +423,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/admin/manage-users/{user}/approve', [ManageUsersController::class, 'approve'])->name('admin.manage_users.approve');
     Route::post('/admin/manage-users/{user}/disapprove', [ManageUsersController::class, 'disapprove'])->name('admin.manage_users.disapprove');
     Route::post('/admin/manage-users/{user}/restore', [ManageUsersController::class, 'restore'])->name('admin.manage_users.restore');
+    Route::get('/admin/manage-users/upload', [ManageUsersController::class, 'batchPage'])->name('companies.batch.page');
+    Route::get('/admin/manage-users/download', [ManageUsersController::class, 'downloadTemplate'])->name('companies.template.download');
+    Route::post('/admin/manage-users/batch-upload', [ManageUsersController::class, 'batchUpload'])->name('companies.batch.upload');
 });
 
 // Sectors
@@ -443,6 +458,17 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/categories/edit/{category}', [CategoryController::class, 'restore'])->name('categories.restore');
 });
 
+
+//Institution Reports Routes
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->prefix('institutions/reports')->group(function () {
+    Route::get('/', [InstitutionReportsController::class, 'index'])->name('institutions.reports.index');
+    Route::get('/school-year', [InstitutionReportsController::class, 'schoolYear'])->name('institutions.reports.schoolYear');
+    Route::get('/degree', [InstitutionReportsController::class, 'degree'])->name('institutions.reports.degree');
+    Route::get('/programs', [InstitutionReportsController::class, 'programs'])->name('institutions.reports.programs');
+    Route::get('/career', [InstitutionReportsController::class, 'career'])->name('institutions.reports.career');
+    Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
+    Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
+});
 
 //Internship Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
@@ -852,7 +878,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/career-goals/save', [ProfileController::class, 'saveCareerGoals'])->name('career.goals.save');
     Route::get('/career-goals', [ProfileController::class, 'getCareerGoals'])->name('career.goals.get');
 
-     // Resume Routes
+    // Resume Routes
     Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
     Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');

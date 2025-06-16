@@ -20,6 +20,10 @@ class Sector extends Model
         return $this->hasMany(Company::class);
     }
 
+    public function notcompanies() {
+        return $this->hasMany(NotCompany::class);
+    }
+
 
     protected $fillable = [
         'name',

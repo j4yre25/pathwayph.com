@@ -12,7 +12,7 @@ import MultiSelect from '@/Components/MultiSelect.vue';
 import RichTextEditor from '@/Components/RichTextEditor.vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-
+import '@fortawesome/fontawesome-free/css/all.css';
 import { useSectorCategories } from '@/Composables/useSectorCategories';
 import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
 import { useSalaryValidation } from '@/Composables/useSalaryValidation';
@@ -28,6 +28,7 @@ const props = defineProps({
     programs: Array,
     authUser: Object,
     skills: Array,
+    departments: Array,
 })
 
 const programs = props.programs;
@@ -69,6 +70,7 @@ const form = useForm({
     job_title: '',
     location: '',
     program_id: [],
+    department_id: '',
     job_vacancies: '',
     salary: {
         salary_type: '',
@@ -94,6 +96,17 @@ watchEffect(() => {
     form.posted_by = postedBy.value;
 });
 
+watch(() => form.department_id, (val) => {
+    if (typeof val === 'string' && val !== '') {
+        form.department_id = parseInt(val);
+    }
+});
+
+const selectedDepartmentName = computed(() => {
+    if (!form.department_id) return 'Not provided';
+    const dep = props.departments.find(d => d.id === form.department_id);
+    return dep ? dep.department_name : 'Not provided';
+});
 
 // Tabs setup
 const currentStep = ref('job-details');
@@ -134,6 +147,8 @@ const extractProgramIds = () => {
     // Extract only the ids from the selected programs
     form.program_id = form.program_id.map(program => program.id);
 };
+
+console.log('Department:', form.department_id)
 
 const createJob = () => {
     console.log('Form data:', form);
@@ -315,15 +330,28 @@ const createJob = () => {
                                     <InputError class="mt-2" :message="form.errors.work_environment" />
                                 </div>
 
-                                <!-- Job Location (disabled if Remote is selected) -->
-                                <div>
-                                    <InputLabel for="location" value="Job Location" />
-                                    <TextInput id="location" type="text" class="mt-1 block w-full"
-                                        v-model="form.location" :disabled="form.work_environment == 2"
-                                        :required="form.work_environment != 2"
-                                        :placeholder="form.work_environment == 2 ? 'Remote job — no location needed' : 'Enter job location'" />
-                                    <InputError class="mt-2" :message="form.errors.location" />
+                                <div v-if="props.departments && props.departments.length">
+                                    <InputLabel for="department_id" value="Department" />
+                                    <select id="department_id"
+                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                        v-model="form.department_id" required>
+                                        <option value="">Select Department</option>
+                                        <option v-for="dep in props.departments" :key="dep.id" :value="dep.id">
+                                            {{ dep.department_name }}
+                                        </option>
+                                    </select>
+                                    <InputError class="mt-2" :message="form.errors.department_id" />
                                 </div>
+
+                            </div>
+                            <!-- Job Location (disabled if Remote is selected) -->
+                            <div>
+                                <InputLabel for="location" value="Job Location" />
+                                <TextInput id="location" type="text" class="mt-1 block w-full"
+                                    v-model="form.location" :disabled="form.work_environment == 2"
+                                    :required="form.work_environment != 2"
+                                    :placeholder="form.work_environment == 2 ? 'Remote job — no location needed' : 'Enter job location'" />
+                                <InputError class="mt-2" :message="form.errors.location" />
                             </div>
 
                             <div class="flex justify-end">
@@ -552,6 +580,10 @@ const createJob = () => {
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Vacancies</p>
                                                 <p>{{ form.job_vacancies || 'Not provided' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-500">Department</p>
+                                                <p>{{ selectedDepartmentName || 'Not provided' }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-sm font-medium text-gray-500">Programs</p>

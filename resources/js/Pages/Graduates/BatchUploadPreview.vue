@@ -18,6 +18,9 @@ const fileInputRef = ref(null)
 const props = defineProps({
   degreeCodes: Array,
   programCodes: Array,
+  companyNames: Array,
+  companyNamesMap: Object,
+  institutionSchoolYears: Array,
 })
 
 function handleFileUpload(e) {
@@ -34,29 +37,45 @@ function handleFileUpload(e) {
     header: true,
     transformHeader: header => header.trim().toLowerCase(),
     complete: (results) => {
-      // Log headers to debug
-      console.log('CSV headers:', Object.keys(results.data[0] || {}))
-
-      // Normalize field keys to expected camelCase
       parsedRows.value = results.data.map(row => {
-        let dob = row.dob || ''
+        let dob = row.dob || '';
         if (dob && dob.includes('/')) {
-          const parsed = dayjs(dob, 'MM/DD/YYYY', true)
-          if (parsed.isValid()) dob = parsed.format('YYYY-MM-DD')
+          const parsed = dayjs(dob, 'MM/DD/YYYY', true);
+          if (parsed.isValid()) dob = parsed.format('YYYY-MM-DD');
         }
+
+        // Normalize employment status and company name
+        let employmentStatus = (row.employment_status || '').trim().toUpperCase();
+        let inputCompanyName = (row.company_name || '').trim();
+        let normalizedCompany = inputCompanyName.toLowerCase().replace(/\s+/g, ' ');
+        let displayCompanyName = inputCompanyName;
+        if (employmentStatus === 'UNEMPLOYED') {
+          displayCompanyName = 'N/A';
+        } else if (props.companyNamesMap && props.companyNamesMap[normalizedCompany]) {
+          displayCompanyName = props.companyNamesMap[normalizedCompany];
+        }
+
+        // Normalize term (case-insensitive, allow string or number)
+        let inputTerm = (row.term || '').toString().trim();
+        let normalizedTerm = inputTerm.toLowerCase() === 'off-semester' ? 'off-semester' : inputTerm;
+
         return {
           email: row.email || '',
-          first_name: toTitleCase(row.first_name || ''), // Apply title case transformation
-          last_name: toTitleCase(row.last_name || ''),   // Apply title case transformation
-          middle_name: toTitleCase(row.middle_name || ''), // Apply title case transformation
+          first_name: toTitleCase(row.first_name || ''),
+          last_name: toTitleCase(row.last_name || ''),
+          middle_name: toTitleCase(row.middle_name || ''),
           degree_code: (row.degree_code || '').toUpperCase(),
           program_code: (row.program_code || '').toUpperCase(),
           year_graduated: row.year_graduated || '',
           dob: dob,
           gender: (row.gender || '').charAt(0).toUpperCase() + (row.gender || '').slice(1).toLowerCase(),
           contact_number: row.contact_number || '',
-          employment_status: (row.employment_status || '').charAt(0).toUpperCase() + (row.employment_status || '').slice(1).toLowerCase(),
-          current_job_title: toTitleCase(row.current_job_title || ''), // Apply title case transformation
+          employment_status: employmentStatus,
+          company_name: displayCompanyName,
+          raw_company_name: inputCompanyName, // for validation
+          current_job_title: toTitleCase(row.current_job_title || ''),
+          term: normalizedTerm,
+          raw_term: row.term || '',
         }
       })
 
@@ -69,24 +88,26 @@ function handleFileUpload(e) {
   })
 }
 
-
 function validateRows() {
   validationErrors.value = []
   isValid.value = true
 
+  // Normalize institution school years for case-insensitive term matching
+  const validYearTermPairs = props.institutionSchoolYears.map(
+    y => `${y.school_year_range}|${(y.term || '').toString().toLowerCase()}`
+  );
+
   parsedRows.value.forEach((row, index) => {
-    const rowErrors = []
+    const rowErrors = [];
 
     if (!row.email) rowErrors.push('Missing email')
     if (!row.first_name) rowErrors.push('Missing first name')
     if (!row.last_name) rowErrors.push('Missing last name')
     if (!row.year_graduated) rowErrors.push('Missing year')
     if (row.dob) {
-      const parsedDate = dayjs(row.dob, 'MM/DD/YYYY', true)
-      if (parsedDate.isValid()) {
-        row.dob = parsedDate.format('YYYY-MM-DD') // Update the row with the correct format
-      } else {
-        rowErrors.push('Invalid date format for DOB (expected MM/DD/YYYY)')
+      const parsedDate = dayjs(row.dob, 'YYYY-MM-DD', true)
+      if (!parsedDate.isValid()) {
+        rowErrors.push('Invalid date format for DOB (expected MM/DD/YYYY or YYYY-MM-DD)')
       }
     } else {
       rowErrors.push('Missing date of birth')
@@ -107,28 +128,53 @@ function validateRows() {
       rowErrors.push('Invalid email format')
     }
 
-    if (rowErrors.length) {
-      isValid.value = false
-      validationErrors.value.push({
-        row: index + 2, // +2 to account for header and zero index
-        messages: rowErrors,
-      })
+    // Year Graduated + Term validation (case-insensitive for term)
+    if (!row.year_graduated || !row.term) {
+      rowErrors.push('Missing year graduated or term')
+    } else {
+      const pair = `${row.year_graduated}|${row.term.toString().toLowerCase()}`;
+      if (!validYearTermPairs.includes(pair)) {
+        rowErrors.push(
+          `Year graduated '${row.year_graduated}' with term '${row.raw_term}' does not exist for this institution.`
+        );
+      }
     }
 
     // Degree and program code validation
     if (!props.degreeCodes.includes(row.degree_code)) {
-      isValid.value = false
-      validationErrors.value.push({
-        row: index + 2,
-        messages: [`Degree code '${row.degree_code}' does not exist for this institution.`],
-      })
+      rowErrors.push(`Degree code '${row.degree_code}' does not exist for this institution.`)
     }
     if (!props.programCodes.includes(row.program_code)) {
-      isValid.value = false
+      rowErrors.push(`Program code '${row.program_code}' does not exist for this institution.`)
+    }
+
+    // Company name validation
+    if (
+      ['Employed', 'Underemployed'].includes(row.employment_status)
+    ) {
+      if (!row.raw_company_name) {
+        rowErrors.push('Company name is required for employed/underemployed graduates.');
+      } else {
+        let normalized = row.raw_company_name.toLowerCase().replace(/\s+/g, ' ');
+        if (!props.companyNamesMap[normalized]) {
+          rowErrors.push(`Company name '${row.raw_company_name}' does not exist in the system.`);
+        }
+      }
+    }
+    if (
+      row.employment_status === 'UNEMPLOYED' &&
+      row.raw_company_name &&
+      row.raw_company_name.trim().toLowerCase() !== 'n/a'
+    ) {
+      rowErrors.push('For unemployed graduates, company name must be "N/A" (any case).');
+    }
+
+    if (rowErrors.length) {
+      isValid.value = false;
       validationErrors.value.push({
         row: index + 2,
-        messages: [`Program code '${row.program_code}' does not exist for this institution.`],
-      })
+        messages: rowErrors,
+      });
     }
   })
 }
@@ -146,10 +192,9 @@ function submitToBackend() {
   isLoading.value = true
   loadingPercent.value = 0
 
-  // Simulate progress (since we can't get real progress from backend)
   loadingInterval = setInterval(() => {
     if (loadingPercent.value < 95) {
-      loadingPercent.value += Math.random() * 2 // random slow increment
+      loadingPercent.value += Math.random() * 2
     }
   }, 200)
 
@@ -183,7 +228,6 @@ function submitToBackend() {
     },
   })
 }
-
 function triggerFileInput() {
   fileInputRef.value.click()
 }
@@ -323,10 +367,12 @@ const stats = computed(() => {
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Degree Code</th>
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Program Code</th>
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Year Graduated</th>
+              <th class="p-2 border">Term</th>
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">DOB</th>
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Gender</th>
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Contact No.</th>
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Employment</th>
+              <th class="p-2 border">Company Name</th>
                   <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Job Title</th>
                 </tr>
               </thead>
@@ -361,6 +407,7 @@ const stats = computed(() => {
                       <span>{{ row.year_graduated }}</span>
                     </div>
                   </td>
+              <td class="border p-2">{{ row.term }}</td>
                   <td class="p-3 whitespace-nowrap text-sm">
                     <div class="flex items-center">
                       <i class="fas fa-birthday-cake text-gray-400 mr-2"></i>
@@ -384,6 +431,7 @@ const stats = computed(() => {
                       {{ row.employment_status }}
                     </span>
                   </td>
+              <td class="border p-2">{{ row.company_name }}</td>
                   <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.current_job_title || 'N/A' }}</td>
                 </tr>
               </tbody>

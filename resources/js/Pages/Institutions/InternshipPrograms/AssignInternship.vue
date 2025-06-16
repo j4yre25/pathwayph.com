@@ -583,6 +583,8 @@ watch([selectedProgram, selectedCareerOpportunity], () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
       </Container>
     </AppLayout>
 </template>

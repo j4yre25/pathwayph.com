@@ -5,6 +5,7 @@
     import { ref } from 'vue';
     import { usePage, router } from '@inertiajs/vue3';
     import PrimaryButton from '@/Components/PrimaryButton.vue';
+    import '@fortawesome/fontawesome-free/css/all.css';
 
     const props = defineProps({
         user: Object
@@ -14,34 +15,37 @@
         router.put(route('admin.manage_users.update', { user: props.user.id }), props.user);
     };
 
+    // Function to go back
+    const goBack = () => {
+        router.get(route('admin.manage_users.index'));
+    };
 </script>
 
 <template>
     <AppLayout title="Edit User">
-        <!-- Font Awesome CSS -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-        
         <template #header>
             <div class="flex items-center">
                 <button 
-                    @click="router.get(route('admin.manage_users.index'))"
-                    class="mr-3 p-1 rounded-full hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+                    @click="goBack"
+                    class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none"
                 >
-                    <i class="fas fa-arrow-left text-gray-600"></i>
+                    <i class="fas fa-chevron-left"></i>
                 </button>
-                <i class="fas fa-user-edit text-gray-700 mr-2"></i>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit User #{{ user.id }}</h2>
+                <h2 class="font-semibold text-xl text-gray-800 flex items-center">
+                    <i class="fas fa-user-edit text-blue-500 mr-2"></i> Edit User
+                </h2>
             </div>
         </template>
 
-        <Container class="py-8">
-            <!-- Edit User Form Card -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-                <div class="p-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-700 flex items-center">
-                        <i class="fas fa-user-cog text-gray-500 mr-2"></i>
-                        User Information
-                    </h3>
+        <Container class="py-6 space-y-6">
+            <!-- User Info Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+                <div class="p-4 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-user-cog text-blue-500 mr-2"></i>
+                        <h3 class="text-lg font-semibold text-gray-800">User Information</h3>
+                    </div>
+                    <span class="text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">ID: {{ user.id }}</span>
                 </div>
                 
                 <div class="p-6">
@@ -93,26 +97,38 @@
                             </div>
                             
                             <!-- Approved Field -->
-                            <div class="flex items-center">
-                                <div class="flex items-center h-full pt-6">
-                                    <input 
-                                        type="checkbox" 
-                                        v-model="user.approved" 
-                                        id="approved"
-                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                    />
-                                    <label for="approved" class="ml-2 block text-sm font-medium text-gray-700">
-                                        <i class="fas fa-check-circle text-gray-400 mr-1"></i> Approved
-                                    </label>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-check-circle text-gray-400 mr-1"></i> Status
+                                </label>
+                                <div class="flex items-center space-x-4 mt-2">
+                                    <div class="flex items-center">
+                                        <input 
+                                            type="checkbox" 
+                                            v-model="user.approved" 
+                                            id="approved"
+                                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <label for="approved" class="ml-2 text-sm text-gray-700">
+                                            Approved
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Submit Button -->
-                        <div class="flex justify-end pt-4">
+                        <div class="flex justify-end pt-4 border-t border-gray-100">
+                            <button 
+                                type="button"
+                                @click="goBack"
+                                class="mr-3 px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm transition-colors duration-200 flex items-center"
+                            >
+                                <i class="fas fa-times mr-2"></i> Cancel
+                            </button>
                             <button 
                                 type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring focus:ring-blue-300 disabled:opacity-25 transition"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors duration-200 flex items-center"
                             >
                                 <i class="fas fa-save mr-2"></i> Update User
                             </button>

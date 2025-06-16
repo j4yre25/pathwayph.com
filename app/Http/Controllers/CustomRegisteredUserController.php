@@ -135,19 +135,29 @@ class CustomRegisteredUserController extends Controller
             ->get(['degrees.id', 'degrees.type as name', 'institution_degrees.institution_id']);
 
 
+        $companies = Company::select('id', 'company_name as name')->get();
+        $sectors = Sector::select('id', 'name')->get();
+
         return Inertia::render('Auth/Register', [
             'insti_users' => $insti_users,
             'programs' => $programs,
             'school_years' => $school_years,
-            'degrees' => $degrees, // <-- add this
+            'degrees' => $degrees,
+            'companies' => $companies, // <-- add this
+            'sectors' => $sectors,     // <-- add this
         ]);
     }
 
     public function showCompanyDetails()
     {
         $categories = Category::all();
+        $companies = Company::select('id', 'company_name as name')->get();
+        $sectors = Sector::select('id', 'name')->get();
+
         return Inertia::render('Auth/Register', [
             'categories' => $categories,
+            'companies' => $companies,
+            'sectors' => $sectors,
         ]);
     }
 

@@ -4,6 +4,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { ref, computed } from 'vue';
+import { EyeIcon } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
@@ -232,104 +234,61 @@ const goBack = () => {
             </div>
 
             <!-- Table Section -->
-            <div class="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-                <div class="p-4 border-b border-gray-200 bg-gray-50">
-                    <h3 class="font-semibold text-gray-800 flex items-center">
-                        <i class="fas fa-list text-blue-500 mr-2"></i>
-                        Graduate Records
-                    </h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Created</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="graduate in graduates.data" :key="graduate.id"
-                                class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">
-                                                {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
-                                        <span class="text-sm text-gray-900">{{ graduate.program_name }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-calendar text-gray-400 mr-2"></i>
-                                        <span class="text-sm text-gray-500">{{ formatDate(graduate.created_at) }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                        :class="{
-                                            'bg-green-100 text-green-800': graduate.status === 'Active',
-                                            'bg-red-100 text-red-800': graduate.status !== 'Active'
-                                        }"
-                                        class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full">
-                                        <i :class="{
-                                            'fas fa-check-circle mr-1': graduate.status === 'Active',
-                                            'fas fa-times-circle mr-1': graduate.status !== 'Active'
-                                        }"></i>
-                                        {{ graduate.status }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr v-if="graduates.data.length === 0">
-                                <td colspan="4" class="px-6 py-10 text-center">
-                                    <div class="flex flex-col items-center justify-center text-gray-500">
-                                        <i class="fas fa-search text-4xl mb-3"></i>
-                                        <p class="text-lg">No graduates found</p>
-                                        <p class="text-sm">Try adjusting your filters to find what you're looking for.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Pagination Controls - Moved inside the white container -->
-                <div class="p-4 border-t border-gray-200 flex justify-center">
-                    <nav
-                        v-if="graduates.links && graduates.links.length > 3"
-                        class="inline-flex rounded-md shadow-sm -space-x-px overflow-hidden"
-                    >
-                        <button
-                            v-for="(link, i) in graduates.links"
-                            :key="i"
-                            type="button"
-                            :disabled="!link.url"
-                            @click="$inertia.get(link.url)"
-                            :class="[
-                                'px-4 py-2 border text-sm font-medium',
-                                link.active ? 'z-10 bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                                'focus:z-20 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500',
-                                i === 0 ? 'rounded-l-md' : '',
-                                i === graduates.links.length - 1 ? 'rounded-r-md' : ''
-                            ]"
-                        >
-                            <span v-if="link.label === '&laquo;'"><i class="fas fa-chevron-left"></i></span>
-                            <span v-else-if="link.label === '&raquo;'"><i class="fas fa-chevron-right"></i></span>
-                            <span v-else v-html="link.label"></span>
-                        </button>
-                    </nav>
-                </div>
+            <div class="overflow-x-auto bg-white shadow rounded-2xl">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 text-gray-600 text-sm uppercase tracking-wide">
+                      <tr>
+                        <th class="px-6 py-4 text-left">Name</th>
+                        <th class="px-6 py-4 text-left">Program</th>
+                        <th class="px-6 py-4 text-left">Date Created</th>
+                        <th class="px-6 py-4 text-left">Status</th>
+                        <th class="px-6 py-4 text-left"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 text-sm text-gray-800">
+                      <tr v-for="graduate in graduates.data" :key="graduate.id" class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4">
+                          {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
+                        </td>
+                        <td class="px-6 py-4">{{ graduate.program_name }}</td>
+                        <td class="px-6 py-4">{{ formatDate(graduate.created_at) }}</td>
+                        <td class="px-6 py-4">
+                          <span :class="graduate.status === 'Active' ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'">
+                            {{ graduate.status }}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                          <Link :href="route('graduates.profile', { id: graduate.id })" title="View Portfolio">
+                            <EyeIcon class="w-5 h-5 text-blue-600 hover:text-blue-800 transition" />
+                          </Link>
+                        </td>
+                      </tr>
+                      <tr v-if="graduates.data.length === 0">
+                        <td colspan="5" class="text-center text-gray-400 py-6">
+                          No graduates found with current filters.
+                        </td>
+                      </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="mt-6 flex justify-center">
+              <nav v-if="graduates.links && graduates.links.length > 3" class="inline-flex -space-x-px">
+                <button
+                  v-for="(link, i) in graduates.links"
+                  :key="i"
+                  v-html="link.label"
+                  :disabled="!link.url"
+                  @click="$inertia.get(link.url)"
+                  :class="[
+                    'px-3 py-1 border text-sm',
+                    link.active ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100',
+                    i === 0 ? 'rounded-l' : '',
+                    i === graduates.links.length - 1 ? 'rounded-r' : ''
+                  ]"
+                ></button>
+              </nav>
             </div>
         </Container>
     </AppLayout>
