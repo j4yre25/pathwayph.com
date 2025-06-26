@@ -160,6 +160,10 @@ class CompanyJobsController extends Controller
         $jobService = new JobCreationService();
         $new_job = $jobService->createJob($validated, $user);
 
+        $new_job->is_approved = 1;
+        $new_job->status = 'open';
+        $new_job->save();
+
         // Notify graduates of the new job posting
         $this->notifyGraduates($new_job);
 
@@ -375,7 +379,6 @@ class CompanyJobsController extends Controller
 
             // --- Status and Approval ---
             $row['status'] = $row['status'] ?? 'pending';
-            $row['is_approved'] = $row['is_approved'] ?? null;
 
             // --- Salary array for service ---
             $row['salary'] = [
@@ -427,6 +430,7 @@ class CompanyJobsController extends Controller
 
         $user = auth()->user();
         $jobService = new JobCreationService();
+        
         
         foreach ($validRows as $row) {
             // Map to expected keys for JobCreationService
@@ -541,26 +545,13 @@ class CompanyJobsController extends Controller
         return redirect()->back()->with('flash.banner', 'Job updated successfully.');
     }
 
-
-    public function approve(Job $job)
+    public function close(Job $job)
     {
-        $job->is_approved = 1;
-        $job->status = 'open'; // Set status to approved
+        $job->status = 'closed';
         $job->save();
 
-        return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job approved successfully.');
+        return redirect()->back()->with('flash.banner', 'Job has been closed.');
     }
-
-    public function disapprove(Job $job)
-    {
-        $job->is_approved = 0;
-        $job->status = 'closed'; // Set status to disapproved
-        $job->save();
-
-        return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job disapproved successfully.');
-    }
-
-
     public function delete(Request $request, Job $job)
     {
 

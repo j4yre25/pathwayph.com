@@ -34,39 +34,36 @@ class CompanyReportsController extends Controller
         $hr = $user->hr;
         $companyId = $hr->company_id;
         
-        
         $jobTypes = JobType::select('id', 'type')->get();
 
-        $jobs = Job::where('company_id', $companyId)
+        $allJobs = Job::where('company_id', $companyId)
             ->select(['id', 'job_title', 'job_type', 'status'])
             ->with('jobTypes:id,type')
             ->get();
 
-        // KPI Metrics for jobs posted by this company
-        $totalOpenings = Job::where('company_id', $companyId)
-                        ->count();
-
-        $activeListings = Job::where('company_id', $companyId)
-                            ->where('status', 'open')
-                            ->count();
-
-        $rolesFilled = Job::where('company_id', $companyId)
-                        ->withCount('applications')
-                        ->where('status', 'filled')
-                        ->count();
+            
+            // KPI Metrics for jobs posted by this company
+        $totalOpenings = $allJobs->count();
+        $activeListings = $allJobs->where('status', 'open')->count();
+        $rolesFilled = $allJobs->where('status', 'filled')->count();
 
         // Job types for pie chart
 
+        $typeCounts = [];
         foreach ($jobTypes as $type) {
-        $typeCounts[$type->type] =
+            $typeCounts[$type->type] =
                 // Count jobs where job_type string matches
-                $jobs->where('job_type', $type->type)->count()
+                $allJobs->where('job_type', $type->type)->count()
                 // Plus jobs where jobTypes relation contains this type
-                + $jobs->filter(function ($job) use ($type) {
+                + $allJobs->filter(function ($job) use ($type) {
                     return $job->jobTypes->contains('type', $type->type);
                 })->count();
-        }
-
+            }
+            
+        $jobs = Job::where('company_id', $companyId)
+            ->select(['id', 'job_title', 'job_type', 'status'])
+            ->with('jobTypes:id,type')
+            ->paginate(10); 
 
         return Inertia::render('Company/Reports/JobOverview', [
             'totalOpenings' => $totalOpenings,
@@ -75,6 +72,7 @@ class CompanyReportsController extends Controller
             'typeCounts' => $typeCounts,
             'jobTypes' => $jobTypes,
             'jobs' => $jobs,
+            'allJobs' => $allJobs,
             
         ]);
     }
@@ -106,6 +104,21 @@ class CompanyReportsController extends Controller
                 ->pluck('total', 'department')
                 ->toArray();
         }
+
+        // All jobs for filtering and listing (with department and role level)
+        $allJobs = Job::select([
+                'jobs.id',
+                'jobs.job_title',
+                'departments.department_name as department',
+                'jobs.job_experience_level',
+                'jobs.status'
+            ])
+            ->join('departments', 'jobs.department_id', '=', 'departments.id')
+            ->where('jobs.company_id', $companyId)
+            ->get();
+
+        // Attach allJobs to stackedData for frontend filtering
+        $stackedData['allJobs'] = $allJobs; 
 
         return Inertia::render('Company/Reports/DeptWise', [
             'departmentCounts' => $departmentCounts,
@@ -1128,10 +1141,7 @@ class CompanyReportsController extends Controller
 
         // Query certifications of graduates hired by this company
         $certifications = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
-            ->whereHas('graduate', function($q) use ($companyId, $institutionId, $programId) {
-                $q->whereHas('jobApplications.job', function($q2) use ($companyId) {
-                    $q2->where('company_id', $companyId);
-                });
+            ->whereHas('graduate', function($q) use ($institutionId, $programId) {
                 if ($institutionId) {
                     $q->where('institution_id', $institutionId);
                 }
