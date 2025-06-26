@@ -231,7 +231,7 @@ watch(() => form.company_not_found, (val) => {
         <template #registerForm>
             <div class="flex flex-col items-center justify-center mb-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Register {{ form.role }} </h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Register </h1>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600">Please fill out the form below to register.</p>
@@ -254,12 +254,12 @@ watch(() => form.company_not_found, (val) => {
                     </div>
 
                     <div class="flex-1 space-y-2">
-                        <h2 class="text-xl font-semibold text-gray-900">Company Information</h2>
-                        <p class="text-sm text-gray-600">Provide key details about your company.</p>
+                        <!-- <h2 class="text-xl font-semibold text-gray-900">Company Information</h2>
+                        <p class="text-sm text-gray-600">Provide key details about your company.</p> -->
 
                         <div class="grid grid-cols-1 gap-4">
                             <!-- Company Name -->
-                            <div>
+                            <!-- <div>
                                 <div class="flex items-center gap-1 col-span-6 sm:col-span-4">
                                     <InputLabel for="company_name" value="Company Name" />
                                     <span class="text-red-500">*</span>
@@ -271,9 +271,9 @@ watch(() => form.company_not_found, (val) => {
                                         required />
                                     <InputError class="mt-2" :message="form.errors.company_name" />
                                 </div>
-                            </div>
+                            </div> -->
 
-                            <InputLabel for="category" value="Sectors" />
+                            <!-- <InputLabel for="category" value="Sectors" />
                             <select id="category" v-model="form.category"
                                 class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                 required>
@@ -282,10 +282,10 @@ watch(() => form.company_not_found, (val) => {
                                     {{ category.name }}
                                 </option>
                             </select>
-                            <InputError class="mt-2" :message="form.errors.category" />
+                            <InputError class="mt-2" :message="form.errors.category" /> -->
 
                             <!-- Company Address -->
-                            <div class="grid grid-cols-3 gap-4">
+                            <!-- <div class="grid grid-cols-3 gap-4">
                                 <div class="col-span-2">
                                     <div class="flex items-center gap-1">
                                         <InputLabel for="company_street_address" value="Street Address" />
@@ -313,9 +313,9 @@ watch(() => form.company_not_found, (val) => {
                                         <InputError class="mt-1" :message="form.errors.company_brgy" />
                                     </div>
                                 </div>
-                            </div>
+                            </div> -->
 
-                            <div class="grid grid-cols-5 gap-4">
+                            <!-- <div class="grid grid-cols-5 gap-4">
                                 <div class="col-span-2">
                                     <div class="flex items-center gap-1">
                                         <InputLabel for="company_city" value="City" />
@@ -356,15 +356,16 @@ watch(() => form.company_not_found, (val) => {
                                         <InputError class="mt-1" :message="form.errors.company_zip_code" />
                                     </div>
                                 </div>
-                            </div>
+                            </div> -->
 
-                            <div class="border-t border-gray-200"></div>
+                            <!-- <div class="border-t border-gray-200"></div>
                             <h2 class="text-xl font-semibold text-gray-900">Company Contact Information</h2>
                             <p class="text-sm text-gray-600 ">
                                 Provide the official contact details of your company.
-                            </p>
+                            </p> -->
                             <!-- Company Email -->
-                            <div>
+                            <!-- 
+                            
                                 <div class="flex items-center gap-1">
                                     <InputLabel for="company_email" value="Email Address" />
                                     <span class="text-red-500">*</span>
@@ -376,10 +377,10 @@ watch(() => form.company_not_found, (val) => {
                                         required />
                                     <InputError class="mt-2" :message="form.errors.company_email" />
                                 </div>
-                            </div>
+                            </div> -->
 
                             <!-- Mobile and Telephone Number -->
-                            <div class="grid grid-cols-2 gap-4">
+                            <!-- <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <div>
                                         <div class="flex items-center gap-1">
@@ -400,14 +401,11 @@ watch(() => form.company_not_found, (val) => {
                                         class="mt-1 mb-4 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg" />
                                     <InputError class="mt-2" :message="form.errors.telephone_number" />
                                 </div>
-                            </div>
+                            </div> -->
 
-                            <div class="border-t border-gray-200"></div>
-                            <h2 class="text-xl font-semibold text-gray-900">Human Resource Officer Personal Information
-                            </h2>
-                            <p class="text-sm text-gray-600 ">
-                                Provide the personal details of your HR.
-                            </p>
+                            <!-- <div class="border-t border-gray-200"></div> -->
+                            <h2 class="text-xl font-semibold text-gray-900">Register as an Employer</h2>
+                            
 
                             <!-- HR's First and Last Name -->
                             <div class="grid grid-cols-2 gap-x-4">
@@ -440,9 +438,8 @@ watch(() => form.company_not_found, (val) => {
                                 </div>
 
                                 <div> <!-- Middle Name -->
-                                    <div class="flex items-center gap-1">
+                                    <div class="mt-2 flex items-center gap-1">
                                         <InputLabel for="middle_name" value="Middle Name" />
-                                        <span class="text-red-500">*</span>
                                     </div>
                                     <div>
                                         <TextInput id="middle_name" v-model="form.middle_name" placeholder="Dela Cruz"
@@ -455,14 +452,13 @@ watch(() => form.company_not_found, (val) => {
                             <div class="grid grid-cols-2 gap-4">
                                 <!-- Gender -->
                                 <div>
-                                    <div class="flex items-center gap-x-4">
+                                    <div class="flex items-center gap-1">
                                         <InputLabel for="gender" value="Gender" />
                                         <span class="text-red-500">*</span>
                                     </div>
                                     <div>
                                         <select id="gender" v-model="form.gender"
-                                            class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg"
-                                            required>
+                                            class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:shadow-lg">
                                             <option value="">Select Gender</option>
                                             <option value="Male">Male</option>
                                             <option value="Female">Female</option>
@@ -566,6 +562,11 @@ watch(() => form.company_not_found, (val) => {
                                         <InputError class="mt-1" :message="form.errors.password" />
                                     </div>
                                 </div>
+                            </div>
+                             <div class="flex items-center justify-end mt-5 border-t border-gray-200 pt-12">
+                                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                                    Register
+                                </PrimaryButton>
                             </div>
                         </div>
                     </div>
@@ -773,6 +774,11 @@ watch(() => form.company_not_found, (val) => {
                                         <InputError class="mt-1" :message="form.errors.password_confirmation" />
                                     </div>
                                 </div>
+                            </div>
+                            <div class="flex items-center justify-end mt-5 border-t border-gray-200 pt-12">
+                                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                                    Register
+                                </PrimaryButton>
                             </div>
                         </div>
                     </div>
@@ -1066,12 +1072,17 @@ watch(() => form.company_not_found, (val) => {
                             </div>
                         </div>
                     </div>
+                    <div class="flex items-center justify-end mt-5 border-t border-gray-200 pt-12">
+                        <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+                            Register
+                        </PrimaryButton>
+                    </div>
                 </div>
-                <div class="flex items-center justify-end mt-8 border-t border-gray-200 pt-12">
+                <!-- <div class="flex items-center justify-end mt-8 border-t border-gray-200 pt-12">
                     <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                         Register
                     </PrimaryButton>
-                </div>
+                </div> -->
             </form>
         </template>
         <div v-if="showSuccessBanner"

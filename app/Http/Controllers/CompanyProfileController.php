@@ -133,10 +133,87 @@ class CompanyProfileController extends Controller
     }
 
     public function showPublic($id)
-{
-    $company = \App\Models\Company::with(['jobs', 'sector'])->findOrFail($id);
-    return inertia('Frontend/CompanyProfile', [
-        'company' => $company,
-    ]);
-}
+    {
+        $company = \App\Models\Company::with(['jobs', 'sector'])->findOrFail($id);
+        return inertia('Frontend/CompanyProfile', [
+            'company' => $company,
+        ]);
+    }
+
+    public function showInformationForm()
+    {
+        $categories = \App\Models\Category::all();
+        $user = auth()->user();
+        return Inertia::render('Company/InformationSection', [
+            'categories' => $categories,
+             'user' => [
+                'first_name' => $user->hr->first_name,
+                'last_name' => $user->hr->last_name,
+                'middle_name' => $user->hr->middle_name,
+                'gender' => $user->hr->gender,
+                'dob' => $user->hr->dob,
+                'email' => $user->hr->email,
+                'mobile_number' => $user->hr->mobile_number,
+            ],
+        ]);
+    }
+
+    public function saveInformation(Request $request)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            // Company
+            'company_name' => 'required|string|max:255',
+            'company_street_address' => 'required|string|max:255',
+            'company_brgy' => 'required|string|max:255',
+            'company_city' => 'required|string|max:255',
+            'company_province' => 'required|string|max:255',
+            'company_zip_code' => 'required|string|max:10',
+            'company_email' => 'required|email|max:255',
+            'company_mobile_phone' => 'required|string|max:20',
+            'telephone_number' => 'nullable|string|max:20',
+            'category' => 'required|exists:categories,id',
+            // HR
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'gender' => 'required|in:Male,Female',
+            'dob' => 'required|date',
+            'email' => 'required|email|max:255',
+            'mobile_number' => 'required|string|max:20',
+        ]);
+
+        // Create company
+        $company = \App\Models\Company::create([
+            'user_id' => $user->id,
+            'company_name' => $validated['company_name'],
+            'company_street_address' => $validated['company_street_address'],
+            'company_brgy' => $validated['company_brgy'],
+            'company_city' => $validated['company_city'],
+            'company_province' => $validated['company_province'],
+            'company_zip_code' => $validated['company_zip_code'],
+            'company_email' => $validated['company_email'],
+            'company_mobile_phone' => $validated['company_mobile_phone'],
+            'company_tel_phone' => $validated['telephone_number'],
+            'category_id' => $validated['category'],
+            'sector_id' => \App\Models\Category::find($validated['category'])->sector_id,
+        ]);
+
+        // Create HR (human_resources)
+        $user->hr()->create([
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'middle_name' => $validated['middle_name'],
+            'gender' => $validated['gender'],
+            'dob' => $validated['dob'],
+            'email' => $validated['email'],
+            'mobile_number' => $validated['mobile_number'],
+            'company_id' => $company->id,
+        ]);
+
+        // Optionally update user profile if needed
+
+        return redirect()->route('dashboard')->with('success', 'Company profile completed!');
+    }
 }

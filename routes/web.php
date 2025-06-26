@@ -279,6 +279,8 @@ Route::prefix('company')->middleware(['auth'])->group(function () {
     Route::get('/company-reports/internship', [CompanyReportsController::class, 'internship'])->name('company.reports.internship');
     Route::get('/company-reports/employer-feedback', [CompanyReportsController::class, 'employerFeedback'])->name('company.reports.employerFeedback');
     Route::get('/company-reports/future-potential', [CompanyReportsController::class, 'futurePotential'])->name('company.reports.futurePotential');
+    Route::get('/company-reports/cert-tracking', [CompanyReportsController::class, 'certificationTracking'])->name('company.reports.certificationTracking');
+
 });
 
 
@@ -309,6 +311,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
+
+    Route::get('/company/information', [CompanyProfileController::class, 'showInformationForm'])->name('company.information');
+    Route::post('/company/information', [CompanyProfileController::class, 'saveInformation'])->name('company.information.save');
 });
 
 
@@ -664,8 +669,6 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->name('register.store');
 
         // Role-specific registration submissions
-
-
         Route::post('/register/company', [CustomRegisteredUserController::class, 'store'])
             ->middleware(['guest:' . config('fortify.guard')])
             ->name('register.company.store');

@@ -1114,4 +1114,59 @@ class CompanyReportsController extends Controller
             // 'industries' => $industries,
         ]);
     }
+
+    public function certificationTracking(Request $request)
+    {
+        $user = auth()->user();
+        $hr = $user->hr;
+        $companyId = $hr->company_id;
+
+        // Filters
+        $timeline = $request->input('timeline'); // e.g. '2024-01', '2024', etc.
+        $institutionId = $request->input('institution_id');
+        $programId = $request->input('program_id');
+
+        // Query certifications of graduates hired by this company
+        $certifications = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
+            ->whereHas('graduate', function($q) use ($companyId, $institutionId, $programId) {
+                $q->whereHas('jobApplications.job', function($q2) use ($companyId) {
+                    $q2->where('company_id', $companyId);
+                });
+                if ($institutionId) {
+                    $q->where('institution_id', $institutionId);
+                }
+                if ($programId) {
+                    $q->where('program_id', $programId);
+                }
+            })
+            ->when($timeline, function($q) use ($timeline) {
+                // Example: filter by year or month
+                $q->where('issue_date', 'like', $timeline . '%');
+            })
+            ->get();
+
+        // For chart: group by month/year
+        $chartData = $certifications->groupBy(function($cert) {
+            return Carbon::parse($cert->issue_date)->format('Y-m');
+        })->map(function($group) {
+            return $group->count();
+        });
+
+        // For filters
+        $institutions = \App\Models\Institution::all(['id', 'institution_name']);
+        $programs = Program::all(['id', 'name']);
+
+        return Inertia::render('Company/Reports/CertTracking', [
+            'certifications' => $certifications,
+            'chartData' => $chartData,
+            'institutions' => $institutions,
+            'programs' => $programs,
+            'filters' => [
+                'timeline' => $timeline,
+                'institution_id' => $institutionId,
+                'program_id' => $programId,
+            ],
+        ]);
+    }
+    
 }
