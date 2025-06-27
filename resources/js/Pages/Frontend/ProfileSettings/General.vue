@@ -621,12 +621,12 @@ onMounted(() => {
 
               <!-- Location -->
               <div class="relative">
-                <label for="address" class="block text-gray-700 font-medium mb-1">Address</label>
+                <label for="location" class="block text-gray-700 font-medium mb-1">Location</label>
                 <div class="relative">
                   <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <input type="text" id="address"
+                  <input type="text" id="location"
                     class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
-                    v-model="profile.graduate_address" placeholder="City, Country" />
+                    v-model="profile.graduate_location" placeholder="City, Country" />
                 </div>
               </div>
             </div>

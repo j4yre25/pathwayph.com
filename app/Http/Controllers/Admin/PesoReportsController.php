@@ -21,19 +21,10 @@ class PesoReportsController extends Controller
     {
         // Employment Status Overview
         $year = $request->input('year');
-        $graduatesQuery = Graduate::with('schoolYear', 'program');
-        if ($year) {
-            $graduatesQuery->whereHas('schoolYear', fn($q) => $q->where('school_year_range', $year));
-        }
-        $programId = $request->input('program_id');
-        if ($programId) {
-            $graduatesQuery->where('program_id', $programId);
-        }
-        $location = $request->input('location');
-        if ($location) {
-            $graduatesQuery->where('location', $location);
-        }
-        $graduates = $graduatesQuery->get();
+
+        $graduates = Graduate::with(['schoolYear', 'program', 'institution'])
+            ->select('id', 'first_name', 'last_name', 'program_id', 'employment_status', 'school_year_id', 'location', 'institution_id')
+            ->get();
 
         $summary = [
             'total_graduates' => $graduates->count(),
@@ -331,7 +322,57 @@ class PesoReportsController extends Controller
         $jobMin = Salary::pluck('job_min_salary')->filter()->toArray();
         $jobMax = Salary::pluck('job_max_salary')->filter()->toArray();
 
+        $educationLevels = ['Bachelor', 'Master'];
+
+        $employmentByEducation = [];
+        foreach ($educationLevels as $level) {
+            $graduatesWithLevel = \App\Models\Education::where('education', $level)
+                ->whereHas('graduate')
+                ->get()
+                ->pluck('graduate_id')
+                ->unique();
+
+            $total = $graduatesWithLevel->count();
+            $employed = \App\Models\Graduate::whereIn('id', $graduatesWithLevel)
+                ->where('employment_status', 'Employed')
+                ->count();
+
+            $rate = $total ? round(($employed / $total) * 100, 2) : 0;
+            $employmentByEducation[] = $rate;
+        }
+
+        $radarPrograms = \App\Models\Program::pluck('name')->toArray();
+        $radarSkills = ['Technical', 'Communication', 'Problem Solving', 'Teamwork']; // or fetch from Skill model
+
+        $radarData = [];
+
+        foreach ($radarPrograms as $programName) {
+            $program = \App\Models\Program::where('name', $programName)->first();
+            if (!$program) continue;
+
+            $programGraduates = \App\Models\Graduate::where('program_id', $program->id)->pluck('id');
+
+            $skillScores = [];
+            foreach ($radarSkills as $skillName) {
+                $skill = \App\Models\Skill::where('name', $skillName)->first();
+                if (!$skill) {
+                    $skillScores[] = 0;
+                    continue;
+                }
+                $count = \App\Models\GraduateSkill::whereIn('graduate_id', $programGraduates)
+                    ->where('skill_id', $skill->id)
+                    ->count();
+                $percentage = $programGraduates->count() ? round(($count / $programGraduates->count()) * 100, 2) : 0;
+                $skillScores[] = $percentage;
+            }
+            $radarData[] = [
+                'value' => $skillScores,
+                'name' => $programName,
+            ];
+        }
+
         return Inertia::render('Admin/Reports/Reports', [
+            'graduates' => $graduates,
             'summary' => $summary,
             'statusCounts' => $statusCounts,
             'programNames' => $programNames,
@@ -361,6 +402,11 @@ class PesoReportsController extends Controller
                 'jobMin' => $jobMin,
                 'jobMax' => $jobMax,
             ],
+            'radarPrograms' => $radarPrograms,
+            'radarSkills' => $radarSkills,
+            'radarData' => $radarData,
+            'educationLevels' => $educationLevels,
+            'employmentByEducation' => $employmentByEducation,
         ]);
     }
 
