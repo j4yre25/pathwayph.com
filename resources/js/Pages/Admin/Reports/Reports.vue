@@ -10,8 +10,20 @@ import { TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, Le
 
 import { CanvasRenderer } from 'echarts/renderers'
 
+
+
 const page = usePage()
 
+console.log(page.props.graduates)
+const currentPage = ref(1)
+const pageSize = ref(10) // graduates per page
+
+const paginatedGraduates = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredGraduates.value.slice(start, start + pageSize.value)
+})
+
+const totalPages = computed(() => Math.ceil(filteredGraduates.value.length / pageSize.value))
 const industryGraduateCounts = page.props.industryGraduateCounts ?? []
 const industryNames = page.props.industryNames ?? []
 const industryJobRoles = page.props.industryJobRoles ?? []
@@ -85,6 +97,17 @@ echarts.use([
 import phMap from '@/maps/ph.json'
 echarts.registerMap('PH', phMap)
 
+
+const educationLevels = ['Bachelor', 'Master']
+const employmentByEducation = [55, 78, 90]
+const radarPrograms = ['IT', 'Business', 'Engineering']
+const radarSkills = ['Technical', 'Communication', 'Problem Solving', 'Teamwork']
+const radarData = [
+  { value: [80, 70, 60, 90], name: 'IT' },
+  { value: [60, 85, 75, 80], name: 'Business' },
+  { value: [90, 65, 80, 70], name: 'Engineering' }
+]
+
 // Use defineProps with object syntax for better type safety and xIDE support
 const props = defineProps({
   statusCounts: { type: Object, default: () => ({}) },
@@ -107,20 +130,105 @@ const props = defineProps({
   referralByLocation: { type: Object, default: () => ({}) },
   referralSuccessHeatmap: { type: Array, default: () => [] },
   graduates: { type: Array, default: () => [] },
-
+  educationLevels: { type: Array, default: () => [] },
+  employmentByEducation: { type: Array, default: () => [] }, // e.g. [60, 75, 85]
+  radarPrograms: { type: Array, default: () => [] }, // e.g. ['IT', 'Business', 'Engineering']
+  radarSkills: { type: Array, default: () => [] }, // e.g. ['Technical', 'Communication', 'Problem Solving', 'Teamwork']
+  radarData: { type: Array, default: () => [] }, // e.g. [{ value: [80, 70, 60, 90], name: 'IT' }, ...]
 
 })
-const graduates = ref([]);
+
+const filteredStatusCounts = computed(() => {
+  const counts = { Employed: 0, Underemployed: 0, Unemployed: 0 }
+  filteredGraduates.value.forEach(g => {
+    if (g.employment_status === 'Employed') counts.Employed++
+    else if (g.employment_status === 'Underemployed') counts.Underemployed++
+    else if (g.employment_status === 'Unemployed') counts.Unemployed++
+  })
+  return counts
+})
+
+const graduates = ref(props.graduates ?? []);
 // KPI values
-const employed = computed(() => props.statusCounts?.Employed ?? props.employed ?? 0)
-const unemployed = computed(() => props.statusCounts?.Unemployed ?? props.unemployed ?? 0)
-const totalGraduates = computed(() => {
-  // If you want to include underemployed, add it here
-  return employed.value + unemployed.value + (props.statusCounts?.Underemployed ?? 0)
-})
+const employed = computed(() =>
+  filteredGraduates.value.filter(g => g.employment_status === 'Employed').length
+)
+const unemployed = computed(() =>
+  filteredGraduates.value.filter(g => g.employment_status === 'Unemployed').length
+)
+const underemployed = computed(() =>
+  filteredGraduates.value.filter(g => g.employment_status === 'Underemployed').length
+)
+const totalGraduates = computed(() => filteredGraduates.value.length)
 
+
+const employmentInterpretation = computed(() => {
+  const total = totalGraduates.value
+  const emp = employed.value
+  const unemp = unemployed.value
+  const underemp = underemployed.value
+
+  if (total === 0) {
+    return "No graduates match the current filters."
+  }
+
+  const empRate = ((emp / total) * 100).toFixed(1)
+  const unempRate = ((unemp / total) * 100).toFixed(1)
+  const underempRate = ((underemp / total) * 100).toFixed(1)
+
+  // Most common program
+  const programCounts = {}
+  filteredGraduates.value.forEach(g => {
+    if (g.program?.name) {
+      programCounts[g.program.name] = (programCounts[g.program.name] || 0) + 1
+    }
+  })
+  const topProgram = Object.entries(programCounts).sort((a, b) => b[1] - a[1])[0]
+  const topProgramStr = topProgram ? `The most common program among filtered graduates is "${topProgram[0]}" (${topProgram[1]} graduates).` : ""
+
+  // Most common institution
+  const instCounts = {}
+  filteredGraduates.value.forEach(g => {
+    if (g.institution?.institution_name) {
+      instCounts[g.institution.institution_name] = (instCounts[g.institution.institution_name] || 0) + 1
+    }
+  })
+  const topInst = Object.entries(instCounts).sort((a, b) => b[1] - a[1])[0]
+  const topInstStr = topInst ? `The top institution is "${topInst[0]}" (${topInst[1]} graduates).` : ""
+
+  // Most common location
+  const locCounts = {}
+  filteredGraduates.value.forEach(g => {
+    if (g.location) {
+      locCounts[g.location] = (locCounts[g.location] || 0) + 1
+    }
+  })
+  const topLoc = Object.entries(locCounts).sort((a, b) => b[1] - a[1])[0]
+  const topLocStr = topLoc ? `Most graduates are from "${topLoc[0]}" (${topLoc[1]} graduates).` : ""
+
+  // Year range
+  const yearsArr = filteredGraduates.value
+    .map(g => g.school_year?.school_year_range)
+    .filter(Boolean)
+  const uniqueYears = Array.from(new Set(yearsArr))
+  const yearStr = uniqueYears.length
+    ? `Graduates span ${uniqueYears.length} school year${uniqueYears.length > 1 ? "s" : ""}: ${uniqueYears.join(", ")}.`
+    : ""
+
+  // Status breakdown
+  const statusBreakdown = `Breakdown: ${emp} employed (${empRate}%), ${underemp} underemployed (${underempRate}%), ${unemp} unemployed (${unempRate}%).`
+
+  // Compose the interpretation
+  return [
+    `Out of ${total} filtered graduates, ${statusBreakdown}`,
+    yearStr,
+    topProgramStr,
+    topInstStr,
+    topLocStr
+  ].filter(Boolean).join(" ")
+})
 // Pie chart for employment status
-const pieOption = ref({
+const pieOption = computed(() => ({
   tooltip: {
     trigger: 'item',
     formatter: '{b}: {c} ({d}%)'
@@ -134,7 +242,11 @@ const pieOption = ref({
       name: 'Status',
       type: 'pie',
       radius: '60%',
-      data: [],
+      data: [
+        { name: 'Employed', value: filteredStatusCounts.value.Employed },
+        { name: 'Underemployed', value: filteredStatusCounts.value.Underemployed },
+        { name: 'Unemployed', value: filteredStatusCounts.value.Unemployed }
+      ],
       emphasis: {
         itemStyle: {
           shadowBlur: 10,
@@ -149,7 +261,7 @@ const pieOption = ref({
       }
     }
   ]
-})
+}))
 
 const updatePieChart = () => {
   pieOption.value.series[0].data = Object.entries(props.statusCounts || {}).map(
@@ -159,7 +271,9 @@ const updatePieChart = () => {
     })
   )
 }
-watch(() => props.statusCounts, updatePieChart, { immediate: true })
+watch(() => props.graduates, (val) => {
+  graduates.value = val ?? [];
+}, props.statusCounts, updatePieChart, { immediate: true })
 onMounted(updatePieChart)
 
 // Bar chart for employment by program
@@ -491,24 +605,68 @@ const referralHeatmapOption = computed(() => ({
   ]
 }));
 
-const filteredGraduates = computed(() => {
-  return props.graduates.filter(g =>
-    (!selectedYear.value || g.schoolYear?.school_year_range === selectedYear.value) &&
-    (!selectedProgram.value || g.program_id === selectedProgram.value) &&
-    (!selectedStatus.value || g.employment_status === selectedStatus.value) &&
-    (!selectedLocation.value || g.location === selectedLocation.value)
-  );
-});
-
-// FILTER CONTROLS
 const selectedYear = ref('')
 const selectedProgram = ref('')
 const selectedStatus = ref('')
 const selectedLocation = ref('')
+const selectedInstitution = ref('')
 
-const years = ref([])
-const programs = ref([])
-const locations = ref([])
+// Populate institutions on mount (assuming graduates have institution info)
+onMounted(() => {
+  if (graduates.value && graduates.value.length) {
+    const allInstitutions = new Map()
+    graduates.value.forEach(g => {
+      if (g.institution && g.institution.id) {
+        allInstitutions.set(g.institution.id, g.institution)
+      }
+    })
+    institutions.value = Array.from(allInstitutions.values())
+  }
+})
+
+// Update filteredGraduates computed:
+const filteredGraduates = computed(() => {
+  return graduates.value.filter(g =>
+    (!selectedYear.value || g.school_year?.school_year_range === selectedYear.value) &&
+    (!selectedProgram.value || g.program_id === selectedProgram.value) &&
+    (!selectedStatus.value || g.employment_status === selectedStatus.value) &&
+    (!selectedLocation.value || g.location === selectedLocation.value) &&
+    (!selectedInstitution.value || g.institution?.id === selectedInstitution.value)
+  );
+});
+console.log(filteredGraduates.value) // Debugging: Check filtered graduates
+
+
+// FILTER CONTROLS
+const years = computed(() => {
+  const set = new Set();
+  graduates.value.forEach(g => {
+    if (g.school_year?.school_year_range) set.add(g.school_year.school_year_range);
+  });
+  return Array.from(set).sort().reverse();
+});
+const programs = computed(() => {
+  const map = new Map();
+  graduates.value.forEach(g => {
+    if (g.program && g.program.id) map.set(g.program.id, g.program);
+  });
+  return Array.from(map.values());
+});
+const locations = computed(() => {
+  const set = new Set();
+  graduates.value.forEach(g => {
+    if (g.location) set.add(g.location);
+  });
+  return Array.from(set).sort();
+});
+
+const institutions = computed(() => {
+  const map = new Map();
+  graduates.value.forEach(g => {
+    if (g.institution && g.institution.id) map.set(g.institution.id, g.institution);
+  });
+  return Array.from(map.values());
+});
 
 // Populate filter options on mount
 onMounted(() => {
@@ -530,15 +688,18 @@ onMounted(() => {
     })
     years.value = Array.from(allYears).sort((a, b) => b - a)
 
-    // Programs and Locations (assuming these are available in graduates data)
+    // Programs, Locations, and Institutions (assuming these are available in graduates data)
     const allPrograms = new Set()
     const allLocations = new Set()
+    const allInstitutions = new Set()
     graduates.value.forEach(g => {
       if (g.program_id) allPrograms.add(g.program_id)
       if (g.location) allLocations.add(g.location)
+      if (g.institution_id) allInstitutions.add(g.institution_id)
     })
     programs.value = Array.from(allPrograms)
     locations.value = Array.from(allLocations)
+    institutions.value = Array.from(allInstitutions)
   }
 })
 
@@ -821,6 +982,47 @@ function binData(data, binSize = 5000) {
   });
   return bins;
 }
+
+
+const educationBarOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: props.educationLevels,
+    axisLabel: { rotate: 20 }
+  },
+  yAxis: { type: 'value', name: 'Employment Rate (%)', max: 100 },
+  series: [
+    {
+      name: 'Employment Rate',
+      type: 'bar',
+      data: props.employmentByEducation,
+      itemStyle: { color: '#3b82f6' }
+    }
+  ]
+}))
+
+
+const radarOption = computed(() => ({
+  tooltip: {},
+  legend: { data: props.radarPrograms },
+  radar: {
+    indicator: props.radarSkills.map(skill => ({ name: skill, max: 100 })),
+    radius: 90
+  },
+  series: [
+    {
+      name: 'Skills vs Employability',
+      type: 'radar',
+      data: props.radarData
+    }
+  ]
+}))
+
+// Watcher to reset currentPage when filteredGraduates changes
+watch(filteredGraduates, () => {
+  currentPage.value = 1
+})
 </script>
 
 <template>
@@ -883,6 +1085,14 @@ function binData(data, binSize = 5000) {
               <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
             </select>
           </div>
+          <!-- Add this to your filter controls -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+            <select v-model="selectedInstitution" class="border rounded px-2 py-1">
+              <option value="">All</option>
+              <option v-for="inst in institutions" :key="inst.id" :value="inst.id">{{ inst.institution_name }}</option>
+            </select>
+          </div>
         </div>
         <!-- KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
@@ -899,12 +1109,52 @@ function binData(data, binSize = 5000) {
             <span class="text-3xl font-bold text-blue-600">{{ totalGraduates }}</span>
           </div>
         </div>
+
+        <p class="mb-2 text-sm text-gray-500">
+          Showing {{ filteredGraduates.length }} of {{ totalGraduates }} graduates
+        </p>
+        <div v-if="filteredGraduates.length" class="bg-white rounded-xl shadow p-8 mb-10">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Filtered Graduates</h3>
+          <table class="min-w-full text-sm text-gray-800">
+            <thead>
+              <tr>
+                <th class="px-2 py-1 text-left">Name</th>
+                <th class="px-2 py-1 text-left">Program</th>
+                <th class="px-2 py-1 text-left">Status</th>
+                <th class="px-2 py-1 text-left">Year</th>
+                <th class="px-2 py-1 text-left">Location</th>
+                <th class="px-2 py-1 text-left">Institution</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="g in paginatedGraduates" :key="g.id" class="hover:bg-gray-100">
+                <td class="px-2 py-1">{{ g.first_name }} {{ g.last_name }}</td>
+                <td class="px-2 py-1">{{ g.program?.name }}</td>
+                <td class="px-2 py-1">{{ g.employment_status }}</td>
+                <td class="px-2 py-1">{{ g.school_year?.school_year_range }}</td>
+                <td class="px-2 py-1">{{ g.location }}</td>
+                <td class="px-2 py-1">{{ g.institution?.institution_name }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="currentPage === 1"
+              @click="currentPage--">Prev</button>
+            <span class="text-gray-700">Page {{ currentPage }} of {{ totalPages }}</span>
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="currentPage === totalPages"
+              @click="currentPage++">Next</button>
+          </div>
+        </div>
+
+
+
         <div v-if="statusCounts && Object.keys(statusCounts).length" class="bg-white rounded-xl shadow p-8">
           <div class="flex flex-col lg:flex-row gap-12 items-center justify-between">
             <div class="w-full lg:w-2/5 mb-8 lg:mb-0">
               <h3 class="text-lg font-semibold mb-6 text-gray-700">Detailed Status</h3>
               <ul class="space-y-4">
-                <li v-for="(count, status) in statusCounts" :key="status"
+                <li v-for="(count, status) in filteredStatusCounts" :key="status"
                   class="flex justify-between items-center px-4 py-2 rounded hover:bg-gray-50 transition">
                   <span class="capitalize text-gray-600">{{ status }}</span>
                   <span class="font-semibold text-gray-900">{{ count }}</span>
@@ -917,6 +1167,73 @@ function binData(data, binSize = 5000) {
                   style="height: 350px; width: 100%; max-width: 420px;" />
                 <div v-else class="text-gray-400 text-center py-8">No chart data available.</div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div class="text-blue-900 space-y-2">
+            <div>
+              <span class="font-semibold">Summary:</span>
+              <span>
+                Out of <span class="font-bold">{{ totalGraduates }}</span> filtered graduates:
+                <span class="text-green-700 font-semibold">{{ employed }}</span> employed ({{ ((employed /
+                  totalGraduates) * 100).toFixed(1) }}%),
+                <span class="text-yellow-700 font-semibold">{{ underemployed }}</span> underemployed ({{ ((underemployed
+                  / totalGraduates) * 100).toFixed(1) }}%),
+                <span class="text-red-700 font-semibold">{{ unemployed }}</span> unemployed ({{ ((unemployed /
+                  totalGraduates) * 100).toFixed(1) }}%).
+              </span>
+            </div>
+            <div v-if="years.length">
+              <span class="font-semibold">School Years:</span>
+              <span>{{ years.join(', ') }}</span>
+            </div>
+            <div v-if="filteredGraduates.length">
+              <span class="font-semibold">Top Program:</span>
+              <span>
+                {{
+                  (() => {
+                    const counts = {};
+                    filteredGraduates.forEach(g => {
+                      if (g.program?.name) counts[g.program.name] = (counts[g.program.name] || 0) + 1;
+                    });
+                    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+                    return top ? `${top[0]} (${top[1]})` : 'N/A';
+                })()
+                }}
+              </span>
+            </div>
+            <div v-if="filteredGraduates.length">
+              <span class="font-semibold">Top Institution:</span>
+              <span>
+                {{
+                  (() => {
+                    const counts = {};
+                    filteredGraduates.forEach(g => {
+                      if (g.institution?.institution_name) counts[g.institution.institution_name] =
+                        (counts[g.institution.institution_name] || 0) + 1;
+                    });
+                    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+                    return top ? `${top[0]} (${top[1]})` : 'N/A';
+                })()
+                }}
+              </span>
+            </div>
+            <div v-if="filteredGraduates.length">
+              <span class="font-semibold">Top Location:</span>
+              <span>
+                {{
+                  (() => {
+                    const counts = {};
+                    filteredGraduates.forEach(g => {
+                      if (g.location) counts[g.location] = (counts[g.location] || 0) + 1;
+                    });
+                    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+                    return top ? `${top[0]} (${top[1]})` : 'N/A';
+                })()
+                }}
+              </span>
             </div>
           </div>
         </div>
@@ -1093,7 +1410,18 @@ function binData(data, binSize = 5000) {
       <!-- Educational Impact -->
       <div v-else-if="activeTab === 'educationalImpact'">
         <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Educational Impact</h2>
-        <!-- Add your Educational Impact content here -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Bar Chart: Employment Rate by Education Level -->
+          <div class="bg-white rounded-xl shadow p-8">
+            <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment Rate by Education Level</h3>
+            <VueECharts :option="educationBarOption" style="height: 350px; width: 100%;" />
+          </div>
+          <!-- Radar Chart: Skills Development vs Employability -->
+          <div class="bg-white rounded-xl shadow p-8">
+            <h3 class="text-lg font-semibold mb-6 text-gray-700">Skills Development vs Employability by Program</h3>
+            <VueECharts :option="radarOption" style="height: 350px; width: 100%;" />
+          </div>
+        </div>
       </div>
 
       <!-- Gender and Diversity Metrics -->
@@ -1208,32 +1536,6 @@ function binData(data, binSize = 5000) {
         </div>
       </div>
 
-      <!-- Filtered Graduates Table -->
-      <div v-else-if="activeTab === 'filteredGraduates'">
-        <div class="bg-white rounded-xl shadow p-8 mt-12" v-if="filteredGraduates.length">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Filtered Graduates</h3>
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr>
-                <th class="px-2 py-1 text-left">Name</th>
-                <th class="px-2 py-1 text-left">Program</th>
-                <th class="px-2 py-1 text-left">Status</th>
-                <th class="px-2 py-1 text-left">Year</th>
-                <th class="px-2 py-1 text-left">Location</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="g in filteredGraduates" :key="g.id">
-                <td class="px-2 py-1">{{ g.name }}</td>
-                <td class="px-2 py-1">{{ g.program?.name }}</td>
-                <td class="px-2 py-1">{{ g.employment_status }}</td>
-                <td class="px-2 py-1">{{ g.schoolYear?.school_year_range }}</td>
-                <td class="px-2 py-1">{{ g.location }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   </AppLayout>
 </template>
