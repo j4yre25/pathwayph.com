@@ -71,16 +71,15 @@ class CreateNewUser implements CreatesNewUsers
                 }
                 break;
             case 'company':
-                $rules['company_name'] = ['required', 'string', 'max:255'];
-                $rules['company_street_address'] = ['required', 'string', 'max:255'];
-                $rules['company_brgy'] = ['required', 'string', 'max:255'];
-                $rules['company_city' ] = ['required', 'string', 'max:255'];
-                $rules['company_province' ] = ['required', 'string', 'max:255'];
-                $rules['company_zip_code' ] = ['required', 'string', 'max:4'];
-                $rules['company_email' ] = ['required', 'string', 'email', 'max:255'];
-                $rules['company_mobile_phone' ] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
-                $rules['category' ] = 'required|exists:categories,id';
-
+                // $rules['company_name'] = ['required', 'string', 'max:255'];
+                // $rules['company_street_address'] = ['required', 'string', 'max:255'];
+                // $rules['company_brgy'] = ['required', 'string', 'max:255'];
+                // $rules['company_city' ] = ['required', 'string', 'max:255'];
+                // $rules['company_province' ] = ['required', 'string', 'max:255'];
+                // $rules['company_zip_code' ] = ['required', 'string', 'max:4'];
+                // $rules['company_email' ] = ['required', 'string', 'email', 'max:255'];
+                // $rules['company_mobile_phone' ] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
+                // $rules['category' ] = 'required|exists:categories,id';
                 break;
             case 'institution':
                 $rules['institution_type' ] = ['required', 'string'];
@@ -180,23 +179,23 @@ class CreateNewUser implements CreatesNewUsers
 
         // Store in Companies table
         if ($role === 'company') {
-            $category = \App\Models\Category::find($input['category']);
-            $company = Company::create([
-                'user_id' => $user->id,
-                'company_name' => $input['company_name'],
-                'company_street_address' => $input['company_street_address'],
-                'company_brgy' => $input['company_brgy'],
-                'company_city' => $input['company_city'],
-                'sector_id' => $category ? $category->sector_id : null,
-                'category_id' => $category->id,
-                'company_province' => $input['company_province'],
-                'company_zip_code' => $input['company_zip_code'],
-                'company_email' => $input['company_email'],
-                'company_mobile_phone' => $input['company_mobile_phone'],
-                'company_tel_phone' => $input['telephone_number'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            // // $category = \App\Models\Category::find($input['category']);
+            // // $company = Company::create([
+            // //     'user_id' => $user->id,
+            // //     'company_name' => $input['company_name'],
+            // //     'company_street_address' => $input['company_street_address'],
+            // //     'company_brgy' => $input['company_brgy'],
+            // //     'company_city' => $input['company_city'],
+            // //     'sector_id' => $category ? $category->sector_id : null,
+            // //     'category_id' => $category->id,
+            // //     'company_province' => $input['company_province'],
+            // //     'company_zip_code' => $input['company_zip_code'],
+            // //     'company_email' => $input['company_email'],
+            // //     'company_mobile_phone' => $input['company_mobile_phone'],
+            // //     'company_tel_phone' => $input['telephone_number'],
+            // //     'created_at' => now(),
+            // //     'updated_at' => now(),
+            // // ]);
             $user->hr()->create([
                 'first_name' => $input['first_name'],
                 'middle_name' => $input['middle_name'],
@@ -204,7 +203,7 @@ class CreateNewUser implements CreatesNewUsers
                 'mobile_number' => $input['mobile_number'],
                 'dob' => $input['dob'],
                 'gender' => $input['gender'],
-                'company_id' => $company->id,
+                // 'company_id' => $company->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

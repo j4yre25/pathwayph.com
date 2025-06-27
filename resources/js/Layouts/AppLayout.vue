@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watchEffect, onMounted } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
 import Banner from '@/Components/Banner.vue';
@@ -14,6 +14,7 @@ const props = defineProps({
 });
 
 const page = usePage();
+const user = page.props.auth?.user;
 
 console.log('Graduates', props);
 
@@ -26,6 +27,23 @@ const title = page.props.title;
 
 const showingNavigationDropdown = ref(false);
 
+let redirected = false;
+
+watchEffect(() => {
+    const user = usePage().props.user;
+
+    if (
+        !redirected &&
+        user &&
+        user.role === 'company' &&
+        user.hr && // HR info is already there
+        !user.company && // Company info still missing
+        router.page?.url !== '/company/information'
+    ) {
+        redirected = true;
+        router.visit(route('company.information'));
+    }
+});
 
 const isAnyReportActive = () => {
     // your logic here, or just return false if not used
@@ -47,8 +65,8 @@ console.log('Sector:', sector);
 console.log('Role', page.props.auth.user.role);
 
 console.log(page.props.app.currentUser.company?.company_name)
-
-
+console.log('user.company:', user.company);
+console.log('user.hr:', user.hr);
 
 
 const switchToTeam = (team) => {

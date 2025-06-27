@@ -27,6 +27,7 @@ const reports = [
     { label: "Internship Experience", route: "company.reports.internship" },
     { label: "Employer Feedback", route: "company.reports.employerFeedback" },
     { label: "Future Potential", route: "company.reports.futurePotential" },
+    { label: "Professional Certification Tracking", route: "company.reports.certificationTracking" }
 ];
 
 function goToReport(routeName) {

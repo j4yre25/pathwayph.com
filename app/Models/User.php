@@ -106,7 +106,16 @@ class User extends Authenticatable
         );
     }
 
+    public function getCompanyAttribute($value)
+    {
+        // If relation is loaded and null, return null, else return the relation
+        return $this->getRelationValue('company') ?? null;
+    }
 
+    public function getHrAttribute($value)
+    {
+        return $this->getRelationValue('hr') ?? null;
+    }
 
     public function jobs()
     {

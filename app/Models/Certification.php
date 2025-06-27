@@ -27,4 +27,9 @@ protected $fillable = [
     {
         return $this->belongsTo(User::class);
     }
+    // Relationship with Graduate
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
+    }   
 }
