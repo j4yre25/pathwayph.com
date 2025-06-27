@@ -96,7 +96,11 @@ const props = defineProps({
   referralByLocation: { type: Object, default: () => ({}) },
   referralSuccessHeatmap: { type: Array, default: () => [] },
   graduates: { type: Array, default: () => [] },
-
+  educationLevels: { type: Array, default: () => [] }, // e.g. ['High School', 'Bachelor', 'Master']
+  employmentByEducation: { type: Array, default: () => [] }, // e.g. [60, 75, 85]
+  radarPrograms: { type: Array, default: () => [] }, // e.g. ['IT', 'Business', 'Engineering']
+  radarSkills: { type: Array, default: () => [] }, // e.g. ['Technical', 'Communication', 'Problem Solving', 'Teamwork']
+  radarData: { type: Array, default: () => [] }, // e.g. [{ value: [80, 70, 60, 90], name: 'IT' }, ...]
 
 })
 const graduates = ref([]);
@@ -173,6 +177,40 @@ const barOption = computed(() => ({
       emphasis: { focus: 'series' },
       data: props.unemployedByProgram,
       itemStyle: { color: '#ef4444' }
+    }
+  ]
+}))
+
+const educationBarOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: props.educationLevels,
+    axisLabel: { rotate: 20 }
+  },
+  yAxis: { type: 'value', name: 'Employment Rate (%)', max: 100 },
+  series: [
+    {
+      name: 'Employment Rate',
+      type: 'bar',
+      data: props.employmentByEducation,
+      itemStyle: { color: '#3b82f6' }
+    }
+  ]
+}))
+
+const radarOption = computed(() => ({
+  tooltip: {},
+  legend: { data: props.radarPrograms },
+  radar: {
+    indicator: props.radarSkills.map(skill => ({ name: skill, max: 100 })),
+    radius: 90
+  },
+  series: [
+    {
+      name: 'Skills vs Employability',
+      type: 'radar',
+      data: props.radarData
     }
   ]
 }))
