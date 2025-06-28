@@ -20,14 +20,16 @@ const pageSize = ref(10) // graduates per page
 
 const paginatedGraduates = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
-  return filteredGraduates.value.slice(start, start + pageSize.value)
+  return safeFilteredGraduates.value.slice(start, start + pageSize.value)
 })
 
-const totalPages = computed(() => Math.ceil(filteredGraduates.value.length / pageSize.value))
+
+const totalPages = computed(() => Math.ceil(safeFilteredGraduates.value.length / pageSize.value))
 const industryGraduateCounts = page.props.industryGraduateCounts ?? []
 const industryNames = page.props.industryNames ?? []
 const industryJobRoles = page.props.industryJobRoles ?? []
 const industryApplicants = page.props.industryApplicants ?? []
+
 
 const allTabs = [
   { key: 'employmentStatus', label: 'Employment Status Overview' },
@@ -35,6 +37,7 @@ const allTabs = [
   { key: 'employmentProgram', label: 'Employment by Program' },
   { key: 'geoDistribution', label: 'Geographic Distribution' },
   { key: 'employmentTrend', label: 'Employment Trend Over Time' },
+  { key: 'careerGapMap', label: 'Demand-Supply Career Gap Map' },
   { key: 'skillsRoles', label: 'Skills and Roles Analysis' },
   { key: 'jobSearchDuration', label: 'Job Search Duration' },
   { key: 'graduateSatisfaction', label: 'Graduate Satisfaction' },
@@ -61,7 +64,7 @@ const allTabs = [
   { key: 'jobSatisfaction', label: 'Job Satisfaction' },
   { key: 'futureJobTrends', label: 'Future Job Trends' },
   { key: 'jobOpeningsSeekers', label: 'Job Openings vs. Job Seekers' },
-  { key: 'filteredGraduates', label: 'Filtered Graduates' },
+  { key: 'safeFilteredGraduates', label: 'Filtered Graduates' },
 ]
 
 const VISIBLE_TAB_COUNT = 4
@@ -140,7 +143,7 @@ const props = defineProps({
 
 const filteredStatusCounts = computed(() => {
   const counts = { Employed: 0, Underemployed: 0, Unemployed: 0 }
-  filteredGraduates.value.forEach(g => {
+  safeFilteredGraduates.value.forEach(g => {
     if (g.employment_status === 'Employed') counts.Employed++
     else if (g.employment_status === 'Underemployed') counts.Underemployed++
     else if (g.employment_status === 'Unemployed') counts.Unemployed++
@@ -151,15 +154,15 @@ const filteredStatusCounts = computed(() => {
 const graduates = ref(props.graduates ?? []);
 // KPI values
 const employed = computed(() =>
-  filteredGraduates.value.filter(g => g.employment_status === 'Employed').length
+  safeFilteredGraduates.value.filter(g => g.employment_status === 'Employed').length
 )
 const unemployed = computed(() =>
-  filteredGraduates.value.filter(g => g.employment_status === 'Unemployed').length
+  safeFilteredGraduates.value.filter(g => g.employment_status === 'Unemployed').length
 )
 const underemployed = computed(() =>
-  filteredGraduates.value.filter(g => g.employment_status === 'Underemployed').length
+  safeFilteredGraduates.value.filter(g => g.employment_status === 'Underemployed').length
 )
-const totalGraduates = computed(() => filteredGraduates.value.length)
+const totalGraduates = computed(() => safeFilteredGraduates.value.length)
 
 
 const employmentInterpretation = computed(() => {
@@ -178,7 +181,7 @@ const employmentInterpretation = computed(() => {
 
   // Most common program
   const programCounts = {}
-  filteredGraduates.value.forEach(g => {
+  safeFilteredGraduates.value.forEach(g => {
     if (g.program?.name) {
       programCounts[g.program.name] = (programCounts[g.program.name] || 0) + 1
     }
@@ -188,7 +191,7 @@ const employmentInterpretation = computed(() => {
 
   // Most common institution
   const instCounts = {}
-  filteredGraduates.value.forEach(g => {
+  safeFilteredGraduates.value.forEach(g => {
     if (g.institution?.institution_name) {
       instCounts[g.institution.institution_name] = (instCounts[g.institution.institution_name] || 0) + 1
     }
@@ -198,7 +201,7 @@ const employmentInterpretation = computed(() => {
 
   // Most common location
   const locCounts = {}
-  filteredGraduates.value.forEach(g => {
+  safeFilteredGraduates.value.forEach(g => {
     if (g.location) {
       locCounts[g.location] = (locCounts[g.location] || 0) + 1
     }
@@ -207,7 +210,7 @@ const employmentInterpretation = computed(() => {
   const topLocStr = topLoc ? `Most graduates are from "${topLoc[0]}" (${topLoc[1]} graduates).` : ""
 
   // Year range
-  const yearsArr = filteredGraduates.value
+  const yearsArr = safeFilteredGraduates.value
     .map(g => g.school_year?.school_year_range)
     .filter(Boolean)
   const uniqueYears = Array.from(new Set(yearsArr))
@@ -624,8 +627,8 @@ onMounted(() => {
   }
 })
 
-// Update filteredGraduates computed:
-const filteredGraduates = computed(() => {
+// Update safeFilteredGraduates computed:
+const safeFilteredGraduates = computed(() => {
   return graduates.value.filter(g =>
     (!selectedYear.value || g.school_year?.school_year_range === selectedYear.value) &&
     (!selectedProgram.value || g.program_id === selectedProgram.value) &&
@@ -634,7 +637,7 @@ const filteredGraduates = computed(() => {
     (!selectedInstitution.value || g.institution?.id === selectedInstitution.value)
   );
 });
-console.log(filteredGraduates.value) // Debugging: Check filtered graduates
+console.log(safeFilteredGraduates.value) // Debugging: Check filtered graduates
 
 
 // FILTER CONTROLS
@@ -1019,10 +1022,72 @@ const radarOption = computed(() => ({
   ]
 }))
 
-// Watcher to reset currentPage when filteredGraduates changes
-watch(filteredGraduates, () => {
+// Watcher to reset currentPage when safeFilteredGraduates changes
+watch(safeFilteredGraduates, () => {
   currentPage.value = 1
 })
+
+const inDemandJobs = computed(() => page.props.inDemandJobs ?? []);
+
+const careerGapBarOption = computed(() => {
+  const roles = inDemandJobs.value.map(j => j.role);
+  const demand = inDemandJobs.value.map(() => 1);
+  const supply = inDemandJobs.value.map(job => {
+    const count = safeFilteredGraduates.value.filter(g =>
+      g.program_id &&
+      job.program_ids.map(Number).includes(Number(g.program_id))
+    ).length;
+    console.log(`[MAP] Role: ${job.role}, Supply: ${count}`);
+    return count;
+  });
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['Demand', 'Local Graduate Supply'] },
+    xAxis: { type: 'category', data: roles, axisLabel: { rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        name: 'Demand',
+        type: 'bar',
+        data: demand,
+        itemStyle: { color: '#f59e42' }
+      },
+      {
+        name: 'Local Graduate Supply',
+        type: 'bar',
+        data: supply,
+        itemStyle: { color: '#3b82f6' }
+      }
+    ]
+  };
+});
+
+
+const roleFilter = ref('');
+const careerGapCurrentPage = ref(1);
+const careerGapPageSize = ref(10);
+
+const filteredInDemandJobs = computed(() => {
+  if (!roleFilter.value) return inDemandJobs.value;
+  return inDemandJobs.value.filter(job =>
+    job.role && job.role.toLowerCase().includes(roleFilter.value.toLowerCase())
+  );
+});
+
+const paginatedInDemandJobs = computed(() => {
+  const start = (careerGapCurrentPage.value - 1) * careerGapPageSize.value;
+  return filteredInDemandJobs.value.slice(start, start + careerGapPageSize.value);
+});
+
+const careerGapTotalPages = computed(() =>
+  Math.ceil(filteredInDemandJobs.value.length / careerGapPageSize.value)
+);
+
+watch(roleFilter, () => {
+  careerGapCurrentPage.value = 1;
+});
+
+
 </script>
 
 <template>
@@ -1111,9 +1176,9 @@ watch(filteredGraduates, () => {
         </div>
 
         <p class="mb-2 text-sm text-gray-500">
-          Showing {{ filteredGraduates.length }} of {{ totalGraduates }} graduates
+          Showing {{ safeFilteredGraduates.length }} of {{ totalGraduates }} graduates
         </p>
-        <div v-if="filteredGraduates.length" class="bg-white rounded-xl shadow p-8 mb-10">
+        <div v-if="safeFilteredGraduates.length" class="bg-white rounded-xl shadow p-8 mb-10">
           <h3 class="text-lg font-semibold mb-6 text-gray-700">Filtered Graduates</h3>
           <table class="min-w-full text-sm text-gray-800">
             <thead>
@@ -1189,49 +1254,49 @@ watch(filteredGraduates, () => {
               <span class="font-semibold">School Years:</span>
               <span>{{ years.join(', ') }}</span>
             </div>
-            <div v-if="filteredGraduates.length">
+            <div v-if="safeFilteredGraduates.length">
               <span class="font-semibold">Top Program:</span>
               <span>
                 {{
                   (() => {
                     const counts = {};
-                    filteredGraduates.forEach(g => {
+                    safeFilteredGraduates.forEach(g => {
                       if (g.program?.name) counts[g.program.name] = (counts[g.program.name] || 0) + 1;
                     });
                     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
                     return top ? `${top[0]} (${top[1]})` : 'N/A';
-                })()
+                  })()
                 }}
               </span>
             </div>
-            <div v-if="filteredGraduates.length">
+            <div v-if="safeFilteredGraduates.length">
               <span class="font-semibold">Top Institution:</span>
               <span>
                 {{
                   (() => {
                     const counts = {};
-                    filteredGraduates.forEach(g => {
+                    safeFilteredGraduates.forEach(g => {
                       if (g.institution?.institution_name) counts[g.institution.institution_name] =
                         (counts[g.institution.institution_name] || 0) + 1;
                     });
                     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
                     return top ? `${top[0]} (${top[1]})` : 'N/A';
-                })()
+                  })()
                 }}
               </span>
             </div>
-            <div v-if="filteredGraduates.length">
+            <div v-if="safeFilteredGraduates.length">
               <span class="font-semibold">Top Location:</span>
               <span>
                 {{
                   (() => {
                     const counts = {};
-                    filteredGraduates.forEach(g => {
+                    safeFilteredGraduates.forEach(g => {
                       if (g.location) counts[g.location] = (counts[g.location] || 0) + 1;
                     });
                     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
                     return top ? `${top[0]} (${top[1]})` : 'N/A';
-                })()
+                  })()
                 }}
               </span>
             </div>
@@ -1334,6 +1399,112 @@ watch(filteredGraduates, () => {
             <div>
               <h4 class="font-semibold mb-2">Top Skills: Demand vs. Supply</h4>
               <VueECharts :option="skillBarOption" style="height: 320px; width: 100%;" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Demand-Supply Career Gap Map -->
+      <div v-else-if="activeTab === 'careerGapMap'">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">Demand-Supply Career Gap Map</h2>
+
+        <!-- Table: In-Demand Careers vs Local Graduate Availability -->
+        <div class="bg-white rounded-xl shadow p-8 mb-10">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">In-Demand Careers vs Graduate Supply</h3>
+          <div class="flex items-center mb-4 gap-4">
+            <input v-model="roleFilter" type="text" placeholder="Filter by role..."
+              class="border px-2 py-1 rounded w-64" />
+            <span class="text-gray-500 text-sm">
+              Showing {{ filteredInDemandJobs.length }} roles
+            </span>
+          </div>
+
+          <table class="min-w-full text-sm text-gray-800">
+            <thead>
+              <tr>
+                <th class="px-2 py-1 text-left">Role</th>
+                <th class="px-2 py-1 text-left">Category</th>
+                <th class="px-2 py-1 text-left">Sector</th>
+                <th class="px-2 py-1 text-left">Programs</th>
+                <th class="px-2 py-1 text-left">Skills</th>
+                <th class="px-2 py-1 text-left">Local Graduates</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="job in paginatedInDemandJobs" :key="job.role" class="hover:bg-gray-100">
+                <td class="px-2 py-1">{{ job.role }}</td>
+                <td class="px-2 py-1">{{ job.category }}</td>
+                <td class="px-2 py-1">{{ job.sector }}</td>
+                <td class="px-2 py-1">{{ job.programs.join(', ') }}</td>
+                <td class="px-2 py-1">{{ job.skills ? job.skills.join(', ') : '' }}</td>
+                <td class="px-2 py-1">
+                  {{
+                    (() => {
+                      if (
+                        !safeFilteredGraduates.value ||
+                        !Array.isArray(safeFilteredGraduates.value) ||
+                        !job.program_ids ||
+                        !Array.isArray(job.program_ids) ||
+                        !job.program_ids.length
+                      ) return 0;
+                      return safeFilteredGraduates.value.filter(g =>
+                        g.program_id &&
+                        job.program_ids.map(Number).includes(Number(g.program_id))
+                      ).length;
+                    })()
+                  }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="careerGapTotalPages > 1" class="flex items-center justify-between mt-4">
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="careerGapCurrentPage === 1"
+              @click="careerGapCurrentPage--">Prev</button>
+            <span class="text-gray-700">Page {{ careerGapCurrentPage }} of {{ careerGapTotalPages }}</span>
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+              :disabled="careerGapCurrentPage === careerGapTotalPages" @click="careerGapCurrentPage++">Next</button>
+          </div>
+        </div>
+
+        <!-- Map Visualization (Placeholder) -->
+        <div class="bg-white rounded-xl shadow p-8 mb-10">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Career Demand-Supply Map</h3>
+          <!-- You can use a map or bar chart here. For demo, use a bar chart of demand vs supply -->
+          <VueECharts :option="careerGapBarOption" style="height: 400px; width: 100%;" />
+        </div>
+
+        <!-- Data Interpretation -->
+        <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div class="text-blue-900 space-y-2">
+            <div>
+              <span class="font-semibold">Interpretation:</span>
+              <span>
+                {{
+                  (() => {
+                    if (!inDemandJobs.length) return 'No in-demand job data available.';
+                    const grads = Array.isArray(graduates.value) ? graduates.value : [];
+                    const mostGap = inDemandJobs
+                      .map(job => {
+                        const supply = grads.filter(g =>
+                          g.program && job.programs.includes(g.program.name)
+                        ).length;
+                        return { role: job.role, demand: 1, supply }; // demand is always 1 per job in this list
+                      })
+                      .sort((a, b) => (a.supply - a.demand) - (b.supply - b.demand))[0];
+                    return mostGap
+                      ? `The largest gap is for "${mostGap.role}", where demand exceeds local graduate supply by ${Math.max(0,
+                        mostGap.demand - mostGap.supply)}.`
+                      : '';
+                  })()
+                }}
+              </span>
+            </div>
+            <div>
+              <span>
+                This map and table show which careers are most in-demand locally and how many local graduates are
+                available for each. Use this to identify where upskilling or recruitment efforts may be needed.
+              </span>
             </div>
           </div>
         </div>

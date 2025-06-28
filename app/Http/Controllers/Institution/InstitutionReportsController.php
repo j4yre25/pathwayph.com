@@ -40,7 +40,7 @@ class InstitutionReportsController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($g) use ($institution) {
-                // Get the term from institution_school_years
+                // Get the term and school year from institution_school_years
                 $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
                     ->where('id', $g->school_year_id)
                     ->first();
@@ -50,10 +50,10 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
-                    'gender' => $g->gender, // <-- add this
-                    'school_year_id' => $g->schoolYear?->id,
-                    'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term, // <-- fix here
+                    'gender' => $g->gender,
+                    'school_year_id' => $instSchoolYear?->schoolYear?->id,
+                    'school_year_range' => $instSchoolYear?->schoolYear?->school_year_range,
+                    'term' => $instSchoolYear?->term,
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -75,10 +75,20 @@ class InstitutionReportsController extends Controller
         ]);
     }
 
-    public function degree()
+    public function degree(\Illuminate\Http\Request $request)
     {
         $user = auth()->user();
         $institution = $user->institution;
+
+        // Filters for Degree-to-Job Local Match Index
+        $year = $request->input('graduation_year');
+        $sectorId = $request->input('sector_id');
+        $programId = $request->input('program_id');
+
+        // For filter dropdowns
+        $availableYears = \App\Models\SchoolYear::orderBy('school_year_range', 'desc')->pluck('school_year_range', 'id');
+        $availableSectors = \App\Models\Sector::orderBy('name')->pluck('name', 'id');
+        $availablePrograms = \App\Models\Program::orderBy('name')->pluck('name', 'id');
 
         // All degrees for this institution
         $degrees = \App\Models\InstitutionDegree::with('degree')
@@ -96,9 +106,9 @@ class InstitutionReportsController extends Controller
 
         // Graduates with relations
         $graduates = \App\Models\Graduate::with([
-            'program.degree',
-            'schoolYear',
-        ])
+                'program.degree',
+                'schoolYear',
+            ])
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
@@ -112,10 +122,10 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
-                    'gender' => $g->gender, // <-- add this
+                    'gender' => $g->gender,
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term, // <-- updated here
+                    'term' => $instSchoolYear?->term,
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -135,11 +145,79 @@ class InstitutionReportsController extends Controller
             ]);
         $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
 
-        return Inertia::render('Institutions/Reports/DegreeReport', [
+        // --- Degree-to-Job Local Match Index logic ---
+        $programsQuery = \App\Models\InstitutionProgram::with('program.degree')
+            ->where('institution_id', $institution->id);
+
+        if ($programId) {
+            $programsQuery->where('program_id', $programId);
+        }
+
+        $programsForMatch = $programsQuery->get();
+
+        $results = [];
+
+        foreach ($programsForMatch as $instProgram) {
+            $program = $instProgram->program;
+            if (!$program) continue;
+
+            // Get all jobs mapped to this program
+            $jobsQuery = \App\Models\Job::whereHas('programs', function($q) use ($program) {
+                $q->where('program_id', $program->id);
+            })->whereNull('deleted_at');
+
+            if ($sectorId) {
+                $jobsQuery->where('sector_id', $sectorId);
+            }
+
+            $jobs = $jobsQuery->get();
+            $jobTitles = $jobs->pluck('job_title')->map(fn($t) => strtolower(trim($t)))->unique();
+
+            // Get all graduates for this program
+            $graduatesQuery = \App\Models\Graduate::where('program_id', $program->id)
+                ->where('institution_id', $institution->id)
+                ->whereNull('deleted_at');
+
+            if ($year) {
+                $graduatesQuery->whereHas('schoolYear', function($q) use ($year) {
+                    $q->where('school_year_range', $year);
+                });
+            }
+
+            $graduatesForMatch = $graduatesQuery->get();
+
+            // Count matches
+            $matchedGraduates = $graduatesForMatch->filter(function($grad) use ($jobTitles) {
+                return $grad->current_job_title && $jobTitles->contains(strtolower(trim($grad->current_job_title)));
+            });
+
+            $total = $graduatesForMatch->count();
+            $matched = $matchedGraduates->count();
+            $matchPercent = $total > 0 ? round(($matched / $total) * 100, 2) : 0;
+
+            $results[] = [
+                'program' => $program->name,
+                'degree' => $program->degree?->type,
+                'total_graduates' => $total,
+                'matched_graduates' => $matched,
+                'match_percentage' => $matchPercent,
+            ];
+        }
+
+        return \Inertia\Inertia::render('Institutions/Reports/DegreeReport', [
             'degrees' => $degrees,
             'graduates' => $graduates,
             'schoolYears' => $schoolYears,
             'programs' => $programs,
+            'results' => $results,
+            'filters' => [
+                'graduation_year' => $year,
+                'sector_id' => $sectorId,
+                'program_id' => $programId,
+            ],
+            'availableYears' => $availableYears,
+            'availableSectors' => $availableSectors,
+            'availablePrograms' => $availablePrograms,
         ]);
     }
 
@@ -398,4 +476,5 @@ class InstitutionReportsController extends Controller
             'terms' => $terms, // <-- add this
         ]);
     }
+
 }
