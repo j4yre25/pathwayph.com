@@ -27,23 +27,23 @@ const title = page.props.title;
 
 const showingNavigationDropdown = ref(false);
 
-let redirected = false;
+// let redirected = false;
 
-watchEffect(() => {
-    const user = usePage().props.user;
+// watchEffect(() => {
+//     const user = usePage().props.user;
 
-    if (
-        !redirected &&
-        user &&
-        user.role === 'company' &&
-        user.hr && // HR info is already there
-        !user.company && // Company info still missing
-        router.page?.url !== '/company/information'
-    ) {
-        redirected = true;
-        router.visit(route('company.information'));
-    }
-});
+//     if (
+//         !redirected &&
+//         user &&
+//         user.role === 'company' &&
+//         user.hr && // HR info is already there
+//         !user.company && // Company info still missing
+//         router.page?.url !== '/company/information'
+//     ) {
+//         redirected = true;
+//         router.visit(route('company.information'));
+//     }
+// });
 
 const isAnyReportActive = () => {
     // your logic here, or just return false if not used
