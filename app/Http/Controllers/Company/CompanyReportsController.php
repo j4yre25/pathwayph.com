@@ -221,6 +221,45 @@ class CompanyReportsController extends Controller
         $hr = $user->hr;
         $companyId = $hr->company_id;
 
+        
+        $selectedDepartment = $request->input('department', '');
+        $status = $request->input('status', '');
+        $dateFrom = $request->input('date_from', '');
+        $dateTo = $request->input('date_to', '');
+        $perPage = 10;
+
+        // Get all departments for filter dropdown
+        $departments = \App\Models\Department::whereHas('jobs', function($q) use ($companyId) {
+        $q->where('company_id', $companyId);
+        })
+        ->pluck('department_name')
+        ->filter()
+        ->unique()
+        ->values()
+        ->toArray();
+
+        // Filter jobs by department if selected
+        $jobsQuery = Job::with('department')
+            ->where('company_id', $companyId)
+            ->when($selectedDepartment, function($q) use ($selectedDepartment) {
+                $q->whereHas('department', function($q2) use ($selectedDepartment) {
+                    $q2->where('department_name', $selectedDepartment);
+                });
+            })
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->when($dateFrom, fn($q) => $q->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->whereDate('created_at', '<=', $dateTo))
+            ->orderBy('created_at', 'desc');
+
+        $jobsList = $jobsQuery->paginate($perPage)->through(function($job) {
+            return [
+                'id' => $job->id,
+                'title' => $job->job_title,
+                'created_at' => $job->created_at->format('Y-m-d'),
+                'department' => $job->department ? $job->department->department_name : '',
+                'status' => $job->status,
+            ];
+        });
         // Line Chart: Job postings over time
         $monthlyPostings = Job::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
             ->where('company_id', $companyId)
@@ -252,9 +291,19 @@ class CompanyReportsController extends Controller
         })->values();
 
         return Inertia::render('Company/Reports/JobPostTrends', [
+            'jobsList' => $jobsList,
+            'filters' => [
+                'department' => $selectedDepartment,
+                'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+            'statuses' => ['open', 'closed', 'draft'],
             'jobPostingTrends' => $monthlyPostings,
             'areaChartLabels' => $months,
             'areaChartSeries' => $areaChartSeries,
+            'departments' => $departments,
+            'selectedDepartment' => $selectedDepartment,
         ]);
     }
 
