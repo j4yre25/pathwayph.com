@@ -371,6 +371,35 @@ class PesoReportsController extends Controller
             ];
         }
 
+        // In-demand jobs (top 10)
+        $inDemandJobs = Job::where('is_approved', 1)
+            ->with(['programs', 'category', 'sector'])
+            ->orderByDesc('created_at')
+            ->take(10)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'role' => $job->job_title,
+                    'category' => $job->category->name ?? null,
+                    'sector' => $job->sector->name ?? null,
+                    'skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
+                    'programs' => $job->programs->pluck('name')->toArray(), // <-- all program names
+                    'program_ids' => $job->programs->pluck('id')->toArray(), // <-- all program IDs (optional, for matching)
+                ];
+            });
+
+        // Top skills (by frequency in jobs)
+        $allSkills = Job::where('is_approved', 1)->pluck('skills')->toArray();
+        $skillsFlat = collect($allSkills)
+            ->flatMap(function ($skills) {
+                return is_array($skills) ? $skills : json_decode($skills, true);
+            })
+            ->filter()
+            ->map(fn($s) => strtolower(trim($s)))
+            ->countBy()
+            ->sortDesc()
+            ->take(10);
+
         return Inertia::render('Admin/Reports/Reports', [
             'graduates' => $graduates,
             'summary' => $summary,
@@ -407,6 +436,8 @@ class PesoReportsController extends Controller
             'radarData' => $radarData,
             'educationLevels' => $educationLevels,
             'employmentByEducation' => $employmentByEducation,
+            'inDemandJobs' => $inDemandJobs,
+            'topSkills' => $skillsFlat,
         ]);
     }
 
