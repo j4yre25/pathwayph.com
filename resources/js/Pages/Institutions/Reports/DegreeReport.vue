@@ -113,20 +113,95 @@
           @click="page++"
         >Next</button>
       </div>
+
+      <!-- FILTERS FOR DEGREE-TO-JOB LOCAL MATCH -->
+      <form class="flex flex-wrap gap-4 mb-6 mt-12" @submit.prevent="applyMatchFilters">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Year</label>
+          <select v-model="matchFilters.graduation_year" class="rounded border-gray-300">
+            <option value="">All</option>
+            <option v-for="(label, id) in availableYears" :key="id" :value="label">{{ label }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Sector</label>
+          <select v-model="matchFilters.sector_id" class="rounded border-gray-300">
+            <option value="">All</option>
+            <option v-for="(name, id) in availableSectors" :key="id" :value="id">{{ name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Program</label>
+          <select v-model="matchFilters.program_id" class="rounded border-gray-300">
+            <option value="">All</option>
+            <option v-for="(name, id) in availablePrograms" :key="id" :value="id">{{ name }}</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="ml-2 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">
+            Apply
+          </button>
+        </div>
+      </form>
+
+      <!-- Degree-to-Job Local Match Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 shadow rounded-lg">
+          <thead class="bg-cyan-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Program</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Degree</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Total Graduates</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Matched Graduates</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Match %</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-100">
+            <tr v-for="row in results" :key="row.program">
+              <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ row.program }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ row.degree }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ row.total_graduates }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ row.matched_graduates }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span
+                  :class="row.match_percentage >= 50 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'"
+                >
+                  {{ row.match_percentage }}%
+                </span>
+              </td>
+            </tr>
+            <tr v-if="!results || results.length === 0">
+              <td colspan="5" class="px-6 py-4 text-center text-gray-400">No data found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Degree-to-Job Local Match Chart -->
+      <div class="my-10">
+        <h3 class="text-lg font-semibold mb-4 text-cyan-700">Degree-to-Job Local Match Chart</h3>
+        <div ref="chartRef" style="width: 100%; height: 400px;"></div>
+      </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { router } from '@inertiajs/vue3';
+import * as echarts from 'echarts';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { BookMarked } from 'lucide-vue-next';
 
 const props = defineProps({
-  degrees: Array,
-  graduates: Array,
-  schoolYears: Array,
-  programs: Array,
+  degrees: { type: Array, default: () => [] },
+  graduates: { type: Array, default: () => [] },
+  schoolYears: { type: Array, default: () => [] },
+  programs: { type: Array, default: () => [] },
+  results: { type: Array, default: () => [] },
+  filters: { type: Object, default: () => ({}) },
+  availableYears: { type: Object, default: () => ({}) },
+  availableSectors: { type: Object, default: () => ({}) },
+  availablePrograms: { type: Object, default: () => ({}) },
 });
 
 // Filters for graduates table
@@ -160,4 +235,70 @@ const paginatedGraduates = computed(() => {
   return filteredGraduates.value.slice(start, start + perPage);
 });
 watch(filteredGraduates, () => { page.value = 1; });
+
+// Filters for Degree-to-Job Local Match Index
+const matchFilters = ref({
+  graduation_year: props.filters.graduation_year || '',
+  sector_id: props.filters.sector_id || '',
+  program_id: props.filters.program_id || '',
+});
+function applyMatchFilters() {
+  router.get(route('institutions.reports.degree'), matchFilters.value, {
+    preserveState: true,
+    preserveScroll: true,
+  });
+}
+
+// ECharts logic
+const chartRef = ref(null);
+let chartInstance = null;
+const chartOptions = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: props.results.map(r => r.program),
+    axisLabel: { rotate: 30, interval: 0 }
+  },
+  yAxis: {
+    type: 'value',
+    min: 0,
+    max: 100,
+    axisLabel: { formatter: '{value}%' }
+  },
+  series: [
+    {
+      name: 'Match %',
+      type: 'bar',
+      data: props.results.map(r => r.match_percentage),
+      itemStyle: {
+        color: params => params.value >= 50 ? '#059669' : '#dc2626'
+      },
+      label: {
+        show: true,
+        position: 'top',
+        formatter: '{c}%'
+      }
+    }
+  ]
+}));
+const renderChart = () => {
+  if (!chartRef.value) return;
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartRef.value);
+  }
+  chartInstance.setOption(chartOptions.value);
+  chartInstance.resize();
+};
+onMounted(() => {
+  nextTick(renderChart);
+  window.addEventListener('resize', renderChart);
+});
+onBeforeUnmount(() => {
+  if (chartInstance) {
+    chartInstance.dispose();
+    chartInstance = null;
+  }
+  window.removeEventListener('resize', renderChart);
+});
+watch(chartOptions, renderChart);
 </script>
