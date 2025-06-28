@@ -182,6 +182,34 @@
         <h3 class="text-lg font-semibold mb-4 text-cyan-700">Degree-to-Job Local Match Chart</h3>
         <div ref="chartRef" style="width: 100%; height: 400px;"></div>
       </div>
+
+      <!-- About the Degree-to-Job Local Match Index -->
+      <div class="mb-6 p-4 bg-cyan-50 rounded-lg border border-cyan-100">
+        <h2 class="text-lg font-semibold text-cyan-700 mb-2">About the Degree-to-Job Local Match Index</h2>
+        <p class="text-gray-700 mb-2">
+          The <span class="font-semibold text-cyan-700">Degree-to-Job Local Match Index</span> shows how closely your graduates’ current jobs align with the locally available jobs for each degree program. 
+          <br>
+          For every program, we compare the <span class="font-semibold">current job titles of graduates</span> to the <span class="font-semibold">local jobs mapped to that program</span>. The <span class="font-semibold">Match %</span> is the percentage of graduates whose current job matches a local job title for their degree.
+        </p>
+        <ul class="text-gray-700 mb-2 list-disc pl-6">
+          <li>
+            <span v-if="results.length">
+              <span class="font-semibold">Highest Match:</span>
+              <span class="text-green-700">
+                {{ highestMatch.program }} ({{ highestMatch.match_percentage }}%)
+              </span>
+              &nbsp;|&nbsp;
+              <span class="font-semibold">Lowest Match:</span>
+              <span class="text-red-700">
+                {{ lowestMatch.program }} ({{ lowestMatch.match_percentage }}%)
+              </span>
+            </span>
+            <span v-else>
+              No data to summarize yet.
+            </span>
+          </li>
+        </ul>
+      </div>
     </div>
   </AppLayout>
 </template>
@@ -191,6 +219,8 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3';
 import * as echarts from 'echarts';
 import AppLayout from '@/Layouts/AppLayout.vue';
+
+
 
 const props = defineProps({
   degrees: { type: Array, default: () => [] },
@@ -224,6 +254,19 @@ const filteredGraduates = computed(() => {
     if (filters.value.employmentStatus && g.employment_status !== filters.value.employmentStatus) return false;
     return true;
   });
+});
+
+const highestMatch = computed(() => {
+  if (!props.results.length) return { program: 'N/A', match_percentage: 0 };
+  return props.results.reduce((max, curr) =>
+    curr.match_percentage > max.match_percentage ? curr : max
+  );
+});
+const lowestMatch = computed(() => {
+  if (!props.results.length) return { program: 'N/A', match_percentage: 0 };
+  return props.results.reduce((min, curr) =>
+    curr.match_percentage < min.match_percentage ? curr : min
+  );
 });
 
 // Pagination
