@@ -44,6 +44,17 @@ const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
 };
+
+const bubbleColors = [
+  'bg-blue-100 text-blue-800',
+  'bg-green-100 text-green-800',
+  'bg-yellow-100 text-yellow-800',
+  'bg-purple-100 text-purple-800',
+  'bg-pink-100 text-pink-800',
+  'bg-indigo-100 text-indigo-800',
+  'bg-red-100 text-red-800',
+  'bg-teal-100 text-teal-800',
+];
  
 const goBack = () => {
     window.history.back();
@@ -74,7 +85,7 @@ const goBack = () => {
                             </div>
                             <div class="flex items-center mr-4 mb-2 md:mb-0">
                                 <i class="fas fa-calendar-alt text-green-500 mr-1"></i>
-                                <span>Posted on {{ formatDate(job.created_at) }}</span>
+                                <span>Posted on {{ formatDate(job.posted_at) }}</span>
                             </div>
                         </div>
                     </div>
@@ -131,28 +142,42 @@ const goBack = () => {
                                     <h4 class="text-sm font-medium text-gray-500 mb-1">Job Type</h4>
                                     <div class="flex items-center">
                                         <i class="fas fa-business-time text-blue-500 mr-2"></i>
-                                        <span class="text-gray-800 font-medium">{{ job.job_type || 'Not specified' }}</span>
+                                        <span class="text-gray-800 font-medium">
+                                            <template v-if="Array.isArray(job.job_type)">
+                                                {{ job.job_type.length ? job.job_type.join(', ') : 'Not specified' }}
+                                            </template>
+                                            <template v-else>
+                                                {{ job.job_type || 'Not specified' }}
+                                            </template>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <h4 class="text-sm font-medium text-gray-500 mb-1">Experience Level</h4>
                                     <div class="flex items-center">
                                         <i class="fas fa-chart-line text-purple-500 mr-2"></i>
-                                        <span class="text-gray-800 font-medium">{{ job.experience_level || 'Not specified' }}</span>
+                                        <span class="text-gray-800 font-medium">{{ job.job_experience_level || 'Not specified' }}</span>
                                     </div>
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <h4 class="text-sm font-medium text-gray-500 mb-1">Work Environment</h4>
                                     <div class="flex items-center">
                                         <i class="fas fa-laptop-house text-teal-500 mr-2"></i>
-                                        <span class="text-gray-800 font-medium">{{ job.work_environment || 'Not specified' }}</span>
+                                        <span class="text-gray-800 font-medium">
+                                            <template v-if="Array.isArray(job.work_environment)">
+                                                {{ job.work_environment.length ? job.work_environment.join(', ') : 'Not specified' }}
+                                            </template>
+                                            <template v-else>
+                                                {{ job.work_environment || 'Not specified' }}
+                                            </template>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <h4 class="text-sm font-medium text-gray-500 mb-1">Vacancies</h4>
                                     <div class="flex items-center">
                                         <i class="fas fa-users text-green-500 mr-2"></i>
-                                        <span class="text-gray-800 font-medium">{{ job.vacancy || 1 }}</span>
+                                        <span class="text-gray-800 font-medium">{{ job.job_vacancies || 1 }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -215,7 +240,14 @@ const goBack = () => {
                             <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                 <div class="flex items-center">
                                     <i class="fas fa-map-pin text-gray-400 mr-2"></i>
-                                    <span class="text-gray-800">{{ job.location || 'Location not specified' }}</span>
+                                    <span class="text-gray-800">
+                                        <template v-if="Array.isArray(job.location)">
+                                            {{ job.location.length ? job.location.join(', ') : 'Location not specified' }}
+                                        </template>
+                                        <template v-else>
+                                            {{ job.location || 'Location not specified' }}
+                                        </template>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -230,16 +262,9 @@ const goBack = () => {
                                 <h4 class="text-sm font-medium text-gray-500 mb-1">Salary Range</h4>
                                 <div class="flex items-center">
                                     <i class="fas fa-dollar-sign text-gray-400 mr-2"></i>
-                                    <span class="text-gray-800" v-if="job.min_salary && job.max_salary">
-                                        ${{ job.min_salary.toLocaleString() }} - ${{ job.max_salary.toLocaleString() }}
+                                    <span class="text-gray-800">
+                                        {{ job.salary_range || 'Negotiable' }}
                                     </span>
-                                    <span class="text-gray-800" v-else-if="job.min_salary">
-                                        From ${{ job.min_salary.toLocaleString() }}
-                                    </span>
-                                    <span class="text-gray-800" v-else-if="job.max_salary">
-                                        Up to ${{ job.max_salary.toLocaleString() }}
-                                    </span>
-                                    <span class="text-gray-500 italic" v-else>Not specified</span>
                                 </div>
                             </div>
                         </div>
@@ -255,21 +280,21 @@ const goBack = () => {
                                     <h4 class="text-sm font-medium text-gray-500 mb-1">Posted Date</h4>
                                     <div class="flex items-center">
                                         <i class="far fa-calendar-plus text-gray-400 mr-2"></i>
-                                        <span>{{ formatDate(job.created_at) }}</span>
+                                        <span>{{ formatDate(job.posted_at) }}</span>
                                     </div>
                                 </div>
                                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <h4 class="text-sm font-medium text-gray-500 mb-1">Last Updated</h4>
                                     <div class="flex items-center">
                                         <i class="far fa-calendar-check text-gray-400 mr-2"></i>
-                                        <span>{{ formatDate(job.updated_at) }}</span>
+                                        <span>{{ formatDate(job.updated_at)}}</span>
                                     </div>
                                 </div>
-                                <div v-if="job.application_deadline" class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <h4 class="text-sm font-medium text-gray-500 mb-1">Application Deadline</h4>
                                     <div class="flex items-center">
                                         <i class="far fa-calendar-times text-gray-400 mr-2"></i>
-                                        <span>{{ formatDate(job.application_deadline) }}</span>
+                                        <span>{{ formatDate(job.job_deadline) }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -283,15 +308,17 @@ const goBack = () => {
                                 <i class="fas fa-code text-blue-500 mr-2"></i>
                                 Required Skills
                             </h3>
-                           
                             <div v-if="job.skills && job.skills.length > 0" class="flex flex-wrap gap-2">
                                 <span
-                                    v-for="skill in job.skills"
-                                    :key="skill.id"
-                                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                                    v-for="(skill, idx) in job.skills"
+                                    :key="skill"
+                                    :class="[
+                                        'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
+                                        bubbleColors[idx % bubbleColors.length]
+                                    ]"
                                 >
                                     <i class="fas fa-check-circle mr-1 text-blue-500"></i>
-                                    {{ skill.name }}
+                                    {{ skill }}
                                 </span>
                             </div>
                             <p v-else class="text-gray-500 italic">No specific skills listed for this position</p>
@@ -309,10 +336,22 @@ const goBack = () => {
                         </h3>
                         <div class="space-y-4">
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                <h4 class="text-sm font-medium text-gray-500 mb-1">Job ID</h4>
-                                <div class="flex items-center">
-                                    <i class="fas fa-id-card text-gray-400 mr-2"></i>
-                                    <span class="text-gray-800">{{ job.id }}</span>
+                                <h4 class="text-sm font-medium text-gray-500 mb-1">Programs</h4>
+                                <div class="flex flex-wrap gap-2 items-center">
+                                    <i class="fas fa-graduation-cap text-indigo-400 mr-2"></i>
+                                    <template v-if="Array.isArray(job.programs) && job.programs.length">
+                                    <span
+                                        v-for="(program, idx) in job.programs"
+                                        :key="program"
+                                        :class="[
+                                        'inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold',
+                                        bubbleColors[idx % bubbleColors.length]
+                                        ]"
+                                    >
+                                        {{ program }}
+                                    </span>
+                                    </template>
+                                    <span v-else class="text-gray-500">Not specified</span>
                                 </div>
                             </div>
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -326,28 +365,42 @@ const goBack = () => {
                                 <h4 class="text-sm font-medium text-gray-500 mb-1">Vacancies</h4>
                                 <div class="flex items-center">
                                     <i class="fas fa-users text-gray-400 mr-2"></i>
-                                    <span class="text-gray-800">{{ job.vacancy || 1 }}</span>
+                                    <span class="text-gray-800">{{ job.job_vacancies || 1 }}</span>
                                 </div>
                             </div>
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                 <h4 class="text-sm font-medium text-gray-500 mb-1">Job Type</h4>
                                 <div class="flex items-center">
                                     <i class="fas fa-business-time text-gray-400 mr-2"></i>
-                                    <span class="text-gray-800">{{ job.job_type || 'Not specified' }}</span>
+                                    <span class="text-gray-800 font-medium">
+                                        <template v-if="Array.isArray(job.job_type)">
+                                            {{ job.job_type.length ? job.job_type.join(', ') : 'Not specified' }}
+                                        </template>
+                                        <template v-else>
+                                            {{ job.job_type || 'Not specified' }}
+                                        </template>
+                                    </span>
                                 </div>
                             </div>
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                 <h4 class="text-sm font-medium text-gray-500 mb-1">Experience Level</h4>
                                 <div class="flex items-center">
                                     <i class="fas fa-chart-line text-gray-400 mr-2"></i>
-                                    <span class="text-gray-800">{{ job.experience_level || 'Not specified' }}</span>
+                                    <span class="text-gray-800">{{ job.job_experience_level || 'Not specified' }}</span>
                                 </div>
                             </div>
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                 <h4 class="text-sm font-medium text-gray-500 mb-1">Location</h4>
                                 <div class="flex items-center">
                                     <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
-                                    <span class="text-gray-800">{{ job.location || 'Not specified' }}</span>
+                                    <span class="text-gray-800">
+                                        <template v-if="Array.isArray(job.location)">
+                                            {{ job.location.length ? job.location.join(', ') : 'Location not specified' }}
+                                        </template>
+                                        <template v-else>
+                                            {{ job.location || 'Location not specified' }}
+                                        </template>
+                                    </span>
                                 </div>
                             </div>
                         </div>
