@@ -87,7 +87,7 @@ const profile = ref({
   enable_contact_form: pageProps.graduate?.enable_contact_form || false,
 });
 
-console.log('pageProps.user:', pageProps.graduate);
+console.log('pageProps.user:', pageProps .graduate);
 
 
 
