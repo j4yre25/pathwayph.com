@@ -83,14 +83,15 @@ const summaryInsight = computed(() => {
   const status = selectedStatus.value;
   const date = dateFrom.value;
 
-  if (!total) {
-    return `<strong>No job postings</strong> were recorded for the selected filters.`;
-  }
-
   const statusPart = status ? ` with status <strong>${status}</strong>` : "";
   const datePart = date
     ? ` starting from <strong>${new Date(date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong>`
     : "";
+
+  // If no total at all
+  if (!total) {
+    return `<strong>No job postings</strong> were recorded${statusPart}${datePart}.`;
+  }
 
   const formatMonth = (str) => {
     const [year, month] = str.split("-");
@@ -109,20 +110,33 @@ const summaryInsight = computed(() => {
   if (selectedDept) {
     const deptEntry = deptTotals.find(d => d.name === selectedDept);
     const deptTotal = deptEntry?.total || 0;
-    const deptMonthly = deptEntry?.monthly || [];
 
+    // If department has no data at all after filters
+    if (!deptEntry || deptTotal === 0) {
+      return `
+        A total of <strong>${total} job postings</strong> were recorded${statusPart}${datePart}.
+        However, <strong>${selectedDept}</strong> had no recorded postings in the selected period.
+      `;
+    }
+
+    // Peak month(s) in the selected department
+    const deptMonthly = deptEntry.monthly || [];
     const peakCount = Math.max(...deptMonthly);
     const peakIndices = deptMonthly
       .map((val, idx) => val === peakCount ? idx : -1)
       .filter(idx => idx !== -1);
     const peakMonths = peakIndices
       .map(idx => props.areaChartLabels?.[idx])
+      .filter(Boolean)
       .map(formatMonth);
 
-    const peakText = peakMonths.length === 1
-      ? `The highest job posting activity in this department was in <strong>${peakMonths[0]}</strong> with <strong>${peakCount} postings</strong>.`
-      : `The peak months in this department were <strong>${peakMonths.join(", ")}</strong>, each with <strong>${peakCount} postings</strong>.`;
+    const peakText = peakMonths.length === 0
+      ? `There was no peak posting month for <strong>${selectedDept}</strong> in this period.`
+      : peakMonths.length === 1
+        ? `The highest job posting activity in this department was in <strong>${peakMonths[0]}</strong> with <strong>${peakCount} postings</strong>.`
+        : `The peak months in this department were <strong>${peakMonths.join(", ")}</strong>, each with <strong>${peakCount} postings</strong>.`;
 
+    // Rank of department
     const sorted = [...deptTotals].sort((a, b) => b.total - a.total);
     const rank = sorted.findIndex(d => d.name === selectedDept) + 1;
     const totalDepts = sorted.length;
@@ -134,6 +148,7 @@ const summaryInsight = computed(() => {
       This department ranked <strong>#${rank}</strong> out of <strong>${totalDepts}</strong> in posting volume.
     `;
   } else {
+    // Global peak month(s)
     const maxTrend = Math.max(...trends.map(row => row.total));
     const peakMonths = trends
       .filter(row => row.total === maxTrend)
@@ -143,6 +158,7 @@ const summaryInsight = computed(() => {
       ? `The highest job posting activity was recorded in <strong>${peakMonths[0]}</strong> with <strong>${maxTrend} postings</strong>.`
       : `Peak posting months were <strong>${peakMonths.join(", ")}</strong>, each with <strong>${maxTrend} postings</strong>.`;
 
+    // Top department(s)
     const maxDeptTotal = Math.max(...deptTotals.map(d => d.total));
     const topDepartments = deptTotals
       .filter(d => d.total === maxDeptTotal)
@@ -159,6 +175,7 @@ const summaryInsight = computed(() => {
     `;
   }
 });
+
 
 
 </script>

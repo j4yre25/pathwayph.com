@@ -1187,9 +1187,10 @@ class CompanyReportsController extends Controller
         $timeline = $request->input('timeline'); // e.g. '2024-01', '2024', etc.
         $institutionId = $request->input('institution_id');
         $programId = $request->input('program_id');
+        $perPage = 10;
 
         // Query certifications of graduates hired by this company
-        $certifications = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
+        $certificationsQuery = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
             ->whereHas('graduate', function($q) use ($institutionId, $programId) {
                 if ($institutionId) {
                     $q->where('institution_id', $institutionId);
@@ -1199,20 +1200,25 @@ class CompanyReportsController extends Controller
                 }
             })
             ->when($timeline, function($q) use ($timeline) {
-                // Example: filter by year or month
                 $q->where('issue_date', 'like', $timeline . '%');
             })
-            ->get();
+            ->orderByDesc('issue_date');
 
-        // For chart: group by month/year
-        $chartData = $certifications->groupBy(function($cert) {
+        $certifications = $certificationsQuery->get();
+
+        // For the chart (unfiltered, always all data)
+        $allCertsForChart = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
+            ->orderByDesc('issue_date')
+            ->get();
+        // Chart data (all data)
+        $chartData = $allCertsForChart->groupBy(function($cert) {
             return Carbon::parse($cert->issue_date)->format('Y-m');
         })->map(function($group) {
             return $group->count();
-        });
+        })->sortKeys();;
 
         // For filters
-        $institutions = \App\Models\Institution::all(['id', 'institution_name']);
+        $institutions = \App\Models\Institution::all(columns: ['id', 'institution_name']);
         $programs = Program::all(['id', 'name']);
 
         return Inertia::render('Company/Reports/CertTracking', [
