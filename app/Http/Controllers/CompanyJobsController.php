@@ -467,32 +467,43 @@ class CompanyJobsController extends Controller
     
     public function view(Job $job)
     {
-        $job->load('company', 'category', 'user');
+        $job->load([
+            'company',
+            'category',
+            'user.hr',
+            'jobTypes',
+            'workEnvironments',
+            'locations',
+            'programs'
+        ]);
 
-        // Combine job_min_salary and job_max_salary into a salary range string
+        // Salary range logic as before
         $salaryRange = $job->job_min_salary && $job->job_max_salary
-            ? "₱" . $job->job_min_salary . ' - ' . $job->job_max_salary
+            ? "₱" . $job->job_min_salary . ' - ' . "₱" . $job->job_max_salary
             : "Negotiable";
-
-        $hrFirstName = $job->user->company_hr_first_name ?? '';
-        $hrLastName = $job->user->company_hr_last_name ?? '';
-
 
         return Inertia::render('Company/Jobs/View/EmployersJobDetails', [
             'job' => [
                 'id' => $job->id,
                 'job_title' => $job->job_title,
-                'location' => $job->location,
-                'job_type' => $job->job_type,
+                'location' => $job->locations->pluck('address')->toArray(), // array of addresses
+                'job_type' => $job->jobTypes->pluck('type')->toArray(), // array of types
+                'work_environment' => $job->workEnvironments->pluck('environment_type')->toArray(), // array of env types
                 'job_experience_level' => $job->job_experience_level,
                 'job_description' => $job->job_description,
                 'job_requirements' => $job->job_requirements,
                 'job_vacancies' => $job->job_vacancies,
-                'related_skills' => is_array($job->related_skills) ? $job->related_skills : json_decode($job->related_skills, true),
+                'skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
                 'is_approved' => $job->is_approved,
                 'posted_at' => $job->created_at->format('F j, Y'),
-                'posted_by' => $job->user->name,
-                'job_deadline' => Carbon::parse($job->job_deadline)->format('F j, Y'),
+                'posted_by' => $job->posted_by,
+                'job_deadline' => $job->job_deadline
+                    ? (is_string($job->job_deadline) || is_int($job->job_deadline)
+                        ? Carbon::parse($job->job_deadline)->format('F j, Y')
+                        : (method_exists($job->job_deadline, 'format')
+                            ? $job->job_deadline->format('F j, Y')
+                            : null))
+                    : null,
                 'user_role' => $job->user->role ?? null,
                 'category' => $job->category->name ?? null,
                 'salary_range' => $salaryRange,
@@ -510,6 +521,8 @@ class CompanyJobsController extends Controller
                     'profile_photo' => $job->company->profile_photo_path ? Storage::url($job->company->profile_photo_path) : null,
                     'cover_photo' => $job->company->cover_photo_path ? Storage::url($job->company->cover_photo_path) : null,
                 ],
+                'programs' => $job->programs->pluck('name')->toArray(), 
+                'status' => $job->status,
             ],
             'user' => Auth::user(),
         ]);

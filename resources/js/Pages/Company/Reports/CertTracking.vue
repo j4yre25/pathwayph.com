@@ -5,15 +5,15 @@ import { usePage, router } from "@inertiajs/vue3";
 
 
 // Data from backend
-const page = usePage();
-const certifications = page.props.certifications || [];
-const chartData = page.props.chartData || {};
-const institutions = page.props.institutions || [];
-const programs = page.props.programs || [];
+const inertiaPage = usePage();
+const certifications = computed(() => inertiaPage.props.certifications || []); 
+const chartData = inertiaPage.props.chartData || {};
+const institutions = inertiaPage.props.institutions || [];
+const programs = inertiaPage.props.programs || [];
 const filters = ref({
-  timeline: page.props.filters.timeline || "",
-  institution_id: page.props.filters.institution_id ?? "",
-  program_id: page.props.filters.program_id ?? "",
+  timeline: inertiaPage.props.filters.timeline || "",
+  institution_id: inertiaPage.props.filters.institution_id ?? "",
+  program_id: inertiaPage.props.filters.program_id ?? "",
 });
 
 // Chart data
@@ -21,7 +21,7 @@ const chartLabels = computed(() => Object.keys(chartData));
 const chartCounts = computed(() => Object.values(chartData));
 
 // ECharts option for line chart
-const lineOption = ref({
+const lineOption = computed(() => ({
   tooltip: { trigger: "axis" },
   xAxis: {
     type: "category",
@@ -41,7 +41,8 @@ const lineOption = ref({
       color: "#6366f1",
     },
   ],
-});
+}));
+
 
 // Watch for changes in chart data to update the chart
 watchEffect(() => {
@@ -60,9 +61,10 @@ function applyFilters() {
 }
 
 
-const totalCerts = computed(() => certifications.length);
+const totalCerts = computed(() => certifications.value.length);
 const mostRecentMonth = computed(() => chartLabels.value.slice(-1)[0]);
 const mostCertsInMonth = computed(() => {
+  if (!chartCounts.value.length) return { month: "N/A", count: 0 };
   const max = Math.max(...chartCounts.value);
   const index = chartCounts.value.indexOf(max);
   return {
@@ -70,6 +72,91 @@ const mostCertsInMonth = computed(() => {
     count: max,
   };
 });
+
+
+// All certifications from backend
+const allCertifications = certifications; 
+const currentPage = ref(1);
+const pageSize = 10;
+
+const paginatedCertifications = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return allCertifications.value.slice(start, start + pageSize);
+});
+const totalPages = computed(() => Math.ceil(allCertifications.value.length / pageSize));
+
+function goToPage(p) {
+  currentPage.value = p;
+}
+
+const certificationSummaryInsight = computed(() => {
+  const total = totalCerts.value;
+  const timeline = filters.value.timeline;
+  const institution = institutions.find(i => i.id == filters.value.institution_id);
+  const program = programs.find(p => p.id == filters.value.program_id);
+
+  const institutionPart = institution ? ` from <strong>${institution.institution_name || institution.name}</strong>` : "";
+  const programPart = program ? ` under the <strong>${program.name}</strong> program` : "";
+  const timelinePart = timeline
+    ? ` for the month of <strong>${new Date(timeline).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</strong>`
+    : "";
+
+  // No data
+  if (!total) {
+    return `No certifications were recorded${institutionPart}${programPart}${timelinePart}.`;
+  }
+
+  // Format months
+  const mostRecent = mostRecentMonth.value
+    ? new Date(`${mostRecentMonth.value}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : "N/A";
+
+  const peakMonth = mostCertsInMonth.value?.month || "N/A";
+  const peakCount = mostCertsInMonth.value?.count || 0;
+  const peakFormatted = peakMonth !== "N/A"
+    ? new Date(`${peakMonth}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : "N/A";
+
+  // 🔍 Trend Analysis
+  const firstCount = chartCounts.value[0] ?? 0;
+  const lastCount = chartCounts.value.slice(-1)[0] ?? 0;
+  let trendText = "";
+  if (firstCount < lastCount) {
+    trendText = `There was a <strong>rising trend</strong> in certifications from <strong>${firstCount}</strong> to <strong>${lastCount}</strong> over the observed period.`;
+  } else if (firstCount > lastCount) {
+    trendText = `There was a <strong>decline</strong> in certifications from <strong>${firstCount}</strong> to <strong>${lastCount}</strong> over the observed period.`;
+  } else {
+    trendText = `Certification numbers remained <strong>steady</strong> at <strong>${firstCount}</strong> over the observed period.`;
+  }
+
+  // 📊 Top Institution
+  const institutionCounts = {};
+  certifications.value.forEach(cert => {
+    const name = cert.graduate?.institution?.institution_name || "Unknown";
+    institutionCounts[name] = (institutionCounts[name] || 0) + 1;
+  });
+  const topInstitution = Object.entries(institutionCounts).sort((a, b) => b[1] - a[1])[0];
+
+  // 📊 Top Program
+  const programCounts = {};
+  certifications.value.forEach(cert => {
+    const name = cert.graduate?.program?.name || "Unknown";
+    programCounts[name] = (programCounts[name] || 0) + 1;
+  });
+  const topProgram = Object.entries(programCounts).sort((a, b) => b[1] - a[1])[0];
+
+  // Final summary
+  return `
+    A total of <strong>${total}</strong> professional certifications were recorded${institutionPart}${programPart}${timelinePart}.
+    The most recent data was from <strong>${mostRecent}</strong>.
+    The highest monthly activity was <strong>${peakCount}</strong> certification(s) in <strong>${peakFormatted}</strong>.<br>
+    ${trendText}<br>
+    🏫 Top institution: <strong>${topInstitution?.[0]}</strong> with <strong>${topInstitution?.[1]}</strong> certifications.<br>
+    🎓 Top program: <strong>${topProgram?.[0]}</strong> with <strong>${topProgram?.[1]}</strong> certifications.
+  `;
+});
+
+
 </script>
 
 <template>
@@ -109,7 +196,7 @@ const mostCertsInMonth = computed(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="cert in certifications" :key="cert.id">
+            <tr v-for="cert in paginatedCertifications" :key="cert.id">
               <td class="border px-2 py-1">{{ cert.graduate?.first_name}} {{cert.graduate?.last_name}}</td>
               <td class="border px-2 py-1">{{ cert.name }}</td>
               <td class="border px-2 py-1">{{ cert.graduate?.institution?.institution_name }}</td>
@@ -118,6 +205,17 @@ const mostCertsInMonth = computed(() => {
             </tr>
           </tbody>
         </table>
+        <!-- Pagination Controls -->
+       <div class="flex justify-center mt-4" v-if="totalPages > 1">
+          <button
+            v-for="p in totalPages"
+            :key="p"
+            :class="['mx-1 px-3 py-1 rounded border', { 'bg-blue-600 text-white': p === currentPage.value, 'bg-white text-blue-600': p !== currentPage.value }]"
+            @click="goToPage(p)"
+          >
+            {{ p }}
+          </button>
+        </div>
       </div>
 
       <!-- Chart -->
@@ -125,17 +223,10 @@ const mostCertsInMonth = computed(() => {
             <h3 class="text-lg font-semibold mb-6 text-gray-700">Certifications Over Time</h3>
             <VueECharts :option="lineOption" style="height: 350px; width: 100%;" />
 
-            <div class="mb-6">
-                <p class="text-gray-700">
-                    ✅ Total certifications recorded: <strong>{{ totalCerts }}</strong>
-                </p>
-                <p class="text-gray-700">
-                    📅 Most recent data: <strong>{{ mostRecentMonth }}</strong>
-                </p>
-                <p class="text-gray-700">
-                    📈 Highest in a month: <strong>{{ mostCertsInMonth.count }}</strong> certifications in <strong>{{ mostCertsInMonth.month }}</strong>
-                </p>
-            </div>  
+            <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-900">
+              <p class="font-semibold mb-1">📊 Summary Insight:</p>
+              <p v-html="certificationSummaryInsight"></p>
+            </div>
         </div>
 
 

@@ -405,24 +405,6 @@ const goBack = () => {
                             </div>
                         </div>
                     </div>
- 
-                    <!-- Actions Card -->
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center border-b border-gray-200 pb-3">
-                            <i class="fas fa-cog text-blue-500 mr-2"></i>
-                            Actions
-                        </h3>
-                        <div class="space-y-3">
-                            <Link :href="route('jobs.edit', { job: job.id })" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <i class="fas fa-edit mr-2"></i>
-                                Edit Job
-                            </Link>
-                            <Link :href="route('jobs.manage', { user: page.props.auth.user.id })" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <i class="fas fa-list mr-2"></i>
-                                View All Jobs
-                            </Link>
-                        </div>
-                    </div>
                 </div>
             </div>
         </Container>

@@ -221,6 +221,45 @@ class CompanyReportsController extends Controller
         $hr = $user->hr;
         $companyId = $hr->company_id;
 
+        
+        $selectedDepartment = $request->input('department', '');
+        $status = $request->input('status', '');
+        $dateFrom = $request->input('date_from', '');
+        $dateTo = $request->input('date_to', '');
+        $perPage = 10;
+
+        // Get all departments for filter dropdown
+        $departments = \App\Models\Department::whereHas('jobs', function($q) use ($companyId) {
+        $q->where('company_id', $companyId);
+        })
+        ->pluck('department_name')
+        ->filter()
+        ->unique()
+        ->values()
+        ->toArray();
+
+        // Filter jobs by department if selected
+        $jobsQuery = Job::with('department')
+            ->where('company_id', $companyId)
+            ->when($selectedDepartment, function($q) use ($selectedDepartment) {
+                $q->whereHas('department', function($q2) use ($selectedDepartment) {
+                    $q2->where('department_name', $selectedDepartment);
+                });
+            })
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->when($dateFrom, fn($q) => $q->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->whereDate('created_at', '<=', $dateTo))
+            ->orderBy('created_at', 'desc');
+
+        $jobsList = $jobsQuery->paginate($perPage)->through(function($job) {
+            return [
+                'id' => $job->id,
+                'title' => $job->job_title,
+                'created_at' => $job->created_at->format('Y-m-d'),
+                'department' => $job->department ? $job->department->department_name : '',
+                'status' => $job->status,
+            ];
+        });
         // Line Chart: Job postings over time
         $monthlyPostings = Job::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
             ->where('company_id', $companyId)
@@ -252,9 +291,19 @@ class CompanyReportsController extends Controller
         })->values();
 
         return Inertia::render('Company/Reports/JobPostTrends', [
+            'jobsList' => $jobsList,
+            'filters' => [
+                'department' => $selectedDepartment,
+                'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+            'statuses' => ['open', 'closed', 'draft'],
             'jobPostingTrends' => $monthlyPostings,
             'areaChartLabels' => $months,
             'areaChartSeries' => $areaChartSeries,
+            'departments' => $departments,
+            'selectedDepartment' => $selectedDepartment,
         ]);
     }
 
@@ -1138,9 +1187,10 @@ class CompanyReportsController extends Controller
         $timeline = $request->input('timeline'); // e.g. '2024-01', '2024', etc.
         $institutionId = $request->input('institution_id');
         $programId = $request->input('program_id');
+        $perPage = 10;
 
         // Query certifications of graduates hired by this company
-        $certifications = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
+        $certificationsQuery = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
             ->whereHas('graduate', function($q) use ($institutionId, $programId) {
                 if ($institutionId) {
                     $q->where('institution_id', $institutionId);
@@ -1150,20 +1200,25 @@ class CompanyReportsController extends Controller
                 }
             })
             ->when($timeline, function($q) use ($timeline) {
-                // Example: filter by year or month
                 $q->where('issue_date', 'like', $timeline . '%');
             })
-            ->get();
+            ->orderByDesc('issue_date');
 
-        // For chart: group by month/year
-        $chartData = $certifications->groupBy(function($cert) {
+        $certifications = $certificationsQuery->get();
+
+        // For the chart (unfiltered, always all data)
+        $allCertsForChart = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
+            ->orderByDesc('issue_date')
+            ->get();
+        // Chart data (all data)
+        $chartData = $allCertsForChart->groupBy(function($cert) {
             return Carbon::parse($cert->issue_date)->format('Y-m');
         })->map(function($group) {
             return $group->count();
-        });
+        })->sortKeys();;
 
         // For filters
-        $institutions = \App\Models\Institution::all(['id', 'institution_name']);
+        $institutions = \App\Models\Institution::all(columns: ['id', 'institution_name']);
         $programs = Program::all(['id', 'name']);
 
         return Inertia::render('Company/Reports/CertTracking', [

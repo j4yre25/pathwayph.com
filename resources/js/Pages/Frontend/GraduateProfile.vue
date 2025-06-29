@@ -24,7 +24,7 @@ const fullName = computed(() =>
         .join(' ')
 );
 
-console.log(props.resume.file_url);
+// console.log(props.resume.file_url);
 
 console.log('Graduate Name:', fullName);
 

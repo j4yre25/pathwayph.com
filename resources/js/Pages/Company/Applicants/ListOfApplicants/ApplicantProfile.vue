@@ -124,12 +124,19 @@ onMounted(() => {
   console.log('Applicant data:', props.applicant)
 })
 
+const goBack = () => {
+    window.history.back();
+};
+
 </script>
 
 <template>
   <AppLayout>
     <template #header>
       <div class="flex items-center">
+         <button @click="goBack" class="flex items-center text-blue-600 hover:text-blue-800 transition-colors mr-4">
+              <i class="fas fa-chevron-left mr-2"></i>
+          </button>
         <i class="fas fa-users-cog text-blue-500 text-xl mr-2"></i>
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
           {{ props.applicant.graduate.first_name }} {{ props.applicant.graduate.last_name }}&#39;s Profile
