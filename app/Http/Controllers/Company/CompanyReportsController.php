@@ -437,7 +437,7 @@ class CompanyReportsController extends Controller
 
         // 2. Bubble Chart: Skills in demand vs. available talent pool
         // Demand: from job listings, Supply: from graduates
-        $graduates = \App\Models\Graduate::with('graduateSkills')->get();
+        $graduates = Graduate::with('graduateSkills')->get();
         $talentPool = [];
         foreach ($graduates as $grad) {
             foreach ($grad->graduateSkills as $gs) {
@@ -928,7 +928,7 @@ class CompanyReportsController extends Controller
                         ->first();
 
                     if ($toStage) {
-                        $diff = Carbon::parse($fromStage->changed_at)->diffInDays(\Carbon\Carbon::parse($toStage->changed_at));
+                        $diff = Carbon::parse($fromStage->changed_at)->diffInDays(Carbon::parse($toStage->changed_at));
                         $totalDiff += $diff;
                         $count++;
                     }

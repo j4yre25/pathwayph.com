@@ -35,10 +35,17 @@ class ApplicationStatusUpdated extends Notification
 
     public function toArray($notifiable)
     {
+
+        if ($this->status === 'offer_sent') {
+        $message = 'Congratulations! You have received a job offer for the position "' . $this->application->job->job_title . '". Please review the offer details and respond.';
+        } else {
+            $message = 'The status of your application for the position "' . $this->application->job->job_title . '" has been updated to: ' . ucfirst($this->status) . '.';
+        }
         return [
             'application_id' => $this->application->id,
             'job_title' => $this->application->job->job_title,
             'status' => $this->status,
+            'message' => $message
         ];
     }
 }
