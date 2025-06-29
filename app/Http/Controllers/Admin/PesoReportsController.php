@@ -384,7 +384,7 @@ class PesoReportsController extends Controller
                     'sector' => $job->sector->name ?? null,
                     'skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
                     'programs' => $job->programs->pluck('name')->toArray(), // <-- all program names
-                    'program_ids' => $job->programs->pluck('id')->toArray(), // <-- all program IDs (optional, for matching)
+                    'program_ids' => $job->programs ? $job->programs->pluck('id')->toArray() : [],
                 ];
             });
 

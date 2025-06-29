@@ -1,6 +1,6 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, watchEffect } from 'vue'
 import VueECharts from 'vue-echarts';
 import { usePage } from '@inertiajs/vue3'
 
@@ -1033,12 +1033,12 @@ const careerGapBarOption = computed(() => {
   const roles = inDemandJobs.value.map(j => j.role);
   const demand = inDemandJobs.value.map(() => 1);
   const supply = inDemandJobs.value.map(job => {
-    const count = safeFilteredGraduates.value.filter(g =>
+    const matches = safeFilteredGraduates.value.filter(g =>
       g.program_id &&
       job.program_ids.map(Number).includes(Number(g.program_id))
-    ).length;
-    console.log(`[MAP] Role: ${job.role}, Supply: ${count}`);
-    return count;
+    );
+    console.log(`[MAP] Role: ${job.role}, Matches:`, matches);
+    return matches.length;
   });
   return {
     tooltip: { trigger: 'axis' },
@@ -1088,6 +1088,39 @@ watch(roleFilter, () => {
 });
 
 
+watchEffect(() => {
+  paginatedInDemandJobs.value.forEach(job => {
+    if (
+      !safeFilteredGraduates.value ||
+      !Array.isArray(safeFilteredGraduates.value) ||
+      !job.program_ids ||
+      !Array.isArray(job.program_ids) ||
+      !job.program_ids.length
+    ) {
+      console.log(`[TABLE] Role: ${job.role}, Matches: []`);
+      return;
+    }
+    const matches = safeFilteredGraduates.value.filter(g =>
+      g.program_id &&
+      job.program_ids.map(Number).includes(Number(g.program_id))
+    );
+    console.log(`[TABLE] Role: ${job.role}, Matches:`, matches);
+  });
+});
+
+function getLocalGraduateCount(job) {
+  if (
+    !safeFilteredGraduates.value ||
+    !Array.isArray(safeFilteredGraduates.value) ||
+    !job.program_ids ||
+    !Array.isArray(job.program_ids) ||
+    !job.program_ids.length
+  ) return 0;
+  return safeFilteredGraduates.value.filter(g =>
+    g.program_id &&
+    job.program_ids.map(Number).includes(Number(g.program_id))
+  ).length;
+}
 </script>
 
 <template>
@@ -1432,29 +1465,15 @@ watch(roleFilter, () => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="job in paginatedInDemandJobs" :key="job.role" class="hover:bg-gray-100">
+              <tr v-for="job in paginatedInDemandJobs" :key="job.role + '-' + job.program_ids.join('-')"
+                class="hover:bg-gray-100">
+
                 <td class="px-2 py-1">{{ job.role }}</td>
                 <td class="px-2 py-1">{{ job.category }}</td>
                 <td class="px-2 py-1">{{ job.sector }}</td>
                 <td class="px-2 py-1">{{ job.programs.join(', ') }}</td>
                 <td class="px-2 py-1">{{ job.skills ? job.skills.join(', ') : '' }}</td>
-                <td class="px-2 py-1">
-                  {{
-                    (() => {
-                      if (
-                        !safeFilteredGraduates.value ||
-                        !Array.isArray(safeFilteredGraduates.value) ||
-                        !job.program_ids ||
-                        !Array.isArray(job.program_ids) ||
-                        !job.program_ids.length
-                      ) return 0;
-                      return safeFilteredGraduates.value.filter(g =>
-                        g.program_id &&
-                        job.program_ids.map(Number).includes(Number(g.program_id))
-                      ).length;
-                    })()
-                  }}
-                </td>
+                <td class="px-2 py-1">{{ getLocalGraduateCount(job) }}</td>
               </tr>
             </tbody>
           </table>
@@ -1478,32 +1497,65 @@ watch(roleFilter, () => {
         <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
           <div class="text-blue-900 space-y-2">
             <div>
-              <span class="font-semibold">Interpretation:</span>
-              <span>
-                {{
-                  (() => {
-                    if (!inDemandJobs.length) return 'No in-demand job data available.';
-                    const grads = Array.isArray(graduates.value) ? graduates.value : [];
-                    const mostGap = inDemandJobs
-                      .map(job => {
-                        const supply = grads.filter(g =>
-                          g.program && job.programs.includes(g.program.name)
-                        ).length;
-                        return { role: job.role, demand: 1, supply }; // demand is always 1 per job in this list
-                      })
-                      .sort((a, b) => (a.supply - a.demand) - (b.supply - b.demand))[0];
-                    return mostGap
-                      ? `The largest gap is for "${mostGap.role}", where demand exceeds local graduate supply by ${Math.max(0,
-                        mostGap.demand - mostGap.supply)}.`
-                      : '';
+              <span class="font-semibold">Analytics Summary:</span>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>
+                  <span class="font-semibold">Total Roles Analyzed:</span>
+                  {{ inDemandJobs.length }}
+                </li>
+                <li>
+                  <span class="font-semibold">Average Local Graduate Supply per Role:</span>
+                  {{
+                    (() => {
+                      const total = inDemandJobs.reduce((sum, job) => sum + getLocalGraduateCount(job), 0);
+                      return inDemandJobs.length ? Math.round(total / inDemandJobs.length) : 0;
+                    })()
+                  }}
+                </li>
+                <li>
+                  <span class="font-semibold">Roles with Zero Local Supply:</span>
+                  {{
+                    inDemandJobs.filter(job => getLocalGraduateCount(job) === 0).length
+                  }}
+                </li>
+                <li>
+                  <span class="font-semibold">Role with Largest Gap:</span>
+                  {{
+                    (() => {
+                      const gaps = inDemandJobs.map(job => ({
+                        role: job.role,
+                        demand: 1,
+                        supply: getLocalGraduateCount(job),
+                        gap: 1 - getLocalGraduateCount(job)
+                      }));
+                      const largest = gaps.sort((a, b) => b.gap - a.gap)[0];
+                      return largest ? `${largest.role} (Demand: 1, Supply: ${largest.supply})` : 'N/A';
                   })()
-                }}
-              </span>
+                  }}
+                </li>
+                <li>
+                  <span class="font-semibold">Top 3 Roles by Local Graduate Supply:</span>
+                  {{
+                    (() => {
+                      const sorted = inDemandJobs
+                        .map(job => ({ role: job.role, supply: getLocalGraduateCount(job) }))
+                        .sort((a, b) => b.supply - a.supply)
+                        .slice(0, 3);
+                      return sorted.map(j => `${j.role} (${j.supply})`).join(', ') || 'N/A';
+                  })()
+                  }}
+                </li>
+              </ul>
             </div>
             <div>
               <span>
-                This map and table show which careers are most in-demand locally and how many local graduates are
-                available for each. Use this to identify where upskilling or recruitment efforts may be needed.
+                <strong>Interpretation:</strong>
+                This analytics dashboard compares the demand for key job roles with the local graduate supply.
+                Roles with a high demand but low or zero local supply indicate potential talent shortages and
+                opportunities for targeted upskilling or recruitment.
+                Conversely, roles with high supply may signal a need for career guidance or employer engagement.
+                Use the table and chart above to identify which careers require the most attention for workforce
+                planning.
               </span>
             </div>
           </div>
