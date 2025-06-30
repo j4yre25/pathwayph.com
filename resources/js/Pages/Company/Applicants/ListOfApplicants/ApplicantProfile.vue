@@ -401,23 +401,27 @@ const goBack = () => {
                       </button>
                       <OfferJobModal :show="showOfferModal" :application-id="applicant.id" @close="closeOfferModal" />
                   </div>
-                  
                   <!-- Hiring Process -->
                   <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <div class="flex items-center justify-between mb-4">
                       <h4 class="text-base font-semibold text-gray-800">Hiring Process</h4>
-                      <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
-                        :class="{
-                          'bg-blue-100 text-blue-800': applicant.status === 'under_review',
-                          'bg-yellow-100 text-yellow-800': applicant.status === 'offer_sent',
-                          'bg-green-100 text-green-800': applicant.status === 'offer_accepted' || applicant.status === 'hired',
-                          'bg-red-100 text-red-800': applicant.status === 'offer_declined'
-                        }"
-                      >
-                        Status: {{ applicant.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
-                      </span>
-                    </div>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                   <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
+                      :class="{
+                        'bg-blue-100 text-blue-800': applicant.status === 'under_review',
+                        'bg-yellow-100 text-yellow-800': applicant.status === 'offer_sent',
+                        'bg-green-100 text-green-800': applicant.status === 'offer_accepted' || applicant.status === 'hired',
+                        'bg-red-100 text-red-800': applicant.status === 'offer_declined' || applicant.status === 'rejected'
+                      }"
+                    >
+                      Status: {{
+                        applicant.status === 'shortlisted'
+                          ? 'Shortlisted'
+                          : applicant.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                      }}
+                    </span>
+                  </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4"
+                          v-if="applicant.status !== 'rejected'">
                       <div class="flex-1">
                         <CandidatePipeline :stage="currentStage" />
                       </div>

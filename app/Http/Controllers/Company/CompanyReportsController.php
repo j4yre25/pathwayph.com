@@ -1234,4 +1234,74 @@ class CompanyReportsController extends Controller
         ]);
     }
     
+    public function schoolEmployability(Request $request)
+    {
+
+        // Filters
+        $timeline = $request->input('timeline'); // e.g. '2024-01', '2024', etc.
+        $institutionId = $request->input('institution_id');
+        $programId = $request->input('program_id');
+
+        // Get all institutions for filter dropdown
+        $institutions = \App\Models\Institution::all(['id', 'institution_name']);
+        $programs = Program::all(['id', 'name']);
+
+        // Query only currently employed graduates in General Santos City
+        $hiredGraduatesQuery = Graduate::with(['user', 'institution', 'program', 'company'])
+            ->whereRaw("TRIM(current_job_title) != ''")
+            ->whereRaw("LOWER(TRIM(current_job_title)) NOT IN ('n/a', 'na', 'none', 'not applicable')")
+            ->where('employment_status', '!=', 'Unemployed')
+            ->whereHas('company', function($q) {
+                $q->where('company_city', 'General Santos City');
+            });
+
+        if ($institutionId) {
+            $hiredGraduatesQuery->where('institution_id', $institutionId);
+        }
+        if ($programId) {
+            $hiredGraduatesQuery->where('program_id', $programId);
+        }
+
+        
+        $hiredGraduates = $hiredGraduatesQuery->get()->filter(function($grad) {
+            $title = strtolower(trim($grad->current_job_title));
+            return $title !== '' && !in_array($title, ['n/a', 'na', 'none', 'not applicable']);
+        })->values();
+        
+        // Group and count by institution
+        $schoolCounts = $hiredGraduates->groupBy(function($grad) {
+            return $grad->institution ? $grad->institution->institution_name : 'Unknown';
+        })->map->count()->sortDesc();
+
+        // For chart: labels and data
+        $chartLabels = $schoolCounts->keys()->toArray();
+        $chartData = $schoolCounts->values()->toArray();
+
+        // For table: list of graduates with school, program, hire date, and company city
+        $graduateList = $hiredGraduates->map(function($grad) {
+            $companyCity = $grad->company ? $grad->company->company_city : '';
+            return [
+                'name' => $grad->first_name. '' .$grad->last_name,
+                'institution' => $grad->institution ? $grad->institution->institution_name : '',
+                'program' => $grad->program ? $grad->program->name : '',
+                'current_job_title' => $grad->current_job_title ?? '',
+                'company_city' => $companyCity,
+                'hired_at' => optional($grad->jobApplications()->where('status', 'hired')->latest('updated_at')->first())->updated_at,
+            ];
+        });
+
+
+        return Inertia::render('Company/Reports/SchoolEmployability', [
+            'institutions' => $institutions,
+            'graduateList' => $graduateList,
+            'programs' => $programs,
+            'filters' => [
+                'timeline' => $timeline,
+                'institution_id' => $institutionId,
+                'program_id' => $programId,
+            ],
+            'chartLabels' => $chartLabels,
+            'chartData' => $chartData,
+        ]);
+    }
 }
