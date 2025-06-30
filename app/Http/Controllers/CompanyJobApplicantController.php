@@ -162,5 +162,44 @@ class CompanyJobApplicantController extends Controller
         ]);
     }
 
+    public function autoScreen(Job $job)
+    {
+        $requiredDegree = 'Bachelor'; // Example
+        $minExperience = 2; // years
+        $requiredSkills = ['PHP', 'Vue.js']; // Example
+
+        $applications = JobApplication::where('job_id', $job->id)
+            ->with(['graduate.education', 'graduate.experience', 'graduate.graduateSkills.skill'])
+            ->get();
+
+        foreach ($applications as $application) {
+            $graduate = $application->graduate;
+
+            // Check degree
+            $hasDegree = $graduate->education->contains(function($edu) use ($requiredDegree) {
+                return stripos($edu->education, $requiredDegree) !== false;
+            });
+
+            // Check experience
+            $hasExperience = $graduate->experience->sum(function($exp) {
+                $start = $exp->start_date ? Carbon::parse($exp->start_date) : null;
+                $end = $exp->end_date ? Carbon::parse($exp->end_date) : now();
+                return $start && $end ? $start->diffInYears($end) : 0;
+            }) >= $minExperience;
+
+            // Check skills
+            $skills = $graduate->graduateSkills->pluck('skill.name')->map(fn($s) => strtolower($s))->toArray();
+            $hasSkills = collect($requiredSkills)->every(fn($skill) => in_array(strtolower($skill), $skills));
+
+            // If all criteria met, move to screening
+            if ($hasDegree && $hasExperience && $hasSkills) {
+                $application->status = 'shortlisted';
+                $application->stage = 'screening';
+                $application->save();
+            }
+        }
+
+        return back()->with('success', 'Automated screening completed!');
+    }
 
 }

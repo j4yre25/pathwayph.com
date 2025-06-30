@@ -1,11 +1,15 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { ref, computed } from 'vue'
+import { router } from '@inertiajs/vue3'
+import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Container from '@/Components/Container.vue'
 import ListOfApplicants from './ListOfApplicants.vue'
 import StatCard from '@/Components/StatsCard.vue'
 import CandidatePipeline from '@/Components/CandidatePipeline.vue'
 import '@fortawesome/fontawesome-free/css/all.css';
+
+
 
 const props = defineProps({
   job: {
@@ -28,8 +32,24 @@ const props = defineProps({
     }),
   },
 })
+const filters = ref({
+  keywords: '',
+  min_experience: '',
+  degree: '',
+});
 
 const searchQuery = ref('')
+function applyFilters() {
+  console.log('Applying filters:', filters.value); // Log the filter values
+  router.get(window.location.pathname, {
+    ...filters.value,
+  }, { 
+    preserveState: true,
+    onSuccess(page) {
+      console.log('Filter result applicants:', page.props.applicants); // Log the returned applicants
+    }
+  });
+}
 
 const filteredApplications = computed(() => {
   if (!searchQuery.value) return props.applicants
@@ -153,6 +173,12 @@ const goToPage = (page) => {
           <div class="flex items-center">
             <h3 class="text-lg font-semibold text-gray-800">Applicants List</h3>
             <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredApplications.length }} applicants</span>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <input v-model="filters.keywords" placeholder="Search by name, skill, degree..." class="border px-2 py-1 rounded" />
+            <input v-model.number="filters.min_experience" type="number" min="0" placeholder="Min Years Experience" class="border px-2 py-1 rounded" />
+            <input v-model="filters.degree" placeholder="Degree (e.g. Bachelor)" class="border px-2 py-1 rounded" />
+            <PrimaryButton class="bg-blue-600 text-white mx-5 mr-5" @click="applyFilters">Filter</PrimaryButton>
           </div>
         </div>
       </div>

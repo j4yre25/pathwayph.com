@@ -120,4 +120,9 @@ class Graduate extends Model
     {
         return $this->belongsTo(\App\Models\InstitutionSchoolYear::class, 'school_year_id');
     }
+
+    public function company()
+    {
+        return $this->belongsTo(\App\Models\Company::class, 'company_id');
+    }
 }
