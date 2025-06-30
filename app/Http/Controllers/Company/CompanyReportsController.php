@@ -1255,6 +1255,13 @@ class CompanyReportsController extends Controller
                 $q->where('company_city', 'General Santos City');
             });
 
+        if ($timeline) {
+            $hiredGraduatesQuery->whereHas('jobApplications', function ($q) use ($timeline) {
+                $q->where('status', 'hired')
+                ->whereRaw("DATE_FORMAT(updated_at, '%Y-%m') = ?", [$timeline]);
+            });
+        }
+
         if ($institutionId) {
             $hiredGraduatesQuery->where('institution_id', $institutionId);
         }
@@ -1273,6 +1280,8 @@ class CompanyReportsController extends Controller
             return $grad->institution ? $grad->institution->institution_name : 'Unknown';
         })->map->count()->sortDesc();
 
+        
+
         // For chart: labels and data
         $chartLabels = $schoolCounts->keys()->toArray();
         $chartData = $schoolCounts->values()->toArray();
@@ -1281,7 +1290,7 @@ class CompanyReportsController extends Controller
         $graduateList = $hiredGraduates->map(function($grad) {
             $companyCity = $grad->company ? $grad->company->company_city : '';
             return [
-                'name' => $grad->first_name. '' .$grad->last_name,
+                'name' => $grad->first_name. ' ' .$grad->last_name,
                 'institution' => $grad->institution ? $grad->institution->institution_name : '',
                 'program' => $grad->program ? $grad->program->name : '',
                 'current_job_title' => $grad->current_job_title ?? '',
