@@ -113,4 +113,10 @@ class JobApplication extends Model
     {
         return $this->hasMany(JobApplicationStage::class);
     }
+
+    public function offer()
+    {
+        return $this->hasOne(JobOffer::class);
+    }
+    
 }

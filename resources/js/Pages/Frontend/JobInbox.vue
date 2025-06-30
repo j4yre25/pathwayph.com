@@ -47,6 +47,11 @@ const notificationsLoading = ref(false);
 onMounted(() => {
     router.reload();
 });
+
+const goToNotification = (notification) => {
+    markNotificationAsRead(notification.id);
+    router.visit(route('notifications.show', notification.id));
+};
 </script>
 
 <template>
@@ -218,8 +223,13 @@ onMounted(() => {
                                 </div>
                                <div v-else>
                                     <div v-for="notification in notifications" :key="notification.id"
-                                        class="border border-yellow-300 bg-yellow-50 rounded p-3 hover:bg-yellow-100 cursor-pointer"
-                                        @click="markNotificationAsRead(notification.id)">
+                                        :class="[
+                                            'border rounded p-3 hover:bg-yellow-100 cursor-pointer',
+                                            notification.read
+                                            ? 'border-gray-200 bg-gray-50 text-gray-400'
+                                            : 'border-yellow-300 bg-yellow-50 text-gray-700'
+                                        ]"
+                                        @click="goToNotification(notification)">
                                         <p class="text-sm text-gray-700">
                                             <!-- Application Status Updated Notification -->
                                             <span v-if="notification.type.includes('ApplicationStatusUpdated')">

@@ -79,7 +79,7 @@ class JobInboxController extends Controller
         $user = Auth::user();
 
         return $user->notifications()
-            ->whereNull('read_at')
+            // ->whereNull('read_at')
             ->whereIn('type', [
                 \App\Notifications\NewJobPostingNotification::class,
                 \App\Notifications\ApplicationStatusUpdated::class,
@@ -124,6 +124,60 @@ class JobInboxController extends Controller
                 return $result;
             });
     }
+
+    public function showNotification($id)
+    {
+        $user = auth()->user();
+        $notification = $user->notifications()->findOrFail($id);
+
+        // Optionally mark as read
+        if (is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
+
+        return Inertia::render('Frontend/NotificationDetail', [
+            'notification' => [
+                'id' => $notification->id,
+                'type' => class_basename($notification->type),
+                'data' => $notification->data,
+                'created_at' => $notification->created_at->toDayDateTimeString(),
+                'read' => !is_null($notification->read_at),
+            ]
+        ]);
+    }
+
+    public function offerResponse(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'response' => 'required|in:accept,decline'
+        ]);
+
+        // Accept Offer
+        if ($request->response === 'accept') {
+            $application->status = 'offer_accepted';
+            $application->stage = 'Onboarding';
+            $application->save();
+
+            // // Update graduate's current job title and employment status
+            // $graduate = $application->graduate;
+            // if ($graduate && $application->job) {
+            //     $graduate->current_job_title = $application->job->job_title ?? 'Hired';
+            //     $graduate->company_id = $application->job->company_id; // Set the company_id
+            //     $graduate->employment_status = 'Employed';
+            //     $graduate->save();
+            // }
+        }
+        // Decline Offer
+        else {
+            $application->status = 'offer_declined';
+            $application->save();
+        }
+
+        // Optionally, send notification to employer here
+
+        return back()->with('success', 'Your response has been recorded.');
+    }
+
     // Apply for a job
     public function applyForJob(Request $request)
     {

@@ -239,13 +239,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
         // Update an applicant's status (e.g., mark as hired)
         Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
-
-        // Soft Delete an applicant
+        
+        Route::post('/company/applications/{application}/offer', [CompanyApplicationController::class, 'storeOffer'])->name('company.applications.offer');
         Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
 
         // Schedule interview
         Route::post('{application}/schedule-interview', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.scheduleInterview');
         Route::put('/company/applications/{application}/stage', [CompanyApplicationController::class, 'updateStage'])->name('company.applications.updateStage');
+        Route::put('/company/applications/{application}/status', [CompanyApplicationController::class, 'updateStatus'])->name('company.applications.updateStatus');
         // View graduate portfolio
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
         Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
@@ -768,7 +769,7 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->middleware($twoFactorMiddleware)
             ->name('two-factor.recovery-codes');
 
-        Route::post(RoutePath::for('two-factor.recovery-codes', '/user/two-factor-recovery-codes'), [RecoveryCodeController::class, 'store'])
+        Route::post(RoutePath::for('two-factor.recovery-codes', '/user/two-factor-recovery-codes'), action: [RecoveryCodeController::class, 'store'])
             ->middleware($twoFactorMiddleware);
     }
 });
@@ -785,6 +786,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/job-opportunities', [JobInboxController::class, 'getJobOpportunities'])->name('job-opportunities');
         Route::get('/job-applications', [JobInboxController::class, 'getJobApplications'])->name('job-applications');
         Route::get('/notifications', [JobInboxController::class, 'getNotifications'])->name('notifications');
+        Route::get('/notifications/{id}', [JobInboxController::class, 'showNotification'])->name('notifications.show');
+        Route::post('/applications/{application}/offer-response', [JobInboxController::class, 'offerResponse'])->name('applications.offer.response');
         Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob'])->name('apply-for-job');
         Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity'])->name('archive-job-opportunity');
         Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead'])->name('mark-notification-as-read');

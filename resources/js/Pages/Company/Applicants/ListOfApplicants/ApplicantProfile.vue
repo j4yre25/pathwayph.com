@@ -6,6 +6,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
 import useInterviewScheduler from '@/Composables/useInterviewScheduler';
 import useApplicantNote from '@/Composables/useApplicantNote';
+import OfferJobModal from '@/Components/OfferJobModal.vue';
 import  { useVisitWebsite }  from '@/Composables/useVisitWebsite';
 
 const props = defineProps({
@@ -49,6 +50,21 @@ function moveStage() {
   }
 }
 // End of stages setup
+
+const showHireConfirmation = ref(false);
+
+function hireApplicant() {
+  router.put(
+    route('company.applications.updateStatus', props.applicant.id),
+    { status: 'hired' },
+    {
+      onSuccess: () => {
+        props.applicant.status = 'hired';
+        showHireConfirmation.value = true; 
+      }
+    }
+  );
+}
 
 // Copy to clipboard function
 function copyToClipboard(text) {
@@ -103,6 +119,11 @@ function formatDate(dateStr) {
   });
 }
 
+const showOfferModal = ref(false);
+
+function closeOfferModal() {
+  showOfferModal.value = false;
+}
 
 
 const totalYearsExperience = computed(() => {
@@ -375,27 +396,57 @@ const goBack = () => {
                     <button class="bg-black text-white px-6 py-2 rounded-full font-semibold flex items-center gap-2">
                       Write Feedback <span class="text-xl leading-none">+</span>
                     </button>
-                    <button class="bg-black text-white px-6 py-2 rounded-full font-semibold flex items-center gap-2">
-                      Offer Job <span class="text-xl leading-none">+</span>
-                    </button>
+                      <button @click="showOfferModal = true" class="bg-black text-white px-6 py-2 rounded-full font-semibold flex items-center gap-2">
+                        Offer Job <span class="text-xl leading-none">+</span>
+                      </button>
+                      <OfferJobModal :show="showOfferModal" :application-id="applicant.id" @close="closeOfferModal" />
                   </div>
                   
                   <!-- Hiring Process -->
                   <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <div class="flex items">
-                    <h4 class="text-base font-semibold text-gray-800 mb-4">Hiring Process</h4>
-                    <span class="flex-1 flex justify-end">
-                      <button class="bg-gray-200 text-gray-700 px-6 py-2 rounded-full font-semibold"
-                        @click="moveStage"
-                        :disabled="stageOrder.indexOf(currentStage) === stageOrder.length - 1"
+                    <div class="flex items-center justify-between mb-4">
+                      <h4 class="text-base font-semibold text-gray-800">Hiring Process</h4>
+                      <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
+                        :class="{
+                          'bg-blue-100 text-blue-800': applicant.status === 'under_review',
+                          'bg-yellow-100 text-yellow-800': applicant.status === 'offer_sent',
+                          'bg-green-100 text-green-800': applicant.status === 'offer_accepted' || applicant.status === 'hired',
+                          'bg-red-100 text-red-800': applicant.status === 'offer_declined'
+                        }"
                       >
-                        Move Stage &gt;
-                      </button>
-                    </span>
+                        Status: {{ applicant.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
+                      </span>
                     </div>
-                    <CandidatePipeline :stage="currentStage" />
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div class="flex-1">
+                        <CandidatePipeline :stage="currentStage" />
+                      </div>
+                      <div class="flex-shrink-0 flex justify-end">
+                        <button
+                          v-if="applicant.status === 'offer_accepted' && applicant.status !== 'hired'"
+                          class="bg-green-600 text-white px-6 py-2 rounded-full text-sm font-semibold mt-4 sm:mt-0"
+                          @click="hireApplicant"
+                        >
+                          Hire
+                        </button>
+                        <button
+                          v-else-if="applicant.status === 'hired'"
+                          class="bg-green-200 text-green-700 px-6 py-2 rounded-full text-sm font-semibold mt-4 sm:mt-0 cursor-not-allowed"
+                          disabled
+                        >
+                          Hired
+                        </button>
+                        <button
+                          v-else
+                          class="bg-gray-200 text-gray-700 px-6 py-2 rounded-full text-sm font-semibold mt-4 sm:mt-0"
+                          @click="moveStage"
+                          :disabled="stageOrder.indexOf(currentStage) === stageOrder.length - 1 || applicant.status === 'hired'"
+                        >
+                          Move Stage &gt;
+                        </button>
+                      </div>
+                    </div>
                   </section>
-
                   <!-- Professional Skills -->
                   <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <h4 class="text-base font-semibold text-gray-800 mb-4">Professional Skills</h4>
@@ -495,6 +546,20 @@ const goBack = () => {
                         The interview date has been set successfully.
                       </div>
                       <button @click="showConfirmationModal = false" class="px-4 py-2 rounded bg-indigo-600 text-white">
+                        OK
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-if="showHireConfirmation" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+                    <div class="bg-white rounded-xl shadow-lg w-96 p-6 relative flex flex-col items-center">
+                      <div class="text-2xl text-green-600 mb-2">
+                        <i class="fas fa-check-circle"></i>
+                      </div>
+                      <div class="text-lg font-semibold mb-2 text-center">
+                        Successfully hired {{ props.applicant.graduate.first_name }} {{ props.applicant.graduate.last_name }}!
+                      </div>
+                      <button @click="showHireConfirmation = false" class="px-4 py-2 rounded bg-green-600 text-white mt-2">
                         OK
                       </button>
                     </div>
