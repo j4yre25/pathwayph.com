@@ -38,6 +38,7 @@ const allTabs = [
   { key: 'geoDistribution', label: 'Geographic Distribution' },
   { key: 'employmentTrend', label: 'Employment Trend Over Time' },
   { key: 'careerGapMap', label: 'Demand-Supply Career Gap Map' },
+  { key: 'schoolEmployability', label: 'School-wise Employability' },
   { key: 'skillsRoles', label: 'Skills and Roles Analysis' },
   { key: 'jobSearchDuration', label: 'Job Search Duration' },
   { key: 'graduateSatisfaction', label: 'Graduate Satisfaction' },
@@ -1032,14 +1033,7 @@ const inDemandJobs = computed(() => page.props.inDemandJobs ?? []);
 const careerGapBarOption = computed(() => {
   const roles = inDemandJobs.value.map(j => j.role);
   const demand = inDemandJobs.value.map(() => 1);
-  const supply = inDemandJobs.value.map(job => {
-    const matches = safeFilteredGraduates.value.filter(g =>
-      g.program_id &&
-      job.program_ids.map(Number).includes(Number(g.program_id))
-    );
-    console.log(`[MAP] Role: ${job.role}, Matches:`, matches);
-    return matches.length;
-  });
+  const supply = inDemandJobs.value.map(job => getLocalGraduateCount(job));
   return {
     tooltip: { trigger: 'axis' },
     legend: { data: ['Demand', 'Local Graduate Supply'] },
@@ -1116,11 +1110,95 @@ function getLocalGraduateCount(job) {
     !Array.isArray(job.program_ids) ||
     !job.program_ids.length
   ) return 0;
-  return safeFilteredGraduates.value.filter(g =>
-    g.program_id &&
-    job.program_ids.map(Number).includes(Number(g.program_id))
-  ).length;
+
+  return safeFilteredGraduates.value.filter(g => {
+    // Match by program_id
+    const byProgramId = g.program_id && job.program_ids.map(Number).includes(Number(g.program_id));
+
+    // Match by graduateEducations (program name or field_of_study)
+    const byEducation = Array.isArray(g.graduateEducations) &&
+      g.graduateEducations.some(edu =>
+        job.programs.some(program =>
+          program && edu.field_of_study &&
+          program.toLowerCase() === edu.field_of_study.toLowerCase()
+        )
+      );
+
+    return byProgramId || byEducation;
+  }).length;
 }
+
+// --- School-wise Graduate Employability ---
+
+const employabilityTimeline = ref('');
+const employabilityInstitution = ref('');
+const employabilityProgram = ref('');
+
+const employabilityInstitutions = computed(() => {
+  const set = new Map();
+  graduates.value.forEach(g => {
+    if (g.institution && g.institution.id) set.set(g.institution.id, g.institution);
+  });
+  return Array.from(set.values());
+});
+const employabilityPrograms = computed(() => {
+  const set = new Map();
+  graduates.value.forEach(g => {
+    if (g.program && g.program.id) set.set(g.program.id, g.program);
+  });
+  return Array.from(set.values());
+});
+const employabilityYears = computed(() => {
+  const set = new Set();
+  graduates.value.forEach(g => {
+    if (g.schoolYear?.school_year_range) set.add(g.schoolYear.school_year_range);
+  });
+  return Array.from(set).sort().reverse();
+});
+
+// Filtered graduates for employability
+const filteredEmployabilityGraduates = computed(() => {
+  return graduates.value.filter(g =>
+    g.employment_status === 'Employed' &&
+    (!employabilityTimeline.value || g.schoolYear?.school_year_range === employabilityTimeline.value) &&
+    (!employabilityInstitution.value || g.institution?.id === employabilityInstitution.value) &&
+    (!employabilityProgram.value || g.program?.id === employabilityProgram.value)
+  );
+});
+
+// School-wise employability counts
+const schoolEmployabilityCounts = computed(() => {
+  const counts = {};
+  filteredEmployabilityGraduates.value.forEach(g => {
+    const school = g.institution?.institution_name || 'Unknown';
+    counts[school] = (counts[school] || 0) + 1;
+  });
+  // Convert to array and sort descending
+  return Object.entries(counts)
+    .map(([school, count]) => ({ school, count }))
+    .sort((a, b) => b.count - a.count);
+});
+
+// Chart option
+const schoolEmployabilityBarOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: schoolEmployabilityCounts.value.map(i => i.school),
+    axisLabel: { rotate: 30 }
+  },
+  yAxis: { type: 'value', name: 'Hired Graduates' },
+  series: [
+    {
+      name: 'Hired Graduates',
+      type: 'bar',
+      data: schoolEmployabilityCounts.value.map(i => i.count),
+      itemStyle: { color: '#3b82f6' }
+    }
+  ]
+}));
+
+
 </script>
 
 <template>
@@ -1530,7 +1608,7 @@ function getLocalGraduateCount(job) {
                       }));
                       const largest = gaps.sort((a, b) => b.gap - a.gap)[0];
                       return largest ? `${largest.role} (Demand: 1, Supply: ${largest.supply})` : 'N/A';
-                  })()
+                    })()
                   }}
                 </li>
                 <li>
@@ -1542,7 +1620,7 @@ function getLocalGraduateCount(job) {
                         .sort((a, b) => b.supply - a.supply)
                         .slice(0, 3);
                       return sorted.map(j => `${j.role} (${j.supply})`).join(', ') || 'N/A';
-                  })()
+                    })()
                   }}
                 </li>
               </ul>
@@ -1561,6 +1639,96 @@ function getLocalGraduateCount(job) {
           </div>
         </div>
       </div>
+
+      <!-- School-wise Graduate Employability -->
+      <div v-else-if="activeTab === 'schoolEmployability'">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">School-wise Graduate Employability</h2>
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Timeline (School Year)</label>
+            <select v-model="employabilityTimeline" class="border rounded px-2 py-1">
+              <option value="">All</option>
+              <option v-for="year in employabilityYears" :key="year" :value="year">{{ year }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+            <select v-model="employabilityInstitution" class="border rounded px-2 py-1">
+              <option value="">All</option>
+              <option v-for="inst in employabilityInstitutions" :key="inst.id" :value="inst.id">{{ inst.institution_name
+                }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
+            <select v-model="employabilityProgram" class="border rounded px-2 py-1">
+              <option value="">All</option>
+              <option v-for="prog in employabilityPrograms" :key="prog.id" :value="prog.id">{{ prog.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table 1: Rank of Schools -->
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">Rank of Schools by Hired Graduates</h3>
+        <table class="min-w-full text-sm text-gray-800 mb-8">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 text-left">Rank</th>
+              <th class="px-2 py-1 text-left">School</th>
+              <th class="px-2 py-1 text-left">Hired Graduates</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, idx) in schoolEmployabilityCounts" :key="item.school" class="hover:bg-gray-100">
+              <td class="px-2 py-1">{{ idx + 1 }}</td>
+              <td class="px-2 py-1">{{ item.school }}</td>
+              <td class="px-2 py-1">{{ item.count }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Chart -->
+        <div>
+          <VueECharts :option="schoolEmployabilityBarOption" style="height: 400px; width: 100%;" />
+        </div>
+
+        <!-- Table 2: List of Hired Graduates per Institution -->
+        <h3 class="text-lg font-semibold mt-8 mb-2 text-gray-700">List of Hired Graduates per Institution</h3>
+        <table class="min-w-full text-sm text-gray-800 mb-8">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 text-left">Graduate Name</th>
+              <th class="px-2 py-1 text-left">School</th>
+              <th class="px-2 py-1 text-left">Program</th>
+              <th class="px-2 py-1 text-left">Hired At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="g in filteredEmployabilityGraduates" :key="g.id" class="hover:bg-gray-100">
+              <td class="px-2 py-1">{{ g.first_name }} {{ g.last_name }}</td>
+              <td class="px-2 py-1">{{ g.institution?.institution_name || 'Unknown' }}</td>
+              <td class="px-2 py-1">{{ g.program?.name || 'Unknown' }}</td>
+              <td class="px-2 py-1">{{ g.hired_at ? (new Date(g.hired_at)).toLocaleDateString() : 'N/A' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Data Interpretation -->
+        <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div class="text-blue-900">
+            <strong>Interpretation:</strong>
+            <span>
+              The first table and chart rank schools by the number of their graduates hired locally, while the second
+              table lists the actual graduates per institution, including their hiring date. Use the filters above to
+              analyze employability by school year, institution, or program. This helps identify which schools and
+              programs are most successful in placing graduates locally and provides actionable insights for
+              institutional improvement.
+            </span>
+          </div>
+        </div>
+      </div>
+
 
       <!-- Job Search Duration -->
       <div v-else-if="activeTab === 'jobSearchDuration'">

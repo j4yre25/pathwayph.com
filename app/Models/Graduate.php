@@ -78,6 +78,12 @@ class Graduate extends Model
         return $this->hasMany(GraduateSkill::class);
     }
 
+    public function graduateEducations()
+    {   
+        return $this->hasMany(GraduateEducation::class, 'graduate_id');
+    }
+    
+
     public function jobApplications()
     {
         return $this->hasMany(JobApplication::class, 'graduate_id');
