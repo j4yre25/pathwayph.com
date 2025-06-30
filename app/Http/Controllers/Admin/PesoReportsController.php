@@ -13,6 +13,7 @@ use App\Models\Location;
 use App\Models\JobInvitation;
 use App\Models\Salary;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PesoReportsController extends Controller
@@ -22,9 +23,21 @@ class PesoReportsController extends Controller
         // Employment Status Overview
         $year = $request->input('year');
 
-        $graduates = Graduate::with(['schoolYear', 'program', 'institution'])
-            ->select('id', 'first_name', 'last_name', 'program_id', 'employment_status', 'school_year_id', 'location', 'institution_id')
-            ->get();
+        $graduates = Graduate::with([
+            'schoolYear',
+            'program',
+            'institution',
+            'graduateEducations' // <-- add this relation
+        ])->select(
+            'id',
+            'first_name',
+            'last_name',
+            'program_id',
+            'employment_status',
+            'school_year_id',
+            'location',
+            'institution_id'
+        )->get();
 
         $summary = [
             'total_graduates' => $graduates->count(),
@@ -378,13 +391,39 @@ class PesoReportsController extends Controller
             ->take(10)
             ->get()
             ->map(function ($job) {
+                // Build programFields: for each program, get all unique field_of_study values from graduate_educations
+                $programFields = [];
+                foreach ($job->programs as $program) {
+                    $fields = \App\Models\GraduateEducation::where('program', $program->name)
+                        ->pluck('field_of_study')
+                        ->unique()
+                        ->filter()
+                        ->values()
+                        ->toArray();
+                    $programFields[] = [
+                        'program' => $program->name,
+                        'fields_of_study' => $fields,
+                    ];
+                }
+
+                // Flatten all fields_of_study for this job
+                $allFields = collect($programFields)
+                    ->flatMap(function ($pf) {
+                        return $pf['fields_of_study'];
+                    })
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
                 return [
                     'role' => $job->job_title,
                     'category' => $job->category->name ?? null,
                     'sector' => $job->sector->name ?? null,
                     'skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
-                    'programs' => $job->programs->pluck('name')->toArray(), // <-- all program names
+                    'programs' => $job->programs->pluck('name')->toArray(),
                     'program_ids' => $job->programs ? $job->programs->pluck('id')->toArray() : [],
+                    'program_fields' => $programFields,
+                    'fields_of_study' => $allFields,  // <-- now this is correct!
                 ];
             });
 
@@ -399,6 +438,64 @@ class PesoReportsController extends Controller
             ->countBy()
             ->sortDesc()
             ->take(10);
+
+
+        // Filters
+        $timeline = $request->input('timeline'); // e.g. '2024-01', '2024', etc.
+        $institutionId = $request->input('institution_id');
+        $programId = $request->input('program_id');
+
+        // Get all institutions for filter dropdown
+        $institutions = \App\Models\Institution::all(['id', 'institution_name']);
+        $programs = Program::all(['id', 'name']);
+
+        // Query only currently employed graduates in General Santos City
+        $hiredGraduatesQuery = Graduate::with(['user', 'institution', 'program', 'company'])
+            ->whereRaw("TRIM(current_job_title) != ''")
+            ->whereRaw("LOWER(TRIM(current_job_title)) NOT IN ('n/a', 'na', 'none', 'not applicable')")
+            ->where('employment_status', '!=', 'Unemployed')
+            ->whereHas('company', function ($q) {
+                $q->where('company_city', 'General Santos City');
+            });
+
+        if ($institutionId) {
+            $hiredGraduatesQuery->where('institution_id', $institutionId);
+        }
+        if ($programId) {
+            $hiredGraduatesQuery->where('program_id', $programId);
+        }
+
+
+        $hiredGraduates = $hiredGraduatesQuery->get()->filter(function ($grad) {
+            $title = strtolower(trim($grad->current_job_title));
+            return $title !== '' && !in_array($title, ['n/a', 'na', 'none', 'not applicable']);
+        })->values();
+
+        // Group and count by institution
+        $schoolCounts = $hiredGraduates->groupBy(function ($grad) {
+            return $grad->institution ? $grad->institution->institution_name : 'Unknown';
+        })->map->count()->sortDesc();
+
+        // For chart: labels and data
+        $chartLabels = $schoolCounts->keys()->toArray();
+        $chartData = $schoolCounts->values()->toArray();
+
+        // For table: list of graduates with school, program, hire date, and company city
+        $graduateList = $hiredGraduates->map(function ($grad) {
+            $companyCity = $grad->company ? $grad->company->company_city : '';
+            $companyName = $grad->company ? $grad->company->company_name : '';
+
+            return [
+                'name' => $grad->first_name . ' ' . $grad->last_name, // <-- add a space here
+                'institution' => $grad->institution ? $grad->institution->institution_name : '',
+                'program' => $grad->program ? $grad->program->name : '',
+                'current_job_title' => $grad->current_job_title ?? '',
+                'company_city' => $companyCity,
+                'company_name' => $companyName,
+
+                'hired_at' => optional($grad->jobApplications()->where('status', 'hired')->latest('updated_at')->first())->updated_at,
+            ];
+        });
 
         return Inertia::render('Admin/Reports/Reports', [
             'graduates' => $graduates,
@@ -438,6 +535,16 @@ class PesoReportsController extends Controller
             'employmentByEducation' => $employmentByEducation,
             'inDemandJobs' => $inDemandJobs,
             'topSkills' => $skillsFlat,
+            'institutions' => $institutions,
+            'graduateList' => $graduateList,
+            'programs' => $programs,
+            'filters' => [
+                'timeline' => $timeline,
+                'institution_id' => $institutionId,
+                'program_id' => $programId,
+            ],
+            'chartLabels' => $chartLabels,
+            'chartData' => $chartData,
         ]);
     }
 

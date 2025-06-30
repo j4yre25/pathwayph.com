@@ -19,21 +19,20 @@ use Carbon\Carbon;
 class CompanyReportsController extends Controller
 {
 
-   public function list($userId)
+    public function list($userId)
     {
         // You can pass any data needed to the Vue page
         return Inertia::render('Company/Reports/ListOfReports');
-        
     }
 
     public function overview(Request $request)
     {
         $user = auth()->user();
-        
+
         // Get the company_id of the logged-in user via HR account
         $hr = $user->hr;
         $companyId = $hr->company_id;
-        
+
         $jobTypes = JobType::select('id', 'type')->get();
 
         $allJobs = Job::where('company_id', $companyId)
@@ -41,8 +40,8 @@ class CompanyReportsController extends Controller
             ->with('jobTypes:id,type')
             ->get();
 
-            
-            // KPI Metrics for jobs posted by this company
+
+        // KPI Metrics for jobs posted by this company
         $totalOpenings = $allJobs->count();
         $activeListings = $allJobs->where('status', 'open')->count();
         $rolesFilled = $allJobs->where('status', 'filled')->count();
@@ -58,12 +57,12 @@ class CompanyReportsController extends Controller
                 + $allJobs->filter(function ($job) use ($type) {
                     return $job->jobTypes->contains('type', $type->type);
                 })->count();
-            }
-            
+        }
+
         $jobs = Job::where('company_id', $companyId)
             ->select(['id', 'job_title', 'job_type', 'status'])
             ->with('jobTypes:id,type')
-            ->paginate(10); 
+            ->paginate(10);
 
         return Inertia::render('Company/Reports/JobOverview', [
             'totalOpenings' => $totalOpenings,
@@ -73,7 +72,7 @@ class CompanyReportsController extends Controller
             'jobTypes' => $jobTypes,
             'jobs' => $jobs,
             'allJobs' => $allJobs,
-            
+
         ]);
     }
 
@@ -92,7 +91,7 @@ class CompanyReportsController extends Controller
             ->get();
 
         // Stacked Column Chart: Job postings by role level per department
-        $roleLevels = ['Entry-level','Intermediate', 'Mid-level', 'Senior/Executive'];
+        $roleLevels = ['Entry-level', 'Intermediate', 'Mid-level', 'Senior/Executive'];
         $stackedData = [];
         foreach ($roleLevels as $level) {
             $stackedData[$level] = Job::selectRaw('departments.department_name as department, COUNT(jobs.id) as total')
@@ -107,18 +106,18 @@ class CompanyReportsController extends Controller
 
         // All jobs for filtering and listing (with department and role level)
         $allJobs = Job::select([
-                'jobs.id',
-                'jobs.job_title',
-                'departments.department_name as department',
-                'jobs.job_experience_level',
-                'jobs.status'
-            ])
+            'jobs.id',
+            'jobs.job_title',
+            'departments.department_name as department',
+            'jobs.job_experience_level',
+            'jobs.status'
+        ])
             ->join('departments', 'jobs.department_id', '=', 'departments.id')
             ->where('jobs.company_id', $companyId)
             ->get();
 
         // Attach allJobs to stackedData for frontend filtering
-        $stackedData['allJobs'] = $allJobs; 
+        $stackedData['allJobs'] = $allJobs;
 
         return Inertia::render('Company/Reports/DeptWise', [
             'departmentCounts' => $departmentCounts,
@@ -149,9 +148,9 @@ class CompanyReportsController extends Controller
         // Line Chart: Time to progress through each stage
         $stages = ['applied', 'interviewed', 'offered', 'hired'];
         // Get all months where there are stage changes for this company
-        $months = JobApplicationStage::whereHas('jobApplication.job', function($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })
+        $months = JobApplicationStage::whereHas('jobApplication.job', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })
             ->selectRaw("DATE_FORMAT(changed_at, '%Y-%m') as month")
             ->groupBy('month')
             ->orderBy('month')
@@ -162,7 +161,7 @@ class CompanyReportsController extends Controller
 
         // For each stage transition, calculate average days taken per month
         for ($i = 1; $i < count($stages); $i++) {
-            $from = $stages[$i-1];
+            $from = $stages[$i - 1];
             $to = $stages[$i];
             $data = [];
 
@@ -170,7 +169,7 @@ class CompanyReportsController extends Controller
                 // Get all "from" stage records for this month
                 $fromStages = JobApplicationStage::where('stage', $from)
                     ->whereRaw("DATE_FORMAT(changed_at, '%Y-%m') = ?", [$month])
-                    ->whereHas('jobApplication.job', function($q) use ($companyId) {
+                    ->whereHas('jobApplication.job', function ($q) use ($companyId) {
                         $q->where('company_id', $companyId);
                     })
                     ->get();
@@ -221,7 +220,7 @@ class CompanyReportsController extends Controller
         $hr = $user->hr;
         $companyId = $hr->company_id;
 
-        
+
         $selectedDepartment = $request->input('department', '');
         $status = $request->input('status', '');
         $dateFrom = $request->input('date_from', '');
@@ -229,20 +228,20 @@ class CompanyReportsController extends Controller
         $perPage = 10;
 
         // Get all departments for filter dropdown
-        $departments = \App\Models\Department::whereHas('jobs', function($q) use ($companyId) {
-        $q->where('company_id', $companyId);
+        $departments = \App\Models\Department::whereHas('jobs', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
         })
-        ->pluck('department_name')
-        ->filter()
-        ->unique()
-        ->values()
-        ->toArray();
+            ->pluck('department_name')
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
 
         // Filter jobs by department if selected
         $jobsQuery = Job::with('department')
             ->where('company_id', $companyId)
-            ->when($selectedDepartment, function($q) use ($selectedDepartment) {
-                $q->whereHas('department', function($q2) use ($selectedDepartment) {
+            ->when($selectedDepartment, function ($q) use ($selectedDepartment) {
+                $q->whereHas('department', function ($q2) use ($selectedDepartment) {
                     $q2->where('department_name', $selectedDepartment);
                 });
             })
@@ -251,7 +250,7 @@ class CompanyReportsController extends Controller
             ->when($dateTo, fn($q) => $q->whereDate('created_at', '<=', $dateTo))
             ->orderBy('created_at', 'desc');
 
-        $jobsList = $jobsQuery->paginate($perPage)->through(function($job) {
+        $jobsList = $jobsQuery->paginate($perPage)->through(function ($job) {
             return [
                 'id' => $job->id,
                 'title' => $job->job_title,
@@ -314,11 +313,11 @@ class CompanyReportsController extends Controller
         $companyId = $hr->company_id;
 
         $jobs = Job::where('company_id', $companyId)
-        ->with(['applications'])
-        ->get();
-        
+            ->with(['applications'])
+            ->get();
+
         $jobTitles = $jobs->pluck('job_title')->toArray();
-        
+
         // 1. Stacked Bar Chart: Applications per job posting (by stage)
         $stages = ['applied', 'interviewed', 'offered', 'hired'];
         $stackedBarSeries = [];
@@ -349,9 +348,9 @@ class CompanyReportsController extends Controller
         $allSkills = array_values(array_unique($allSkills));
 
         // 3. Line Chart: Applications received over time (monthly)
-        $months = JobApplication::whereHas('job', function($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })
+        $months = JobApplication::whereHas('job', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month")
             ->groupBy('month')
             ->orderBy('month')
@@ -360,9 +359,9 @@ class CompanyReportsController extends Controller
 
         $lineData = [];
         foreach ($months as $month) {
-            $lineData[] = JobApplication::whereHas('job', function($q) use ($companyId) {
-                    $q->where('company_id', $companyId);
-                })
+            $lineData[] = JobApplication::whereHas('job', function ($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            })
                 ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$month])
                 ->count();
         }
@@ -379,12 +378,12 @@ class CompanyReportsController extends Controller
         foreach ($departments as $dept) {
             $data = [];
             foreach ($months as $month) {
-                $data[] = JobApplication::whereHas('job', function($q) use ($companyId, $dept) {
-                        $q->where('company_id', $companyId)
-                        ->whereHas('department', function($q2) use ($dept) {
+                $data[] = JobApplication::whereHas('job', function ($q) use ($companyId, $dept) {
+                    $q->where('company_id', $companyId)
+                        ->whereHas('department', function ($q2) use ($dept) {
                             $q2->where('name', $dept);
                         });
-                    })
+                })
                     ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$month])
                     ->count();
             }
@@ -503,10 +502,10 @@ class CompanyReportsController extends Controller
         $typeCounts = [];
         foreach ($types as $type) {
             $typeCounts[$type] = Job::where('company_id', $companyId)
-            ->whereHas('jobTypes', function ($query) use ($type) {
-                $query->where('type', $type);
-            })
-            ->count();
+                ->whereHas('jobTypes', function ($query) use ($type) {
+                    $query->where('type', $type);
+                })
+                ->count();
         }
 
         // Column Chart: Job types across departments
@@ -516,13 +515,13 @@ class CompanyReportsController extends Controller
             $columnData[$type] = [];
             foreach ($departments as $dept) {
                 $columnData[$type][$dept] = Job::where('company_id', $companyId)
-                        ->whereHas('jobTypes', function ($query) use ($type) {
-                            $query->where('type', $type);
-                        })
-                        ->whereHas('department', function($q) use ($dept) {
-                            $q->where('department_name', $dept);
-                        })
-                        ->count();
+                    ->whereHas('jobTypes', function ($query) use ($type) {
+                        $query->where('type', $type);
+                    })
+                    ->whereHas('department', function ($q) use ($dept) {
+                        $q->where('department_name', $dept);
+                    })
+                    ->count();
             }
         }
 
@@ -533,7 +532,7 @@ class CompanyReportsController extends Controller
             'types' => $types,
         ]);
     }
-    
+
     public function salaryInsights(Request $request)
     {
         $user = auth()->user();
@@ -582,7 +581,7 @@ class CompanyReportsController extends Controller
 
         // 2. Histogram: Frequency of salary ranges
         $allJobs = Job::where('company_id', $companyId)->with('salary')->get();
-        $allSalaries = $allJobs->map(function($job) {
+        $allSalaries = $allJobs->map(function ($job) {
             if ($job->salary) {
                 if ($job->salary->job_min_salary && $job->salary->job_max_salary) {
                     return ($job->salary->job_min_salary + $job->salary->job_max_salary) / 2;
@@ -683,17 +682,17 @@ class CompanyReportsController extends Controller
         $statuses = ['applied', 'screened', 'interviewed', 'hired', 'rejected'];
         $statusCounts = [];
         foreach ($statuses as $status) {
-            $statusCounts[ucfirst($status)] = JobApplication::whereHas('job', function($q) use ($companyId) {
+            $statusCounts[ucfirst($status)] = JobApplication::whereHas('job', function ($q) use ($companyId) {
                 $q->where('company_id', $companyId);
             })->where('stage', $status)->count();
         }
 
         // KPI Cards
-        $totalApplications = JobApplication::whereHas('job', function($q) use ($companyId) {
+        $totalApplications = JobApplication::whereHas('job', function ($q) use ($companyId) {
             $q->where('company_id', $companyId);
         })->count();
 
-        $shortlisted = JobApplication::whereHas('job', function($q) use ($companyId) {
+        $shortlisted = JobApplication::whereHas('job', function ($q) use ($companyId) {
             $q->where('company_id', $companyId);
         })->where('stage', 'screened')->count();
 
@@ -731,19 +730,19 @@ class CompanyReportsController extends Controller
         $experienceLevels = ['Entry', 'Mid', 'Senior'];
         $experienceCounts = [];
         foreach ($experienceLevels as $level) {
-            $experienceCounts[$level] = JobApplication::whereHas('job', function($q2) use ($companyId, $level) {
+            $experienceCounts[$level] = JobApplication::whereHas('job', function ($q2) use ($companyId, $level) {
                 $q2->where('company_id', $companyId)
-                ->where('job_experience_level', $level);
+                    ->where('job_experience_level', $level);
             })->where('stage', 'screened')->count();
         }
 
         // 3. By Skill (top 5)
         $skills = Job::where('company_id', $companyId)
-            ->whereHas('applications', function($q) {
+            ->whereHas('applications', function ($q) {
                 $q->where('stage', 'screened');
             })
             ->pluck('skills')
-            ->map(function($s) {
+            ->map(function ($s) {
                 return is_string($s) ? json_decode($s, true) : (is_array($s) ? $s : []);
             })
             ->flatten()
@@ -759,9 +758,9 @@ class CompanyReportsController extends Controller
 
         $departmentScreened = [];
         foreach ($departments as $dept) {
-            $departmentScreened[$dept] = JobApplication::whereHas('job', function($q2) use ($companyId, $dept) {
+            $departmentScreened[$dept] = JobApplication::whereHas('job', function ($q2) use ($companyId, $dept) {
                 $q2->where('company_id', $companyId)
-                    ->whereHas('department', function($q3) use ($dept) {
+                    ->whereHas('department', function ($q3) use ($dept) {
                         $q3->where('department_name', $dept);
                     });
             })->where('stage', 'screened')->count();
@@ -769,7 +768,7 @@ class CompanyReportsController extends Controller
 
         $jobRoleScreened = [];
         foreach ($jobRoles as $jobRole) {
-            $jobRoleScreened[$jobRole] = JobApplication::whereHas('job', function($q2) use ($companyId, $jobRole) {
+            $jobRoleScreened[$jobRole] = JobApplication::whereHas('job', function ($q2) use ($companyId, $jobRole) {
                 $q2->where('company_id', $companyId)
                     ->where('job_title', $jobRole);
             })->where('stage', 'screened')->count();
@@ -798,7 +797,7 @@ class CompanyReportsController extends Controller
         foreach ($stages as $stage) {
             $funnelData[] = [
                 'stage' => ucfirst(str_replace('_', ' ', $stage)),
-                'count' => JobApplication::whereHas('job', function($q) use ($companyId) {
+                'count' => JobApplication::whereHas('job', function ($q) use ($companyId) {
                     $q->where('company_id', $companyId);
                 })->where('stage', $stage)->count(),
             ];
@@ -808,9 +807,9 @@ class CompanyReportsController extends Controller
         $jobRoles = Job::where('company_id', $companyId)->pluck('job_title')->unique()->toArray();
         $bubbleData = [];
         foreach ($jobRoles as $jobRole) {
-            $interviewedCount = JobApplication::whereHas('job', function($q) use ($companyId, $jobRole) {
+            $interviewedCount = JobApplication::whereHas('job', function ($q) use ($companyId, $jobRole) {
                 $q->where('company_id', $companyId)
-                ->where('job_title', $jobRole);
+                    ->where('job_title', $jobRole);
             })->whereIn('stage', ['interview_1', 'interview_2', 'final_selection'])->count();
 
             $bubbleData[] = [
@@ -849,7 +848,7 @@ class CompanyReportsController extends Controller
         $topSkills = collect($requiredSkills)->sortDesc()->take(6)->keys()->toArray();
 
         // Get candidate skills (from resumes/applications)
-        $applications = JobApplication::whereHas('job', function($q) use ($companyId) {
+        $applications = JobApplication::whereHas('job', function ($q) use ($companyId) {
             $q->where('company_id', $companyId);
         })->get();
         $candidateSkills = [];
@@ -894,9 +893,9 @@ class CompanyReportsController extends Controller
 
         // 1. Line Chart: Average time (in days) to progress through each hiring stage per month
         $stages = ['applied', 'screened', 'interview_1', 'interview_2', 'final_selection', 'hired'];
-        $months = JobApplicationStage::whereHas('jobApplication.job', function($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })
+        $months = JobApplicationStage::whereHas('jobApplication.job', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })
             ->selectRaw("DATE_FORMAT(changed_at, '%Y-%m') as month")
             ->groupBy('month')
             ->orderBy('month')
@@ -905,14 +904,14 @@ class CompanyReportsController extends Controller
 
         $series = [];
         for ($i = 1; $i < count($stages); $i++) {
-            $from = $stages[$i-1];
+            $from = $stages[$i - 1];
             $to = $stages[$i];
             $data = [];
 
             foreach ($months as $month) {
                 $fromStages = JobApplicationStage::where('stage', $from)
                     ->whereRaw("DATE_FORMAT(changed_at, '%Y-%m') = ?", [$month])
-                    ->whereHas('jobApplication.job', function($q) use ($companyId) {
+                    ->whereHas('jobApplication.job', function ($q) use ($companyId) {
                         $q->where('company_id', $companyId);
                     })
                     ->get();
@@ -955,9 +954,9 @@ class CompanyReportsController extends Controller
         $scatterData = [];
         foreach ($jobRoles as $jobRole) {
             // Average days from applied to hired for this role
-            $applications = JobApplication::whereHas('job', function($q) use ($companyId, $jobRole) {
+            $applications = JobApplication::whereHas('job', function ($q) use ($companyId, $jobRole) {
                 $q->where('company_id', $companyId)
-                ->where('job_title', $jobRole);
+                    ->where('job_title', $jobRole);
             })->get();
 
             $totalDays = 0;
@@ -1006,9 +1005,9 @@ class CompanyReportsController extends Controller
         $genders = ['Male', 'Female'];
         $genderCounts = [];
         foreach ($genders as $gender) {
-            $genderCounts[$gender] = JobApplication::whereHas('job', function($q) use ($companyId) {
+            $genderCounts[$gender] = JobApplication::whereHas('job', function ($q) use ($companyId) {
                 $q->where('company_id', $companyId);
-            })->whereHas('graduate', function($q) use ($gender) {
+            })->whereHas('graduate', function ($q) use ($gender) {
                 $q->where('gender', $gender);
             })->count();
         }
@@ -1018,9 +1017,9 @@ class CompanyReportsController extends Controller
 
         $ethnicityCounts = [];
         foreach ($ethnicities as $ethnicity) {
-            $ethnicityCounts[$ethnicity] = JobApplication::whereHas('job', function($q) use ($companyId) {
+            $ethnicityCounts[$ethnicity] = JobApplication::whereHas('job', function ($q) use ($companyId) {
                 $q->where('company_id', $companyId);
-            })->whereHas('graduate', function($q) use ($ethnicity) {
+            })->whereHas('graduate', function ($q) use ($ethnicity) {
                 $q->where('ethnicity', $ethnicity);
             })->count();
         }
@@ -1032,10 +1031,10 @@ class CompanyReportsController extends Controller
         foreach ($genders as $gender) {
             $roleGenderData[$gender] = [];
             foreach ($jobRoles as $jobRole) {
-                $roleGenderData[$gender][$jobRole] = JobApplication::whereHas('job', function($q) use ($companyId, $jobRole) {
+                $roleGenderData[$gender][$jobRole] = JobApplication::whereHas('job', function ($q) use ($companyId, $jobRole) {
                     $q->where('company_id', $companyId)
-                    ->where('job_title', $jobRole);
-                })->whereHas('graduate', function($q) use ($gender) {
+                        ->where('job_title', $jobRole);
+                })->whereHas('graduate', function ($q) use ($gender) {
                     $q->where('gender', $gender);
                 })->count();
             }
@@ -1055,10 +1054,8 @@ class CompanyReportsController extends Controller
 
     public function feedback(Request $request)
     {
-       
-        return Inertia::render('Company/Reports/FeedbackSatisfaction', [
-            
-        ]);
+
+        return Inertia::render('Company/Reports/FeedbackSatisfaction', []);
     }
 
     public function graduatePool(Request $request)
@@ -1072,7 +1069,7 @@ class CompanyReportsController extends Controller
         $fields = Program::pluck('name')->toArray();
         $fieldCounts = [];
         foreach ($fields as $field) {
-            $fieldCounts[$field] = Graduate::whereHas('program', function($q) use ($field) {
+            $fieldCounts[$field] = Graduate::whereHas('program', function ($q) use ($field) {
                 $q->where('name', $field);
             })->count();
         }
@@ -1126,7 +1123,7 @@ class CompanyReportsController extends Controller
             $stackedData[$level] = [];
             foreach ($genders as $gender) {
                 $stackedData[$level][$gender] = \App\Models\Education::where('education', $level)
-                    ->whereHas('graduate', function($q) use ($gender) {
+                    ->whereHas('graduate', function ($q) use ($gender) {
                         $q->where('gender', $gender);
                     })->count();
             }
@@ -1145,11 +1142,9 @@ class CompanyReportsController extends Controller
     public function academicPerformance(Request $request)
     {
 
-        return Inertia::render('Company/Reports/AcademicPerformance', [
-
-        ]);
+        return Inertia::render('Company/Reports/AcademicPerformance', []);
     }
-    
+
     public function preferences(Request $request)
     {
         // Pie Chart: Graduates’ preferences for job types
@@ -1191,7 +1186,7 @@ class CompanyReportsController extends Controller
 
         // Query certifications of graduates hired by this company
         $certificationsQuery = \App\Models\Certification::with(['graduate.user', 'graduate.program', 'graduate.institution'])
-            ->whereHas('graduate', function($q) use ($institutionId, $programId) {
+            ->whereHas('graduate', function ($q) use ($institutionId, $programId) {
                 if ($institutionId) {
                     $q->where('institution_id', $institutionId);
                 }
@@ -1199,7 +1194,7 @@ class CompanyReportsController extends Controller
                     $q->where('program_id', $programId);
                 }
             })
-            ->when($timeline, function($q) use ($timeline) {
+            ->when($timeline, function ($q) use ($timeline) {
                 $q->where('issue_date', 'like', $timeline . '%');
             })
             ->orderByDesc('issue_date');
@@ -1211,9 +1206,9 @@ class CompanyReportsController extends Controller
             ->orderByDesc('issue_date')
             ->get();
         // Chart data (all data)
-        $chartData = $allCertsForChart->groupBy(function($cert) {
+        $chartData = $allCertsForChart->groupBy(function ($cert) {
             return Carbon::parse($cert->issue_date)->format('Y-m');
-        })->map(function($group) {
+        })->map(function ($group) {
             return $group->count();
         })->sortKeys();;
 
@@ -1233,7 +1228,7 @@ class CompanyReportsController extends Controller
             ],
         ]);
     }
-    
+
     public function schoolEmployability(Request $request)
     {
 
@@ -1251,7 +1246,7 @@ class CompanyReportsController extends Controller
             ->whereRaw("TRIM(current_job_title) != ''")
             ->whereRaw("LOWER(TRIM(current_job_title)) NOT IN ('n/a', 'na', 'none', 'not applicable')")
             ->where('employment_status', '!=', 'Unemployed')
-            ->whereHas('company', function($q) {
+            ->whereHas('company', function ($q) {
                 $q->where('company_city', 'General Santos City');
             });
 
@@ -1269,14 +1264,14 @@ class CompanyReportsController extends Controller
             $hiredGraduatesQuery->where('program_id', $programId);
         }
 
-        
-        $hiredGraduates = $hiredGraduatesQuery->get()->filter(function($grad) {
+
+        $hiredGraduates = $hiredGraduatesQuery->get()->filter(function ($grad) {
             $title = strtolower(trim($grad->current_job_title));
             return $title !== '' && !in_array($title, ['n/a', 'na', 'none', 'not applicable']);
         })->values();
-        
+
         // Group and count by institution
-        $schoolCounts = $hiredGraduates->groupBy(function($grad) {
+        $schoolCounts = $hiredGraduates->groupBy(function ($grad) {
             return $grad->institution ? $grad->institution->institution_name : 'Unknown';
         })->map->count()->sortDesc();
 
@@ -1287,14 +1282,19 @@ class CompanyReportsController extends Controller
         $chartData = $schoolCounts->values()->toArray();
 
         // For table: list of graduates with school, program, hire date, and company city
-        $graduateList = $hiredGraduates->map(function($grad) {
+        $graduateList = $hiredGraduates->map(function ($grad) {
             $companyCity = $grad->company ? $grad->company->company_city : '';
+            $companyName = $grad->company ? $grad->company->company_name : '';
+
             return [
-                'name' => $grad->first_name. ' ' .$grad->last_name,
+                'name' => $grad->first_name . ' ' . $grad->last_name, // <-- add a space here
+
                 'institution' => $grad->institution ? $grad->institution->institution_name : '',
                 'program' => $grad->program ? $grad->program->name : '',
                 'current_job_title' => $grad->current_job_title ?? '',
                 'company_city' => $companyCity,
+                'company_name' => $companyName,
+
                 'hired_at' => optional($grad->jobApplications()->where('status', 'hired')->latest('updated_at')->first())->updated_at,
             ];
         });

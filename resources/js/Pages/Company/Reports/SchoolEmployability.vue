@@ -49,6 +49,22 @@ const totalPages = computed(() =>
   Math.ceil(graduateList.length / pageSize)
 );
 
+const paginationPages = computed(() => {
+  const pages = [];
+  if (totalPages.value <= 7) {
+    for (let i = 1; i <= totalPages.value; i++) pages.push(i);
+  } else {
+    if (page.value <= 4) {
+      pages.push(1, 2, 3, 4, 5, '...', totalPages.value);
+    } else if (page.value >= totalPages.value - 3) {
+      pages.push(1, '...', totalPages.value - 4, totalPages.value - 3, totalPages.value - 2, totalPages.value - 1, totalPages.value);
+    } else {
+      pages.push(1, '...', page.value - 1, page.value, page.value + 1, '...', totalPages.value);
+    }
+  }
+  return pages;
+});
+
 function goToPage(p) {
   page.value = p;
 }
@@ -307,6 +323,7 @@ const employabilitySummaryInsight = computed(() => {
               <tr>
                 <th class="px-2 py-1 text-left font-medium text-gray-700">Name</th>
                 <th class="px-2 py-1 text-left font-medium text-gray-700">Institution</th>
+                <th class="px-2 py-1 text-left font-medium text-gray-700">Job Title</th>
                 <th class="px-2 py-1 text-left font-medium text-gray-700">Program</th>
                 <th class="px-2 py-1 text-left font-medium text-gray-700">Company</th>
                 <th class="px-2 py-1 text-left font-medium text-gray-700">Hired At</th>
@@ -316,6 +333,7 @@ const employabilitySummaryInsight = computed(() => {
               <tr v-for="grad in paginatedGraduates" :key="grad.name + grad.hired_at">
                 <td class="px-2 py-1">{{ grad.name }}</td>
                 <td class="px-2 py-1">{{ grad.institution }}</td>
+                <td class="px-2 py-1">{{ grad.current_job_title }}</td>
                 <td class="px-2 py-1">{{ grad.program }}</td>
                 <td class="px-2 py-1">{{ grad.company_name }}</td>
                 <td class="px-2 py-1">
@@ -326,12 +344,21 @@ const employabilitySummaryInsight = computed(() => {
           </table>
           <!-- Pagination Controls -->
           <div class="flex justify-center mt-4" v-if="totalPages > 1">
-            <button
-              v-for="p in totalPages"
-              :key="p"
-              :class="['mx-1 px-3 py-1 rounded border', { 'bg-blue-600 text-white': p === page, 'bg-white text-blue-600': p !== page }]"
-              @click="goToPage(p)"
-            >{{ p }}</button>
+            <button class="mx-1 px-3 py-1 rounded border bg-white text-blue-600" :disabled="page === 1"
+              @click="goToPage(page - 1)">
+              Prev
+            </button>
+            <template v-for="p in paginationPages">
+              <button v-if="p !== '...'" :key="p" :class="[
+                'mx-1 px-3 py-1 rounded border',
+                { 'bg-blue-600 text-white': p === page, 'bg-white text-blue-600': p !== page }
+              ]" @click="goToPage(p)">{{ p }}</button>
+              <span v-else :key="'ellipsis-' + p" class="mx-1 px-3 py-1 text-gray-400">...</span>
+            </template>
+            <button class="mx-1 px-3 py-1 rounded border bg-white text-blue-600" :disabled="page === totalPages"
+              @click="goToPage(page + 1)">
+              Next
+            </button>
           </div>
         </div>
         <div v-else class="text-gray-400">No graduates found for the selected filters.</div>
@@ -342,6 +369,7 @@ const employabilitySummaryInsight = computed(() => {
           {{ filters.institution_id ? 'Hires by Program' : 'Hires by School' }}
         </h3>
         <div class="flex justify-center">
+
           <VueECharts
             v-if="dynamicChartLabels.length"
             :option="chartOptions"
