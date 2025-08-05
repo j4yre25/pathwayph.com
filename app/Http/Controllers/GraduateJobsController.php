@@ -488,7 +488,7 @@ class GraduateJobsController extends Controller
             if ($matchPercentage > 30) {
                 $application->is_shortlisted = true;
                 $application->status = 'shortlisted';
-                $application->stage = 'Screened';
+                $application->stage = 'Screening';
                 $application->screening_feedback = 'Auto-screened: Qualified ('.$matchPercentage.'% match)';
             } else {
                 $application->is_shortlisted = false;
