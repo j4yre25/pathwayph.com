@@ -220,8 +220,6 @@ watch(() => form.company_not_found, (val) => {
 </script>
 
 
-
-
 <template>
 
     <Head title="Register" />
