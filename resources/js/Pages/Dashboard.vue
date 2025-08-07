@@ -163,7 +163,12 @@ function submitReferral() {
             Here you can manage your account and view your statistics.
         </p>
     </div>
-    <CompanyDashboard :summary="page.props.summary" />
+    <CompanyDashboard   
+        :summary="page.props.summary"
+        :recentApplications="page.props.recentApplications"
+        :applicationTrends="page.props.applicationTrends"
+        :jobPerformance="page.props.jobPerformance"
+        />
 </div>
 
 <div v-else-if="page.props.roles?.isInstitution" class="py-12">

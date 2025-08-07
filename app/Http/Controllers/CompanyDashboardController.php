@@ -18,25 +18,43 @@ class CompanyDashboardController extends Controller
     public function index()
     {
         $company = auth()->user()->company;
-        $now = Carbon::now();
+        $now = now();
+
+        $activeJobs = Job::where('company_id', $company->id)
+            ->where('status', 'open');
+
+        $applicationsQuery = JobApplication::whereHas('job', fn($q) =>
+            $q->where('company_id', $company->id));
+
+        $statusCounts = [
+            'pending' => $applicationsQuery->clone()->where('status', 'pending')->count(),
+            'hired' => $applicationsQuery->clone()->where('status', 'hired')->count(),
+            'rejected' => $applicationsQuery->clone()->where('status', 'rejected')->count(),
+            'declined' => $applicationsQuery->clone()->where('status', 'declined')->count(),
+        ];
+
+        $pipelineCounts = [
+            'applied' => $applicationsQuery->clone()->where('stage', 'applied')->count(),
+            'screening' => $applicationsQuery->clone()->where('stage', 'screening')->count(),
+            'interview' => $applicationsQuery->clone()->where('stage', 'interview')->count(),
+            'offer' => $applicationsQuery->clone()->where('stage', 'offer')->count(),
+        ];
 
         return Inertia::render('Company/CompanyDashboard', [
             'summary' => [
-                'total_jobs' => Job::where('company_id', $company->id)->count(),
-                'total_applications' => JobApplication::whereHas('job', fn($q) => 
-                    $q->where('company_id', $company->id))->count(),
-                'total_interviews' => Interview::whereHas('jobApplication.job', fn($q) => 
-                    $q->where('company_id', $company->id))->count(),
-                'total_hires' => JobApplication::whereHas('job', fn($q) => 
-                    $q->where('company_id', $company->id))->where('status', 'hired')->count(),
-                'new_applications' => JobApplication::whereHas('job', fn($q) => 
-                    $q->where('company_id', $company->id))->where('status', 'pending')->count(),
-                'screening' => JobApplication::whereHas('job', fn($q) => 
-                    $q->where('company_id', $company->id))->where('stage', 'screening')->count(),
-                'in_interview' => JobApplication::whereHas('job', fn($q) => 
-                    $q->where('company_id', $company->id))->where('stage', 'interview')->count(),
-                'in_offer' => JobApplication::whereHas('job', fn($q) => 
-                    $q->where('company_id', $company->id))->where('stage', 'offer')->count(),
+                'active_jobs' => $activeJobs->count(),
+                'total_applications' => $applicationsQuery->count(),
+                'this_month_applications' => $applicationsQuery->clone()
+                    ->whereMonth('created_at', $now->month)
+                    ->whereYear('created_at', $now->year)
+                    ->count(),
+                'total_hires' => $statusCounts['hired'],
+                'pipeline' => $pipelineCounts,
+                'status_counts' => $statusCounts,
+                'new_applications' => $pipelineCounts['applied'],
+                'screening' => $pipelineCounts['screening'],
+                'in_interview' => $pipelineCounts['interview'],
+                'in_offer' => $pipelineCounts['offer'],
             ],
             'recentApplications' => JobApplication::with(['graduate', 'job'])
                 ->whereHas('job', fn($q) => $q->where('company_id', $company->id))
@@ -52,7 +70,7 @@ class CompanyDashboardController extends Controller
                 ]),
             'applicationTrends' => [
                 'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                'data' => JobApplication::whereHas('job', fn($q) => 
+                'data' => JobApplication::whereHas('job', fn($q) =>
                     $q->where('company_id', $company->id))
                     ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
                     ->whereYear('created_at', date('Y'))
@@ -68,8 +86,8 @@ class CompanyDashboardController extends Controller
                     'id' => $job->id,
                     'title' => $job->job_title,
                     'applications' => $job->applications_count,
-                    'interview_rate' => $job->applications_count > 0 
-                        ? round(($job->interviews_count / $job->applications_count) * 100) 
+                    'interview_rate' => $job->applications_count > 0
+                        ? round(($job->interviews_count / $job->applications_count) * 100)
                         : 0
                 ])
                 ->sortByDesc('interview_rate')

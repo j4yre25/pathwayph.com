@@ -911,7 +911,7 @@ if (!$file->getRealPath()) {
             'author' => $request->author,
             'position' => $request->position,
             'company' => $request->company,
-            'content' => $request->content,
+            // 'content' => $request->content,
             'graduate_id' => $graduate->id,
         ];
 
@@ -946,7 +946,7 @@ if (!$file->getRealPath()) {
         $testimonial->author = $request->author;
         $testimonial->position = $request->position;
         $testimonial->company = $request->company;
-        $testimonial->content = $request->content;
+        // $testimonial->content = $request->content;
 
         if ($request->hasFile('file')) {
             if ($testimonial->file) {

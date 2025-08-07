@@ -5,7 +5,7 @@
     import TextInput from '@/Components/TextInput.vue';
     import InputError from '@/Components/InputError.vue';
     import PrimaryButton from '@/Components/PrimaryButton.vue';
-import AppLayout from '@/Layouts/AppLayout.vue';
+    import AppLayout from '@/Layouts/AppLayout.vue';
     
     // You may want to fetch these from props or an API
     const categories = usePage().props.categories || [];
