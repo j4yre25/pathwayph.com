@@ -610,7 +610,7 @@ function submitReferral() {
                     </Modal>
 
                     <!-- Only show if graduate, approved, and has not filled up the referral letter -->
-                    <button v-if="page.props.roles.isGraduate && !userNotApproved.value && !hasFilledReferral"
+                    <button v-if="page.props.auth.user.role === 'graduate' && !userNotApproved.value && !hasFilledReferral"
                         class="mt-4 px-4 py-2 bg-green-600 text-white rounded" @click="showReferralModal = true">
                         Create Job Referral Letter
                     </button>
