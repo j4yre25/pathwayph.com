@@ -1,8 +1,8 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
-    show: {
+    modelValue: {
         type: Boolean,
         default: false,
     },
@@ -14,29 +14,9 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
-    modelValue: {
-        type: Boolean,
-        default: undefined,
-    },
 });
 
 const emit = defineEmits(['close', 'update:modelValue']);
-const showSlot = ref(props.show);
-
-watch(
-    () => props.show,
-    (val) => {
-        if (val) {
-            document.body.style.overflow = 'hidden';
-            showSlot.value = true;
-        } else {
-            document.body.style.overflow = null;
-            setTimeout(() => {
-                showSlot.value = false;
-            }, 200);
-        }
-    }
-);
 
 const close = () => {
     if (props.closeable) {
@@ -46,15 +26,16 @@ const close = () => {
 };
 
 const closeOnEscape = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && props.modelValue) {
         e.preventDefault();
-        if (props.show || props.modelValue) {
-            close();
-        }
+        close();
     }
 };
 
-onMounted(() => document.addEventListener('keydown', closeOnEscape));
+onMounted(() => {
+    document.addEventListener('keydown', closeOnEscape);
+    if (props.modelValue) document.body.style.overflow = 'hidden';
+});
 onUnmounted(() => {
     document.removeEventListener('keydown', closeOnEscape);
     document.body.style.overflow = null;
@@ -83,7 +64,7 @@ const maxWidthClass = computed(() => {
   <transition name="fade">
     <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
-        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" @click="$emit('update:modelValue', false)">
+        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" @click="close">
           <span aria-hidden="true">&times;</span>
         </button>
         <div v-if="$slots.header" class="mb-4">

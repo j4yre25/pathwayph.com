@@ -224,6 +224,6 @@ class CompanyProfileController extends Controller
         $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
         $company->save();
 
-        return redirect()->route('company.profile')->with('success', 'Company profile completed!');
+        return back()->with('information_saved', true);
     }
 }
