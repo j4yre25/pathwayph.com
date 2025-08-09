@@ -50,7 +50,7 @@ console.log(props.summary)
 
 const trendOptions = computed(() => ({
     title: {
-        text: 'Application Trends',
+        text: 'Job Hiring Trends for Applicants',
         left: 'center'
     },
     xAxis: {

@@ -22,6 +22,10 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
+        if ($user->hasRole('company') && !$user->company) {
+            return redirect()->route('company.information');
+        }
+
         // Default values for all props
         $summary = [];
         $graduates = collect();

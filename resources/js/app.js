@@ -29,7 +29,8 @@ import {
   LegendComponent,
   ToolboxComponent,
   GridComponent,
-  DatasetComponent
+  DatasetComponent,
+  DataZoomComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VueECharts from 'vue-echarts';
@@ -51,7 +52,8 @@ echarts.use([
   ToolboxComponent,
   GridComponent,
   DatasetComponent,
-  CanvasRenderer
+  CanvasRenderer,
+  DataZoomComponent,
 ]);
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';

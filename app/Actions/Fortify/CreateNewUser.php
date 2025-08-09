@@ -71,15 +71,10 @@ class CreateNewUser implements CreatesNewUsers
                 }
                 break;
             case 'company':
-                // $rules['company_name'] = ['required', 'string', 'max:255'];
-                // $rules['company_street_address'] = ['required', 'string', 'max:255'];
-                // $rules['company_brgy'] = ['required', 'string', 'max:255'];
-                // $rules['company_city' ] = ['required', 'string', 'max:255'];
-                // $rules['company_province' ] = ['required', 'string', 'max:255'];
-                // $rules['company_zip_code' ] = ['required', 'string', 'max:4'];
-                // $rules['company_email' ] = ['required', 'string', 'email', 'max:255'];
-                // $rules['company_mobile_phone' ] = ['required', 'numeric', 'digits_between:10,15', 'regex:/^9\d{9}$/'];
-                // $rules['category' ] = 'required|exists:categories,id';
+                 $rules = [
+                        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+                        'password' => $this->passwordRules(),
+                    ];
                 break;
             case 'institution':
                 $rules['institution_type' ] = ['required', 'string'];
@@ -144,14 +139,10 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, $rules, $messages)->validate();
 
         $userData = [
-            'first_name' => $input['first_name'],
-            'middle_name' => $input['middle_name'],
-            'last_name' => $input['last_name'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
             'role' => $role,
-            'mobile_number' => $input['mobile_number'],
-            'is_approved' => false, // <-- Ensure this is set
+            'is_approved' => false, 
         ];
 
         $user = User::create($userData);
@@ -178,7 +169,7 @@ class CreateNewUser implements CreatesNewUsers
         }
 
         // Store in Companies table
-        if ($role === 'company') {
+        // if ($role === 'company') {
             // // $category = \App\Models\Category::find($input['category']);
             // // $company = Company::create([
             // //     'user_id' => $user->id,
@@ -196,20 +187,20 @@ class CreateNewUser implements CreatesNewUsers
             // //     'created_at' => now(),
             // //     'updated_at' => now(),
             // // ]);
-            $user->hr()->create([
-                'first_name' => $input['first_name'],
-                'middle_name' => $input['middle_name'],
-                'last_name' => $input['last_name'],
-                'mobile_number' => $input['mobile_number'],
-                'dob' => $input['dob'],
-                'gender' => $input['gender'],
-                // 'company_id' => $company->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            $user->assignRole($role);
-            return $user; // <-- Ensure return here
-        }
+        //     $user->hr()->create([
+        //         'first_name' => $input['first_name'],
+        //         'middle_name' => $input['middle_name'],
+        //         'last_name' => $input['last_name'],
+        //         'mobile_number' => $input['mobile_number'],
+        //         'dob' => $input['dob'],
+        //         'gender' => $input['gender'],
+        //         // 'company_id' => $company->id,
+        //         'created_at' => now(),
+        //         'updated_at' => now(),
+        //     ]);
+        //     $user->assignRole($role);
+        //     return $user; // <-- Ensure return here
+        // }
 
         // Store in Graduates table
         if ($role === 'graduate') {

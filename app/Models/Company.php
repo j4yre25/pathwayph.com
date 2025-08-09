@@ -57,6 +57,6 @@ class Company extends Model
 
     public function hrs()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(HumanResource::class, 'company_id');
     }
 }
