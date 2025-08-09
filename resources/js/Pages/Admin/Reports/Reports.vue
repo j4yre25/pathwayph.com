@@ -63,7 +63,7 @@ const allTabs = [
   { key: 'jobSatisfaction', label: 'Job Satisfaction' },
   { key: 'futureJobTrends', label: 'Future Job Trends' },
   { key: 'jobOpeningsSeekers', label: 'Job Openings vs. Job Seekers' },
-]
+  ]
 
 const VISIBLE_TAB_COUNT = 4
 const activeTab = ref(allTabs[0].key)
