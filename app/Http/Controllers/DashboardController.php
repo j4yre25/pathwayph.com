@@ -207,6 +207,8 @@ class DashboardController extends Controller
         }
 
         return Inertia::render('Dashboard', [
+
+
             'userNotApproved' => !$user->is_approved,
             'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
@@ -220,9 +222,162 @@ class DashboardController extends Controller
             'careerOpportunities' => $careerOpportunities,
             'schoolYears' => $schoolYears,
             'institutionCareerOpportunities' => $institutionCareerOpportunities,
+
+            'kpi' => [
+                'registeredEmployers' => 42,
+                'activeJobListings' => 18,
+                'registeredJobSeekers' => 350,
+                'referralsThisMonth' => 27,
+                'successfulPlacements' => 12,
+                'upcomingCareerGuidance' => 3,
+                'pendingEmployerRegistrations' => 2,
+            ],
+            'recentJobs' => [
+                [
+                    'title' => 'Customer Service Representative',
+                    'sector' => 'BPO',
+                    'employer' => 'Acme Corp',
+                    'date_posted' => '2025-08-01',
+                ],
+                [
+                    'title' => 'Sales Associate',
+                    'sector' => 'Retail',
+                    'employer' => 'ShopSmart',
+                    'date_posted' => '2025-08-03',
+                ],
+                [
+                    'title' => 'Production Operator',
+                    'sector' => 'Manufacturing',
+                    'employer' => 'MegaMakers',
+                    'date_posted' => '2025-08-05',
+                ],
+            ],
+            'expiringJobs' => [
+                [
+                    'title' => 'Warehouse Staff',
+                    'employer' => 'LogiPro',
+                    'expires_at' => '2025-08-10',
+                ],
+                [
+                    'title' => 'IT Support',
+                    'employer' => 'Techies Inc',
+                    'expires_at' => '2025-08-12',
+                ],
+            ],
+            'topSectorsChartOption' => [
+                'tooltip' => ['trigger' => 'item'],
+                'legend' => ['top' => '5%'],
+                'series' => [
+                    [
+                        'name' => 'Sectors',
+                        'type' => 'pie',
+                        'radius' => '60%',
+                        'data' => [
+                            ['value' => 10, 'name' => 'BPO'],
+                            ['value' => 7, 'name' => 'Retail'],
+                            ['value' => 5, 'name' => 'Manufacturing'],
+                            ['value' => 3, 'name' => 'Education'],
+                            ['value' => 2, 'name' => 'Healthcare'],
+                        ],
+                    ],
+                ],
+            ],
+            'referralTrendOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['Jul', 'Aug']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Referrals',
+                        'type' => 'line',
+                        'data' => [22, 27],
+                    ],
+                ],
+            ],
+            'topEmployersOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['Acme Corp', 'ShopSmart', 'MegaMakers']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Referrals',
+                        'type' => 'bar',
+                        'data' => [12, 8, 7],
+                    ],
+                ],
+            ],
+            'pendingReferrals' => [
+                [
+                    'job_seeker' => 'Juan Dela Cruz',
+                    'employer' => 'Acme Corp',
+                    'due_date' => '2025-08-09',
+                ],
+                [
+                    'job_seeker' => 'Maria Santos',
+                    'employer' => 'ShopSmart',
+                    'due_date' => '2025-08-11',
+                ],
+            ],
+            'upcomingEvents' => [
+                [
+                    'title' => 'Career Guidance Seminar',
+                    'date' => '2025-08-15',
+                    'venue' => 'City Hall',
+                ],
+                [
+                    'title' => 'Job Fair',
+                    'date' => '2025-08-20',
+                    'venue' => 'Convention Center',
+                ],
+            ],
+            'eventAttendanceOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['May', 'Jun', 'Jul', 'Aug']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Attendance',
+                        'type' => 'bar',
+                        'data' => [120, 150, 180, 90],
+                    ],
+                ],
+            ],
+            'alerts' => [
+                'employersNoPermit' => ['Acme Corp', 'MegaMakers'],
+                'unreviewedApplications' => ['ShopSmart', 'LogiPro'],
+                'inactiveEmployers' => ['OldCo'],
+            ],
+            'sectorPieOption' => [
+                'tooltip' => ['trigger' => 'item'],
+                'legend' => ['top' => '5%'],
+                'series' => [
+                    [
+                        'name' => 'Sectors',
+                        'type' => 'pie',
+                        'radius' => '50%',
+                        'data' => [
+                            ['value' => 15, 'name' => 'BPO'],
+                            ['value' => 10, 'name' => 'Retail'],
+                            ['value' => 8, 'name' => 'Manufacturing'],
+                            ['value' => 5, 'name' => 'Education'],
+                            ['value' => 2, 'name' => 'Healthcare'],
+                        ],
+                    ],
+                ],
+            ],
+            'inDemandCategories' => [
+                ['name' => 'Customer Service', 'count' => 12],
+                ['name' => 'Sales', 'count' => 9],
+                ['name' => 'IT Support', 'count' => 7],
+                ['name' => 'Production', 'count' => 5],
+                ['name' => 'Teaching', 'count' => 3],
+            ],
+
+
             'recentApplications' => $recentApplications,
             'applicationTrends' => $applicationTrends,
             'jobPerformance' => $jobPerformance,
+
         ]);
     }
 
