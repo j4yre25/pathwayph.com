@@ -458,8 +458,7 @@ console.log(page.props.permissions.canManageInstitution)
                                         </DropdownLink>
 
                                         <DropdownLink
-                                            v-if="page.props.auth.user.role === 'company' && page.props.auth.user.is_approved"
-                                            :disabled="!page.props.auth.user.is_approved"
+                                            v-if="page.props.auth.user.role === 'company'"
                                             :href="route('company.profile')">
                                             Profile
                                         </DropdownLink>
