@@ -25,6 +25,7 @@ class Company extends Model
         'company_tel_phone',
         'category_id', 
         'sector_id',
+        'verification_file_path',
         'company_id',
     ];
 
