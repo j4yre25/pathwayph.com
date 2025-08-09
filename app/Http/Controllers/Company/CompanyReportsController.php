@@ -312,62 +312,88 @@ class CompanyReportsController extends Controller
         $hr = $user->hr;
         $companyId = $hr->company_id;
 
+        // Get all years present in applications for this company
+        $years = JobApplication::whereHas('job', function ($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            })
+            ->selectRaw("YEAR(created_at) as year")
+            ->distinct()
+            ->orderBy('year')
+            ->pluck('year')
+            ->toArray();
+
+        // For dropdown and filtering
+        $applicationYears = $years;
+        $selectedYear = $request->input('application_year', end($applicationYears)); // default to latest
+
         $jobs = Job::where('company_id', $companyId)
             ->with(['applications'])
             ->get();
 
         $jobTitles = $jobs->pluck('job_title')->toArray();
 
-        // 1. Stacked Bar Chart: Applications per job posting (by stage)
+        $jobDepartments = [];
+        foreach ($jobs as $job) {
+            $jobDepartments[$job->job_title] = $job->department->department_name ?? '';
+        }
+
+        // 1. Stacked Bar Chart: Applications per job posting (by stage, per year)
         $stages = ['applied', 'interviewed', 'offered', 'hired'];
         $stackedBarSeries = [];
         foreach ($stages as $stage) {
+            $data = [];
+            foreach ($applicationYears as $year) {
+                $count = JobApplication::whereHas('job', function ($q) use ($companyId) {
+                        $q->where('company_id', $companyId);
+                    })
+                    ->where('stage', $stage)
+                    ->whereYear('created_at', $year)
+                    ->count();
+                $data[] = $count;
+            }
             $stackedBarSeries[] = [
                 'name' => ucfirst($stage),
                 'type' => 'bar',
                 'stack' => 'total',
-                'data' => $jobs->map(fn($job) => $job->applications->where('stage', $stage)->count())->toArray(),
+                'data' => $data,
             ];
         }
 
-        // 2. Scatter Plot: Correlate years of experience with number of applications
+        // 2. Scatter Plot: Correlate years of experience with number of applications (add year info)
         $allSkills = [];
         $scatterData = [];
         foreach ($jobs as $job) {
-            $years = $job->years_experience ?? 0;
-            $count = $job->applications->count();
-            $skills = is_array($job->skills) ? $job->skills : [];
-            $allSkills = array_merge($allSkills, $skills);
-            $scatterData[] = [
-                $years,
-                $count,
-                $job->job_title,
-                $skills, // <-- skills array from JSON column
-            ];
+            foreach ($applicationYears as $year) {
+                $apps = $job->applications->filter(function ($app) use ($year) {
+                    return $app->created_at->format('Y') == $year;
+                });
+                $years = $job->years_experience ?? 0;
+                $count = $apps->count();
+                $skills = is_array($job->skills) ? $job->skills : [];
+                $allSkills = array_merge($allSkills, $skills);
+                $scatterData[] = [
+                    $years,
+                    $count,
+                    $job->job_title,
+                    $skills,
+                    $year, // Application year for filtering
+                ];
+            }
         }
         $allSkills = array_values(array_unique($allSkills));
 
-        // 3. Line Chart: Applications received over time (monthly)
-        $months = JobApplication::whereHas('job', function ($q) use ($companyId) {
-            $q->where('company_id', $companyId);
-        })
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('month')
-            ->toArray();
-
+        // 3. Line Chart: Applications received per year
         $lineData = [];
-        foreach ($months as $month) {
+        foreach ($applicationYears as $year) {
             $lineData[] = JobApplication::whereHas('job', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })
-                ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$month])
+                    $q->where('company_id', $companyId);
+                })
+                ->whereYear('created_at', $year)
                 ->count();
         }
 
-        // 4. Area Chart: Applications per department over time
-        $departments = Job::where('company_id', $companyId)
+        // 4. Area Chart: Applications per department per year
+        $departments = Job::where('jobs.company_id', $companyId)
             ->join('departments', 'jobs.department_id', '=', 'departments.id')
             ->select('departments.department_name')
             ->groupBy('departments.department_name')
@@ -377,14 +403,14 @@ class CompanyReportsController extends Controller
         $areaSeries = [];
         foreach ($departments as $dept) {
             $data = [];
-            foreach ($months as $month) {
+            foreach ($applicationYears as $year) {
                 $data[] = JobApplication::whereHas('job', function ($q) use ($companyId, $dept) {
-                    $q->where('company_id', $companyId)
-                        ->whereHas('department', function ($q2) use ($dept) {
-                            $q2->where('name', $dept);
-                        });
-                })
-                    ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$month])
+                        $q->where('company_id', $companyId)
+                            ->whereHas('department', function ($q2) use ($dept) {
+                                $q2->where('department_name', $dept);
+                            });
+                    })
+                    ->whereYear('created_at', $year)
                     ->count();
             }
             $areaSeries[] = [
@@ -396,14 +422,35 @@ class CompanyReportsController extends Controller
             ];
         }
 
+        // --- SUMMARY TABLE LOGIC ---
+        $summaryTable = [];
+        foreach ($jobs as $job) {
+            foreach ($applicationYears as $year) {
+                $apps = $job->applications->filter(function ($app) use ($year) {
+                    return $app->created_at->format('Y') == $year;
+                });
+                $summaryTable[] = [
+                    'jobTitle' => $job->job_title,
+                    'department' => $job->department->department_name ?? '',
+                    'totalApplications' => $apps->count(),
+                    'hired' => $apps->where('stage', 'hired')->count(),
+                    'applicationYear' => $year,
+                ];
+            }
+        }
+
         return Inertia::render('Company/Reports/ApplicationAnalysis', [
             'jobTitles' => $jobTitles,
+            'jobDepartments' => $jobDepartments,
             'stackedBarSeries' => $stackedBarSeries,
             'scatterData' => $scatterData,
-            'months' => $months,
+            'years' => $applicationYears,
             'lineData' => $lineData,
             'allSkills' => $allSkills,
             'areaSeries' => $areaSeries,
+            'summaryTable' => $summaryTable,
+            'departments' => $departments,
+            'selectedYear' => $selectedYear,
         ]);
     }
 
@@ -1249,17 +1296,6 @@ class CompanyReportsController extends Controller
             ->whereHas('company', function ($q) {
                 $q->where('company_city', 'General Santos City');
             });
-
-        if ($timeline) {
-            $hiredGraduatesQuery->whereHas('jobApplications', function ($q) use ($timeline) {
-                $q->where('status', 'hired')
-                ->whereRaw("DATE_FORMAT(updated_at, '%Y-%m') = ?", [$timeline]);
-            });
-        }
-
-        if ($institutionId) {
-            $hiredGraduatesQuery->where('institution_id', $institutionId);
-        }
         if ($programId) {
             $hiredGraduatesQuery->where('program_id', $programId);
         }

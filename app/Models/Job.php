@@ -209,5 +209,18 @@ class Job extends Model
         return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment');
     }
 
-    
+    /**
+     * Get all interviews for this job through job applications.
+     */
+    public function interviews()
+    {
+        return $this->hasManyThrough(
+            \App\Models\Interview::class,      // The related model
+            \App\Models\JobApplication::class, // The intermediate model
+            'job_id',                          // Foreign key on JobApplication table...
+            'job_application_id',              // Foreign key on Interview table...
+            'id',                              // Local key on Job table...
+            'id'                               // Local key on JobApplication table...
+        );
+    }
 }

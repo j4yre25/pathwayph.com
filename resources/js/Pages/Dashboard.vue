@@ -176,34 +176,40 @@ function submitReferral() {
             </h2>
         </template>
 
-        <div v-if="page.props.roles?.isCompany" class="py-12">
-            <Welcome v-if="!page.props.roles?.isCompany" />
-            <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-800">
-                    Welcome to the Dashboard
-                </h3>
-                <p class="mt-2 text-gray-600">
-                    Here you can manage your account and view your statistics.
-                </p>
-            </div>
-            <CompanyDashboard :summary="page.props.summary" />
-        </div>
 
-        <div v-else-if="page.props.roles?.isInstitution" class="py-12">
-            <Welcome v-if="!page.props.roles?.isInstitution" />
-            <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-800">
-                    Welcome to the Dashboard
-                </h3>
-                <p class="mt-2 text-gray-600">
-                    Here you can manage your account and view your statistics.
-                </p>
-            </div>
-            <InstitutionDashboard :summary="page.props.summary" :graduates="page.props.graduates"
-                :programs="page.props.programs" :careerOpportunities="page.props.careerOpportunities"
-                :schoolYears="page.props.schoolYears"
-                :institutionCareerOpportunities="page.props.institutionCareerOpportunities" />
-        </div>
+        <div v-if="page.props.roles?.isCompany" class="py-12">
+    <Welcome v-if="!page.props.roles?.isCompany" />
+    <div class="p-6">
+        <h3 class="text-lg font-semibold text-gray-800">
+            Welcome to the Dashboard
+        </h3>
+        <p class="mt-2 text-gray-600">
+            Here you can manage your account and view your statistics.
+        </p>
+    </div>
+    <CompanyDashboard   
+        :summary="page.props.summary"
+        :recentApplications="page.props.recentApplications"
+        :applicationTrends="page.props.applicationTrends"
+        :jobPerformance="page.props.jobPerformance"
+        />
+</div>
+
+<div v-else-if="page.props.roles?.isInstitution" class="py-12">
+    <Welcome v-if="!page.props.roles?.isInstitution" />
+    <div class="p-6">
+        <h3 class="text-lg font-semibold text-gray-800">
+            Welcome to the Dashboard
+        </h3>
+        <p class="mt-2 text-gray-600">
+            Here you can manage your account and view your statistics.
+        </p>
+    </div>
+    <InstitutionDashboard :summary="page.props.summary" :graduates="page.props.graduates"
+        :programs="page.props.programs" :careerOpportunities="page.props.careerOpportunities"
+        :schoolYears="page.props.schoolYears"
+        :institutionCareerOpportunities="page.props.institutionCareerOpportunities" />
+</div>
 
         <div v-if="page.props.auth.user.role === 'peso'" class="py-12">
             <!-- Dashboard Header -->
@@ -379,13 +385,24 @@ function submitReferral() {
         </div>
 
 
-        <div class="py-12">
+        <div class="
+        ">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                     <!-- Account Not Approved Modal -->
                     <Modal v-if="showModal" :show="showModal">
                         <template #title> Account Not Approved </template>
                         <template #content>
+
+
+
+<div class="py-12">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+            <!-- Account Not Approved Modal -->
+            <Modal v-if="showModal" :show="showModal">
+                <template #title> Account Not Approved </template>
+                <template #content>
                             <p>
                                 Your account is not approved yet. Some features
                                 may be disabled.
