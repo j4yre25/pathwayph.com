@@ -83,10 +83,15 @@ const resendCode = () => {
                 </div>
             </form>
 
-            <div class="mt-4">
+            <div class="mt-4 flex justify-between">
                 <Link :href="route('logout')" method="post" as="button"
                     class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     Log Out
+                </Link>
+                
+                <Link :href="route('verification.code')" 
+                    class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Use Modern Verification UI
                 </Link>
             </div>
         </template>

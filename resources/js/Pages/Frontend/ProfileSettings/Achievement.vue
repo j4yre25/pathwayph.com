@@ -176,8 +176,8 @@ const removeAchievement = (id) => {
         <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
             <div class="p-6">
                 <div class="flex items-center justify-center mb-4">
-                    <div class="bg-green-100 rounded-full p-2">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    <div class="bg-blue-100 rounded-full p-2">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                             xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
                             </path>
@@ -187,7 +187,7 @@ const removeAchievement = (id) => {
                 <h3 class="text-lg font-medium text-center mb-4">{{ successMessage }}</h3>
                 <div class="flex justify-center">
                     <button @click="closeSuccessModal"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         OK
                     </button>
                 </div>
@@ -209,7 +209,7 @@ const removeAchievement = (id) => {
                 <h3 class="text-lg font-medium text-center mb-4">{{ errorMessage }}</h3>
                 <div class="flex justify-center">
                     <button @click="closeErrorModal"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         OK
                     </button>
                 </div>
@@ -232,7 +232,7 @@ const removeAchievement = (id) => {
                 <h3 class="text-lg font-medium text-center mb-4">This achievement already exists.</h3>
                 <div class="flex justify-center">
                     <button @click="closeDuplicateModal"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                         OK
                     </button>
                 </div>
@@ -240,22 +240,23 @@ const removeAchievement = (id) => {
         </Modal>
         <div class="w-full mb-6">
             <div class="flex justify-between items-center mb-4">
-                <h1 class="text-xl font-semibold mb-4">Achievements</h1>
-                <div class="flex space-x-4">
-                    <PrimaryButton class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center"
-                        @click="isAddAchievementModalOpen = true">
-                        <i class="fas fa-plus mr-2"></i>
-                        Add Achievement
-                    </PrimaryButton>
-                    <button
-                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Achievements</h1>
+                        <p class="mt-2 text-gray-600">Showcase your awards, recognitions, publications, and patents</p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center hover:bg-blue-700 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            @click="openAddAchievementModal">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Achievement
+                        </button>
+                    <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer" 
                         @click="showArchivedAchievements = !showArchivedAchievements">
                         <i class="fas" :class="showArchivedAchievements ? 'fa-eye-slash' : 'fa-eye'"></i>
                         <span class="ml-2">{{ showArchivedAchievements ? 'Hide Archived' : 'Show Archived' }}</span>
                     </button>
                 </div>
             </div>
-            <p class="text-gray-600 mb-6">Showcase your awards and recognition</p>
 
             <!-- Achievement Entries -->
             <div>
@@ -281,8 +282,8 @@ const removeAchievement = (id) => {
                                 URL:
                                 <span v-if="achievement.url">
                                     <a :href="achievement.url" class="text-blue-600 hover:underline" target="_blank">
-                                        {{ achievement.url }}
-                                    </a>
+                                    {{ achievement.url }}
+                                </a>
                                 </span>
                                 <span v-else class="text-gray-500">No URL</span>
                             </p>
@@ -292,7 +293,7 @@ const removeAchievement = (id) => {
                                 class="max-w-full h-auto rounded-lg shadow" />
                         </div>
                         <div class="flex justify-end space-x-2 mt-3">
-                            <button @click="openUpdateAchievementModal(achievement)" class="text-gray-600 hover:text-indigo-600">
+                            <button @click="openUpdateAchievementModal(achievement)" class="text-gray-600 hover:text-blue-600">
                                 <i class="fas fa-pen"></i>
                             </button>
                             <button @click="removeAchievement(achievement)" class="text-red-600 hover:text-red-800">
@@ -389,7 +390,7 @@ const removeAchievement = (id) => {
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-medium mb-2">Title</label>
                                 <input type="text" v-model="achievementForm.graduate_achievement_title"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="Name of the Award or Certification" required>
                             </div>
                             <div class="mb-4">
@@ -410,7 +411,7 @@ const removeAchievement = (id) => {
                                         class="text-red-500">*</span></label>
                                 <input type="text" name="graduate_achievement_issuer"
                                     v-model="achievementForm.graduate_achievement_issuer"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="Name of the Organization or Institution" required>
                             </div>
                             <div class="mb-4">
@@ -418,20 +419,20 @@ const removeAchievement = (id) => {
                                         class="text-red-500">*</span></label>
                                 <Datepicker name="graduate_achievement_date"
                                     v-model="achievementForm.graduate_achievement_date"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="Select start date" required />
                             </div>
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-medium mb-2">Description</label>
                                 <textarea name="graduate_achievement_description"
                                     v-model="achievementForm.graduate_achievement_description"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="Describe your achievement"></textarea>
                             </div>
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-medium mb-2">URL</label>
                                 <input type="url" v-model="achievementForm.graduate_achievement_url"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="e.g. https://example.com" :required="!achievementForm.noCredentialUrl"
                                     :disabled="achievementForm.noCredentialUrl" />
                                 <div class="mt-2">
@@ -444,13 +445,13 @@ const removeAchievement = (id) => {
                                 <label class="block text-gray-700 mb-2">Credential Picture</label>
                                 <input type="file" name="credential_picture" accept="image/*"
                                     @change="handleCredentialPictureUpload"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600" />
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
                                 <img v-if="previewImage" :src="previewImage" class="mt-2 max-w-xs rounded"
                                     alt="Credential Preview" />
                             </div>
                             <div class="flex justify-end">
                                 <button type="submit"
-                                    class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center"
+                                    class="w-full bg-blue-600 text-white py-2 rounded-md flex items-center justify-center"
                                     :disabled="isSubmittingAchievement">
                                     <i class="fas fa-spinner fa-spin mr-2" v-if="isSubmittingAchievement"></i>
                                     <i class="fas fa-save mr-2" v-else></i>
@@ -479,13 +480,13 @@ const removeAchievement = (id) => {
                                 <label class="block text-gray-700 font-medium mb-2">Title <span
                                         class="text-red-500">*</span></label>
                                 <input type="text" v-model="achievementForm.graduate_achievement_title"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="Name of the Award or Certification" required />
                             </div>
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-medium mb-2">Type</label>
                                 <select v-model="achievementForm.graduate_achievement_type"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600">
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
                                     <option value="" disabled>Select type</option>
                                     <option value="Award">Award</option>
                                     <option value="Recognition">Recognition</option>
@@ -497,47 +498,47 @@ const removeAchievement = (id) => {
                                 <label class="block text-gray-700 font-medium mb-2">Issuer <span
                                         class="text-red-500">*</span></label>
                                 <input type="text" v-model="achievementForm.graduate_achievement_issuer"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="Name of the Organization or Institution" required />
                             </div>
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-medium mb-2">Date <span
                                         class="text-red-500">*</span></label>
                                 <Datepicker v-model="achievementForm.graduate_achievement_date"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="Select date" required />
                             </div>
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-medium mb-2">Description</label>
                                 <textarea v-model="achievementForm.graduate_achievement_description"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     rows="3" placeholder="Describe your achievement..."></textarea>
                             </div>
                             <div class="mb-4">
                                 <label class="block text-gray-700 font-medium mb-2">URL</label>
                                 <input type="url" v-model="achievementForm.graduate_achievement_url"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                     placeholder="e.g. https://example.com" :required="!achievementForm.noCredentialUrl"
                                     :disabled="achievementForm.noCredentialUrl" />
                             </div>
                             <div class="mb-4">
                                 <label class="inline-flex items-center">
                                     <input type="checkbox" v-model="achievementForm.noCredentialUrl"
-                                        class="form-checkbox h-5 w-5 text-indigo-600" />
+                                        class="form-checkbox h-5 w-5 text-blue-600" />
                                     <span class="ml-2 text-gray-700">No URL</span>
                                 </label>
                             </div>
                             <div class="mb-4">
                                 <label class="block text-gray-700 mb-2">Credential Picture</label>
                                 <input type="file" accept="image/*" @change="handleCredentialPictureUpload"
-                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600" />
+                                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
                                 <img v-if="achievementForm.credential_picture_url"
                                     :src="achievementForm.credential_picture_url" class="mt-2 max-w-xs rounded"
                                     alt="Credential Preview" />
                             </div>
                             <div class="flex justify-end">
                                 <button type="submit"
-                                    class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
+                                    class="w-full bg-blue-600 text-white py-2 rounded-md flex items-center justify-center">
                                     <i class="fas fa-save mr-2"></i>
                                     Update Achievement
                                 </button>

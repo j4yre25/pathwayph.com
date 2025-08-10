@@ -9,7 +9,7 @@ class Degree extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['type'];
+    protected $fillable = ['type', 'code'];
 
     public function programs()
     {

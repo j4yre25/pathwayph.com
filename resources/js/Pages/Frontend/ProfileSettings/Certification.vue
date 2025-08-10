@@ -45,6 +45,8 @@ const isDuplicateModalOpen = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 const showArchivedCertifications = ref(false);
+const certificationsExpanded = ref(true); // State for Certifications collapsible section
+const archivedCertificationsExpanded = ref(true); // State for Archived Certifications collapsible section
 
 // Form
 const form = useForm({
@@ -241,140 +243,177 @@ const removeCertification = (entry) => {
 
   <div v-if="activeSection === 'certifications'" class="flex flex-col lg:flex-row">
     <div class="w-full mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-xl font-semibold">Certifications</h1>
-        <div class="flex space-x-2">
-          <PrimaryButton class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center hover:bg-indigo-700"
-            @click="openAddCertificationModal">
-            <i class="fas fa-plus mr-2"></i> Add Certification
-          </PrimaryButton>
-          <button
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
-            @click="toggleArchivedCertifications">
-            <i class="fas" :class="showArchivedCertifications ? 'fa-eye-slash' : 'fa-eye'"></i>
-            <span class="ml-2">{{ showArchivedCertifications ? 'Hide Archived' : 'Show Archived' }}</span>
-          </button>
-        </div>
-      </div>
-      <p class="text-gray-600 mb-6">Showcase your certifications</p>
-
-      <!-- Certification Entries -->
-      <div>
-        <h2 class="text-lg font-medium mb-4">Active Certifications</h2>
-        <div v-if="filteredCertificationsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div v-for="entry in filteredCertificationsEntries" :key="entry?.id"
-            class="bg-white p-8 rounded-lg shadow relative">
-            <div>
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold text-gray-800">{{ entry.name }}</h2>
-                <p class="text-sm text-gray-600">{{ entry.issuer }}</p>
-              </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt mr-2 text-gray-500"></i>
-                <span>
-                  {{ formatDate(entry.issue_date) }} -
-                  {{ entry.expiry_date === null ? 'No Expiry' :
-                    formatDate(entry.expiry_date) }}
-                </span>
-              </div>
-              <div class="mt-2">
-                <strong>
-                  <i class="fas fa-link text-gray-500 mr-2"></i> Credential URL:
-                </strong>
-                <span v-if="entry.credential_url">
-                  <a :href="entry.credential_url" target="_blank" class="text-indigo-600 hover:underline break-all">
-                    {{ entry.credential_url }}
-                  </a>
-                </span>
-                <span v-else class="text-gray-500">No credential URL provided</span>
-              </div>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-id-badge text-gray-500 mr-2"></i> Credential ID:
-                </strong>
-                {{ entry.credential_id || 'No credential ID provided' }}
-              </p>
-              <div v-if="entry.file_path" class="mt-3">
-                <a :href="`/storage/${entry.file_path}`" target="_blank" class="text-indigo-600 hover:underline">
-                  View Certificate
-                </a>
-              </div>
+      <!-- Active Certifications Card -->
+      <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+        <!-- Card Header with Collapsible Toggle -->
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 text-white cursor-pointer"
+             @click="certificationsExpanded = !certificationsExpanded">
+          <div class="flex items-center">
+            <div class="bg-white/20 p-2 rounded-full mr-3">
+              <i class="fas fa-certificate"></i>
             </div>
-            <div class="absolute top-8 right-4 flex space-x-4">
-              <button class="text-gray-600 hover:text-indigo-600" @click="openUpdateCertificationModal(entry)">
-                <i class="fas fa-pen"></i>
-              </button>
-              <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry)">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
+            <h3 class="text-lg font-semibold">Certifications</h3>
+          </div>
+          <div class="flex space-x-2">
+            <PrimaryButton class="bg-blue-700 text-white px-4 py-2 rounded flex items-center hover:bg-blue-800"
+              @click.stop="openAddCertificationModal">
+              <i class="fas fa-plus mr-2"></i> Add Certification
+            </PrimaryButton>
+            <button
+              class="bg-blue-700/80 hover:bg-blue-800 text-white px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+              @click.stop="toggleArchivedCertifications">
+              <i class="fas" :class="showArchivedCertifications ? 'fa-eye-slash' : 'fa-eye'"></i>
+              <span class="ml-2">{{ showArchivedCertifications ? 'Hide Archived' : 'Show Archived' }}</span>
+            </button>
+            <button class="text-white p-2" @click.stop="certificationsExpanded = !certificationsExpanded">
+              <i class="fas" :class="certificationsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </button>
           </div>
         </div>
+        
+        <!-- Card Body -->
+        <div v-show="certificationsExpanded" class="p-6 transition-all duration-300">
+          <p class="text-gray-600 mb-6">Showcase your certifications</p>
+          
+          <!-- Certification Entries -->
+          <div v-if="filteredCertificationsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div v-for="entry in filteredCertificationsEntries" :key="entry?.id"
+              class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 relative">
+              <div class="space-y-2 w-full">
+                <div class="border-b border-blue-100 pb-2">
+                  <h2 class="text-xl font-bold text-blue-900">{{ entry.name }}</h2>
+                  <p class="text-sm text-gray-600"><i class="fas fa-certificate text-blue-600 mr-2"></i>{{ entry.issuer }}</p>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2 bg-blue-50 px-3 py-1 rounded-full inline-block">
+                  <i class="far fa-calendar-alt mr-2 text-blue-600"></i>
+                  <span>
+                    {{ formatDate(entry.issue_date) }} -
+                    {{ entry.expiry_date === null ? 'No Expiry' :
+                      formatDate(entry.expiry_date) }}
+                  </span>
+                </div>
+                <div class="mt-2">
+                  <strong>
+                    <i class="fas fa-link text-blue-600 mr-2"></i> Credential URL:
+                  </strong>
+                  <span v-if="entry.credential_url">
+                    <a :href="entry.credential_url" target="_blank" class="text-blue-600 hover:underline break-all">
+                      {{ entry.credential_url }}
+                    </a>
+                  </span>
+                  <span v-else class="text-gray-500">No credential URL provided</span>
+                </div>
+                <p class="mt-2 bg-gray-50 p-2 rounded-md">
+                  <strong>
+                    <i class="fas fa-id-badge text-blue-600 mr-2"></i> Credential ID:
+                  </strong>
+                  <span class="font-mono">{{ entry.credential_id || 'No credential ID provided' }}</span>
+                </p>
+                <div v-if="entry.file_path" class="mt-3">
+                  <a :href="`/storage/${entry.file_path}`" target="_blank" class="text-blue-600 hover:underline bg-gray-50 p-2 rounded-md border border-blue-100 inline-block">
+                    <i class="fas fa-file-pdf mr-2"></i> View Certificate
+                  </a>
+                </div>
+              </div>
+              <div class="absolute top-6 right-4 flex space-x-4">
+                <button class="text-gray-600 hover:text-blue-600" @click="openUpdateCertificationModal(entry)">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
 
-        <!-- If no certifications exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow">
-          <p class="text-gray-600">No certification entries added yet.</p>
+          <!-- If no certifications exist -->
+          <div v-else class="bg-gray-50 p-8 rounded-lg border border-gray-200 text-center">
+            <i class="fas fa-certificate text-gray-400 text-4xl mb-4"></i>
+            <p class="text-gray-600">No certification entries added yet.</p>
+            <button @click="openAddCertificationModal" class="mt-4 text-blue-600 hover:text-blue-800 font-medium">
+              <i class="fas fa-plus mr-2"></i> Add your first certification
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Archived Certifications -->
-      <div v-if="showArchivedCertifications" class="mt-8">
-        <h2 class="text-lg font-medium mb-4">Archived Certifications</h2>
-        <div v-if="filteredArchivedCertificationsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div v-for="entry in filteredArchivedCertificationsEntries" :key="entry?.id"
-            class="bg-gray-50 p-8 rounded-lg shadow relative border border-gray-200">
-            <div class="opacity-75">
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold text-gray-800">{{ entry.name }}</h2>
-                <p class="text-sm text-gray-600">{{ entry.issuer }}</p>
+      <div v-if="showArchivedCertifications" class="mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
+          <!-- Card Header -->
+          <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white border-b border-gray-200 cursor-pointer"
+               @click="archivedCertificationsExpanded = !archivedCertificationsExpanded">
+            <div class="flex items-center">
+              <div class="bg-gray-100 p-2 rounded-full mr-3">
+                <i class="fas fa-archive text-gray-600"></i>
               </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt mr-2 text-gray-500"></i>
-                <span>
-                  {{ formatDate(entry.issue_date) }} -
-                  {{ entry.expiry_date === null ? 'No Expiry' :
-                    formatDate(entry.expiry_date) }}
-                </span>
-              </div>
-              <div class="mt-2">
-                <strong>
-                  <i class="fas fa-link text-gray-500 mr-2"></i> Credential URL:
-                </strong>
-                <span v-if="entry.credential_url">
-                  <a :href="entry.credential_url" target="_blank" class="text-indigo-600 hover:underline break-all">
-                    {{ entry.credential_url }}
-                  </a>
-                </span>
-                <span v-else class="text-gray-500">No credential URL provided</span>
-              </div>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-id-badge text-gray-500 mr-2"></i> Credential ID:
-                </strong>
-                {{ entry.credential_id || 'No credential ID provided' }}
-              </p>
-              <div v-if="entry.file_path" class="mt-3">
-                <a :href="`/storage/${entry.file_path}`" target="_blank" class="text-indigo-600 hover:underline">
-                  View Certificate
-                </a>
+              <h3 class="text-lg font-semibold text-gray-800">Archived Certifications</h3>
+            </div>
+            <button class="text-gray-600 p-2">
+              <i class="fas" :class="archivedCertificationsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </button>
+          </div>
+          
+          <!-- Card Body -->
+          <div v-show="archivedCertificationsExpanded" class="p-6 transition-all duration-300">
+            <div v-if="filteredArchivedCertificationsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div v-for="entry in filteredArchivedCertificationsEntries" :key="entry?.id"
+                class="bg-gray-50 p-6 rounded-lg shadow-sm relative border border-gray-200">
+                <div class="opacity-75">
+                  <div class="border-b border-gray-200 pb-2">
+                    <h2 class="text-xl font-bold text-gray-800">{{ entry.name }}</h2>
+                    <p class="text-sm text-gray-600">{{ entry.issuer }}</p>
+                  </div>
+                  <div class="flex items-center text-gray-600 mt-2 bg-gray-100 px-3 py-1 rounded-full inline-block">
+                    <i class="far fa-calendar-alt mr-2 text-gray-500"></i>
+                    <span>
+                      {{ formatDate(entry.issue_date) }} -
+                      {{ entry.expiry_date === null ? 'No Expiry' :
+                        formatDate(entry.expiry_date) }}
+                    </span>
+                  </div>
+                  <div class="mt-2">
+                    <strong>
+                      <i class="fas fa-link text-gray-500 mr-2"></i> Credential URL:
+                    </strong>
+                    <span v-if="entry.credential_url">
+                      <a :href="entry.credential_url" target="_blank" class="text-blue-600 hover:underline break-all">
+                        {{ entry.credential_url }}
+                      </a>
+                    </span>
+                    <span v-else class="text-gray-500">No credential URL provided</span>
+                  </div>
+                  <p class="mt-2 bg-gray-100 p-2 rounded-md">
+                    <strong>
+                      <i class="fas fa-id-badge text-gray-500 mr-2"></i> Credential ID:
+                    </strong>
+                    <span class="font-mono">{{ entry.credential_id || 'No credential ID provided' }}</span>
+                  </p>
+                  <div v-if="entry.file_path" class="mt-3">
+                    <a :href="`/storage/${entry.file_path}`" target="_blank" class="text-blue-600 hover:underline bg-gray-100 p-2 rounded-md border border-gray-200 inline-block">
+                      <i class="fas fa-file-pdf mr-2"></i> View Certificate
+                    </a>
+                  </div>
+                </div>
+                <div class="absolute top-6 right-4 flex space-x-4">
+                  <button class="text-green-600 hover:text-green-800" @click="unarchiveCertification(entry)">
+                    <i class="fas fa-box-open"></i>
+                  </button>
+                  <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
+                  Archived
+                </div>
               </div>
             </div>
-            <div class="absolute top-8 right-4 flex space-x-4">
-              <button class="text-green-600 hover:text-green-800" @click="unarchiveCertification(entry)">
-                <i class="fas fa-box-open"></i>
-              </button>
-              <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry)">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
-              Archived
+            <!-- If no archived certification entries exist -->
+            <div v-else class="bg-gray-50 p-8 rounded-lg border border-gray-200 text-center">
+              <i class="fas fa-archive text-gray-400 text-4xl mb-4"></i>
+              <p class="text-gray-600">No archived certification entries found.</p>
             </div>
           </div>
-        </div>
-        <!-- If no archived certification entries exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow">
-          <p class="text-gray-600">No archived certification entries found.</p>
         </div>
       </div>
     </div>
@@ -395,25 +434,25 @@ const removeCertification = (entry) => {
               <label class="block text-gray-700 font-medium mb-2">Certification Name <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="form.name"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. AWS Certified Solutions Architect" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Issuer <span class="text-red-500">*</span></label>
               <input type="text" v-model="form.issuer"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Amazon Web Services" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Issue Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="form.issue_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select issue date" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Expiry Date</label>
               <Datepicker v-model="form.expiry_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select expiry date" :disabled="form.noExpiryDate" />
               <div class="mt-2">
                 <input type="checkbox" v-model="form.noExpiryDate" id="noExpiryDate" />
@@ -423,7 +462,7 @@ const removeCertification = (entry) => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Credential URL</label>
               <input type="url" v-model="form.credential_url"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. https://verify.aws.amazon.com/cert/123456" :disabled="form.noCredentialUrl" />
             </div>
             <div class="mb-4">
@@ -433,15 +472,15 @@ const removeCertification = (entry) => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Credential ID</label>
               <input type="text" v-model="form.credential_id"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. 123456" />
             </div>
             <div class="mb-4">
               <label for="certification-file" class="block text-sm font-medium text-gray-700">Upload Certificate</label>
               <input type="file" id="certification-file" @change="handleFileUpload"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Add
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Add
               Certification</button>
           </form>
         </div>
@@ -464,25 +503,25 @@ const removeCertification = (entry) => {
               <label class="block text-gray-700 font-medium mb-2">Certification Name <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="form.name"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. AWS Certified Solutions Architect" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Issuer <span class="text-red-500">*</span></label>
               <input type="text" v-model="form.issuer"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Amazon Web Services" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Issue Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="form.issue_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select issue date" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Expiry Date</label>
               <Datepicker v-model="form.expiry_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select expiry date" :disabled="form.noExpiryDate" />
               <div class="mt-2">
                 <input type="checkbox" v-model="form.noExpiryDate" id="noExpiryDateUpdate" />
@@ -492,7 +531,7 @@ const removeCertification = (entry) => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Credential URL</label>
               <input type="url" v-model="form.credential_url"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. https://verify.aws.amazon.com/cert/123456" :disabled="form.noCredentialUrl" />
             </div>
             <div class="mb-4">
@@ -502,16 +541,16 @@ const removeCertification = (entry) => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Credential ID</label>
               <input type="text" v-model="form.credential_id"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. 123456" />
             </div>
             <div class="mb-4">
               <label for="certification-file-update" class="block text-sm font-medium text-gray-700">Upload
                 Certificate</label>
               <input type="file" id="certification-file-update" @change="handleFileUpload"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Update
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Update
               Certification
             </button>
           </form>

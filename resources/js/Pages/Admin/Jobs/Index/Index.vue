@@ -153,7 +153,6 @@ console.log(route('peso.jobs.manage', { user: page.props.auth.user.id }));
                 </div>
             </div>
 
-
             <!-- Jobs Table Section -->
             <div class="mt-6">
                 <MyJobs :jobs="{ data: filteredJobs, links: props.jobs.links, prev_page_url: props.jobs.prev_page_url, next_page_url: props.jobs.next_page_url }" />

@@ -63,7 +63,7 @@ const formatDisplayDate = (date) => {
 const profile = ref({
   fullName: `${pageProps.graduate?.first_name || ''} ${pageProps.graduate?.middle_name || ''} ${pageProps.graduate?.last_name || ''}`.trim(),
   first_name: pageProps.graduate?.first_name || '',
-  middle_name: pageProps.graduate?.graduate_middle_name || '',
+  middle_name: pageProps.graduate?.middle_name || '',
   last_name: pageProps.graduate?.last_name || '',
   dob: pageProps.graduate?.dob || '',
   graduate_picture_url: pageProps.graduate?.graduate_picture
@@ -81,8 +81,8 @@ const profile = ref({
   graduate_about_me: pageProps.graduate?.about_me || '',
   // Fields from Register.vue
   graduate_school_graduated_from: pageProps.graduate?.institution?.institution_name || '',
-  graduate_program_completed: pageProps.graduate?.program.name || '',
-  graduate_year_graduated: pageProps.graduate?.school_year.school_year_range || '',
+  graduate_program_completed: pageProps.graduate?.program?.name || '',
+  graduate_year_graduated: pageProps.graduate?.school_year?.school_year_range || '',
   // Social links and contact form settings
   linkedin_url: pageProps.graduate?.linkedin_url || '',
   github_url: pageProps.graduate?.github_url || '',
@@ -145,17 +145,6 @@ watch(() => profile.value.fullName, (newFullName) => {
   profile.value.first_name = nameParts[0] || '';
   profile.value.last_name = nameParts[nameParts.length - 1] || '';
   profile.value.middle_name = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
-});
-
-watch(() => profile.value.fullName, (newFullName) => {
-  const nameParts = newFullName.trim().split(' ');
-  profile.value.first_name = nameParts[0] || '';
-  profile.value.last_name = nameParts[nameParts.length - 1] || '';
-  profile.value.middle_name = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
-});
-
-watch(() => profile.value.fullName, () => {
-  parseFullName();
 });
 
 
@@ -608,8 +597,7 @@ onMounted(() => {
                   <Datepicker v-model="profile.graduate_birthdate" :format="datepickerConfig.format"
                     :enable-time-picker="datepickerConfig.enableTime"
                     input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
-                    placeholder="Select your birthdate" :input-attributes="{ style: 'box-shadow: none !important;' }"
-                    class="datepicker-no-shadow" />
+                    placeholder="Select your birthdate" />
                 </div>
               </div>
 
