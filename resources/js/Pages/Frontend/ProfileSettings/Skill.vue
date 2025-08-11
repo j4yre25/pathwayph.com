@@ -12,6 +12,7 @@ import TextArea from '@/Components/TextArea.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
+import { useCompanySearch } from '@/Composables/useCompanySearch';
 
 // Define props
 const props = defineProps({
@@ -19,7 +20,10 @@ const props = defineProps({
   archivedSkillEntries: { type: Array, default: () => [] },
   experienceEntries: { type: Array, default: () => [] },
   archivedExperienceEntries: { type: Array, default: () => [] },
-  activeSection: { type: String, default: '' }
+  activeSection: { type: String, default: '' },
+  companies: { type: Array, default: () => [] },
+  sectors: { type: Array, default: () => [] },
+  
 });
 
 // Emit for parent communication
@@ -285,6 +289,8 @@ const toggleArchivedSkills = () => {
 const isExperienceSuccessModalOpen = ref(false);
 const isExperienceErrorModalOpen = ref(false);
 const isExperienceDuplicateModalOpen = ref(false);
+const companies = computed(() => props.companies ?? []);
+const sectors = ref(props.sectors || []);
 const experienceForm = useForm({
   graduate_experience_title: '',
   graduate_experience_company: '',
@@ -304,9 +310,28 @@ const experience = ref({
   description: '',
   employment_type: '',
   is_current: false,
-  id: null
+  id: null,
+  company_id: '',
+  company_not_found: false,
+  other_company_name: '',
+  other_company_sector: '',
 });
+const {
+  companySearch,
+  showSuggestions,
+  filteredCompanies,
+  selectCompany,
+  clearCompany,
+} = useCompanySearch(experience, companies);
+
 const stillInRole = ref(false);
+watch(stillInRole, (val) => {
+  if (val) {
+    experience.value.end_date = null;
+    experience.value.current_job_title = experience.value.title || '';
+  }
+});
+
 const isAddExperienceModalOpen = ref(false);
 const isUpdateExperienceModalOpen = ref(false);
 const showArchivedExperience = ref(false);
@@ -335,7 +360,11 @@ const resetExperience = () => {
     description: '',
     employment_type: '',
     is_current: false,
-    id: null
+    id: null,
+    company_id: '',
+    company_not_found: false,
+    other_company_name: '',
+    other_company_sector: '',
   };
   stillInRole.value = false;
 };
@@ -351,7 +380,11 @@ const openUpdateExperienceModal = (experienceEntry) => {
     address: experienceEntry.address || '',
     description: experienceEntry.description || 'No description provided',
     employment_type: experienceEntry.employment_type || '',
-    is_current: experienceEntry.is_current
+    is_current: experienceEntry.is_current,
+    company_id: experienceEntry.company_id || '',
+    company_not_found: experienceEntry.company_not_found || false,
+    other_company_name: experienceEntry.other_company_name || '',
+    other_company_sector: experienceEntry.other_company_sector || '',
   };
   stillInRole.value = experienceEntry.is_current;
   isUpdateExperienceModalOpen.value = true;
@@ -366,7 +399,7 @@ const addExperience = () => {
       isExperienceSuccessModalOpen.value = true;
     },
     onError: (errors) => {
-      isExperienceErrorModalOpen.value = true;
+      isExperienceErrorModal.value = true;
       alert('An error occurred while adding the experience. Please check the form and try again.');
     },
   });
@@ -782,7 +815,7 @@ const archiveExperience = (experienceEntry) => {
             <div>
               <div class="border-b pb-2">
                 <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
-                <p class="text-gray-600">{{ experienceEntry.company }}</p>
+                <p class="text-gray-600">{{ experienceEntry.company ? experienceEntry.company.name : experienceEntry.not_company }}</p>
               </div>
               <div class="flex items-center text-gray-600 mt-2">
                 <i class="fas fa-map-marker-alt mr-2"></i>
@@ -904,10 +937,66 @@ const archiveExperience = (experienceEntry) => {
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium  mb-2">Company <span class="text-red-500">*</span></label>
-              <input type="text" v-model="experienceForm.graduate_experience_company"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                placeholder="e.g. Tech Corp" required />
+              <div class="relative">
+                <input
+                  v-model="companySearch"
+                  @focus="showSuggestions = true"
+                  @input="showSuggestions = true"
+                  @blur="setTimeout(() => showSuggestions = false, 200)"
+                  type="text"
+                  class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  placeholder="Type to search company"
+                  :disabled="experience.company_not_found"
+                  autocomplete="off"
+                  required
+                />
+                <!-- Suggestions Dropdown -->
+                <ul
+                  v-if="showSuggestions && filteredCompanies.length"
+                  class="absolute z-10 bg-white border border-gray-200 w-full mt-1 rounded shadow max-h-48 overflow-y-auto"
+                >
+                  <li
+                    v-for="company in filteredCompanies"
+                    :key="company.id"
+                    @mousedown.prevent="selectCompany(company)"
+                    class="px-4 py-2 hover:bg-indigo-100 cursor-pointer"
+                  >
+                    {{ company.name }}
+                  </li>
+                </ul>
+              </div>
               <InputError :message="experienceForm.errors.graduate_experience_company" class="mt-2" />
+              <!-- Company Not Found Checkbox -->
+              <div class="mt-2 flex items-center">
+                <input
+                  type="checkbox"
+                  id="company-not-found"
+                  v-model="experience.company_not_found"
+                  @change="clearCompany"
+                  class="mr-2"
+                />
+                <label for="company-not-found" class="text-sm text-gray-700">Company not found</label>
+              </div>
+              <!-- Other Company Fields -->
+              <div v-if="experience.company_not_found" class="mt-4 space-y-2">
+                <input
+                  v-model="experience.other_company_name"
+                  type="text"
+                  class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  placeholder="Enter company name"
+                  required
+                />
+                <select
+                  v-model="experience.other_company_sector"
+                  class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  required
+                >
+                  <option value="" disabled>Select sector</option>
+                  <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
+                    {{ sector.name }}
+                  </option>
+                </select>
+              </div>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
@@ -943,14 +1032,21 @@ const archiveExperience = (experienceEntry) => {
               <label class="block text-gray-700 font-medium mb-2">End Date</label>
               <Datepicker v-model="experienceForm.graduate_experience_end_date"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                placeholder="Select end date" :disabled="stillInRole" :enable-time-picker="false" :format="'yyyy-MM-dd'"
-                :preview-format="'yyyy-MM-dd'" />
-              <div class="mt-2">
-                <input type="checkbox" id="still-in-role" v-model="stillInRole"
-                  @change="experience.end_date = stillInRole ? null : experience.end_date" />
-                <label for="still-in-role" class="text-sm text-gray-700 ml-2">I currently work here</label>
+                placeholder="Select end date"
+                :disabled="stillInRole"
+                :enable-time-picker="false"
+                :format="'yyyy-MM-dd'"
+                :preview-format="'yyyy-MM-dd'"
+              />
+              <div class="mt-2 flex items-center">
+                <input
+                  type="checkbox"
+                  id="still-in-role-update"
+                  v-model="stillInRole"
+                  class="mr-2"
+                />
+                <label for="still-in-role-update" class="text-sm text-gray-700">I currently work here</label>
               </div>
-              <InputError :message="experienceForm.errors.graduate_experience_end_date" class="mt-2" />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
@@ -993,10 +1089,66 @@ const archiveExperience = (experienceEntry) => {
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
-              <input type="text" v-model="experience.company"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                placeholder="e.g. Tech Corp" required />
+              <div class="relative">
+                <input
+                  v-model="companySearch"
+                  @focus="showSuggestions = true"
+                  @input="showSuggestions = true"
+                  @blur="setTimeout(() => showSuggestions = false, 200)"
+                  type="text"
+                  class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  placeholder="Type to search company"
+                  :disabled="experience.company_not_found"
+                  autocomplete="off"
+                  required
+                />
+                <!-- Suggestions Dropdown -->
+                <ul
+                  v-if="showSuggestions && filteredCompanies.length"
+                  class="absolute z-10 bg-white border border-gray-200 w-full mt-1 rounded shadow max-h-48 overflow-y-auto"
+                >
+                  <li
+                    v-for="company in filteredCompanies"
+                    :key="company.id"
+                    @mousedown.prevent="selectCompany(company)"
+                    class="px-4 py-2 hover:bg-indigo-100 cursor-pointer"
+                  >
+                    {{ company.name }}
+                  </li>
+                </ul>
+              </div>
               <InputError :message="experienceForm.errors.graduate_experience_company" class="mt-2" />
+              <!-- Company Not Found Checkbox -->
+              <div class="mt-2 flex items-center">
+                <input
+                  type="checkbox"
+                  id="company-not-found"
+                  v-model="experience.company_not_found"
+                  @change="clearCompany"
+                  class="mr-2"
+                />
+                <label for="company-not-found" class="text-sm text-gray-700">Company not found</label>
+              </div>
+              <!-- Other Company Fields -->
+              <div v-if="experience.company_not_found" class="mt-4 space-y-2">
+                <input
+                  v-model="experience.other_company_name"
+                  type="text"
+                  class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  placeholder="Enter company name"
+                  required
+                />
+                <select
+                  v-model="experience.other_company_sector"
+                  class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  required
+                >
+                  <option value="" disabled>Select sector</option>
+                  <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
+                    {{ sector.name }}
+                  </option>
+                </select>
+              </div>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
@@ -1032,15 +1184,21 @@ const archiveExperience = (experienceEntry) => {
               <label class="block text-gray-700 font-medium mb-2">End Date</label>
               <Datepicker v-model="experience.end_date"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                placeholder="Select end date" :disabled="stillInRole" />
-              <div class="mt-2">
-                <input type="checkbox" id="still-in-role-update" v-model="stillInRole"
-                  @change="experience.end_date = stillInRole ? null : experience.end_date" />
-                <label for="still-in-role-update" class="text-sm text-gray-700 ml-2">
-                  I currently work here
-                </label>
+                placeholder="Select end date"
+                :disabled="stillInRole"
+                :enable-time-picker="false"
+                :format="'yyyy-MM-dd'"
+                :preview-format="'yyyy-MM-dd'"
+              />
+              <div class="mt-2 flex items-center">
+                <input
+                  type="checkbox"
+                  id="still-in-role-update"
+                  v-model="stillInRole"
+                  class="mr-2"
+                />
+                <label for="still-in-role-update" class="text-sm text-gray-700">I currently work here</label>
               </div>
-              <InputError :message="experienceForm.errors.graduate_experience_end_date" class="mt-2" />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
