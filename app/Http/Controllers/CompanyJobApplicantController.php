@@ -76,11 +76,11 @@ class CompanyJobApplicantController extends Controller
     public function show(Job $job, Request $request)
     {
         
-    $applicationsQuery = JobApplication::where('job_id', $job->id)
-        ->with(['graduate.user', 'graduate.graduateSkills.skill', 'graduate.education', 'graduate.experience']);
+        $applicationsQuery = JobApplication::where('job_id', $job->id)
+          ->with(['graduate.user', 'graduate.graduateSkills.skill', 'graduate.education', 'graduate.experience']);
 
 
-        // Keyword filter (name, email, skill, degree, job title)
+        // === Search/Keyword filter ===
         if ($request->filled('keywords')) {
             $keywords = $request->input('keywords');
             $applicationsQuery->where(function ($q) use ($keywords) {
@@ -101,66 +101,108 @@ class CompanyJobApplicantController extends Controller
             });
         }
 
-        // Degree filter
-        if ($request->filled('degree')) {
-            $degree = $request->input('degree');
-            $applicationsQuery->whereHas('graduate.education', function ($eduQ) use ($degree) {
-                $eduQ->where('education', 'like', "%$degree%");
-            });
+           // === Status filter ===
+            if ($request->filled('status')) {
+                $applicationsQuery->where('status', $request->input('status'));
+            }
+
+            // === Stage filter ===
+            if ($request->filled('stage')) {
+                $applicationsQuery->where('stage', $request->input('stage'));
+            }
+
+            // === Date range filter (applied_at) ===
+            if ($request->filled('date_from')) {
+                $applicationsQuery->whereDate('applied_at', '>=', $request->input('date_from'));
+            }
+            if ($request->filled('date_to')) {
+                $applicationsQuery->whereDate('applied_at', '<=', $request->input('date_to'));
+            }
+
+            // === Stats (update as needed) ===
+            $totalApplicants = $applicationsQuery->count();
+            $hiredCount = (clone $applicationsQuery)->where('status', 'hired')->count();
+            $rejectedCount = (clone $applicationsQuery)->where('status', 'rejected')->count();
+            $declinedByGraduate = (clone $applicationsQuery)->where('status', 'declined')->count();
+            $interviewsCount = (clone $applicationsQuery)->whereHas('interviews')->count();
+            $pendingCount = $totalApplicants - ($hiredCount + $rejectedCount + $declinedByGraduate);
+
+            $applicants = $applicationsQuery
+                ->with(['graduate.user', 'job'])
+                ->get()
+                ->map(function ($application) {
+                    $graduate = $application->graduate;
+                    $user = $graduate?->user;
+
+                    return [
+                        'id' => $application->id,
+                        'graduate_picture' => $graduate->graduate_picture,
+                        'name' => $graduate
+                            ? $graduate->first_name . ' ' . $graduate->last_name
+                            : 'N/A',
+                        'job_title' => $application->job->job_title,
+                        'email' => $user?->email ?? 'N/A',
+                        'status' => $application->status,
+                        'stage' => $application->stage,
+                        'notes' => $application->notes,
+                        'applied_at' => optional($application->applied_at)->format('M d, Y'),
+                        'interview_date' => optional($application->interviews->sortByDesc('scheduled_at')->first()?->scheduled_at)->format('M d, Y'),
+                    ];
+                });
+
+            return Inertia::render('Company/Applicants/ListOfApplicants/Index', [
+                'job' => $job,
+                'applicants' => $applicants,
+                'stats' => [
+                    'total' => $totalApplicants,
+                    'hired' => $hiredCount,
+                    'rejected' => $rejectedCount,
+                    'declined' => $declinedByGraduate,
+                    'interviews' => $interviewsCount,
+                    'pending' => $pendingCount,
+                ],
+                'filters' => $request->only(['keywords', 'status', 'stage', 'date_from', 'date_to']),
+            ]);
         }
 
-        // Minimum experience filter (in years)
-        if ($request->filled('min_experience')) {
-            $minExp = (int)$request->input('min_experience');
-            $applicationsQuery->whereHas('graduate.experience', function ($expQ) use ($minExp) {
-                $expQ->whereRaw('TIMESTAMPDIFF(YEAR, start_date, IFNULL(end_date, CURDATE())) >= ?', [$minExp]);
+    public function autoScreen(Job $job)
+    {
+        $requiredDegree = 'Bachelor'; // Example
+        $minExperience = 2; // years
+        $requiredSkills = ['PHP', 'Vue.js']; // Example
+
+        $applications = JobApplication::where('job_id', $job->id)
+            ->with(['graduate.education', 'graduate.experience', 'graduate.graduateSkills.skill'])
+            ->get();
+
+        foreach ($applications as $application) {
+            $graduate = $application->graduate;
+
+            // Check degree
+            $hasDegree = $graduate->education->contains(function($edu) use ($requiredDegree) {
+                return stripos($edu->education, $requiredDegree) !== false;
             });
+
+            // Check experience
+            $hasExperience = $graduate->experience->sum(function($exp) {
+                $start = $exp->start_date ? Carbon::parse($exp->start_date) : null;
+                $end = $exp->end_date ? Carbon::parse($exp->end_date) : now();
+                return $start && $end ? $start->diffInYears($end) : 0;
+            }) >= $minExperience;
+
+            // Check skills
+            $skills = $graduate->graduateSkills->pluck('skill.name')->map(fn($s) => strtolower($s))->toArray();
+            $hasSkills = collect($requiredSkills)->every(fn($skill) => in_array(strtolower($skill), $skills));
+
+            // If all criteria met, move to screening
+            if ($hasDegree && $hasExperience && $hasSkills) {
+                $application->status = 'shortlisted';
+                $application->stage = 'screening';
+                $application->save();
+            }
         }
-        // Stats
-        $totalApplicants = $applicationsQuery->count();
-        $hiredCount = (clone $applicationsQuery)->where('status', 'hired')->count();
-        $rejectedCount = (clone $applicationsQuery)->where('status', 'rejected')->count();
-        $declinedByGraduate = (clone $applicationsQuery)->where('status', 'declined')->count();
-        $interviewsCount = (clone $applicationsQuery)->whereHas('interviews')->count();
-        $pendingCount = $totalApplicants - ($hiredCount + $rejectedCount + $declinedByGraduate);
 
-        $applicants = $applicationsQuery
-            ->with(['graduate.user', 'job']) // eager load graduate and their user
-            ->get()
-            ->map(function ($application) {
-                $graduate = $application->graduate;
-                $user = $graduate?->user;
-
-                return [
-                    'id' => $application->id,
-                    'graduate_picture' => $graduate->graduate_picture,
-                    'name' => $graduate
-                        ? $graduate->first_name . ' ' . $graduate->last_name
-                        : 'N/A',
-                    'job_title' => $application->job->job_title,
-                    'email' => $user?->email ?? 'N/A',
-                    'status' => $application->status,
-                    'stage' => $application->stage,
-                    'notes' => $application->notes,
-                    'applied_at' => optional($application->applied_at)->format('M d, Y'),
-                    'interview_date' => optional($application->interviews->sortByDesc('scheduled_at')->first()?->scheduled_at)->format('M d, Y'),
-                ];
-            });
-
-        return Inertia::render('Company/Applicants/ListOfApplicants/Index', [
-            'job' => $job,
-            'applicants' => $applicants,
-            'stats' => [
-                'total' => $totalApplicants,
-                'hired' => $hiredCount,
-                'rejected' => $rejectedCount,
-                'declined' => $declinedByGraduate,
-                'interviews' => $interviewsCount,
-                'pending' => $pendingCount,
-            ],
-            'filters' => $request->only(['keywords', 'min_experience', 'degree']),
-        ]);
+        return back()->with('success', 'Automated screening completed!');
     }
-
 
 }

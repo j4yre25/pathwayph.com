@@ -78,6 +78,12 @@ class Graduate extends Model
         return $this->hasMany(GraduateSkill::class);
     }
 
+    public function graduateEducations()
+    {   
+        return $this->hasMany(GraduateEducation::class, 'graduate_id');
+    }
+    
+
     public function jobApplications()
     {
         return $this->hasMany(JobApplication::class, 'graduate_id');
@@ -119,5 +125,10 @@ class Graduate extends Model
     public function institutionSchoolYear()
     {
         return $this->belongsTo(\App\Models\InstitutionSchoolYear::class, 'school_year_id');
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(\App\Models\Company::class, 'company_id');
     }
 }

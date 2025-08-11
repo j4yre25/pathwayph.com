@@ -142,19 +142,16 @@ class CompanyProfileController extends Controller
 
     public function showInformationForm()
     {
-        $categories = \App\Models\Category::all();
         $user = auth()->user();
+
+        // Get all sectors and categories
+        $sectors = \App\Models\Sector::all(['id', 'name']);
+        $categories = \App\Models\Category::all(['id', 'name', 'sector_id']);
+
         return Inertia::render('Company/InformationSection', [
+            'email' => $user->email,
+            'sectors' => $sectors,
             'categories' => $categories,
-             'user' => [
-                'first_name' => $user->hr->first_name,
-                'last_name' => $user->hr->last_name,
-                'middle_name' => $user->hr->middle_name,
-                'gender' => $user->hr->gender,
-                'dob' => $user->hr->dob,
-                'email' => $user->hr->email,
-                'mobile_number' => $user->hr->mobile_number,
-            ],
         ]);
     }
 
@@ -173,7 +170,7 @@ class CompanyProfileController extends Controller
             'company_email' => 'required|email|max:255',
             'company_mobile_phone' => 'required|string|max:20',
             'telephone_number' => 'nullable|string|max:20',
-            'category' => 'required|exists:categories,id',
+            'category_id' => 'required|exists:categories,id',
             // HR
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -182,7 +179,13 @@ class CompanyProfileController extends Controller
             'dob' => 'required|date',
             'email' => 'required|email|max:255',
             'mobile_number' => 'required|string|max:20',
+            'verification_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
+
+        $verificationPath = null;
+        if ($request->hasFile('verification_file')) {
+            $verificationPath = $request->file('verification_file')->store('verification-documents', 'public');
+        }
 
         // Create company
         $company = \App\Models\Company::create([
@@ -196,12 +199,15 @@ class CompanyProfileController extends Controller
             'company_email' => $validated['company_email'],
             'company_mobile_phone' => $validated['company_mobile_phone'],
             'company_tel_phone' => $validated['telephone_number'],
-            'category_id' => $validated['category'],
-            'sector_id' => \App\Models\Category::find($validated['category'])->sector_id,
+            'category_id' => $validated['category_id'],
+            'sector_id' => \App\Models\Category::find($validated['category_id'])->sector_id,
+            'verification_file_path' => $verificationPath,
         ]);
 
         // Create HR (human_resources)
-        $user->hr()->create([
+         \App\Models\HumanResource::create([
+            'user_id' => $user->id,
+            'company_id' => $company->id,
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'middle_name' => $validated['middle_name'],
@@ -209,11 +215,15 @@ class CompanyProfileController extends Controller
             'dob' => $validated['dob'],
             'email' => $validated['email'],
             'mobile_number' => $validated['mobile_number'],
-            'company_id' => $company->id,
+            'is_main_hr' => true, // Mark as main HR
         ]);
 
-        // Optionally update user profile if needed
+        $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
+        $sectorCode = $company->sector->sector_id ?? '000';
+        $divisionCode = $company->category->division_code ?? '00';
+        $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
+        $company->save();
 
-        return redirect()->route('dashboard')->with('success', 'Company profile completed!');
+        return back()->with('information_saved', true);
     }
 }
