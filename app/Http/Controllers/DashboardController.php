@@ -25,6 +25,9 @@ class DashboardController extends Controller
         if ($user->hasRole('company') && !$user->company) {
             return redirect()->route('company.information');
         }
+        if ($user->hasRole('graduate') && !$user->graduate) {
+            return redirect()->route('graduate.information');
+        }
 
         // Default values for all props
         $summary = [];

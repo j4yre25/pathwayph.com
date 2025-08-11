@@ -30,6 +30,8 @@ class Graduate extends Model
         'personal_website',
         'other_social_links',
         'graduate_picture',
+        'company_id',
+        'not_company'
 
     ];
 

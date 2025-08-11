@@ -14,7 +14,7 @@ const props = defineProps({
     resume: Object,
     careerGoals: Object,
     employmentPreferences: Object,
-    originalInstitution: Object, // <-- Add this line
+    originalInstitution: Object,
 });
 
 

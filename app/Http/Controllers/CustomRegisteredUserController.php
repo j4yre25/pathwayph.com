@@ -67,10 +67,10 @@ class CustomRegisteredUserController extends Controller
             auth()->login($user); // Make sure the user is logged in
             return redirect()->route('company.information');
         }
-
-        
-
-        event(new Registered($user));
+        if ($role === 'graduate') {
+            auth()->login($user); // Make sure the user is logged in
+            return redirect()->route('graduate.information');
+        }
 
         return redirect()->back()->with('flash.banner', 'Registered Successfully!');
     }
