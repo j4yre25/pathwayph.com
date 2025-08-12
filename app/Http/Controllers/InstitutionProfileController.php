@@ -11,21 +11,24 @@ class InstitutionProfileController extends Controller
     public function profile()
     {
         $user = Auth::user();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->first();
 
-        // Build the institution profile data.
-        // Change the field names if your schema differs.
         return Inertia::render('Institutions/Profile/InstitutionProfile', [
             'institution' => [
-                'id'               => $user->id,
-                'name'             => $user->institution_name, // e.g., Institution Name
-                'email'            => $user->email,
-                'contact_number'   => $user->company_contact_number,
-                'description'      => $user->description,
-                'address'          => $user->address, // Ensure this field exists
-                'logo'             => $user->logo, // path to institution logo
-                'cover_photo'      => $user->cover_photo, // path to cover photo
-                'social_links'     => $user->social_links, // optional array of social links
-                'is_featured'      => $user->is_featured, // boolean for featured status
+                'id' => $institution->id,
+                'name' => $institution->institution_name,
+                'address' => $institution->institution_address ?? $institution->address,
+                'contact_number' => $institution->contact_number,
+                'telephone_number' => $institution->telephone_number,
+                'email' => $institution->email,
+                'logo' => $institution->logo ?? null,
+                'cover_photo' => $institution->cover_photo ?? null,
+                'description' => $institution->description ?? null,
+                'social_links' => $institution->social_links ?? [],
+                'is_featured' => $institution->is_featured ?? false,
+                'created_at' => $institution->created_at?->format('F j, Y') ?? null,
+                'institution_president_first_name' => $institution->institution_president_first_name ?? '',
+                'institution_president_last_name' => $institution->institution_president_last_name ?? '',
             ],
         ]);
     }
@@ -82,5 +85,20 @@ class InstitutionProfileController extends Controller
         $institution->save();
 
         return back()->with('information_saved', true);
+    }
+
+    public function updateDescription(Request $request)
+    {
+        $user = Auth::user();
+        $institution = \App\Models\Institution::where('user_id', $user->id)->firstOrFail();
+
+        $validated = $request->validate([
+            'description' => 'nullable|string|max:2000',
+        ]);
+
+        $institution->description = $validated['description'];
+        $institution->save();
+
+        return back()->with('success', 'Description updated!');
     }
 }
