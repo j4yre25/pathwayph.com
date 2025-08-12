@@ -111,7 +111,7 @@ class GraduateProfileController extends Controller
             'current_job_title' => 'nullable|string|max:255',
             'employment_status' => 'nullable|string|max:255',
         ]);
-
+        \Log::info('Validated:', $validated);
         // Handle company_id if company is selected from the list
         $companyId = null;
         if (empty($validated['company_not_found']) && !empty($validated['company_name'])) {

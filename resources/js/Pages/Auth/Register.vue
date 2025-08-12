@@ -276,8 +276,6 @@ const submitInstitutionAccount = () => {
                     </form>
                 </div>
             </div>
-        
-
 
             <!-- Company Registration Form -->
             <div v-else-if="currentStep === 'company'" class="p-6 max-w-3xl mx-auto">
