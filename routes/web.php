@@ -876,7 +876,13 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
 });
 Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
-Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
+    Route::get('/graduate/information', [GraduateProfileController::class, 'showInformationForm'])->name('graduate.information');
+    Route::post('/graduate/information', [GraduateProfileController::class, 'saveInformation'])->name('graduate.information.save');
+});
+
 
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {

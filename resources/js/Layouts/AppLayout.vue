@@ -144,23 +144,40 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
                             </div>
 
+                            <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
+                                v-if="page.props.auth.user.role === 'graduate' && page.props.auth.user.is_approved">
+
+                                <NavLink :href="route('dashboard')" :active="route().current('dashboard')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Dashboard
+                                </NavLink>
+                                
+                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
+                                    :active="route().current('job.inbox')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Job Inbox
+                                </NavLink>
+
+                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
+                                    :active="route().current('job.search')"
+                                    :disabled="!page.props.auth.user.is_approved">
+                                    Find Jobs
+                                </NavLink>
+                                
+                            </div>
+
 
                             <!-- Navigation Links -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
 
-                                <NavLink :href="route('dashboard')" v-if="!page.props.roles.isCompany"
+                                <NavLink :href="route('dashboard')" v-if="!page.props.roles.isCompany && !page.props.roles.isGraduate"
                                     :active="route().current('dashboard')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     Dashboard
                                 </NavLink>
 
 
-                                <!-- Job Inbox for Graduates -->
-                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
-                                    :active="route().current('job.inbox')"
-                                    :disabled="!page.props.auth.user.is_approved">
-                                    Job Inbox
-                                </NavLink>
+                                
 
                                 <!-- Graduate Portfolio -->
                                 <!-- <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.portfolio')"
@@ -169,11 +186,6 @@ console.log(page.props.permissions.canManageInstitution)
                                     Portfolio
                                 </NavLink> -->
 
-                                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
-                                    :active="route().current('job.search')"
-                                    :disabled="!page.props.auth.user.is_approved">
-                                    Find Jobs
-                                </NavLink>
 
 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
