@@ -29,6 +29,10 @@ function onSearch() {
   applyFilters();
 }
 
+function generateCertificate(referralId) {
+  window.open(route('peso.job-referrals.certificate', referralId), '_blank');
+}
+
 function onPageChange(page) {
   router.get(route('peso.job-referrals.index'), { ...filters.value, page }, { preserveState: true, replace: true });
 }
@@ -107,6 +111,7 @@ function goToPage(link) {
               <th class="py-3 px-4 text-left">Hired At</th>
               <th class="py-3 px-4 text-left">Match Score</th>
               <th class="py-3 px-4 text-left">Match Details</th>
+              <th class="py-3 px-4 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -141,6 +146,12 @@ function goToPage(link) {
                     {{ detail }}
                   </li>
                 </ul>
+              </td>
+              <td class="py-3 px-4 border-b">
+                <button v-if="ref.status === 'pending' || ref.status === 'hired'" @click="generateCertificate(ref.id)"
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-semibold text-xs shadow transition">
+                  Generate Certificate
+                </button>
               </td>
             </tr>
             <tr v-if="referrals.length === 0">
