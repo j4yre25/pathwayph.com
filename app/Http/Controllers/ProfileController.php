@@ -29,6 +29,8 @@ use App\Models\JobType;
 use App\Models\Salary;
 use App\Models\Location;
 use App\Models\WorkEnvironment;
+use App\Models\Company;
+use App\Models\Sector;
 
 class ProfileController extends Controller
 {
@@ -41,6 +43,11 @@ class ProfileController extends Controller
             'schoolYear',
             'program.degree'
         ])->where('user_id', $user->id)->first();
+
+        // Eager load company relation for experience entries
+        $experienceEntries = Experience::with('company')
+            ->where('graduate_id', $graduate->id)
+            ->get();
 
         // Fetch all institution users (adjust as needed)
         $instiUsers = User::where('role', 'institution')->get();
@@ -57,12 +64,16 @@ class ProfileController extends Controller
                 ->get();
         }
 
+        // Add these lines:
+        $companies = Company::select('id', 'company_name as name')->orderBy('company_name')->get();
+        $sectors = Sector::select('id', 'name')->orderBy('name')->get();
+
         return Inertia::render('Frontend/Profile', [
             'user' => $user,
             'graduate' => $graduate, // <-- pass this!
             'instiUsers' => $instiUsers,
             'educationEntries' => $educationEntries,
-            'experienceEntries' => Experience::where('graduate_id', $graduate->id)->get(),
+            'experienceEntries' => $experienceEntries,
             'skillEntries' => GraduateSkill::with('skill')
                 ->where('graduate_id', $graduate->id)
                 ->get()
@@ -83,6 +94,8 @@ class ProfileController extends Controller
             'careerGoals' => CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
             'internships' => $internships,
+            'companies' => $companies,
+            'sectors' => $sectors,
         ]);
     }
 
@@ -314,13 +327,16 @@ if (!$file->getRealPath()) {
     {
         $request->validate([
             'graduate_experience_title' => 'required|string|max:255',
-            'graduate_experience_company' => 'required|string|max:255',
             'graduate_experience_start_date' => 'required|date',
             'graduate_experience_end_date' => 'nullable|date',
             'graduate_experience_address' => 'nullable|string|max:255',
             'graduate_experience_description' => 'nullable|string',
             'graduate_experience_employment_type' => 'nullable|string|max:255',
             'is_current' => 'boolean',
+            // For normalized company/sector
+            'company_id' => 'nullable|exists:companies,id',
+            'not_company' => 'nullable|string|max:255',
+            'sector_id' => 'nullable|exists:sectors,id',
         ]);
 
         $user = Auth::user();
@@ -335,19 +351,38 @@ if (!$file->getRealPath()) {
                 ? \Carbon\Carbon::parse($request->graduate_experience_end_date)->format('Y-m-d')
                 : null);
 
-        // Map request fields to DB columns
         $experience = new \App\Models\Experience();
         $experience->graduate_id = $graduate->id;
         $experience->title = $request->graduate_experience_title;
-        $experience->company = $request->graduate_experience_company;
         $experience->start_date = $startDate;
         $experience->end_date = $endDate;
         $experience->address = $request->graduate_experience_address;
         $experience->description = $request->graduate_experience_description ?? 'No description provided';
         $experience->employment_type = $request->graduate_experience_employment_type;
+
+        // Company logic
+        if ($request->company_id) {
+            $experience->company_id = $request->company_id;
+            $experience->not_company = null;
+            $experience->sector_id = null;
+        } elseif ($request->not_company) {
+            $experience->company_id = null;
+            $experience->not_company = $request->not_company;
+            $experience->sector_id = $request->sector_id;
+        } else {
+            $experience->company_id = null;
+            $experience->not_company = null;
+            $experience->sector_id = null;
+        }
+
         $experience->save();
 
-        // Return response as needed
+        // Update current job title in graduates table if this is the current experience
+        if ($request->is_current && $request->graduate_experience_title) {
+            \App\Models\Graduate::where('id', $experience->graduate_id)
+                ->update(['current_job_title' => $request->graduate_experience_title]);
+        }
+
         return redirect()->back()->with('flash.banner', 'Experience added successfully.');
     }
 
@@ -356,19 +391,21 @@ if (!$file->getRealPath()) {
     {
         $request->validate([
             'graduate_experience_title' => 'required|string|max:255',
-            'graduate_experience_company' => 'required|string|max:255',
             'graduate_experience_start_date' => 'required|date',
             'graduate_experience_end_date' => 'nullable|date',
             'graduate_experience_address' => 'nullable|string|max:255',
             'graduate_experience_description' => 'nullable|string',
             'graduate_experience_employment_type' => 'nullable|string|max:255',
             'is_current' => 'boolean',
+            // For normalized company/sector
+            'company_id' => 'nullable|exists:companies,id',
+            'not_company' => 'nullable|string|max:255',
+            'sector_id' => 'nullable|exists:sectors,id',
         ]);
 
         $experience = Experience::findOrFail($id);
 
         $experience->title = $request->graduate_experience_title;
-        $experience->company = $request->graduate_experience_company;
         $experience->start_date = $request->graduate_experience_start_date
             ? \Carbon\Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
             : null;
@@ -380,6 +417,22 @@ if (!$file->getRealPath()) {
         $experience->address = $request->graduate_experience_address;
         $experience->description = $request->graduate_experience_description ?? 'No description provided';
         $experience->employment_type = $request->graduate_experience_employment_type;
+
+        // Company logic
+        if ($request->company_id) {
+            $experience->company_id = $request->company_id;
+            $experience->not_company = null;
+            $experience->sector_id = null;
+        } elseif ($request->not_company) {
+            $experience->company_id = null;
+            $experience->not_company = $request->not_company;
+            $experience->sector_id = $request->sector_id;
+        } else {
+            $experience->company_id = null;
+            $experience->not_company = null;
+            $experience->sector_id = null;
+        }
+
         $experience->save();
 
         return redirect()->back()->with('flash.banner', 'Experience updated successfully.');

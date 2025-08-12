@@ -336,6 +336,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/institution/profile', [InstitutionProfileController::class, 'profile'])->name('institution.profile');
 });
 
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::get('/institution/information', [InstitutionProfileController::class, 'showInformationForm'])->name('institution.information');
+    Route::post('/institution/information', [InstitutionProfileController::class, 'saveInformation'])->name('institution.information.save');
+});
 
 
 

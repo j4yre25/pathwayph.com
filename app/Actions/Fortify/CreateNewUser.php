@@ -76,13 +76,10 @@ class CreateNewUser implements CreatesNewUsers
                     ];
                 break;
             case 'institution':
-                $rules['institution_type' ] = ['required', 'string'];
-                $rules['institution_name' ] = ['required', 'string'];
-                $rules['institution_address' ] = ['required', 'string'];
-                $rules['institution_president_last_name' ] = ['required', 'string', 'max:255'];
-                $rules['institution_president_first_name' ] = ['required', 'string', 'max:255'];
-                $rules['first_name' ] = ['nullable', 'string', 'max:255'];
-                $rules['last_name' ] = ['nullable', 'string', 'max:255'];
+                $rules = [
+                        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+                        'password' => $this->passwordRules(),
+                    ];
 
                 break;
             default:
@@ -147,7 +144,7 @@ class CreateNewUser implements CreatesNewUsers
         $user = User::create($userData);
 
         // Store in Institutions table
-        if ($role === 'institution') {
+        /* if ($role === 'institution') {
             DB::table('institutions')->insert([
                 'user_id' => $user->id,
                 'institution_name' => $input['institution_name'],
@@ -165,7 +162,7 @@ class CreateNewUser implements CreatesNewUsers
             ]);
             $user->assignRole($role);
             return $user; // <-- Ensure return here
-        }
+        } */
 
         // Store in Companies table
         // if ($role === 'company') {
