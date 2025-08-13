@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, watchEffect, onMounted } from 'vue';
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
 import Banner from '@/Components/Banner.vue';
@@ -8,6 +8,8 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import Modal from '@/Components/Modal.vue';
+
 
 const props = defineProps({
     graduates: { type: [Array, Object], default: () => [] },
@@ -26,29 +28,41 @@ const main = page.props.main;
 const title = page.props.title;
 
 const showingNavigationDropdown = ref(false);
+const showApprovalModal = ref(false)
 
-// let redirected = false;
+onMounted(() => {
+  if (page.props.needsApproval) {
+    showApprovalModal.value = true;
+  }
+});
 
-// watchEffect(() => {
-//     const user = usePage().props.user;
+const showNotifications = ref(false);
+const notifications = computed(() => usePage().props.notifications || []);
+const notifBell = ref(null);
+const notifDropdown = ref(null);
 
-//     if (
-//         !redirected &&
-//         user &&
-//         user.role === 'company' &&
-//         user.hr && // HR info is already there
-//         !user.company && // Company info still missing
-//         router.page?.url !== '/company/information'
-//     ) {
-//         redirected = true;
-//         router.visit(route('company.information'));
-//     }
-// });
+function toggleNotifications() {
+    showNotifications.value = !showNotifications.value;
+}
 
-const isAnyReportActive = () => {
-    // your logic here, or just return false if not used
-    return false;
-};
+function handleClickOutside(event) {
+    if (
+        notifDropdown.value &&
+        !notifDropdown.value.contains(event.target) &&
+        notifBell.value &&
+        !notifBell.value.contains(event.target)
+    ) {
+        showNotifications.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+});
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', handleClickOutside);
+});
+
 
 // Safe logging
 console.log('Auth:', auth);
@@ -90,6 +104,21 @@ console.log(page.props.permissions.canManageInstitution)
         <Head :title="title" />
 
         <Banner />
+        
+        <Modal v-model="showApprovalModal">
+            <template #header>
+            <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
+            </template>
+            <template #body>
+            <p class="mb-6 text-gray-700">
+                Your company account is still waiting for admin approval.<br>
+                You will be notified once your account is approved.
+            </p>
+            </template>
+            <template #footer>
+            <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
+            </template>
+        </Modal>
 
         <div class="min-h-screen bg-gray-100">
             <nav class="bg-white border-b border-gray-100">
@@ -144,6 +173,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
                             </div>
 
+                            <!-- Graduate Navigation Links -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
                                 v-if="page.props.auth.user.role === 'graduate' && page.props.auth.user.is_approved">
 
@@ -166,7 +196,8 @@ console.log(page.props.permissions.canManageInstitution)
                                 
                             </div>
 
-                                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
+                            <!-- Institution Navigation Links -->
+                            <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
                                 v-if="page.props.auth.user.role === 'institution' && page.props.auth.user.is_approved">
 
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')"
@@ -361,6 +392,25 @@ console.log(page.props.permissions.canManageInstitution)
                                                 Team Settings
                                             </DropdownLink>
 
+                                            <div class="ms-3 relative">
+                                                <button @click="showNotifications = !showNotifications" class="relative focus:outline-none">
+                                                    <i class="fas fa-bell text-xl"></i>
+                                                    <span v-if="notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
+                                                        {{ notifications.length }}
+                                                    </span>
+                                                </button>
+                                                <div v-if="showNotifications" class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50">
+                                                    <div v-if="notifications.length">
+                                                        <div v-for="notif in notifications" :key="notif.id" class="p-3 border-b last:border-b-0">
+                                                            <div class="font-semibold">{{ notif.title }}</div>
+                                                            <div class="text-sm text-gray-600">{{ notif.body }}</div>
+                                                            <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
+                                                </div>
+                                            </div>
+
                                             <DropdownLink v-if="$page.props.jetstream.canCreateTeams"
                                                 :href="route('teams.create')">
                                                 Create New Team
@@ -402,40 +452,64 @@ console.log(page.props.permissions.canManageInstitution)
                             <div class="ms-3 relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
-                                        <button v-if="$page.props.jetstream.managesProfilePhotos"
-                                            class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
-                                            <img class="size-8 rounded-full object-cover"
-                                                :src="$page.props.auth.user.profile_photo_url"
-                                                :alt="$page.props.auth.user.name">
-                                        </button>
-
-                                        <span v-else class="inline-flex rounded-md">
-                                            <button type="button"
-                                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:bg-gray-50 active:bg-gray-50 transition ease-in-out duration-150">
-                                                <template v-if="$page.props.auth.user.role === 'graduate'">
-                                                    {{ $page.props.auth.user.graduate_first_name }}
-                                                </template>
-                                                <template v-if="$page.props.auth.user.role === 'peso'">
-                                                    {{ $page.props.auth.user.peso_first_name }}
-                                                </template>
-                                                <template v-else-if="$page.props.auth.user.role === 'company'">
-                                                    {{ $page.props.app.currentUser.company?.company_name }}
-
-                                                </template>
-                                                <template v-else-if="$page.props.auth.user.role === 'institution'">
-                                                    {{ $page.props.auth.user.institution_name }}
-                                                </template>
-                                                <template v-else>
-                                                    {{ $page.props.auth.user.name }}
-                                                </template>
-
-                                                <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                                    stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                                </svg>
+                                       <span class="inline-flex rounded-md items-center relative">
+                                            <!-- Notification Bell -->
+                                            <button
+                                                ref="notifBell"
+                                                @click.stop="toggleNotifications"
+                                                class="relative focus:outline-none mr-3"
+                                                aria-label="Notifications"
+                                            >
+                                                <i class="fas fa-bell text-xl"></i>
+                                                <span v-if="notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
+                                                    {{ notifications.length }}
+                                                </span>
                                             </button>
+                                            <!-- Profile Photo -->
+                                            <button v-if="$page.props.jetstream.managesProfilePhotos"
+                                                class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
+                                                <img class="size-8 rounded-full object-cover"
+                                                    :src="$page.props.auth.user.profile_photo_url"
+                                                    :alt="$page.props.auth.user.name">
+                                            </button>
+                                            <!-- User Name -->
+                                            <template v-if="$page.props.auth.user.role === 'graduate'">
+                                                {{ $page.props.auth.user.graduate_first_name }}
+                                            </template>
+                                            <template v-if="$page.props.auth.user.role === 'peso'">
+                                                {{ $page.props.auth.user.peso_first_name }}
+                                            </template>
+                                            <template v-else-if="$page.props.auth.user.role === 'company'">
+                                                {{ $page.props.app.currentUser.company?.company_name }}
+                                            </template>
+                                            <template v-else-if="$page.props.auth.user.role === 'institution'">
+                                                {{ $page.props.auth.user.institution_name }}
+                                            </template>
+                                            <template v-else>
+                                                {{ $page.props.auth.user.name }}
+                                            </template>
+                                            <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg"
+                                                fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                            </svg>
+                                            <!-- Notification Dropdown -->
+                                            <div
+                                                v-if="showNotifications"
+                                                ref="notifDropdown"
+                                                class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50"
+                                                style="top: 2.5rem;"
+                                            >
+                                                <div v-if="notifications.length">
+                                                    <div v-for="notif in notifications" :key="notif.id" class="p-3 border-b last:border-b-0">
+                                                        <div class="font-semibold">{{ notif.title }}</div>
+                                                        <div class="text-sm text-gray-600">{{ notif.body }}</div>
+                                                        <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
+                                                    </div>
+                                                </div>
+                                                <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
+                                            </div>
                                         </span>
                                     </template>
 
@@ -451,7 +525,7 @@ console.log(page.props.permissions.canManageInstitution)
                                         </DropdownLink>
 
                                         <DropdownLink
-                                            v-if="page.props.auth.user.role === 'institution' && page.props.auth.user.is_approved"
+                                            v-if="page.props.auth.user.role === 'institution'"
                                             :href="route('institution.profile')">
                                             Profile
                                         </DropdownLink>

@@ -140,6 +140,7 @@ class GraduateProfileController extends Controller
             'employment_status' => $validated['employment_status'] ?? '', 
         ]);
 
+        session(['information_completed' => true]);
         return redirect()->route('graduates.profile', ['id' => $graduate->id])->with('information_completed', true);
     }
 }

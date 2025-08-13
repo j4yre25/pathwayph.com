@@ -25,15 +25,16 @@ class CompanyProfileController extends Controller
                 'company_email' => $company->company_email ?? 'N/A',
                 'company_contact_number' => $user->company_contact_number ?? 'N/A',
                 'address' => implode(', ', array_filter([
-                    $user->company_street_address,
-                    $user->company_brgy,
-                    $user->company_city,
-                    $user->company_province,
-                    $user->company_zip_code
+                    $user->company->company_street_address,
+                    $user->company->company_brgy,
+                    $user->company->company_city,
+                    $user->company->company_province,
+                    $user->company->company_zip_code
                 ])),
                 'sector' => $user->sector->name ?? null,
                 'description' => $user->company_description ?? null,
-                'telephone_number' => $user->telephone_number ?? null,
+                'mobile_phone' => $user->company->company_mobile_phone ?? null,
+                'telephone_number' => $user->company->company_tel_phone ?? null,
                 'created_at' => $user->created_at?->format('F j, Y') ?? null,
                 'branch' => implode(', ', array_filter([
                     $user->company_brgy,
@@ -224,6 +225,10 @@ class CompanyProfileController extends Controller
         $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
         $company->save();
 
+        $user->has_completed_information = true;
+        $user->save();
+
+        session(['information_completed' => true]);
         return back()->with('information_saved', true);
     }
 }

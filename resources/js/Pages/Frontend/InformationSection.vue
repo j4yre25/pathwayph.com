@@ -230,7 +230,9 @@ function goToProfile() {
           </div>
         </div>
 
-        <div class="bg-white rounded shadow p-6">
+        <div class="bg-white rounded shadow p-6"
+            v-if="form.employment_status === 'Employed' || form.employment_status === 'Underemployed'"
+          >
           <h2 class="text-xl font-semibold mb-4">Company Information</h2>
           <div class="mb-4">
             <label class="inline-flex items-center">

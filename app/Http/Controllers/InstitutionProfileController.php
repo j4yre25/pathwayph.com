@@ -75,6 +75,8 @@ class InstitutionProfileController extends Controller
             ]
         );
 
+
+        session(['information_completed' => true]);
         return back()->with('information_saved', true);
     }
 }
