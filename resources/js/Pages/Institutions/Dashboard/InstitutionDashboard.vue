@@ -14,6 +14,7 @@ import {
   LineElement,
   Filler
 } from "chart.js";
+import Applayout from "@/Layouts/AppLayout.vue";
 
 ChartJS.register(
   Title,
@@ -98,6 +99,7 @@ const employmentPieOption = computed(() => ({
 </script>
 
 <template>
+  <Applayout>
   <div class="min-h-screen bg-[#eaf6f6] p-6">
     <!-- Top Overview Cards -->
     <section
@@ -207,4 +209,5 @@ const employmentPieOption = computed(() => ({
       </div>
     </section>
   </div>
+  </Applayout>
 </template>
