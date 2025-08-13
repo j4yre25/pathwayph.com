@@ -339,6 +339,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/institution/information', [InstitutionProfileController::class, 'showInformationForm'])->name('institution.information');
     Route::post('/institution/information', [InstitutionProfileController::class, 'saveInformation'])->name('institution.information.save');
+    Route::post('/institution/profile/description', [InstitutionProfileController::class, 'updateDescription'])->name('institution.profile.description.update');
 });
 
 
@@ -893,7 +894,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
     Route::get('/graduate-jobs/recommendations', [GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
     // Graduate Portfolio+
-
+    Route::post('/graduate/referral/request', [GraduateJobsController::class, 'requestReferral'])->name('graduate.referral.request');
     Route::get('/company/profile/{id}', [CompanyProfileController::class, 'showPublic'])->name('company.profile.public');
 
     Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
@@ -905,6 +906,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
     Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
+    Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
 });
 
 
