@@ -13,7 +13,7 @@ const props = defineProps({
     required: true, // 'company' or 'graduate'
   },
 });
-
+console.log("address:", props.company);
 const isEditing = ref(false);
 const localDescription = ref(props.company.description || '');
 
@@ -33,7 +33,7 @@ const saveDescription = () => {
     company_city: props.company.company_city,
     company_province: props.company.company_province,
     company_zip_code: props.company.company_zip_code,
-    company_contact_number: props.company.company_contact_number,
+    company_contact_number: props.company.company_mobile_number,
     company_email: props.company.company_email,
     company_telephone_number: props.company.company_telephone_number,
     company_description: localDescription.value,
@@ -55,7 +55,7 @@ const cancelEditing = () => {
 };
 
 const contactForm = reactive({
-  contact: props.company?.company_contact_number || '',
+  contact: props.company?.mobile_phone || '',
   telephone: props.company?.telephone_number || '',
 });
 
@@ -160,22 +160,17 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
             <!-- Description and Contact Info in Grid -->
             <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             
-                <div class="md:col-span-2 bg-white c">
+                 <div class="md:col-span-2 bg-white c">
                     <div class="flex items-center justify-between">
                         <h4 class="text-xl font-semibold text-gray-800">Company Description</h4>
                         <Pencil
-                            v-if="canEdit && $page.props.auth.user.is_approved"
+                            v-if="canEdit"
                             @click="isEditing = true"
                             class="w-5 h-5 text-gray-500 hover:text-blue-500 cursor-pointer"/>
                     </div>
 
-                    <!-- If not approved, show waiting message -->
-                    <div v-if="!$page.props.auth.user.is_approved" class="mt-4 p-4 bg-yellow-100 text-yellow-800 rounded">
-                        This account is still waiting for admin approval.
-                    </div>
-
-                    <!-- Edit Mode (only if approved) -->
-                    <div v-else-if="isEditing" class="mt-4">
+                    <!-- Edit Mode -->
+                    <div v-if="isEditing" class="mt-4">
                         <textarea
                             v-model="localDescription"
                             class="w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-blue-200"
@@ -187,7 +182,7 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
                         <button @click="cancelEditing" class="ml-2 mt-2 bg-red-600 text-white px-4 py-1 rounded hover:bg-blue-700">Cancel</button>
                     </div>
 
-                    <!-- View Mode (only if approved) -->
+                    <!-- View Mode -->
                     <p v-else class="text-gray-600 mt-4">{{ localDescription || 'No description available.' }}</p>
                 </div>
                 <!-- Contact Information -->

@@ -63,18 +63,18 @@ class CustomRegisteredUserController extends Controller
          event(new Registered($user));
 
         // Redirect company users to information section
-        if ($role === 'company') {
+        if ($role === 'company' && !session('information_completed', false)) {
             auth()->login($user); // Make sure the user is logged in
             return redirect()->route('company.information');
         }
 
         // Redirect company users to information section
-        if ($role === 'institution') {
+        if ($role === 'institution' && !session('information_completed', false)) {
             auth()->login($user); // Make sure the user is logged in
             return redirect()->route('institution.information');
         }
-      
-        if ($role === 'graduate') {
+
+        if ($role === 'graduate' && !session('information_completed', false)) {
             auth()->login($user); // Make sure the user is logged in
             return redirect()->route('graduate.information');
         }

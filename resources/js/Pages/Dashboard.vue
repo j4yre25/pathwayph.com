@@ -1,12 +1,9 @@
 <script setup>
-
-
-
 import AppLayout from "@/Layouts/AppLayout.vue";
+import Modal from '@/Components/Modal.vue';
 import { usePage } from "@inertiajs/vue3";
-import { computed, ref, defineComponent } from "vue";
+import { computed, ref, defineComponent, onMounted } from "vue";
 import Welcome from "@/Components/Welcome.vue";
-import Modal from "../Components/Modal.vue";
 import CompanyDashboard from "../Pages/Company/CompanyDashboard.vue";
 import InstitutionDashboard from "./Institutions/Dashboard/InstitutionDashboard.vue";
 import { Inertia } from "@inertiajs/inertia";
@@ -20,6 +17,13 @@ const userNotApproved = computed(() => page.props.userNotApproved ?? false);
 const showModal = ref(false);
 const showReferralModal = ref(false);
 
+const showApprovalModal = ref(false)
+
+onMounted(() => {
+  if (page.props.needsApproval) {
+    showApprovalModal.value = true;
+  }
+});
 
 // Dummy Data
 const kpi = computed(() => page.props.kpi ?? {});
@@ -34,7 +38,6 @@ const eventAttendanceOption = computed(() => page.props.eventAttendanceOption ??
 const alerts = computed(() => page.props.alerts ?? {});
 const sectorPieOption = computed(() => page.props.sectorPieOption ?? {});
 const inDemandCategories = computed(() => page.props.inDemandCategories ?? []);
-
 
 
 
@@ -176,24 +179,38 @@ function submitReferral() {
             </h2>
         </template>
 
+        <Modal v-model="showApprovalModal">
+            <template #header>
+            <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
+            </template>
+            <template #body>
+            <p class="mb-6 text-gray-700">
+                Your company account is still waiting for admin approval.<br>
+                You will be notified once your account is approved.
+            </p>
+            </template>
+            <template #footer>
+            <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
+            </template>
+        </Modal>
 
         <div v-if="page.props.roles?.isCompany" class="py-12">
-    <Welcome v-if="!page.props.roles?.isCompany" />
-    <div class="p-6">
-        <h3 class="text-lg font-semibold text-gray-800">
-            Welcome to the Dashboard
-        </h3>
-        <p class="mt-2 text-gray-600">
-            Here you can manage your account and view your statistics.
-        </p>
-    </div>
-    <CompanyDashboard   
-        :summary="page.props.summary"
-        :recentApplications="page.props.recentApplications"
-        :applicationTrends="page.props.applicationTrends"
-        :jobPerformance="page.props.jobPerformance"
-        />
-</div>
+            <Welcome v-if="!page.props.roles?.isCompany" />
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Welcome to the Dashboard
+                </h3>
+                <p class="mt-2 text-gray-600">
+                    Here you can manage your account and view your statistics.
+                </p>
+            </div>
+            <CompanyDashboard   
+                :summary="page.props.summary"
+                :recentApplications="page.props.recentApplications"
+                :applicationTrends="page.props.applicationTrends"
+                :jobPerformance="page.props.jobPerformance"
+                />
+        </div>
 
 <div v-else-if="page.props.roles?.isInstitution" class="py-12">
     <Welcome v-if="!page.props.roles?.isInstitution" />

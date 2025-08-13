@@ -84,6 +84,8 @@ class InstitutionProfileController extends Controller
 
         $institution->save();
 
+
+        session(['information_completed' => true]);
         return back()->with('information_saved', true);
     }
 

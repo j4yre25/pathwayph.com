@@ -201,7 +201,7 @@ class ManageUsersController extends Controller
 
         // Send the verification code via email
         $user->notify(new \App\Notifications\VerifyEmailWithCode($verificationCode));
-
+        $user->notify(new \App\Notifications\AccountApproved());
         return redirect()->route('admin.manage_users')->with('flash.banner', 'User approved and verification code sent successfully.');
     }
 
