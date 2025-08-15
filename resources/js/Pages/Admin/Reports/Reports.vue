@@ -1,6 +1,6 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, watchEffect } from 'vue'
 import VueECharts from 'vue-echarts';
 import { usePage, router, Link } from '@inertiajs/vue3'
 import Container from '@/Components/Container.vue';
@@ -12,6 +12,8 @@ import { TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, Le
 
 import { CanvasRenderer } from 'echarts/renderers'
 
+
+const careerGapYear = ref('');
 const page = usePage()
 
 // Function to go back to previous page
@@ -19,17 +21,29 @@ const goBack = () => {
   router.visit(route('dashboard'));
 };
 
+console.log(page.props.graduates)
+const currentPage = ref(1)
+const pageSize = ref(10) // graduates per page
+
+const paginatedGraduates = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return safeFilteredGraduates.value.slice(start, start + pageSize.value)
+})
+
+
+const totalPages = computed(() => Math.ceil(safeFilteredGraduates.value.length / pageSize.value))
 const industryGraduateCounts = page.props.industryGraduateCounts ?? []
 const industryNames = page.props.industryNames ?? []
 const industryJobRoles = page.props.industryJobRoles ?? []
 const industryApplicants = page.props.industryApplicants ?? []
 
+
 const allTabs = [
   { key: 'employmentStatus', label: 'Employment Status Overview' },
-  { key: 'employmentIndustry', label: 'Employment by Industry' },
-  { key: 'employmentProgram', label: 'Employment by Program' },
-  { key: 'geoDistribution', label: 'Geographic Distribution' },
+  // { key: 'geoDistribution', label: 'Geographic Distribution' },
   { key: 'employmentTrend', label: 'Employment Trend Over Time' },
+  { key: 'careerGapMap', label: 'Demand-Supply Career Gap Map' },
+  { key: 'schoolEmployability', label: 'School-wise Employability' },
   { key: 'skillsRoles', label: 'Skills and Roles Analysis' },
   { key: 'jobSearchDuration', label: 'Job Search Duration' },
   { key: 'graduateSatisfaction', label: 'Graduate Satisfaction' },
@@ -56,8 +70,7 @@ const allTabs = [
   { key: 'jobSatisfaction', label: 'Job Satisfaction' },
   { key: 'futureJobTrends', label: 'Future Job Trends' },
   { key: 'jobOpeningsSeekers', label: 'Job Openings vs. Job Seekers' },
-  { key: 'filteredGraduates', label: 'Filtered Graduates' },
-]
+  ]
 
 const VISIBLE_TAB_COUNT = 4
 const activeTab = ref(allTabs[0].key)
@@ -92,6 +105,17 @@ echarts.use([
 import phMap from '@/maps/ph.json'
 echarts.registerMap('PH', phMap)
 
+
+const educationLevels = ['Bachelor', 'Master']
+const employmentByEducation = [55, 78, 90]
+const radarPrograms = ['IT', 'Business', 'Engineering']
+const radarSkills = ['Technical', 'Communication', 'Problem Solving', 'Teamwork']
+const radarData = [
+  { value: [80, 70, 60, 90], name: 'IT' },
+  { value: [60, 85, 75, 80], name: 'Business' },
+  { value: [90, 65, 80, 70], name: 'Engineering' }
+]
+
 // Use defineProps with object syntax for better type safety and xIDE support
 const props = defineProps({
   statusCounts: { type: Object, default: () => ({}) },
@@ -114,20 +138,132 @@ const props = defineProps({
   referralByLocation: { type: Object, default: () => ({}) },
   referralSuccessHeatmap: { type: Array, default: () => [] },
   graduates: { type: Array, default: () => [] },
-
+  educationLevels: { type: Array, default: () => [] },
+  employmentByEducation: { type: Array, default: () => [] }, // e.g. [60, 75, 85]
+  radarPrograms: { type: Array, default: () => [] }, // e.g. ['IT', 'Business', 'Engineering']
+  radarSkills: { type: Array, default: () => [] }, // e.g. ['Technical', 'Communication', 'Problem Solving', 'Teamwork']
+  radarData: { type: Array, default: () => [] }, // e.g. [{ value: [80, 70, 60, 90], name: 'IT' }, ...]
 
 })
-const graduates = ref([]);
+
+const filteredProgramNames = computed(() => {
+  // If a program is selected, show only that program
+  if (selectedProgram.value) {
+    const prog = programs.value.find(p => p.id === selectedProgram.value);
+    return prog ? [prog.name] : [];
+  }
+  // Otherwise, show all programs present in the filtered graduates
+  const set = new Set();
+  safeFilteredGraduates.value.forEach(g => {
+    if (g.program?.name) set.add(g.program.name);
+  });
+  return Array.from(set);
+});
+
+
+const employedByFilteredProgram = computed(() =>
+  filteredProgramNames.value.map(name =>
+    safeFilteredGraduates.value.filter(g => g.program?.name === name && g.employment_status === 'Employed').length
+  )
+);
+
+const unemployedByFilteredProgram = computed(() =>
+  filteredProgramNames.value.map(name =>
+    safeFilteredGraduates.value.filter(g => g.program?.name === name && g.employment_status === 'Unemployed').length
+  )
+);
+
+const filteredStatusCounts = computed(() => {
+  const counts = { Employed: 0, Underemployed: 0, Unemployed: 0 }
+  safeFilteredGraduates.value.forEach(g => {
+    if (g.employment_status === 'Employed') counts.Employed++
+    else if (g.employment_status === 'Underemployed') counts.Underemployed++
+    else if (g.employment_status === 'Unemployed') counts.Unemployed++
+  })
+  return counts
+})
+
+const graduates = ref(props.graduates ?? []);
 // KPI values
-const employed = computed(() => props.statusCounts?.Employed ?? props.employed ?? 0)
-const unemployed = computed(() => props.statusCounts?.Unemployed ?? props.unemployed ?? 0)
-const totalGraduates = computed(() => {
-  // If you want to include underemployed, add it here
-  return employed.value + unemployed.value + (props.statusCounts?.Underemployed ?? 0)
-})
+const employed = computed(() =>
+  safeFilteredGraduates.value.filter(g => g.employment_status === 'Employed').length
+)
+const unemployed = computed(() =>
+  safeFilteredGraduates.value.filter(g => g.employment_status === 'Unemployed').length
+)
+const underemployed = computed(() =>
+  safeFilteredGraduates.value.filter(g => g.employment_status === 'Underemployed').length
+)
+const totalGraduates = computed(() => safeFilteredGraduates.value.length)
 
+
+const employmentInterpretation = computed(() => {
+  const total = totalGraduates.value
+  const emp = employed.value
+  const unemp = unemployed.value
+  const underemp = underemployed.value
+
+  if (total === 0) {
+    return "No graduates match the current filters."
+  }
+
+  const empRate = ((emp / total) * 100).toFixed(1)
+  const unempRate = ((unemp / total) * 100).toFixed(1)
+  const underempRate = ((underemp / total) * 100).toFixed(1)
+
+  // Most common program
+  const programCounts = {}
+  safeFilteredGraduates.value.forEach(g => {
+    if (g.program?.name) {
+      programCounts[g.program.name] = (programCounts[g.program.name] || 0) + 1
+    }
+  })
+  const topProgram = Object.entries(programCounts).sort((a, b) => b[1] - a[1])[0]
+  const topProgramStr = topProgram ? `The most common program among filtered graduates is "${topProgram[0]}" (${topProgram[1]} graduates).` : ""
+
+  // Most common institution
+  const instCounts = {}
+  safeFilteredGraduates.value.forEach(g => {
+    if (g.institution?.institution_name) {
+      instCounts[g.institution.institution_name] = (instCounts[g.institution.institution_name] || 0) + 1
+    }
+  })
+  const topInst = Object.entries(instCounts).sort((a, b) => b[1] - a[1])[0]
+  const topInstStr = topInst ? `The top institution is "${topInst[0]}" (${topInst[1]} graduates).` : ""
+
+  // Most common location
+  const locCounts = {}
+  safeFilteredGraduates.value.forEach(g => {
+    if (g.location) {
+      locCounts[g.location] = (locCounts[g.location] || 0) + 1
+    }
+  })
+  const topLoc = Object.entries(locCounts).sort((a, b) => b[1] - a[1])[0]
+  const topLocStr = topLoc ? `Most graduates are from "${topLoc[0]}" (${topLoc[1]} graduates).` : ""
+
+  // Year range
+  const yearsArr = safeFilteredGraduates.value
+    .map(g => g.school_year?.school_year_range)
+    .filter(Boolean)
+  const uniqueYears = Array.from(new Set(yearsArr))
+  const yearStr = uniqueYears.length
+    ? `Graduates span ${uniqueYears.length} school year${uniqueYears.length > 1 ? "s" : ""}: ${uniqueYears.join(", ")}.`
+    : ""
+
+  // Status breakdown
+  const statusBreakdown = `Breakdown: ${emp} employed (${empRate}%), ${underemp} underemployed (${underempRate}%), ${unemp} unemployed (${unempRate}%).`
+
+  // Compose the interpretation
+  return [
+    `Out of ${total} filtered graduates, ${statusBreakdown}`,
+    yearStr,
+    topProgramStr,
+    topInstStr,
+    topLocStr
+  ].filter(Boolean).join(" ")
+})
 // Pie chart for employment status
-const pieOption = ref({
+const pieOption = computed(() => ({
   tooltip: {
     trigger: 'item',
     formatter: '{b}: {c} ({d}%)'
@@ -141,7 +277,11 @@ const pieOption = ref({
       name: 'Status',
       type: 'pie',
       radius: '60%',
-      data: [],
+      data: [
+        { name: 'Employed', value: filteredStatusCounts.value.Employed },
+        { name: 'Underemployed', value: filteredStatusCounts.value.Underemployed },
+        { name: 'Unemployed', value: filteredStatusCounts.value.Unemployed }
+      ],
       emphasis: {
         itemStyle: {
           shadowBlur: 10,
@@ -156,7 +296,7 @@ const pieOption = ref({
       }
     }
   ]
-})
+}))
 
 const updatePieChart = () => {
   pieOption.value.series[0].data = Object.entries(props.statusCounts || {}).map(
@@ -166,14 +306,16 @@ const updatePieChart = () => {
     })
   )
 }
-watch(() => props.statusCounts, updatePieChart, { immediate: true })
+watch(() => props.graduates, (val) => {
+  graduates.value = val ?? [];
+}, props.statusCounts, updatePieChart, { immediate: true })
 onMounted(updatePieChart)
 
 // Bar chart for employment by program
 const barOption = computed(() => ({
   tooltip: { trigger: 'axis' },
   legend: { data: ['Employed', 'Unemployed'] },
-  xAxis: { type: 'category', data: props.programNames },
+  xAxis: { type: 'category', data: filteredProgramNames.value },
   yAxis: { type: 'value' },
   series: [
     {
@@ -181,7 +323,7 @@ const barOption = computed(() => ({
       type: 'bar',
       stack: 'total',
       emphasis: { focus: 'series' },
-      data: props.employedByProgram,
+      data: employedByFilteredProgram.value,
       itemStyle: { color: '#22c55e' }
     },
     {
@@ -189,26 +331,27 @@ const barOption = computed(() => ({
       type: 'bar',
       stack: 'total',
       emphasis: { focus: 'series' },
-      data: props.unemployedByProgram,
+      data: unemployedByFilteredProgram.value,
       itemStyle: { color: '#ef4444' }
     }
   ]
-}))
+}));
 
 // Heatmap for employment rate by program
 const employmentRates = computed(() =>
-  props.programNames.map((name, idx) => {
-    const total = (props.employedByProgram[idx] ?? 0) + (props.unemployedByProgram[idx] ?? 0)
-    return total ? (props.employedByProgram[idx] ?? 0) / total : 0
+  filteredProgramNames.value.map((name, idx) => {
+    const total = employedByFilteredProgram.value[idx] + unemployedByFilteredProgram.value[idx];
+    return total ? employedByFilteredProgram.value[idx] / total : 0;
   })
-)
+);
 const heatmapData = computed(() =>
   employmentRates.value.map((rate, idx) => [idx, 0, rate])
-)
+);
+
 const heatmapOption = computed(() => ({
   tooltip: {
     formatter: params =>
-      `${props.programNames[params.data[0]]}: ${(params.data[2] * 100).toFixed(1)}%`
+      `${filteredProgramNames.value[params.data[0]]}: ${(params.data[2] * 100).toFixed(1)}%`
   },
   grid: {
     top: 40,
@@ -219,7 +362,7 @@ const heatmapOption = computed(() => ({
   },
   xAxis: {
     type: 'category',
-    data: props.programNames,
+    data: filteredProgramNames.value,
     splitArea: { show: true },
     axisLabel: {
       rotate: 30,
@@ -259,7 +402,7 @@ const heatmapOption = computed(() => ({
       emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' } }
     }
   ]
-}))
+}));
 
 // For word cloud, you can use a Vue word cloud component or just list the top items
 const topRoles = computed(() =>
@@ -498,24 +641,68 @@ const referralHeatmapOption = computed(() => ({
   ]
 }));
 
-const filteredGraduates = computed(() => {
-  return props.graduates.filter(g =>
-    (!selectedYear.value || g.schoolYear?.school_year_range === selectedYear.value) &&
-    (!selectedProgram.value || g.program_id === selectedProgram.value) &&
-    (!selectedStatus.value || g.employment_status === selectedStatus.value) &&
-    (!selectedLocation.value || g.location === selectedLocation.value)
-  );
-});
-
-// FILTER CONTROLS
 const selectedYear = ref('')
 const selectedProgram = ref('')
 const selectedStatus = ref('')
 const selectedLocation = ref('')
+const selectedInstitution = ref('')
 
-const years = ref([])
-const programs = ref([])
-const locations = ref([])
+// Populate institutions on mount (assuming graduates have institution info)
+onMounted(() => {
+  if (graduates.value && graduates.value.length) {
+    const allInstitutions = new Map()
+    graduates.value.forEach(g => {
+      if (g.institution && g.institution.id) {
+        allInstitutions.set(g.institution.id, g.institution)
+      }
+    })
+    institutions.value = Array.from(allInstitutions.values())
+  }
+})
+
+// Update safeFilteredGraduates computed:
+const safeFilteredGraduates = computed(() => {
+  return graduates.value.filter(g =>
+    (!selectedYear.value || g.school_year?.school_year_range === selectedYear.value) &&
+    (!selectedProgram.value || g.program_id === selectedProgram.value) &&
+    (!selectedStatus.value || g.employment_status === selectedStatus.value) &&
+    (!selectedLocation.value || g.location === selectedLocation.value) &&
+    (!selectedInstitution.value || g.institution?.id === selectedInstitution.value)
+  );
+});
+console.log(safeFilteredGraduates.value) // Debugging: Check filtered graduates
+
+
+// FILTER CONTROLS
+const years = computed(() => {
+  const set = new Set();
+  graduates.value.forEach(g => {
+    if (g.school_year?.school_year_range) set.add(g.school_year.school_year_range);
+  });
+  return Array.from(set).sort().reverse();
+});
+const programs = computed(() => {
+  const map = new Map();
+  graduates.value.forEach(g => {
+    if (g.program && g.program.id) map.set(g.program.id, g.program);
+  });
+  return Array.from(map.values());
+});
+const locations = computed(() => {
+  const set = new Set();
+  graduates.value.forEach(g => {
+    if (g.location) set.add(g.location);
+  });
+  return Array.from(set).sort();
+});
+
+const institutions = computed(() => {
+  const map = new Map();
+  graduates.value.forEach(g => {
+    if (g.institution && g.institution.id) map.set(g.institution.id, g.institution);
+  });
+  return Array.from(map.values());
+});
 
 // Populate filter options on mount
 onMounted(() => {
@@ -537,15 +724,18 @@ onMounted(() => {
     })
     years.value = Array.from(allYears).sort((a, b) => b - a)
 
-    // Programs and Locations (assuming these are available in graduates data)
+    // Programs, Locations, and Institutions (assuming these are available in graduates data)
     const allPrograms = new Set()
     const allLocations = new Set()
+    const allInstitutions = new Set()
     graduates.value.forEach(g => {
       if (g.program_id) allPrograms.add(g.program_id)
       if (g.location) allLocations.add(g.location)
+      if (g.institution_id) allInstitutions.add(g.institution_id)
     })
     programs.value = Array.from(allPrograms)
     locations.value = Array.from(allLocations)
+    institutions.value = Array.from(allInstitutions)
   }
 })
 
@@ -828,6 +1018,240 @@ function binData(data, binSize = 5000) {
   });
   return bins;
 }
+
+
+const educationBarOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: props.educationLevels,
+    axisLabel: { rotate: 20 }
+  },
+  yAxis: { type: 'value', name: 'Employment Rate (%)', max: 100 },
+  series: [
+    {
+      name: 'Employment Rate',
+      type: 'bar',
+      data: props.employmentByEducation,
+      itemStyle: { color: '#3b82f6' }
+    }
+  ]
+}))
+
+
+const radarOption = computed(() => ({
+  tooltip: {},
+  legend: { data: props.radarPrograms },
+  radar: {
+    indicator: props.radarSkills.map(skill => ({ name: skill, max: 100 })),
+    radius: 90
+  },
+  series: [
+    {
+      name: 'Skills vs Employability',
+      type: 'radar',
+      data: props.radarData
+    }
+  ]
+}))
+
+// Watcher to reset currentPage when safeFilteredGraduates changes
+watch(safeFilteredGraduates, () => {
+  currentPage.value = 1
+})
+
+const inDemandJobs = computed(() => page.props.inDemandJobs ?? []);
+
+const careerGapBarOption = computed(() => {
+  const roles = inDemandJobs.value.map(j => j.role);
+  const demand = inDemandJobs.value.map(() => 1);
+  const supply = inDemandJobs.value.map(job => getLocalGraduateCount(job));
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['Demand', 'Local Graduate Supply'] },
+    xAxis: { type: 'category', data: roles, axisLabel: { rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [
+      {
+        name: 'Demand',
+        type: 'bar',
+        data: demand,
+        itemStyle: { color: '#f59e42' }
+      },
+      {
+        name: 'Local Graduate Supply',
+        type: 'bar',
+        data: supply,
+        itemStyle: { color: '#3b82f6' }
+      }
+    ]
+  };
+});
+
+
+const roleFilter = ref('');
+const careerGapCurrentPage = ref(1);
+const careerGapPageSize = ref(10);
+
+const filteredInDemandJobs = computed(() => {
+  let jobs = inDemandJobs.value;
+  if (roleFilter.value) {
+    jobs = jobs.filter(job =>
+      job.role && job.role.toLowerCase().includes(roleFilter.value.toLowerCase())
+    );
+  }
+  // Remove roles with zero local supply (after year filter)
+  return jobs.filter(job => getLocalGraduateCount(job) > 0);
+});
+
+const paginatedInDemandJobs = computed(() => {
+  const start = (careerGapCurrentPage.value - 1) * careerGapPageSize.value;
+  return filteredInDemandJobs.value.slice(start, start + careerGapPageSize.value);
+});
+
+const careerGapTotalPages = computed(() =>
+  Math.ceil(filteredInDemandJobs.value.length / careerGapPageSize.value)
+);
+
+watch(roleFilter, () => {
+  careerGapCurrentPage.value = 1;
+});
+
+
+watchEffect(() => {
+  paginatedInDemandJobs.value.forEach(job => {
+    if (
+      !safeFilteredGraduates.value ||
+      !Array.isArray(safeFilteredGraduates.value) ||
+      !job.program_ids ||
+      !Array.isArray(job.program_ids) ||
+      !job.program_ids.length
+    ) {
+      console.log(`[TABLE] Role: ${job.role}, Matches: []`);
+      return;
+    }
+    const matches = safeFilteredGraduates.value.filter(g =>
+      g.program_id &&
+      job.program_ids.map(Number).includes(Number(g.program_id))
+    );
+    console.log(`[TABLE] Role: ${job.role}, Matches:`, matches);
+  });
+});
+
+function getLocalGraduateCount(job) {
+  if (
+    !safeFilteredGraduates.value ||
+    !Array.isArray(safeFilteredGraduates.value) ||
+    !job.program_ids ||
+    !Array.isArray(job.program_ids) ||
+    !job.program_ids.length
+  ) return 0;
+
+  return safeFilteredGraduates.value.filter(g => {
+    // Year filter
+    if (careerGapYear.value && g.school_year?.school_year_range !== careerGapYear.value) return false;
+
+    // Match by program_id
+    const byProgramId = g.program_id && job.program_ids.map(Number).includes(Number(g.program_id));
+
+    // Match by graduateEducations (program name or field_of_study)
+    const byEducation = Array.isArray(g.graduateEducations) &&
+      job.programs.some(program =>
+        g.graduateEducations.some(edu =>
+          edu.field_of_study &&
+          program &&
+          program.toLowerCase() === edu.field_of_study.toLowerCase()
+        )
+      );
+
+    return byProgramId || byEducation;
+  }).length;
+}
+
+const topInDemandCareer = computed(() => {
+  const sorted = filteredInDemandJobs.value
+    .map(job => ({ role: job.role, supply: getLocalGraduateCount(job) }))
+    .sort((a, b) => b.supply - a.supply);
+  return sorted[0] || null;
+});
+
+const uniqueRoleSuggestions = computed(() => {
+  // Use all roles from inDemandJobs, or filteredInDemandJobs for more dynamic suggestions
+  const set = new Set(inDemandJobs.value.map(job => job.role));
+  return Array.from(set).sort();
+});
+
+// --- School-wise Graduate Employability ---
+
+const employabilityTimeline = ref('');
+const employabilityInstitution = ref('');
+const employabilityProgram = ref('');
+
+const employabilityInstitutions = computed(() => {
+  const set = new Map();
+  graduates.value.forEach(g => {
+    if (g.institution && g.institution.id) set.set(g.institution.id, g.institution);
+  });
+  return Array.from(set.values());
+});
+const employabilityPrograms = computed(() => {
+  const set = new Map();
+  graduates.value.forEach(g => {
+    if (g.program && g.program.id) set.set(g.program.id, g.program);
+  });
+  return Array.from(set.values());
+});
+const employabilityYears = computed(() => {
+  const set = new Set();
+  graduates.value.forEach(g => {
+    if (g.schoolYear?.school_year_range) set.add(g.schoolYear.school_year_range);
+  });
+  return Array.from(set).sort().reverse();
+});
+
+// Filtered graduates for employability
+const filteredEmployabilityGraduates = computed(() => {
+  return graduates.value.filter(g =>
+    g.employment_status === 'Employed' &&
+    (!employabilityTimeline.value || g.schoolYear?.school_year_range === employabilityTimeline.value) &&
+    (!employabilityInstitution.value || g.institution?.id === employabilityInstitution.value) &&
+    (!employabilityProgram.value || g.program?.id === employabilityProgram.value)
+  );
+});
+
+// School-wise employability counts
+const schoolEmployabilityCounts = computed(() => {
+  const counts = {};
+  filteredEmployabilityGraduates.value.forEach(g => {
+    const school = g.institution?.institution_name || 'Unknown';
+    counts[school] = (counts[school] || 0) + 1;
+  });
+  // Convert to array and sort descending
+  return Object.entries(counts)
+    .map(([school, count]) => ({ school, count }))
+    .sort((a, b) => b.count - a.count);
+});
+
+// Chart option
+const schoolEmployabilityBarOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  xAxis: {
+    type: 'category',
+    data: schoolEmployabilityCounts.value.map(i => i.school),
+    axisLabel: { rotate: 30 }
+  },
+  yAxis: { type: 'value', name: 'Hired Graduates' },
+  series: [
+    {
+      name: 'Hired Graduates',
+      type: 'bar',
+      data: schoolEmployabilityCounts.value.map(i => i.count),
+      itemStyle: { color: '#3b82f6' }
+    }
+  ]
+}));
+
+
 </script>
 
 <template>
@@ -900,11 +1324,13 @@ function binData(data, binSize = 5000) {
                 <option value="Underemployed">Underemployed</option>
               </select>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
-              <select v-model="selectedLocation" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
+  
+          <!-- Add this to your filter controls -->
+          <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Institution</label>
+              <select v-model="selectedInstitution" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
                 <option value="">All Locations</option>
-                <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
+                <option v-for="inst in institutions" :key="inst.id" :value="inst.id">{{ inst.institution_name }}</option>
               </select>
             </div>
           </div>
@@ -923,7 +1349,45 @@ function binData(data, binSize = 5000) {
               </div>
             </div>
           </div>
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
+  
+        <p class="mb-2 text-sm text-gray-500">
+          Showing {{ safeFilteredGraduates.length }} of {{ totalGraduates }} graduates
+        </p>
+        <div v-if="safeFilteredGraduates.length" class="bg-white rounded-xl shadow p-8 mb-10">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Filtered Graduates</h3>
+          <table class="min-w-full text-sm text-gray-800">
+            <thead>
+              <tr>
+                <th class="px-2 py-1 text-left">Name</th>
+                <th class="px-2 py-1 text-left">Program</th>
+                <th class="px-2 py-1 text-left">Status</th>
+                <th class="px-2 py-1 text-left">Year</th>
+                <th class="px-2 py-1 text-left">Institution</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="g in paginatedGraduates" :key="g.id" class="hover:bg-gray-100">
+                <td class="px-2 py-1">{{ g.first_name }} {{ g.last_name }}</td>
+                <td class="px-2 py-1">{{ g.program?.name }}</td>
+                <td class="px-2 py-1">{{ g.employment_status }}</td>
+                <td class="px-2 py-1">{{ g.school_year?.school_year_range }}</td>
+                <td class="px-2 py-1">{{ g.institution?.institution_name }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="currentPage === 1"
+              @click="currentPage--">Prev</button>
+            <span class="text-gray-700">Page {{ currentPage }} of {{ totalPages }}</span>
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="currentPage === totalPages"
+              @click="currentPage++">Next</button>
+          </div>
+        </div>
+
+
+
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
             <div class="flex justify-between items-start">
               <div>
                 <h3 class="text-gray-600 text-sm font-medium mb-2">Unemployed</h3>
@@ -957,8 +1421,8 @@ function binData(data, binSize = 5000) {
                 Detailed Status
               </h3>
               <ul class="space-y-4">
-                <li v-for="(count, status) in statusCounts" :key="status"
-                  class="flex justify-between items-center px-4 py-2 rounded hover:bg-gray-50 transition border border-gray-200">
+                <li v-for="(count, status) in filteredStatusCounts" :key="status"
+                  class="flex justify-between items-center px-4 py-2 rounded hover:bg-gray-50 transition">
                   <span class="capitalize text-gray-600">{{ status }}</span>
                   <span class="font-semibold text-gray-900">{{ count }}</span>
                 </li>
@@ -972,53 +1436,105 @@ function binData(data, binSize = 5000) {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+          <!-- Employment by Industry -->
+          <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Employment by Industry</h2>
 
-      <!-- Employment by Industry -->
-      <div v-else-if="activeTab === 'employmentIndustry'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Employment by Industry</h2>
+          <!-- Bar/Clustered Column Chart -->
+          <div class="bg-white rounded-xl shadow p-8 mb-12">
+            <h3 class="text-lg font-semibold mb-6 text-gray-700">Graduates per Industry</h3>
+            <VueECharts :option="industryBarOption" style="height: 400px; width: 100%;" />
+          </div>
 
-        <!-- Bar/Clustered Column Chart -->
-        <div class="bg-white rounded-xl shadow p-8 mb-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Graduates per Industry</h3>
-          <VueECharts :option="industryBarOption" style="height: 400px; width: 100%;" />
-        </div>
+          <!-- Treemap -->
+          <div class="bg-white rounded-xl shadow p-8 mb-12">
+            <h3 class="text-lg font-semibold mb-6 text-gray-700">Industry Share (Treemap)</h3>
+            <VueECharts :option="industryTreemapOption" style="height: 400px; width: 100%;" />
+          </div>
 
-        <!-- Treemap -->
-        <div class="bg-white rounded-xl shadow p-8 mb-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Industry Share (Treemap)</h3>
-          <VueECharts :option="industryTreemapOption" style="height: 400px; width: 100%;" />
-        </div>
+          <!-- Stacked Column Chart -->
+          <div class="bg-white rounded-xl shadow p-8">
+            <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Roles vs. Applicants by Industry</h3>
+            <VueECharts :option="industryStackedOption" style="height: 400px; width: 100%;" />
+          </div>
 
-        <!-- Stacked Column Chart -->
-        <div class="bg-white rounded-xl shadow p-8">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Roles vs. Applicants by Industry</h3>
-          <VueECharts :option="industryStackedOption" style="height: 400px; width: 100%;" />
-        </div>
-      </div>
-
-      <!-- Employment by Program -->
-      <div v-else-if="activeTab === 'employmentProgram'">
-        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <!-- Employment By Program -->
+          <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
           <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
           Employment by Program
         </h2>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
-          <h3 class="text-lg font-semibold mb-4 flex items-center">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
             <i class="fas fa-chart-bar text-green-500 mr-2"></i>
             Employment Rate by Program
           </h3>
-          <VueECharts :option="barOption" style="height: 400px; width: 100%;" />
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
-          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <VueECharts :option="barOption" style="height: 400px; width: 100%;" />
+          </div>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
             <i class="fas fa-th text-purple-500 mr-2"></i>
             Employment Rate Heatmap
           </h3>
-          <VueECharts :option="heatmapOption" style="height: 400px; width: 100%;" />
+            <VueECharts :option="heatmapOption" style="height: 400px; width: 100%;" />
+          </div>
+        </div>
+
+        <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div class="text-blue-900 space-y-2">
+            <div>
+              <span class="font-semibold">Summary:</span>
+              <span>
+                Out of <span class="font-bold">{{ totalGraduates }}</span> filtered graduates:
+                <span class="text-green-700 font-semibold">{{ employed }}</span> employed ({{ ((employed /
+                  totalGraduates) * 100).toFixed(1) }}%),
+                <span class="text-yellow-700 font-semibold">{{ underemployed }}</span> underemployed ({{ ((underemployed
+                  / totalGraduates) * 100).toFixed(1) }}%),
+                <span class="text-red-700 font-semibold">{{ unemployed }}</span> unemployed ({{ ((unemployed /
+                  totalGraduates) * 100).toFixed(1) }}%).
+              </span>
+            </div>
+            <div v-if="years.length">
+              <span class="font-semibold">School Years:</span>
+              <span>{{ years.join(', ') }}</span>
+            </div>
+            <div v-if="safeFilteredGraduates.length">
+              <span class="font-semibold">Top Program:</span>
+              <span>
+                {{
+                  (() => {
+                    const counts = {};
+                    safeFilteredGraduates.forEach(g => {
+                      if (g.program?.name) counts[g.program.name] = (counts[g.program.name] || 0) + 1;
+                    });
+                    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+                    return top ? `${top[0]} (${top[1]})` : 'N/A';
+                  })()
+                }}
+              </span>
+            </div>
+            <div v-if="safeFilteredGraduates.length">
+              <span class="font-semibold">Top Institution:</span>
+              <span>
+                {{
+                  (() => {
+                    const counts = {};
+                    safeFilteredGraduates.forEach(g => {
+                      if (g.institution?.institution_name) counts[g.institution.institution_name] =
+                        (counts[g.institution.institution_name] || 0) + 1;
+                    });
+                    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+                    return top ? `${top[0]} (${top[1]})` : 'N/A';
+                  })()
+                }}
+              </span>
+            </div>
+
+          </div>
         </div>
       </div>
+
+
+      <!-- Employment by Program -->
+
 
       <!-- Geographic Distribution -->
       <div v-else-if="activeTab === 'geoDistribution'">
@@ -1112,6 +1628,236 @@ function binData(data, binSize = 5000) {
             </div>
           </div>
         </div>
+
+
+      <!-- Demand-Supply Career Gap Map -->
+      <div v-else-if="activeTab === 'careerGapMap'">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">Demand-Supply Career Gap Map</h2>
+
+        <!-- Table: In-Demand Careers vs Local Graduate Availability -->
+        <div class="bg-white rounded-xl shadow p-8 mb-10">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">In-Demand Careers vs Graduate Supply</h3>
+          <div class="flex items-center mb-4 gap-4">
+            <input v-model="roleFilter" type="text" placeholder="Filter by role..."
+              class="border px-2 py-1 rounded w-64" list="role-suggestions" autocomplete="off" />
+            <datalist id="role-suggestions">
+              <option v-for="job in uniqueRoleSuggestions" :key="job" :value="job" />
+            </datalist>
+          </div>
+
+          <div class="flex flex-wrap gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+              <select v-model="careerGapYear" class="border rounded px-2 py-1">
+                <option value="">All</option>
+                <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+              </select>
+            </div>
+          </div>
+
+          <table class="min-w-full text-sm text-gray-800">
+            <thead>
+              <tr>
+                <th class="px-2 py-1 text-left">Job</th>
+                <th class="px-2 py-1 text-left">Category</th>
+                <th class="px-2 py-1 text-left">Sector</th>
+                <th class="px-2 py-1 text-left">Programs</th>
+                <th class="px-2 py-1 text-left">Skills</th>
+                <th class="px-2 py-1 text-left">Local Graduates</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="job in paginatedInDemandJobs" :key="job.role + '-' + job.program_ids.join('-')"
+                class="hover:bg-gray-100">
+
+                <td class="px-2 py-1">{{ job.role }}</td>
+                <td class="px-2 py-1">{{ job.category }}</td>
+                <td class="px-2 py-1">{{ job.sector }}</td>
+                <td class="px-2 py-1">{{ job.programs.join(', ') }}</td>
+                <td class="px-2 py-1">{{ job.skills ? job.skills.join(', ') : '' }}</td>
+                <td class="px-2 py-1">{{ getLocalGraduateCount(job) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="careerGapTotalPages > 1" class="flex items-center justify-between mt-4">
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="careerGapCurrentPage === 1"
+              @click="careerGapCurrentPage--">Prev</button>
+            <span class="text-gray-700">Page {{ careerGapCurrentPage }} of {{ careerGapTotalPages }}</span>
+            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+              :disabled="careerGapCurrentPage === careerGapTotalPages" @click="careerGapCurrentPage++">Next</button>
+          </div>
+        </div>
+
+        <!-- Map Visualization (Placeholder) -->
+        <div class="bg-white rounded-xl shadow p-8 mb-10">
+          <h3 class="text-lg font-semibold mb-6 text-gray-700">Career Demand-Supply Map</h3>
+          <!-- You can use a map or bar chart here. For demo, use a bar chart of demand vs supply -->
+          <VueECharts :option="careerGapBarOption" style="height: 400px; width: 100%;" />
+        </div>
+
+        <!-- Data Interpretation -->
+        <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div class="text-blue-900 space-y-2">
+            <div>
+              <span class="font-semibold">Analytics Summary:</span>
+              <ul class="list-disc ml-6 space-y-1">
+                <li>
+                  <span class="font-semibold">Total Roles Analyzed:</span>
+                  {{ inDemandJobs.length }}
+                </li>
+                <li>
+                  <span class="font-semibold">Average Local Graduate Supply per Role:</span>
+                  {{
+                    (() => {
+                      const total = inDemandJobs.reduce((sum, job) => sum + getLocalGraduateCount(job), 0);
+                      return inDemandJobs.length ? Math.round(total / inDemandJobs.length) : 0;
+                    })()
+                  }}
+                </li>
+                <li>
+                  <span class="font-semibold">Roles with Zero Local Supply:</span>
+                  {{
+                    inDemandJobs.filter(job => getLocalGraduateCount(job) === 0).length
+                  }}
+                </li>
+                <li>
+                  <span class="font-semibold">Role with Largest Gap:</span>
+                  {{
+                    (() => {
+                      const gaps = inDemandJobs.map(job => ({
+                        role: job.role,
+                        demand: 1,
+                        supply: getLocalGraduateCount(job),
+                        gap: 1 - getLocalGraduateCount(job)
+                      }));
+                      const largest = gaps.sort((a, b) => b.gap - a.gap)[0];
+                      return largest ? `${largest.role} (Demand: 1, Supply: ${largest.supply})` : 'N/A';
+                    })()
+                  }}
+                </li>
+                <li>
+                  <span class="font-semibold">Top 3 Roles by Local Graduate Supply:</span>
+                  {{
+                    (() => {
+                      const sorted = inDemandJobs
+                        .map(job => ({ role: job.role, supply: getLocalGraduateCount(job) }))
+                        .sort((a, b) => b.supply - a.supply)
+                        .slice(0, 3);
+                      return sorted.map(j => `${j.role} (${j.supply})`).join(', ') || 'N/A';
+                    })()
+                  }}
+                </li>
+
+                <li>
+                  <span class="font-semibold">Top In-Demand Career:</span>
+                  {{ topInDemandCareer ? `${topInDemandCareer.role} (${topInDemandCareer.supply})` : 'N/A' }}
+                </li>
+              </ul>
+            </div>
+            <div>
+              <span>
+                <strong>Interpretation:</strong>
+                This analytics dashboard compares the demand for key job roles with the local graduate supply.
+                Roles with a high demand but low or zero local supply indicate potential talent shortages and
+                opportunities for targeted upskilling or recruitment.
+                Conversely, roles with high supply may signal a need for career guidance or employer engagement.
+                Use the table and chart above to identify which careers require the most attention for workforce
+                planning.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- School-wise Graduate Employability -->
+      <div v-else-if="activeTab === 'schoolEmployability'">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">School-wise Graduate Employability</h2>
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Timeline (School Year)</label>
+            <select v-model="employabilityTimeline" class="border rounded px-2 py-1">
+              <option value="">All</option>
+              <option v-for="year in employabilityYears" :key="year" :value="year">{{ year }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+            <select v-model="employabilityInstitution" class="border rounded px-2 py-1">
+              <option value="">All</option>
+              <option v-for="inst in employabilityInstitutions" :key="inst.id" :value="inst.id">{{ inst.institution_name
+              }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
+            <select v-model="employabilityProgram" class="border rounded px-2 py-1">
+              <option value="">All</option>
+              <option v-for="prog in employabilityPrograms" :key="prog.id" :value="prog.id">{{ prog.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table 1: Rank of Schools -->
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">Rank of Schools by Hired Graduates</h3>
+        <table class="min-w-full text-sm text-gray-800 mb-8">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 text-left">Rank</th>
+              <th class="px-2 py-1 text-left">School</th>
+              <th class="px-2 py-1 text-left">Hired Graduates</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, idx) in schoolEmployabilityCounts" :key="item.school" class="hover:bg-gray-100">
+              <td class="px-2 py-1">{{ idx + 1 }}</td>
+              <td class="px-2 py-1">{{ item.school }}</td>
+              <td class="px-2 py-1">{{ item.count }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Chart -->
+        <div>
+          <VueECharts :option="schoolEmployabilityBarOption" style="height: 400px; width: 100%;" />
+        </div>
+
+        <!-- Table 2: List of Hired Graduates per Institution -->
+        <h3 class="text-lg font-semibold mt-8 mb-2 text-gray-700">List of Hired Graduates per Institution</h3>
+        <table class="min-w-full text-sm text-gray-800 mb-8">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 text-left">Graduate Name</th>
+              <th class="px-2 py-1 text-left">School</th>
+              <th class="px-2 py-1 text-left">Program</th>
+              <th class="px-2 py-1 text-left">Hired At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="g in filteredEmployabilityGraduates" :key="g.id" class="hover:bg-gray-100">
+              <td class="px-2 py-1">{{ g.first_name }} {{ g.last_name }}</td>
+              <td class="px-2 py-1">{{ g.institution?.institution_name || 'Unknown' }}</td>
+              <td class="px-2 py-1">{{ g.program?.name || 'Unknown' }}</td>
+              <td class="px-2 py-1">{{ g.hired_at ? (new Date(g.hired_at)).toLocaleDateString() : 'N/A' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Data Interpretation -->
+        <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+          <div class="text-blue-900">
+            <strong>Interpretation:</strong>
+            <span>
+              The first table and chart rank schools by the number of their graduates hired locally, while the second
+              table lists the actual graduates per institution, including their hiring date. Use the filters above to
+              analyze employability by school year, institution, or program. This helps identify which schools and
+              programs are most successful in placing graduates locally and provides actionable insights for
+              institutional improvement.
+            </span>
+          </div>
+        </div>
+      </div>
+
 
       <!-- Job Search Duration -->
       <div v-else-if="activeTab === 'jobSearchDuration'">
@@ -1241,7 +1987,18 @@ function binData(data, binSize = 5000) {
           <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
           Educational Impact
         </h2>
-        <!-- Add your Educational Impact content here -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Bar Chart: Employment Rate by Education Level -->
+          <div class="bg-white rounded-xl shadow p-8">
+            <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment Rate by Education Level</h3>
+            <VueECharts :option="educationBarOption" style="height: 350px; width: 100%;" />
+          </div>
+          <!-- Radar Chart: Skills Development vs Employability -->
+          <div class="bg-white rounded-xl shadow p-8">
+            <h3 class="text-lg font-semibold mb-6 text-gray-700">Skills Development vs Employability by Program</h3>
+            <VueECharts :option="radarOption" style="height: 350px; width: 100%;" />
+          </div>
+        </div>
       </div>
 
       <!-- Gender and Diversity Metrics -->

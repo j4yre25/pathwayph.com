@@ -81,7 +81,7 @@ const profile = ref({
   graduate_about_me: pageProps.graduate?.about_me || '',
   // Fields from Register.vue
   graduate_school_graduated_from: pageProps.graduate?.institution?.institution_name || '',
-  graduate_program_completed: pageProps.graduate?.program?.name || '',
+  graduate_program_completed: pageProps.graduate?.program.name || '',
   graduate_year_graduated: pageProps.graduate?.school_year?.school_year_range || '',
   // Social links and contact form settings
   linkedin_url: pageProps.graduate?.linkedin_url || '',
@@ -91,7 +91,7 @@ const profile = ref({
   enable_contact_form: pageProps.graduate?.enable_contact_form || false,
 });
 
-console.log('pageProps.user:', pageProps.graduate);
+console.log('pageProps.user:', pageProps .graduate);
 
 
 
@@ -603,12 +603,12 @@ onMounted(() => {
 
               <!-- Location -->
               <div class="relative">
-                <label for="address" class="block text-gray-700 font-medium mb-1">Address</label>
+                <label for="location" class="block text-gray-700 font-medium mb-1">Location</label>
                 <div class="relative">
                   <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <input type="text" id="address"
+                  <input type="text" id="location"
                     class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
-                    v-model="profile.graduate_address" placeholder="City, Country" />
+                    v-model="profile.graduate_location" placeholder="City, Country" />
                 </div>
               </div>
             </div>

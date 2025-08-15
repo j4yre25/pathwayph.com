@@ -79,10 +79,10 @@ class JobInboxController extends Controller
         $user = Auth::user();
 
         return $user->notifications()
-            ->whereNull('read_at')
+            // ->whereNull('read_at')
             ->whereIn('type', [
                 \App\Notifications\NewJobPostingNotification::class,
-
+                \App\Notifications\ApplicationStatusUpdated::class,
                 \App\Notifications\InterviewScheduledNotification::class,
                 \App\Notifications\JobInviteNotification::class
             ])
@@ -124,6 +124,60 @@ class JobInboxController extends Controller
                 return $result;
             });
     }
+
+    public function showNotification($id)
+    {
+        $user = auth()->user();
+        $notification = $user->notifications()->findOrFail($id);
+
+        // Optionally mark as read
+        if (is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
+
+        return Inertia::render('Frontend/NotificationDetail', [
+            'notification' => [
+                'id' => $notification->id,
+                'type' => class_basename($notification->type),
+                'data' => $notification->data,
+                'created_at' => $notification->created_at->toDayDateTimeString(),
+                'read' => !is_null($notification->read_at),
+            ]
+        ]);
+    }
+
+    public function offerResponse(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'response' => 'required|in:accept,decline'
+        ]);
+
+        // Use the correct relationship
+        $jobOffer = $application->offer;
+
+        if ($request->response === 'accept') {
+            $application->status = 'offer_accepted';
+            $application->stage = 'Onboarding';
+            $application->save();
+
+            if ($jobOffer) {
+                $jobOffer->status = 'accepted';
+                $jobOffer->save();
+            }
+        } else {
+            $application->status = 'offer_declined';
+            $application->save();
+
+            if ($jobOffer) {
+                $jobOffer->status = 'declined';
+                $jobOffer->save();
+            }
+        }
+        // Optionally, send notification to employer here
+
+        return back()->with('success', 'Your response has been recorded.');
+    }
+
     // Apply for a job
     public function applyForJob(Request $request)
     {
@@ -161,8 +215,49 @@ class JobInboxController extends Controller
             'cover_letter' => $validated['cover_letter'] ?? null,
             'additional_documents' => $validated['additional_documents'] ?? null,
             'status' => 'applied',
+            'stage' => 'applying',
             'applied_at' => now(),
         ]);
+
+        // --- Automated Screening Logic ---
+        $job = $application->job;
+
+        // 1. Retrieve job requirements (example fields, adjust as needed)
+        $requiredDegree = $job->required_degree ?? 'Bachelor';
+        $minExperience = $job->min_experience ?? 2; // years
+        $requiredSkills = $job->required_skills ?? ['PHP', 'Vue.js']; // array or comma-separated
+
+        // 2. Calculate applicant's total experience (in years)
+        $totalExperience = $graduate->experience->sum(function($exp) {
+            $start = $exp->start_date ? \Carbon\Carbon::parse($exp->start_date) : null;
+            $end = $exp->end_date ? \Carbon\Carbon::parse($exp->end_date) : now();
+            return $start && $end ? $start->diffInYears($end) : 0;
+        });
+
+        // 3. Get applicant's skills
+        $skills = $graduate->graduateSkills->pluck('skill.name')->map(fn($s) => strtolower($s))->toArray();
+
+        // 4. Check applicant's education
+        $hasDegree = $graduate->education->contains(function($edu) use ($requiredDegree) {
+            return stripos($edu->education, $requiredDegree) !== false;
+        });
+
+        // 5. Check if all criteria are met
+        $hasSkills = collect($requiredSkills)->every(fn($skill) => in_array(strtolower($skill), $skills));
+        $isQualified = $hasDegree && $totalExperience >= $minExperience && $hasSkills;
+
+        if ($isQualified) {
+            $application->is_shortlisted = true;
+            $application->status = 'shortlisted';
+            $application->stage = 'Screened';
+            $application->screening_feedback = 'Auto-screened: Qualified';
+        } else {
+            $application->is_shortlisted = false;
+            $application->screening_feedback = 'Auto-screened: Not qualified';
+            // Optionally set status to 'rejected'
+            // $application->status = 'rejected';
+        }
+        $application->save();
 
         return response()->json([
             'success' => true,

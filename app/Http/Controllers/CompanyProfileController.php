@@ -133,10 +133,97 @@ class CompanyProfileController extends Controller
     }
 
     public function showPublic($id)
-{
-    $company = \App\Models\Company::with(['jobs', 'sector'])->findOrFail($id);
-    return inertia('Frontend/CompanyProfile', [
-        'company' => $company,
-    ]);
-}
+    {
+        $company = \App\Models\Company::with(['jobs', 'sector'])->findOrFail($id);
+        return inertia('Frontend/CompanyProfile', [
+            'company' => $company,
+        ]);
+    }
+
+    public function showInformationForm()
+    {
+        $user = auth()->user();
+
+        // Get all sectors and categories
+        $sectors = \App\Models\Sector::all(['id', 'name']);
+        $categories = \App\Models\Category::all(['id', 'name', 'sector_id']);
+
+        return Inertia::render('Company/InformationSection', [
+            'email' => $user->email,
+            'sectors' => $sectors,
+            'categories' => $categories,
+        ]);
+    }
+
+    public function saveInformation(Request $request)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            // Company
+            'company_name' => 'required|string|max:255',
+            'company_street_address' => 'required|string|max:255',
+            'company_brgy' => 'required|string|max:255',
+            'company_city' => 'required|string|max:255',
+            'company_province' => 'required|string|max:255',
+            'company_zip_code' => 'required|string|max:10',
+            'company_email' => 'required|email|max:255',
+            'company_mobile_phone' => 'required|string|max:20',
+            'telephone_number' => 'nullable|string|max:20',
+            'category_id' => 'required|exists:categories,id',
+            // HR
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'gender' => 'required|in:Male,Female',
+            'dob' => 'required|date',
+            'email' => 'required|email|max:255',
+            'mobile_number' => 'required|string|max:20',
+            'verification_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+        ]);
+
+        $verificationPath = null;
+        if ($request->hasFile('verification_file')) {
+            $verificationPath = $request->file('verification_file')->store('verification-documents', 'public');
+        }
+
+        // Create company
+        $company = \App\Models\Company::create([
+            'user_id' => $user->id,
+            'company_name' => $validated['company_name'],
+            'company_street_address' => $validated['company_street_address'],
+            'company_brgy' => $validated['company_brgy'],
+            'company_city' => $validated['company_city'],
+            'company_province' => $validated['company_province'],
+            'company_zip_code' => $validated['company_zip_code'],
+            'company_email' => $validated['company_email'],
+            'company_mobile_phone' => $validated['company_mobile_phone'],
+            'company_tel_phone' => $validated['telephone_number'],
+            'category_id' => $validated['category_id'],
+            'sector_id' => \App\Models\Category::find($validated['category_id'])->sector_id,
+            'verification_file_path' => $verificationPath,
+        ]);
+
+        // Create HR (human_resources)
+         \App\Models\HumanResource::create([
+            'user_id' => $user->id,
+            'company_id' => $company->id,
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'middle_name' => $validated['middle_name'],
+            'gender' => $validated['gender'],
+            'dob' => $validated['dob'],
+            'email' => $validated['email'],
+            'mobile_number' => $validated['mobile_number'],
+            'is_main_hr' => true, // Mark as main HR
+        ]);
+
+        $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
+        $sectorCode = $company->sector->sector_id ?? '000';
+        $divisionCode = $company->category->division_code ?? '00';
+        $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
+        $company->save();
+
+        return back()->with('information_saved', true);
+    }
 }

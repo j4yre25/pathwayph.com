@@ -127,20 +127,12 @@ class CustomRegisteredUserController extends Controller
         // // Send the verification code via email
         // $user->notify(new VerifyEmailWithCode($verificationCode));
 
+         event(new Registered($user));
+
+        // Redirect company users to information section
         if ($role === 'company') {
-            $hr = $user->hr; 
-
-            if ($hr && $hr->company_id) {
-                $company = Company::find($hr->company_id);
-
-                if ($company) {
-                    $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);
-                    $sectorCode = $company->sector->sector_id?? '000'; // Default to '000' if sector_code is not set
-                    $divisionCode = $company->category->division_code ?? '00'; // Default to '000' if division_code is not set
-                    $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
-                    $company->save();
-                }
-            }
+            auth()->login($user); // Make sure the user is logged in
+            return redirect()->route('company.information');
         }
 
         

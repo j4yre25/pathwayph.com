@@ -37,6 +37,24 @@ class LoginController extends Controller
             ]);
         }
 
+        $user = Auth::user();
+        
+        if ($user->role === 'company') {
+            // Check if company or HR info is missing
+            $hasCompany = $user->company()->exists();
+            $hasHR = $user->hr()->exists();
+
+            if (!$hasCompany || !$hasHR) {
+                return redirect()->route('company.information');
+            }
+
+            // Optionally, check for approval status
+            if (!$user->is_approved) {
+                // You can redirect to dashboard and show a modal, or to a waiting page
+                return redirect()->route('dashboard')->with('pending_approval', true);
+            }
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 }

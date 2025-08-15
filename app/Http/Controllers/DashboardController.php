@@ -22,18 +22,108 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Always initialize variables
-        $summary = [
-            'total_graduates' => 0,
-            'employed' => 0,
-            'underemployed' => 0,
-            'unemployed' => 0,
-        ];
+        if ($user->hasRole('company') && !$user->company) {
+            return redirect()->route('company.information');
+        }
+
+        // Default values for all props
+        $summary = [];
         $graduates = collect();
         $programs = collect();
         $careerOpportunities = collect();
         $schoolYears = collect();
         $institutionCareerOpportunities = collect();
+        $recentApplications = collect();
+        $applicationTrends = [];
+        $jobPerformance = [];
+        $hasReferralLetter = false;
+
+        if ($user->hasRole('company')) {
+            $company = $user->company;
+            $now = now();
+
+            $activeJobs = Job::where('company_id', $company->id)
+                ->where('status', 'open');
+
+            $applicationsQuery = \App\Models\JobApplication::whereHas('job', fn($q) =>
+                $q->where('company_id', $company->id));
+
+            $statusCounts = [
+                'pending' => $applicationsQuery->clone()->where('status', 'pending')->count(),
+                'hired' => $applicationsQuery->clone()->where('status', 'hired')->count(),
+                'rejected' => $applicationsQuery->clone()->where('status', 'rejected')->count(),
+                'declined' => $applicationsQuery->clone()->where('status', 'declined')->count(),
+            ];
+
+            $pipelineCounts = [
+                'applied' => $applicationsQuery->clone()->where('stage', 'applied')->count(),
+                'screening' => $applicationsQuery->clone()->where('stage', 'screening')->count(),
+                'interview' => $applicationsQuery->clone()->where('stage', 'interview')->count(),
+                'offer' => $applicationsQuery->clone()->where('stage', 'offer')->count(),
+            ];
+
+            $summary = [
+                'active_jobs' => $activeJobs->count(),
+                'total_applications' => $applicationsQuery->count(),
+                'this_month_applications' => $applicationsQuery->clone()
+                    ->whereMonth('created_at', $now->month)
+                    ->whereYear('created_at', $now->year)
+                    ->count(),
+                'total_hires' => $statusCounts['hired'],
+                'pipeline' => $pipelineCounts,
+                'status_counts' => $statusCounts,
+                'new_applications' => $pipelineCounts['applied'],
+                'screening' => $pipelineCounts['screening'],
+                'in_interview' => $pipelineCounts['interview'],
+                'in_offer' => $pipelineCounts['offer'],
+            ];
+
+            $recentApplications = \App\Models\JobApplication::with(['graduate', 'job'])
+                ->whereHas('job', fn($q) => $q->where('company_id', $company->id))
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(fn($app) => [
+                    'id' => $app->id,
+                    'applicant_name' => $app->graduate->first_name . ' ' . $app->graduate->last_name,
+                    'position' => $app->job->job_title,
+                    'status' => $app->status,
+                    'applied_date' => $app->created_at->format('M d, Y')
+                ]);
+
+            // Application trends by month
+            $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            $monthlyCounts = array_fill(1, 12, 0);
+            $monthlyData = \App\Models\JobApplication::whereHas('job', fn($q) =>
+                    $q->where('company_id', $company->id))
+                ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
+                ->whereYear('created_at', date('Y'))
+                ->groupBy('month')
+                ->get();
+            foreach ($monthlyData as $row) {
+                $monthlyCounts[$row->month] = $row->count;
+            }
+            $applicationTrends = [
+                'labels' => $months,
+                'data' => array_values($monthlyCounts),
+            ];
+
+            $jobPerformance = Job::where('company_id', $company->id)
+                ->withCount(['applications', 'interviews'])
+                ->get()
+                ->map(fn($job) => [
+                    'id' => $job->id,
+                    'title' => $job->job_title,
+                    'applications' => $job->applications_count,
+                    'interview_rate' => $job->applications_count > 0
+                        ? round(($job->interviews_count / $job->applications_count) * 100)
+                        : 0
+                ])
+                ->sortByDesc('interview_rate')
+                ->take(5)
+                ->values()
+                ->toArray();
+        }
 
         if ($user->hasRole('institution')) {
             $institution = Institution::where('user_id', $user->id)->first();
@@ -113,11 +203,12 @@ class DashboardController extends Controller
         }
 
         if ($user->hasRole('graduate')) {
-
             $hasReferralLetter = $user->graduate && $user->graduate->referral_letter_submitted;
         }
 
         return Inertia::render('Dashboard', [
+
+
             'userNotApproved' => !$user->is_approved,
             'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
@@ -131,127 +222,163 @@ class DashboardController extends Controller
             'careerOpportunities' => $careerOpportunities,
             'schoolYears' => $schoolYears,
             'institutionCareerOpportunities' => $institutionCareerOpportunities,
+
+            'kpi' => [
+                'registeredEmployers' => 42,
+                'activeJobListings' => 18,
+                'registeredJobSeekers' => 350,
+                'referralsThisMonth' => 27,
+                'successfulPlacements' => 12,
+                'upcomingCareerGuidance' => 3,
+                'pendingEmployerRegistrations' => 2,
+            ],
+            'recentJobs' => [
+                [
+                    'title' => 'Customer Service Representative',
+                    'sector' => 'BPO',
+                    'employer' => 'Acme Corp',
+                    'date_posted' => '2025-08-01',
+                ],
+                [
+                    'title' => 'Sales Associate',
+                    'sector' => 'Retail',
+                    'employer' => 'ShopSmart',
+                    'date_posted' => '2025-08-03',
+                ],
+                [
+                    'title' => 'Production Operator',
+                    'sector' => 'Manufacturing',
+                    'employer' => 'MegaMakers',
+                    'date_posted' => '2025-08-05',
+                ],
+            ],
+            'expiringJobs' => [
+                [
+                    'title' => 'Warehouse Staff',
+                    'employer' => 'LogiPro',
+                    'expires_at' => '2025-08-10',
+                ],
+                [
+                    'title' => 'IT Support',
+                    'employer' => 'Techies Inc',
+                    'expires_at' => '2025-08-12',
+                ],
+            ],
+            'topSectorsChartOption' => [
+                'tooltip' => ['trigger' => 'item'],
+                'legend' => ['top' => '5%'],
+                'series' => [
+                    [
+                        'name' => 'Sectors',
+                        'type' => 'pie',
+                        'radius' => '60%',
+                        'data' => [
+                            ['value' => 10, 'name' => 'BPO'],
+                            ['value' => 7, 'name' => 'Retail'],
+                            ['value' => 5, 'name' => 'Manufacturing'],
+                            ['value' => 3, 'name' => 'Education'],
+                            ['value' => 2, 'name' => 'Healthcare'],
+                        ],
+                    ],
+                ],
+            ],
+            'referralTrendOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['Jul', 'Aug']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Referrals',
+                        'type' => 'line',
+                        'data' => [22, 27],
+                    ],
+                ],
+            ],
+            'topEmployersOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['Acme Corp', 'ShopSmart', 'MegaMakers']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Referrals',
+                        'type' => 'bar',
+                        'data' => [12, 8, 7],
+                    ],
+                ],
+            ],
+            'pendingReferrals' => [
+                [
+                    'job_seeker' => 'Juan Dela Cruz',
+                    'employer' => 'Acme Corp',
+                    'due_date' => '2025-08-09',
+                ],
+                [
+                    'job_seeker' => 'Maria Santos',
+                    'employer' => 'ShopSmart',
+                    'due_date' => '2025-08-11',
+                ],
+            ],
+            'upcomingEvents' => [
+                [
+                    'title' => 'Career Guidance Seminar',
+                    'date' => '2025-08-15',
+                    'venue' => 'City Hall',
+                ],
+                [
+                    'title' => 'Job Fair',
+                    'date' => '2025-08-20',
+                    'venue' => 'Convention Center',
+                ],
+            ],
+            'eventAttendanceOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['May', 'Jun', 'Jul', 'Aug']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Attendance',
+                        'type' => 'bar',
+                        'data' => [120, 150, 180, 90],
+                    ],
+                ],
+            ],
+            'alerts' => [
+                'employersNoPermit' => ['Acme Corp', 'MegaMakers'],
+                'unreviewedApplications' => ['ShopSmart', 'LogiPro'],
+                'inactiveEmployers' => ['OldCo'],
+            ],
+            'sectorPieOption' => [
+                'tooltip' => ['trigger' => 'item'],
+                'legend' => ['top' => '5%'],
+                'series' => [
+                    [
+                        'name' => 'Sectors',
+                        'type' => 'pie',
+                        'radius' => '50%',
+                        'data' => [
+                            ['value' => 15, 'name' => 'BPO'],
+                            ['value' => 10, 'name' => 'Retail'],
+                            ['value' => 8, 'name' => 'Manufacturing'],
+                            ['value' => 5, 'name' => 'Education'],
+                            ['value' => 2, 'name' => 'Healthcare'],
+                        ],
+                    ],
+                ],
+            ],
+            'inDemandCategories' => [
+                ['name' => 'Customer Service', 'count' => 12],
+                ['name' => 'Sales', 'count' => 9],
+                ['name' => 'IT Support', 'count' => 7],
+                ['name' => 'Production', 'count' => 5],
+                ['name' => 'Teaching', 'count' => 3],
+            ],
+
+
+            'recentApplications' => $recentApplications,
+            'applicationTrends' => $applicationTrends,
+            'jobPerformance' => $jobPerformance,
+
         ]);
     }
 
-    public function companyStats()
-    {
-        $user = Auth::user();
-
-        if (!$user->hasRole('company')) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $companyId = $user->id;
-
-        // Job Openings Overview
-        $jobStats = [
-            'total_job_openings' => Job::where('company_id', $companyId)->count(),
-            'active_listings' => Job::where('company_id', $companyId)
-                ->where('status', 'active')
-                ->count(),
-            'roles_filled' => Job::where('company_id', $companyId)
-                ->where('status', 'filled')
-                ->count(),
-        ];
-
-        // Job Type Distribution
-        $jobTypeDistribution = Job::where('company_id', $companyId)
-            ->select('job_type', DB::raw('count(*) as count'))
-            ->groupBy('job_type')
-            ->get()
-            ->map(fn($item) => [
-                'label' => $item->job_type,
-                'value' => $item->count
-            ]);
-
-        // Get all job IDs for this company
-        $companyJobIds = Job::where('company_id', $companyId)->pluck('id');
-
-        // Applicant Status Overview
-        $applicationStats = [
-            'total_applications' => Application::whereIn('job_id', $companyJobIds)->count(),
-            'shortlisted' => Application::whereIn('job_id', $companyJobIds)
-                ->where('status', 'shortlisted')
-                ->count(),
-            'hired' => Application::whereIn('job_id', $companyJobIds)
-                ->where('status', 'hired')
-                ->count(),
-        ];
-
-        // Applicant Status Distribution
-        $applicantStatusDistribution = Application::whereIn('job_id', $companyJobIds)
-            ->select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->get()
-            ->map(fn($item) => [
-                'label' => ucfirst($item->status),
-                'value' => $item->count
-            ]);
-
-        // Graduate Pool Overview
-        $graduateStats = [
-            'total_scouted' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
-                $query->whereIn('job_id', $companyJobIds);
-            })->count(),
-            'matched' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
-                $query->whereIn('job_id', $companyJobIds)
-                    ->where('status', 'matched');
-            })->count(),
-            'avg_qualification' => Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
-                $query->whereIn('job_id', $companyJobIds);
-            })->avg('qualification_score') ?? 0,
-        ];
-
-        // Graduates by Study Field
-        $graduatesByField = Graduate::whereHas('applications', function ($query) use ($companyJobIds) {
-            $query->whereIn('job_id', $companyJobIds);
-        })
-            ->select('field_of_study', DB::raw('count(*) as count'))
-            ->groupBy('field_of_study')
-            ->get()
-            ->map(fn($item) => [
-                'label' => $item->field_of_study,
-                'value' => $item->count
-            ]);
-
-        // Application Trend (last 12 months)
-        $applicationTrend = Application::whereIn('job_id', $companyJobIds)
-            ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
-                DB::raw('count(*) as count')
-            )
-            ->groupBy('month')
-            ->orderBy('month', 'desc')
-            ->limit(12)
-            ->get()
-            ->map(fn($item) => [
-                'label' => $item->month,
-                'value' => $item->count
-            ]);
-
-        // Average Stage Duration
-        $stageDuration = Application::whereIn('job_id', $companyJobIds)
-            ->select(
-                'current_stage',
-                DB::raw('avg(DATEDIFF(updated_at, created_at)) as avg_days')
-            )
-            ->groupBy('current_stage')
-            ->get()
-            ->map(fn($item) => [
-                'label' => ucfirst($item->current_stage),
-                'value' => round($item->avg_days, 1)
-            ]);
-
-        return response()->json([
-            ...$jobStats,
-            'job_type_distribution' => $jobTypeDistribution,
-            ...$applicationStats,
-            'applicant_status_distribution' => $applicantStatusDistribution,
-            ...$graduateStats,
-            'graduates_by_study_field' => $graduatesByField,
-            'application_trend_by_time' => $applicationTrend,
-            'average_stage_duration' => $stageDuration,
-        ]);
-    }
 }

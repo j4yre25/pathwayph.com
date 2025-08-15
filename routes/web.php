@@ -35,6 +35,8 @@ use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyApplicationController;
 use App\Http\Controllers\CompanyManageHRController;
 use App\Http\Controllers\CompanyDepartmentController;
+use App\Http\Controllers\CompanyJobBatchUploadController;
+use App\Http\Controllers\Company\CompanyReportsController;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -71,7 +73,6 @@ use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\Institution\InstitutionReportsController;
 use App\Http\Controllers\ResumeController;
-use App\Http\Controllers\Company\CompanyReportsController;
 
 use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -201,43 +202,25 @@ Route::middleware(['auth'])->group(function () {
 
 // Company Jobs Routes
 // Route::prefix('user')->group(function () {
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}', [CompanyJobsController::class, 'index'])
-    ->name('company.jobs');
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::get('company/jobs/{user}', [CompanyJobsController::class, 'index'])->name('company.jobs');
+    Route::get('company/jobs/{user}/archivedlist', [CompanyJobsController::class, 'archivedlist'])->name('company.jobs.archivedlist');
+    Route::get('company/jobs/{user}/create', [CompanyJobsController::class, 'create'])->name('company.jobs.create');
+    Route::post('company/jobs/{user}', [CompanyJobsController::class, 'store'])->name('company.jobs.store');
+    Route::get('company/jobs/manage/{user}', [CompanyJobsController::class, 'manage'])->name('company.jobs.manage');
+    Route::get('company/jobs/view/{job}', [CompanyJobsController::class, 'view'])->name('company.jobs.view');
+    Route::get('company/jobs/edit/{job}', [CompanyJobsController::class, 'edit'])->name('company.jobs.edit');
+    Route::put('company/jobs/edit/{job}', [CompanyJobsController::class, 'update'])->name('company.jobs.update');
+    Route::delete('company/jobs/edit/{job}', [CompanyJobsController::class, 'delete'])->name('company.jobs.delete');
+    Route::post('company/jobs/{job}/auto-invite', [CompanyJobsController::class, 'autoInvite'])->name('company.jobs.auto-invite');
+    Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
+    Route::post('company/jobs/{job}/approve', [CompanyJobsController::class, 'approve'])->name('company.jobs.approve');
+    Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
 
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}/archivedlist', [CompanyJobsController::class, 'archivedlist'])
-    ->name('company.jobs.archivedlist');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/{user}/create', [CompanyJobsController::class, 'create'])
-    ->name('company.jobs.create');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->post('company/jobs/{user}', [CompanyJobsController::class, 'store'])
-    ->name('company.jobs.store');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->get('company/jobs/manage/{user}', [CompanyJobsController::class, 'manage'])
-    ->name('company.jobs.manage');
-
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/view/{job}', [CompanyJobsController::class, 'view'])
-    ->name('company.jobs.view');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('company/jobs/edit/{job}', [CompanyJobsController::class, 'edit'])
-    ->name('company.jobs.edit');
-
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->put('company/jobs/edit/{job}', [CompanyJobsController::class, 'update'])
-    ->name('company.jobs.update');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->delete('company/jobs/edit/{job}', [CompanyJobsController::class, 'delete'])
-    ->name('company.jobs.delete');
-
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->post('company/jobs/{job}/auto-invite', [CompanyJobsController::class, 'autoInvite'])
-    ->name('company.jobs.auto-invite');
-
-Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
-Route::post('company/jobs/{job}/approve', [CompanyJobsController::class, 'approve'])->name('company.jobs.approve');
-Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
-
+    Route::get('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchPage'])->name('company.jobs.batch.page');
+    Route::post('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchUpload'])->name('company.jobs.batch.upload');
+    Route::get('/company/post-jobs/download', [CompanyJobsController::class, 'downloadTemplate'])->name('company.jobs.template.download');
+});
 
 //Manage Applicants Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
@@ -257,48 +240,52 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
         // Update an applicant's status (e.g., mark as hired)
         Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
-
-        // Soft Delete an applicant
+        
+        Route::post('/company/applications/{application}/offer', [CompanyApplicationController::class, 'storeOffer'])->name('company.applications.offer');
         Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
 
         // Schedule interview
         Route::post('{application}/schedule-interview', [CompanyApplicationController::class, 'scheduleInterview'])->name('applicants.scheduleInterview');
-
+        Route::put('/company/applications/{application}/stage', [CompanyApplicationController::class, 'updateStage'])->name('company.applications.updateStage');
+        Route::put('/company/applications/{application}/status', [CompanyApplicationController::class, 'updateStatus'])->name('company.applications.updateStatus');
         // View graduate portfolio
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
-
         Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
     });
 });
 
 // Company Reports
 Route::prefix('company')->middleware(['auth'])->group(function () {
-    Route::get('/company-reports/{user}/reports/list', [CompanyReportsController::class, 'list'])->name('company.reports.list');
-    Route::get('/company-reports-jobOverview', [CompanyReportsController::class, 'overview'])->name('company.reports.overview');
-    Route::get('/company-reports/department', [CompanyReportsController::class, 'department'])->name('company.reports.department');
-    Route::get('/company-reports/hiring-funnel', [CompanyReportsController::class, 'hiringFunnel'])->name('company.reports.hiringFunnel');
-    Route::get('/company-reports/trends', [CompanyReportsController::class, 'trends'])->name('company.reports.trends');
-    Route::get('/company-reports/application-analysis', [CompanyReportsController::class, 'applicationAnalysis'])->name('company.reports.applicationAnalysis');
-    Route::get('/company-reports/skills', [CompanyReportsController::class, 'skills'])->name('company.reports.skills');
-    Route::get('/company-reports/employment-type', [CompanyReportsController::class, 'employmentType'])->name('company.reports.employmentType');
-    Route::get('/company-reports/salary', [CompanyReportsController::class, 'salaryInsights'])->name('company.reports.salary');
-    Route::get('/company-reports/diversity', [CompanyReportsController::class, 'diversity'])->name('company.reports.diversity');
-    Route::get('/company-reports/applicant-status', [CompanyReportsController::class, 'applicantStatus'])->name('company.reports.applicantStatus');
-    Route::get('/company-reports/screening', [CompanyReportsController::class, 'screening'])->name('company.reports.screening');
-    Route::get('/company-reports/interview-progress', [CompanyReportsController::class, 'interviewProgress'])->name('company.reports.interviewProgress');
-    Route::get('/company-reports/competency', [CompanyReportsController::class, 'skillsCompetency'])->name('company.reports.competency');
-    Route::get('/company-reports/efficiency', [CompanyReportsController::class, 'efficiency'])->name('company.reports.efficiency');
-    Route::get('/company-reports/performance', [CompanyReportsController::class, 'performance'])->name('company.reports.performance');
-    Route::get('/company-reports/feedback', [CompanyReportsController::class, 'feedback'])->name('company.reports.feedback');
-    Route::get('/company-reports/graduate-pool', [CompanyReportsController::class, 'graduatePool'])->name('company.reports.graduatePool');
-    Route::get('/company-reports/graduate-demographics', [CompanyReportsController::class, 'graduateDemographics'])->name('company.reports.graduateDemographics');
     Route::get('/company-reports/academic-performance', [CompanyReportsController::class, 'academicPerformance'])->name('company.reports.academicPerformance');
-    Route::get('/company-reports/preferences', [CompanyReportsController::class, 'preferences'])->name('company.reports.preferences');
-    Route::get('/company-reports/matching-success', [CompanyReportsController::class, 'matchingSuccess'])->name('company.reports.matchingSuccess');
-    Route::get('/company-reports/internship', [CompanyReportsController::class, 'internship'])->name('company.reports.internship');
+    Route::get('/company-reports/applicant-status', [CompanyReportsController::class, 'applicantStatus'])->name('company.reports.applicantStatus');
+    Route::get('/company-reports/application-analysis', [CompanyReportsController::class, 'applicationAnalysis'])->name('company.reports.applicationAnalysis');
+    Route::get('/company-reports/cert-tracking', [CompanyReportsController::class, 'certificationTracking'])->name('company.reports.certificationTracking');
+    Route::get('/company-reports/competency', [CompanyReportsController::class, 'skillsCompetency'])->name('company.reports.competency');
+    Route::get('/company-reports/department', [CompanyReportsController::class, 'department'])->name('company.reports.department');
+    Route::get('/company-reports/diversity', [CompanyReportsController::class, 'diversity'])->name('company.reports.diversity');
+    Route::get('/company-reports/efficiency', [CompanyReportsController::class, 'efficiency'])->name('company.reports.efficiency');
+    Route::get('/company-reports/employment-type', [CompanyReportsController::class, 'employmentType'])->name('company.reports.employmentType');
     Route::get('/company-reports/employer-feedback', [CompanyReportsController::class, 'employerFeedback'])->name('company.reports.employerFeedback');
+    Route::get('/company-reports/feedback', [CompanyReportsController::class, 'feedback'])->name('company.reports.feedback');
     Route::get('/company-reports/future-potential', [CompanyReportsController::class, 'futurePotential'])->name('company.reports.futurePotential');
+    Route::get('/company-reports/graduate-demographics', [CompanyReportsController::class, 'graduateDemographics'])->name('company.reports.graduateDemographics');
+    Route::get('/company-reports/graduate-pool', [CompanyReportsController::class, 'graduatePool'])->name('company.reports.graduatePool');
+    Route::get('/company-reports/hiring-funnel', [CompanyReportsController::class, 'hiringFunnel'])->name('company.reports.hiringFunnel');
+    Route::get('/company-reports/interview-progress', [CompanyReportsController::class, 'interviewProgress'])->name('company.reports.interviewProgress');
+    Route::get('/company-reports/internship', [CompanyReportsController::class, 'internship'])->name('company.reports.internship');
+    Route::get('/company-reports-jobOverview', [CompanyReportsController::class, 'overview'])->name('company.reports.overview');
+    Route::get('/company-reports/matching-success', [CompanyReportsController::class, 'matchingSuccess'])->name('company.reports.matchingSuccess');
+    Route::get('/company-reports/performance', [CompanyReportsController::class, 'performance'])->name('company.reports.performance');
+    Route::get('/company-reports/preferences', [CompanyReportsController::class, 'preferences'])->name('company.reports.preferences');
+    Route::get('/company-reports/salary', [CompanyReportsController::class, 'salaryInsights'])->name('company.reports.salary');
+    Route::get('/company-reports/school-wise', [CompanyReportsController::class, 'schoolEmployability'])->name('company.reports.schoolWise');
+    Route::get('/company-reports/screening', [CompanyReportsController::class, 'screening'])->name('company.reports.screening');
+    Route::get('/company-reports/skills', [CompanyReportsController::class, 'skills'])->name('company.reports.skills');
+    Route::get('/company-reports/trends', [CompanyReportsController::class, 'trends'])->name('company.reports.trends');
+
+    Route::get('/company-reports/{user}/reports/list', [CompanyReportsController::class, 'list'])->name('company.reports.list');
 });
+
 
 
 // Manage HR Accounts 
@@ -314,6 +301,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/company/departments', [CompanyDepartmentController::class, 'index'])->name('company.departments.index');
     Route::post('/company/departments', [CompanyDepartmentController::class, 'store'])->name('company.departments.store');
     Route::post('/company/departments/batch', [CompanyDepartmentController::class, 'batchStore'])->name('company.departments.batch');
+    Route::post('/company/departments/batch-upload', [CompanyDepartmentController::class, 'batchUpload'])->name('company.departments.batch.upload');
+    Route::get('/company/departments/batch-template', [CompanyDepartmentController::class, 'downloadTemplate'])->name('company.departments.batch.template');
     Route::get('/company/departments/manage', [CompanyDepartmentController::class, 'manage'])->name('company.departments.manage');
     Route::put('/company/departments/{department}', [CompanyDepartmentController::class, 'update'])->name('company.departments.update');
     Route::delete('/company/departments/{department}', [CompanyDepartmentController::class, 'destroy'])->name('company.departments.destroy');
@@ -326,6 +315,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
+
+    Route::get('/company/information', [CompanyProfileController::class, 'showInformationForm'])->name('company.information');
+    Route::post('/company/information', [CompanyProfileController::class, 'saveInformation'])->name('company.information.save');
 });
 
 
@@ -700,8 +692,6 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->name('register.store');
 
         // Role-specific registration submissions
-
-
         Route::post('/register/company', [CustomRegisteredUserController::class, 'store'])
             ->middleware(['guest:' . config('fortify.guard')])
             ->name('register.company.store');
@@ -801,7 +791,7 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             ->middleware($twoFactorMiddleware)
             ->name('two-factor.recovery-codes');
 
-        Route::post(RoutePath::for('two-factor.recovery-codes', '/user/two-factor-recovery-codes'), [RecoveryCodeController::class, 'store'])
+        Route::post(RoutePath::for('two-factor.recovery-codes', '/user/two-factor-recovery-codes'), action: [RecoveryCodeController::class, 'store'])
             ->middleware($twoFactorMiddleware);
     }
 });
@@ -818,6 +808,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/job-opportunities', [JobInboxController::class, 'getJobOpportunities'])->name('job-opportunities');
         Route::get('/job-applications', [JobInboxController::class, 'getJobApplications'])->name('job-applications');
         Route::get('/notifications', [JobInboxController::class, 'getNotifications'])->name('notifications');
+        Route::get('/notifications/{id}', [JobInboxController::class, 'showNotification'])->name('notifications.show');
+        Route::post('/applications/{application}/offer-response', [JobInboxController::class, 'offerResponse'])->name('applications.offer.response');
         Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob'])->name('apply-for-job');
         Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity'])->name('archive-job-opportunity');
         Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead'])->name('mark-notification-as-read');

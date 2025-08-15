@@ -24,8 +24,7 @@ class Job extends Model
         'status',
         'sector_id',
         'category_id',
-        'departme
-        nt_id',
+        'department_id',
         'job_title',
         'salary_id',
         'job_description',
@@ -116,6 +115,11 @@ class Job extends Model
         return $this->belongsTo(Company::class);
     }
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
     public function institution()
     {
         return $this->belongsTo(Institution::class);
@@ -203,5 +207,20 @@ class Job extends Model
     public function workEnvironments()
     {
         return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment');
+    }
+
+    /**
+     * Get all interviews for this job through job applications.
+     */
+    public function interviews()
+    {
+        return $this->hasManyThrough(
+            \App\Models\Interview::class,      // The related model
+            \App\Models\JobApplication::class, // The intermediate model
+            'job_id',                          // Foreign key on JobApplication table...
+            'job_application_id',              // Foreign key on Interview table...
+            'id',                              // Local key on Job table...
+            'id'                               // Local key on JobApplication table...
+        );
     }
 }

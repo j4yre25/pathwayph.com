@@ -13,6 +13,7 @@ use App\Models\Location;
 use App\Models\JobInvitation;
 use App\Models\Salary;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PesoReportsController extends Controller
@@ -21,19 +22,22 @@ class PesoReportsController extends Controller
     {
         // Employment Status Overview
         $year = $request->input('year');
-        $graduatesQuery = Graduate::with('schoolYear', 'program');
-        if ($year) {
-            $graduatesQuery->whereHas('schoolYear', fn($q) => $q->where('school_year_range', $year));
-        }
-        $programId = $request->input('program_id');
-        if ($programId) {
-            $graduatesQuery->where('program_id', $programId);
-        }
-        $location = $request->input('location');
-        if ($location) {
-            $graduatesQuery->where('location', $location);
-        }
-        $graduates = $graduatesQuery->get();
+
+        $graduates = Graduate::with([
+            'schoolYear',
+            'program',
+            'institution',
+            'graduateEducations' // <-- add this relation
+        ])->select(
+            'id',
+            'first_name',
+            'last_name',
+            'program_id',
+            'employment_status',
+            'school_year_id',
+            'location',
+            'institution_id'
+        )->get();
 
         $summary = [
             'total_graduates' => $graduates->count(),
@@ -331,7 +335,170 @@ class PesoReportsController extends Controller
         $jobMin = Salary::pluck('job_min_salary')->filter()->toArray();
         $jobMax = Salary::pluck('job_max_salary')->filter()->toArray();
 
+        $educationLevels = ['Bachelor', 'Master'];
+
+        $employmentByEducation = [];
+        foreach ($educationLevels as $level) {
+            $graduatesWithLevel = \App\Models\Education::where('education', $level)
+                ->whereHas('graduate')
+                ->get()
+                ->pluck('graduate_id')
+                ->unique();
+
+            $total = $graduatesWithLevel->count();
+            $employed = \App\Models\Graduate::whereIn('id', $graduatesWithLevel)
+                ->where('employment_status', 'Employed')
+                ->count();
+
+            $rate = $total ? round(($employed / $total) * 100, 2) : 0;
+            $employmentByEducation[] = $rate;
+        }
+
+        $radarPrograms = \App\Models\Program::pluck('name')->toArray();
+        $radarSkills = ['Technical', 'Communication', 'Problem Solving', 'Teamwork']; // or fetch from Skill model
+
+        $radarData = [];
+
+        foreach ($radarPrograms as $programName) {
+            $program = \App\Models\Program::where('name', $programName)->first();
+            if (!$program) continue;
+
+            $programGraduates = \App\Models\Graduate::where('program_id', $program->id)->pluck('id');
+
+            $skillScores = [];
+            foreach ($radarSkills as $skillName) {
+                $skill = \App\Models\Skill::where('name', $skillName)->first();
+                if (!$skill) {
+                    $skillScores[] = 0;
+                    continue;
+                }
+                $count = \App\Models\GraduateSkill::whereIn('graduate_id', $programGraduates)
+                    ->where('skill_id', $skill->id)
+                    ->count();
+                $percentage = $programGraduates->count() ? round(($count / $programGraduates->count()) * 100, 2) : 0;
+                $skillScores[] = $percentage;
+            }
+            $radarData[] = [
+                'value' => $skillScores,
+                'name' => $programName,
+            ];
+        }
+
+        // In-demand jobs (top 10)
+        $inDemandJobs = Job::where('is_approved', 1)
+            ->with(['programs', 'category', 'sector'])
+            ->orderByDesc('created_at')
+            ->take(10)
+            ->get()
+            ->map(function ($job) {
+                // Build programFields: for each program, get all unique field_of_study values from graduate_educations
+                $programFields = [];
+                foreach ($job->programs as $program) {
+                    $fields = \App\Models\GraduateEducation::where('program', $program->name)
+                        ->pluck('field_of_study')
+                        ->unique()
+                        ->filter()
+                        ->values()
+                        ->toArray();
+                    $programFields[] = [
+                        'program' => $program->name,
+                        'fields_of_study' => $fields,
+                    ];
+                }
+
+                // Flatten all fields_of_study for this job
+                $allFields = collect($programFields)
+                    ->flatMap(function ($pf) {
+                        return $pf['fields_of_study'];
+                    })
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                return [
+                    'role' => $job->job_title,
+                    'category' => $job->category->name ?? null,
+                    'sector' => $job->sector->name ?? null,
+                    'skills' => is_array($job->skills) ? $job->skills : json_decode($job->skills, true),
+                    'programs' => $job->programs->pluck('name')->toArray(),
+                    'program_ids' => $job->programs ? $job->programs->pluck('id')->toArray() : [],
+                    'program_fields' => $programFields,
+                    'fields_of_study' => $allFields,  // <-- now this is correct!
+                ];
+            });
+
+        // Top skills (by frequency in jobs)
+        $allSkills = Job::where('is_approved', 1)->pluck('skills')->toArray();
+        $skillsFlat = collect($allSkills)
+            ->flatMap(function ($skills) {
+                return is_array($skills) ? $skills : json_decode($skills, true);
+            })
+            ->filter()
+            ->map(fn($s) => strtolower(trim($s)))
+            ->countBy()
+            ->sortDesc()
+            ->take(10);
+
+
+        // Filters
+        $timeline = $request->input('timeline'); // e.g. '2024-01', '2024', etc.
+        $institutionId = $request->input('institution_id');
+        $programId = $request->input('program_id');
+
+        // Get all institutions for filter dropdown
+        $institutions = \App\Models\Institution::all(['id', 'institution_name']);
+        $programs = Program::all(['id', 'name']);
+
+        // Query only currently employed graduates in General Santos City
+        $hiredGraduatesQuery = Graduate::with(['user', 'institution', 'program', 'company'])
+            ->whereRaw("TRIM(current_job_title) != ''")
+            ->whereRaw("LOWER(TRIM(current_job_title)) NOT IN ('n/a', 'na', 'none', 'not applicable')")
+            ->where('employment_status', '!=', 'Unemployed')
+            ->whereHas('company', function ($q) {
+                $q->where('company_city', 'General Santos City');
+            });
+
+        if ($institutionId) {
+            $hiredGraduatesQuery->where('institution_id', $institutionId);
+        }
+        if ($programId) {
+            $hiredGraduatesQuery->where('program_id', $programId);
+        }
+
+
+        $hiredGraduates = $hiredGraduatesQuery->get()->filter(function ($grad) {
+            $title = strtolower(trim($grad->current_job_title));
+            return $title !== '' && !in_array($title, ['n/a', 'na', 'none', 'not applicable']);
+        })->values();
+
+        // Group and count by institution
+        $schoolCounts = $hiredGraduates->groupBy(function ($grad) {
+            return $grad->institution ? $grad->institution->institution_name : 'Unknown';
+        })->map->count()->sortDesc();
+
+        // For chart: labels and data
+        $chartLabels = $schoolCounts->keys()->toArray();
+        $chartData = $schoolCounts->values()->toArray();
+
+        // For table: list of graduates with school, program, hire date, and company city
+        $graduateList = $hiredGraduates->map(function ($grad) {
+            $companyCity = $grad->company ? $grad->company->company_city : '';
+            $companyName = $grad->company ? $grad->company->company_name : '';
+
+            return [
+                'name' => $grad->first_name . ' ' . $grad->last_name, // <-- add a space here
+                'institution' => $grad->institution ? $grad->institution->institution_name : '',
+                'program' => $grad->program ? $grad->program->name : '',
+                'current_job_title' => $grad->current_job_title ?? '',
+                'company_city' => $companyCity,
+                'company_name' => $companyName,
+
+                'hired_at' => optional($grad->jobApplications()->where('status', 'hired')->latest('updated_at')->first())->updated_at,
+            ];
+        });
+
         return Inertia::render('Admin/Reports/Reports', [
+            'graduates' => $graduates,
             'summary' => $summary,
             'statusCounts' => $statusCounts,
             'programNames' => $programNames,
@@ -361,6 +528,23 @@ class PesoReportsController extends Controller
                 'jobMin' => $jobMin,
                 'jobMax' => $jobMax,
             ],
+            'radarPrograms' => $radarPrograms,
+            'radarSkills' => $radarSkills,
+            'radarData' => $radarData,
+            'educationLevels' => $educationLevels,
+            'employmentByEducation' => $employmentByEducation,
+            'inDemandJobs' => $inDemandJobs,
+            'topSkills' => $skillsFlat,
+            'institutions' => $institutions,
+            'graduateList' => $graduateList,
+            'programs' => $programs,
+            'filters' => [
+                'timeline' => $timeline,
+                'institution_id' => $institutionId,
+                'program_id' => $programId,
+            ],
+            'chartLabels' => $chartLabels,
+            'chartData' => $chartData,
         ]);
     }
 

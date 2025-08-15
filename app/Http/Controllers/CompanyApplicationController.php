@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\JobApplication;
 use App\Models\Interview;
 use App\Notifications\InterviewScheduledNotification;
+use App\Notifications\ApplicationStatusUpdated;
+use App\Models\JobOffer;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -112,5 +114,80 @@ class CompanyApplicationController extends Controller
         // (Optional) Integrate with Google/Outlook Calendar here and save event ID
 
         return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
+    }
+
+    public function updateStage(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'stage' => 'required|string|in:applying,screening,testing,final interview,onboarding'
+        ]);
+        $application->stage = $request->stage;
+        $application->save();
+
+        // ... inside your method after saving the new status:
+        if ($application->graduate && $application->graduate->user) {
+            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->stage));
+        }
+        return back()->with('success', 'Stage updated.');
+    }
+
+    public function storeOffer(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'offered_salary' => 'required|numeric|min:0',
+            'start_date' => 'required|date|after:today',
+            'offer_letter' => 'nullable|file|mimes:pdf|max:2048',
+        ]);
+
+        $offerData = [
+            'job_application_id' => $application->id,
+            'offered_salary' => $request->offered_salary,
+            'start_date' => $request->start_date,
+        ];
+
+        if ($request->hasFile('offer_letter')) {
+            $offerData['offer_letter_path'] = $request->file('offer_letter')->store('offer_letters', 'public');
+        }
+
+        $offer = JobOffer::create($offerData);
+
+        // Update application status
+        $application->status = 'offer_sent';
+        $application->save();
+
+        // Notify applicant
+        if ($application->graduate && $application->graduate->user) {
+            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->status));
+        }
+
+        return redirect()->back()->with('success', 'Job offer sent successfully.');
+    }
+
+    public function updateStatus(Request $request, JobApplication $application)
+    {
+        $request->validate([
+            'status' => 'required|string|in:under_review,offer_sent,offer_accepted,offer_declined,hired'
+        ]);
+
+        $application->status = $request->status;
+        $application->save();
+
+        // If hired, update graduate's info
+        if ($request->status === 'hired') {
+            $graduate = $application->graduate;
+            if ($graduate && $application->job) {
+                $graduate->current_job_title = $application->job->job_title ?? 'Hired';
+                $graduate->company_id = $application->job->company_id;
+                $graduate->employment_status = 'Employed';
+                $graduate->save();
+            }
+        }
+
+        // Notify applicant
+        if ($application->graduate && $application->graduate->user) {
+            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->status));
+        }
+
+        return back()->with('success', 'Status updated.');
     }
 }

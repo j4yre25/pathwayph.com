@@ -6,9 +6,10 @@
         "dev": "vite"
     },
     "devDependencies": {
-        "@inertiajs/vue3": "^2.0.5",
+        "@inertiajs/vue3": "^2.0.17",
         "@tailwindcss/forms": "^0.5.7",
         "@tailwindcss/typography": "^0.5.10",
+        "@types/papaparse": "^5.3.16",
         "@vitejs/plugin-vue": "^5.0.0",
         "autoprefixer": "^10.4.16",
         "axios": "^1.6.0",
@@ -26,6 +27,8 @@
         "@fortawesome/free-solid-svg-icons": "^6.7.2",
         "@fortawesome/vue-fontawesome": "^3.0.8",
         "@headlessui/vue": "^1.7.23",
+        "@heroicons/vue": "^2.2.0",
+        "@inertiajs/inertia": "^0.11.1",
         "@inertiajs/inertia-vue3": "^0.6.0",
         "@vue-flow/core": "^1.45.0",
         "@vuepic/vue-datepicker": "^11.0.2",
@@ -45,8 +48,10 @@
         "vue-chart-3": "^3.1.8",
         "vue-echarts": "^7.0.3",
         "vue-multiselect": "^3.2.0",
+        "vue-select": "^3.20.4",
         "vue-the-mask": "^0.11.1",
         "vue3-apexcharts": "^1.8.0",
-        "vue3-datepicker": "^0.4.0"
+        "vue3-datepicker": "^0.4.0",
+        "xlsx": "^0.18.5"
     }
 }

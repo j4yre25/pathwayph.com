@@ -44,6 +44,9 @@ const interviewNotes = ref('');
 const rejectionReason = ref('');
 const formErrors = ref({});
 
+
+
+
 // Function to get status class based on applicant status
 const getStatusClass = (status) => {
   if (status === 'accepted' || status === 'hired') return 'bg-green-100 text-green-800';
@@ -58,25 +61,7 @@ const getStatusText = (status) => {
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
 };
 
-// Function to fetch graduate portfolio data
-const fetchPortfolioData = async (applicantId) => {
-  if (!applicantId) return;
-  
-  isLoading.value = true;
-  try {
-    // Fetch the portfolio data for the selected applicant
-    const response = await axios.get(route('applicants.portfolio', { user: applicantId }));
-    portfolioData.value = response.data;
-  } catch (error) {
-    console.error('Error fetching portfolio data:', error);
-    actionError.value = 'Failed to load portfolio data. Please try again.';
-  } finally {
-    isLoading.value = false;
-  }
-};
-
 // Function to view applicant details
-
 const viewApplicantDetails = (applicant) => {
   router.get(route('applicants.show', applicant.id));
 };
