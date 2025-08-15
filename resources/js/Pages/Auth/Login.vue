@@ -64,83 +64,96 @@ const togglePasswordVisibility = () => {
 </script>
 
 <template>
-
   <Head title="Sign In" />
+  
+  <!-- Modern Gradient Background -->
+  <div class="min-h-screen gradient-bg flex items-center justify-center p-4 overflow-hidden relative">
+    <!-- Floating Background Elements -->
+    <div class="absolute inset-0">
+      <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-20 animate-float"></div>
+      <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-30 animate-float-reverse"></div>
+      <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-15 animate-morph"></div>
+      <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-10 animate-pulse-glow"></div>
+    </div>
+    
+    <div class="w-full max-w-md relative z-10">
+      <!-- Logo Section -->
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 gradient-card rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
+          <span class="text-white font-bold text-2xl neon-text">P</span>
+        </div>
+        <h2 class="text-4xl font-bold text-white mb-3 neon-text">Welcome Back</h2>
+        <p class="text-white/80 text-lg">Sign in to your <span class="text-cyan-300 neon-text">Pathway</span> account</p>
+      </div>
 
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
-    <template #registerForm>
-      <div class="p-8 max-w-md mx-auto">
-        <h2 class="text-2xl font-medium text-gray-900 mb-1">Sign In</h2>
-        <p class="text-sm text-gray-600 mb-6">Enter your credentials to access your account</p>
-
-        <form @submit.prevent="submit">
-          <div>
-            <InputLabel for="email" value="Email" />
-            <TextInput 
-              id="email" 
-              v-model="form.email" 
-              type="email" 
-              class="mt-1 block w-full" 
-              required 
-              autofocus
-              aria-autocomplete="username" />
-            <InputError class="mt-2" :message="form.errors.email" />
-          </div>
-
-          <div class="mt-4 relative">
-            <InputLabel for="password" value="Password" />
-            <div class="relative">
+      <!-- Glass Card -->
+      <div class="glass p-8 rounded-3xl shadow-2xl border border-white/20 backdrop-blur-xl">
+          <form @submit.prevent="submit" class="space-y-6">
+            <div>
+              <InputLabel for="email" value="Email" class="text-lg font-semibold text-white mb-2" />
               <TextInput 
-                id="password" 
-                v-model="form.password" 
-                :type="showPassword ? 'text' : 'password'"
-                class="mt-1 block w-full pr-10" 
+                id="email" 
+                v-model="form.email" 
+                type="email" 
+                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 text-white placeholder-white/60" 
+                placeholder="Enter your email"
                 required 
-                autocomplete="current-password"/>
-              <button type="button"
-                class="absolute inset-y-0 right-0 pr-3 flex items-center mt-1 text-gray-600 focus:outline-none"
-                @click="togglePasswordVisibility">
-                <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye']"></i>
+                autofocus
+                aria-autocomplete="username" />
+              <InputError class="mt-2 text-pink-300" :message="form.errors.email" />
+            </div>
+
+            <div class="relative">
+              <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
+              <div class="relative">
+                <TextInput 
+                  id="password" 
+                  v-model="form.password" 
+                  :type="showPassword ? 'text' : 'password'"
+                  class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400 text-white placeholder-white/60" 
+                  placeholder="Enter your password"
+                  required 
+                  autocomplete="current-password"/>
+                <button type="button"
+                  class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                  @click="togglePasswordVisibility">
+                  <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                </button>
+              </div>
+              <InputError class="mt-2 text-pink-300" :message="form.errors.password" />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <label class="flex items-center cursor-pointer">
+                <Checkbox v-model:checked="form.remember" name="remember" class="rounded border-white/30 text-cyan-400 focus:ring-cyan-400" />
+                <span class="ml-3 text-base text-white/80 hover:text-white transition-colors">Remember me</span>
+              </label>
+              <Link href="route('password.request')" class="text-base text-cyan-300 hover:text-cyan-100 hover:neon-text transition-all duration-200">
+                Forgot password?
+              </Link>
+            </div>
+
+            <div class="pt-4">
+              <button type="submit"
+                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                :disabled="form.processing">
+                <span v-if="form.processing">Processing... ⏳</span>
+                <span v-else>Sign In</span>
               </button>
             </div>
-            <InputError class="mt-2" :message="form.errors.password" />
-          </div>
+          </form>
 
-          <div class="flex items-center justify-between mt-4">
-            <label class="flex items-center">
-              <Checkbox v-model:checked="form.remember" name="remember" />
-              <span class="ml-2 text-sm text-gray-600">Remember me</span>
-            </label>
-            <Link href="route('password.request')" class="text-sm text-blue-600 hover:underline">
-              Forgot your password?
-            </Link>
+          <div class="mt-8 text-center">
+            <p class="text-base text-white/80">
+              Don't have an account?
+              <Link href="/register" class="text-pink-300 hover:text-pink-100 hover:neon-text font-semibold transition-all duration-200 ml-2">
+                Sign Up
+              </Link>
+            </p>
           </div>
-
-          <div class="flex flex-col space-y-4 mt-6">
-            <button type="submit"
-              class="w-full inline-flex justify-center items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              :disabled="form.processing">
-              <span v-if="form.processing">Processing...</span>
-              <span v-else>Sign In</span>
-            </button>
-          </div>
-        </form>
-
-        <div class="mt-6 text-center">
-          <p class="text-sm text-gray-600">
-            Don't have an account?
-            <Link href="/register" class="text-blue-600 hover:underline">
-              Sign Up
-            </Link>
-          </p>
         </div>
       </div>
-    </template>
-  </AuthenticationCard>
+    </div>
 
   <Modal v-if="showModal" :show="showModal" @close="showModal = false">
     <template #title>
@@ -154,3 +167,108 @@ const togglePasswordVisibility = () => {
     </template>
   </Modal>
 </template>
+
+<style scoped>
+/* Modern gradient backgrounds */
+.gradient-bg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-card {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.gradient-feature {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.gradient-cta {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+/* Floating animations */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes float-reverse {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(20px);
+    }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+    animation: float-reverse 4s ease-in-out infinite;
+}
+
+/* Pulse glow effect */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(79, 172, 254, 0.6);
+    }
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Morphing shapes */
+@keyframes morph {
+    0%, 100% {
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    }
+    50% {
+        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    }
+}
+
+.animate-morph {
+    animation: morph 8s ease-in-out infinite;
+}
+
+/* Colorful hover effects */
+.hover-rainbow:hover {
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+    background-size: 400% 400%;
+    animation: rainbow 2s ease infinite;
+}
+
+@keyframes rainbow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Glass morphism effect */
+.glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Neon glow text */
+.neon-text {
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+}
+
+/* Smooth transitions */
+* {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+</style>

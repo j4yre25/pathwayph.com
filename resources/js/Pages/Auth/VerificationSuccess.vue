@@ -31,7 +31,7 @@ const userName = props.auth?.user?.name || 'User';
       </div>
       
       <h1 class="text-2xl font-bold mb-2">Nicely done, {{ userName }}</h1>
-      <p class="text-gray-600 mb-6">Your basic JobStreet Profile is now up and running.</p>
+      <p class="text-gray-600 mb-6">Your basic PathwayProfile is now up and running.</p>
       <p class="text-gray-600 mb-8">The more you add to your profile, the more you stand out from other candidates</p>
       
       <div class="flex flex-col space-y-4">
