@@ -137,7 +137,7 @@ const togglePasswordVisibility = () => {
               <button type="submit"
                 class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
                 :disabled="form.processing">
-                <span v-if="form.processing">Processing... ⏳</span>
+                <span v-if="form.processing">Processing...</span>
                 <span v-else>Sign In</span>
               </button>
             </div>

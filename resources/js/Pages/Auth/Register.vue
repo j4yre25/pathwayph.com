@@ -10,7 +10,6 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
-
 const selectedUserLevel = ref('');
 const currentStep = ref('user-level');
 const schools = ref([]);
@@ -18,6 +17,8 @@ const programs = ref([]);
 const terms = ref([]);
 const degrees = ref([]);
 const loading = ref(false);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 // Form data
 const form = useForm({
@@ -59,27 +60,21 @@ const form = useForm({
 });
 
 onMounted(() => {
-
     const path = window.location.pathname;
     if (path.includes('institution')) {
         form.role = 'institution';
         currentStep.value = 'institution';
     } else if (path.includes('graduate')) {
         form.role = 'graduate';
-        currentStep.value = 'personal';
+        currentStep.value = 'graduate';
     } else if (path.includes('company')) {
         form.role = 'company';
         currentStep.value = 'company';
     } else {
         currentStep.value = 'user-level';
-        console.error('Unknown role:', path);
     }
-    console.log('Current Role:', form.role);
 });
 
-console.log(form.role)
-
-// Available years for graduation year dropdown
 const years = computed(() => {
     const currentYear = new Date().getFullYear();
     const years = [];
@@ -89,7 +84,6 @@ const years = computed(() => {
     return years;
 });
 
-// Filter programs based on selected school
 const filteredPrograms = computed(() => {
     if (!form.graduate_school_graduated_from) return programs.value;
     return programs.value.filter(program =>
@@ -97,729 +91,352 @@ const filteredPrograms = computed(() => {
     );
 });
 
-
-// Select user level and proceed to registration steps
 const selectUserLevel = (level) => {
     selectedUserLevel.value = level;
 
     if (level === 'graduates') {
-        currentStep.value = 'personal';
+        // Navigate to graduate registration URL
+        window.location.href = '/register/graduate';
     } else if (level === 'institution') {
-        currentStep.value = 'institution';
+        // Navigate to institution registration URL
+        window.location.href = '/register/institution';
     } else if (level === 'industry') {
-        currentStep.value = 'company';
+        // Navigate to company registration URL
+        window.location.href = '/register/company';
     }
 }
 
-// Navigate to previous step
-const goToPreviousStep = () => {
-    if (currentStep.value === 'personal') {
-        currentStep.value = 'user-level';
-    } else if (currentStep.value === 'education') {
-        currentStep.value = 'personal';
-    } else if (currentStep.value === 'contact') {
-        currentStep.value = 'education';
-    } else if (currentStep.value === 'security') {
-        currentStep.value = 'contact';
-    }
+const togglePasswordVisibility = () => {
+    showPassword.value = !showPassword.value;
+};
 
-    if (currentStep.value === 'institution') {
-        currentStep.value = 'user-level';
-    } else if (currentStep.value === 'president') {
-        currentStep.value = 'institution';
-    } else if (currentStep.value === 'career_officer') {
-        currentStep.value = 'president';
-    } else if (currentStep.value === 'security') {
-        currentStep.value = 'career_officer';
-    }
+const toggleConfirmPasswordVisibility = () => {
+    showConfirmPassword.value = !showConfirmPassword.value;
+};
 
-    if (currentStep.value === 'company') {
-        currentStep.value = 'user-level';
-    } else if (currentStep.value === 'contact') {
-        currentStep.value = 'company';
-    } else if (currentStep.value === 'HR') {
-        currentStep.value = 'contact';
-    } else if (currentStep.value === 'security') {
-        currentStep.value = 'HR';
-    }
-}
-
-// Navigate to next step
-const goToNextStep = () => {
-    if (currentStep.value === 'personal') {
-        currentStep.value = 'education';
-    } else if (currentStep.value === 'education') {
-        currentStep.value = 'contact';
-    } else if (currentStep.value === 'contact') {
-        currentStep.value = 'security';
-    }
-
-    if (currentStep.value === 'institution') {
-        currentStep.value = 'president';
-    } else if (currentStep.value === 'president') {
-        currentStep.value = 'career_officer';
-    } else if (currentStep.value === 'career_officer') {
-        currentStep.value = 'security';
-    }
-
-    if (currentStep.value === 'company') {
-        currentStep.value = 'contact';
-    } else if (currentStep.value === 'contact') {
-        currentStep.value = 'HR';
-    } else if (currentStep.value === 'HR') {
-        currentStep.value = 'security';
-    }
-}
-
-
-// Submit the form
-const submit = () => {
-    let routeName;
-    if (form.role === 'graduate') {
-        routeName = 'register.graduate.store';
-    } else if (form.role === 'institution') {
-        routeName = 'register.institution.store';
-    } else if (form.role === 'company') {
-        routeName = 'register.company.store';
-    } else {
-        console.error('Unknown role:', form.role);
-        return;
-    }
-    
-    form.post(route(routeName), {
-        onFinish: () => form.reset('password', 'password_confirmation'),
+const submitGraduateAccount = () => {
+    form.post(route('register.graduate.store'), {
+        onSuccess: () => {
+            window.location.href = route('graduate.information');
+        }
     });
-}
+};
 
 const submitCompanyAccount = () => {
     form.post(route('register.company.store'), {
         onSuccess: () => {
-            // Redirect to information section after successful registration
             window.location.href = route('company.information');
         }
     });
-};     
+};
 
+const submitInstitutionAccount = () => {
+    form.post(route('register.institution.store'), {
+        onSuccess: () => {
+            window.location.href = route('institution.information');
+        }
+    });
+};
 </script>
 
 <template>
     <Head title="Sign Up" />
     
-    <!-- Modern Colorful Background -->
-    <div class="min-h-screen gradient-bg relative overflow-hidden">
+    <!-- Modern Gradient Background -->
+    <div class="min-h-screen gradient-bg flex items-center justify-center p-4 overflow-hidden relative">
         <!-- Floating Background Elements -->
-        <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <div class="absolute top-20 left-10 w-32 h-32 gradient-feature rounded-full animate-float opacity-20"></div>
-            <div class="absolute top-40 right-20 w-24 h-24 gradient-card rounded-full animate-float-reverse opacity-30"></div>
-            <div class="absolute bottom-32 left-1/4 w-40 h-40 gradient-cta animate-morph opacity-25"></div>
-            <div class="absolute bottom-20 right-10 w-28 h-28 gradient-feature rounded-full animate-pulse-glow opacity-20"></div>
+        <div class="absolute inset-0">
+            <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-20 animate-float"></div>
+            <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-30 animate-float-reverse"></div>
+            <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-15 animate-morph"></div>
+            <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-10 animate-pulse-glow"></div>
         </div>
         
-        <!-- Main Content -->
-        <div class="relative z-10">
+        <div class="w-full max-w-lg relative z-10">
             <!-- Logo Section -->
-            <div class="text-center pt-8 pb-4">
-                <div class="inline-flex items-center space-x-2">
-                    <div class="w-12 h-12 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-xl flex items-center justify-center animate-pulse-glow">
-                        <span class="text-white font-bold text-xl">P</span>
-                    </div>
-                    <span class="text-3xl font-bold text-white neon-text">Pathway</span>
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 gradient-card rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
+                    <span class="text-white font-bold text-2xl neon-text">P</span>
                 </div>
+                <h2 class="text-4xl font-bold text-white mb-3 neon-text">Join Pathway</h2>
+                <p class="text-white/80 text-lg">Create your <span class="text-cyan-300 neon-text">Pathway</span> account</p>
             </div>
-            
-            <!-- User Level Selection -->
-            <div v-if="currentStep === 'user-level'" class="px-4 sm:px-6 lg:px-8 py-12 max-w-md mx-auto">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl md:text-5xl font-bold text-white neon-text mb-6 animate-pulse-glow">Select User Level ✨</h2>
-                    <p class="text-lg md:text-xl text-white/80 leading-relaxed">Choose the option that best describes <span class="text-cyan-300 neon-text">you</span></p>
-                </div>
-                <div class="glass p-8 rounded-2xl backdrop-blur-lg border border-white/20 animate-pulse-glow">
-                    <div class="space-y-6">
+
+            <!-- Glass Card -->
+            <div class="glass p-8 rounded-3xl shadow-2xl border border-white/20 backdrop-blur-xl">
+                <!-- User Level Selection -->
+                <div v-if="currentStep === 'user-level'" class="space-y-6">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold text-white mb-2 neon-text">Select User Type</h3>
+                        <p class="text-white/80">Choose the option that best describes you</p>
+                    </div>
+                    
+                    <div class="space-y-4">
                         <!-- Graduate Option -->
-                        <Link href="/register/graduate">
-                        <div class="p-6 glass rounded-2xl hover:animate-pulse-glow cursor-pointer transition-all duration-300 flex items-center group hover:scale-105">
-                            <div class="gradient-feature p-4 rounded-full mr-6 group-hover:animate-pulse-glow transition-all duration-300">
-                                <i class="fas fa-user-graduate text-white text-2xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-2xl font-bold text-white group-hover:neon-text transition-all duration-300">Graduate 🎓</h3>
-                                <p class="text-lg text-white/80 leading-relaxed">For recent graduates seeking <span class="text-cyan-300">opportunities</span></p>
-                            </div>
-                        </div>
-                        </Link>
-
-                        <!-- Institution Option -->
-                        <Link href="/register/institution">
-                        <div class="p-6 glass rounded-2xl hover:animate-pulse-glow cursor-pointer transition-all duration-300 flex items-center group hover:scale-105">
-                            <div class="gradient-card p-4 rounded-full mr-6 group-hover:animate-pulse-glow transition-all duration-300">
-                                <i class="fas fa-university text-white text-2xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-2xl font-bold text-white group-hover:neon-text transition-all duration-300">Institution 🏛️</h3>
-                                <p class="text-lg text-white/80 leading-relaxed">For schools, colleges and <span class="text-pink-300">universities</span></p>
-                            </div>
-                        </div>
-                        </Link>
-
-                        <!-- Industry Option -->
-                        <Link href="/register/company">
-                            <div class="p-6 glass rounded-2xl hover:animate-pulse-glow cursor-pointer transition-all duration-300 flex items-center group hover:scale-105">
-                                <div class="gradient-cta p-4 rounded-full mr-6 group-hover:animate-pulse-glow transition-all duration-300">
-                                    <i class="fas fa-building text-white text-2xl"></i>
+                        <div @click="selectUserLevel('graduates')" 
+                             class="glass p-6 rounded-2xl hover:scale-105 cursor-pointer transition-all duration-300 border border-white/30 hover:border-cyan-400 group">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 gradient-feature rounded-xl flex items-center justify-center group-hover:animate-pulse-glow">
+                                    <i class="fas fa-user-graduate text-white text-xl"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-2xl font-bold text-white group-hover:neon-text transition-all duration-300">Industry 🏢</h3>
-                                    <p class="text-lg text-white/80 leading-relaxed">For companies seeking qualified <span class="text-green-300">talent</span></p>
+                                    <h4 class="text-lg font-bold text-white neon-text">Graduate</h4>
+                                    <p class="text-white/70 text-sm">For recent graduates seeking opportunities</p>
                                 </div>
                             </div>
-                        </Link>
-
+                        </div>
+                        
+                        <!-- Institution Option -->
+                        <div @click="selectUserLevel('institution')" 
+                             class="glass p-6 rounded-2xl hover:scale-105 cursor-pointer transition-all duration-300 border border-white/30 hover:border-purple-400 group">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 gradient-card rounded-xl flex items-center justify-center group-hover:animate-pulse-glow">
+                                    <i class="fas fa-university text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-white neon-text">Institution</h4>
+                                    <p class="text-white/70 text-sm">For schools, colleges and universities</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Company Option -->
+                        <div @click="selectUserLevel('industry')" 
+                             class="glass p-6 rounded-2xl hover:scale-105 cursor-pointer transition-all duration-300 border border-white/30 hover:border-green-400 group">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 gradient-cta rounded-xl flex items-center justify-center group-hover:animate-pulse-glow">
+                                    <i class="fas fa-building text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-white neon-text">Company</h4>
+                                    <p class="text-white/70 text-sm">For companies seeking qualified talent</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="mt-8 text-center">
-                        <p class="text-base text-white/80">
+                    
+                    <div class="text-center pt-4">
+                        <p class="text-white/80">
                             Already have an account?
-                            <Link href="/login" class="text-cyan-300 hover:text-cyan-100 hover:neon-text font-semibold transition-all duration-200 ml-2">Sign In ✨</Link>
+                            <Link href="/login" class="text-pink-300 hover:text-pink-100 hover:neon-text font-semibold transition-all duration-200 ml-2">
+                                Sign In
+                            </Link>
                         </p>
                     </div>
                 </div>
-            </div>
 
-            <!-- Graduate Registration Form -->
-            <div v-else-if="currentStep === 'graduate' || currentStep === 'personal' || currentStep === 'education' || currentStep === 'contact' || currentStep === 'security'" class="px-4 sm:px-6 lg:px-8 py-12 max-w-4xl mx-auto">
-                <button @click="currentStep = 'user-level'"
-                    class="absolute top-8 right-8 text-white/80 hover:text-white hover:neon-text z-20 glass p-3 rounded-xl transition-all duration-300 hover:scale-110">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl md:text-5xl font-bold text-white neon-text mb-6 animate-pulse-glow">Graduate Information 🎓</h2>
-                    <p class="text-lg md:text-xl text-white/80 leading-relaxed">Provide key details about <span class="text-cyan-300 neon-text">you</span>.</p>
-                </div>
-
-                <div class="glass p-8 rounded-2xl backdrop-blur-lg border border-white/20 animate-pulse-glow">
-
-                    <!-- Progress Tabs -->
-                    <div class="flex justify-between mb-12 border-b-2 border-white/20">
-                        <div @click="currentStep = 'personal'" class="flex flex-col items-center pb-6 cursor-pointer transition-all duration-300 hover:scale-105"
-                            :class="{ 'border-b-4 border-cyan-400': currentStep === 'personal' }">
-                            <div
-                                :class="[currentStep === 'personal' ? 'gradient-feature text-white animate-pulse-glow' : 'glass text-white/60', 'rounded-full p-4 mb-3 transition-all duration-300']">
-                                <i class="fas fa-user text-xl"></i>
-                            </div>
-                            <span
-                                :class="[currentStep === 'personal' ? 'text-cyan-400 font-bold neon-text' : 'text-white/60', 'text-base transition-all duration-300']">Personal</span>
-                        </div>
-
-                        <div @click="currentStep === 'education' || currentStep === 'contact' || currentStep === 'security' ? currentStep = 'education' : null"
-                            class="flex flex-col items-center pb-6 cursor-pointer transition-all duration-300 hover:scale-105"
-                            :class="{ 'border-b-4 border-pink-400': currentStep === 'education' }">
-                            <div
-                                :class="[currentStep === 'education' ? 'gradient-card text-white animate-pulse-glow' : 'glass text-white/60', 'rounded-full p-4 mb-3 transition-all duration-300']">
-                                <i class="fas fa-graduation-cap text-xl"></i>
-                            </div>
-                            <span
-                                :class="[currentStep === 'education' ? 'text-pink-400 font-bold neon-text' : 'text-white/60', 'text-base transition-all duration-300']">Education</span>
-                        </div>
-
-                        <div @click="currentStep === 'contact' || currentStep === 'security' ? currentStep = 'contact' : null"
-                            class="flex flex-col items-center pb-6 cursor-pointer transition-all duration-300 hover:scale-105"
-                            :class="{ 'border-b-4 border-green-400': currentStep === 'contact' }">
-                            <div
-                                :class="[currentStep === 'contact' ? 'gradient-cta text-white animate-pulse-glow' : 'glass text-white/60', 'rounded-full p-4 mb-3 transition-all duration-300']">
-                                <i class="fas fa-phone text-xl"></i>
-                            </div>
-                            <span
-                                :class="[currentStep === 'contact' ? 'text-green-400 font-bold neon-text' : 'text-white/60', 'text-base transition-all duration-300']">Contact</span>
-                        </div>
-
-                        <div @click="currentStep === 'security' ? currentStep = 'security' : null"
-                            class="flex flex-col items-center pb-6 cursor-pointer transition-all duration-300 hover:scale-105"
-                            :class="{ 'border-b-4 border-purple-400': currentStep === 'security' }">
-                            <div
-                                :class="[currentStep === 'security' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white animate-pulse-glow' : 'glass text-white/60', 'rounded-full p-4 mb-3 transition-all duration-300']">
-                                <i class="fas fa-lock text-xl"></i>
-                            </div>
-                            <span
-                                :class="[currentStep === 'security' ? 'text-purple-400 font-bold neon-text' : 'text-white/60', 'text-base transition-all duration-300']">Security</span>
-                        </div>
+                <!-- Graduate Registration Form -->
+                <div v-else-if="currentStep === 'graduate'" class="space-y-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-white neon-text">Graduate Registration</h3>
+                        <button @click="currentStep = 'user-level'"
+                                class="text-white/80 hover:text-white hover:neon-text p-2 rounded-xl glass transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-arrow-left text-lg"></i>
+                        </button>
                     </div>
-
-                    <form @submit.prevent="submit">
-                        <!-- Personal Information -->
-                        <div v-if="currentStep === 'personal'" class="space-y-6">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-6">Personal Information</h3>
+                    
+                    <form @submit.prevent="submitGraduateAccount" class="space-y-6">
                         <div>
-                            <InputLabel for="graduate_first_name" value="First Name" />
-                            <TextInput id="graduate_first_name" v-model="form.graduate_first_name" type="text"
-                                class="mt-1 block w-full" placeholder="Enter your first name" required />
-                            <InputError class="mt-2" :message="form.errors.graduate_first_name" />
+                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-white mb-2" />
+                            <TextInput 
+                                id="email" 
+                                v-model="form.email" 
+                                type="email" 
+                                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 text-white placeholder-white/60" 
+                                placeholder="Enter your email"
+                                required />
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.email" />
                         </div>
-                        <div>
-                            <InputLabel for="graduate_middle_name" value="Middle Name (optional)" />
-                            <TextInput id="graduate_middle_name" v-model="form.graduate_middle_name" type="text"
-                                class="mt-1 block w-full" placeholder="Enter your middle name" />
-                            <InputError class="mt-2" :message="form.errors.graduate_middle_name" />
-                        </div>
-                        <div>
-                            <InputLabel for="graduate_last_name" value="Last Name" />
-                            <TextInput id="graduate_last_name" v-model="form.graduate_last_name" type="text"
-                                class="mt-1 block w-full" placeholder="Enter your last name" required />
-                            <InputError class="mt-2" :message="form.errors.graduate_last_name" />
-                        </div>
-                        <div>
-                            <InputLabel for="gender" value="Gender" />
-                            <select id="gender" v-model="form.gender"
-                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                required>
-                                <option value="" disabled>Select your gender</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                            </select>
-                            <InputError class="mt-2" :message="form.errors.gender" />
-                        </div>
-                        <div>
-                            <InputLabel for="dob" value="Birthdate" />
-                            <TextInput id="dob" v-model="form.dob" type="date" class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.dob" />
-                        </div>
-                            <div class="flex justify-end mt-8">
-                                <PrimaryButton @click.prevent="goToNextStep" class="px-8 py-4 text-lg font-medium">
-                                    Next
-                                    <i class="fas fa-arrow-right ml-2"></i>
-                                </PrimaryButton>
-                            </div>
-                        </div>
-                        <div v-if="currentStep === 'education'" class="space-y-6">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-6">Education Information</h3>
-                        <div>
-                            <InputLabel for="graduate_school_graduated_from" value="School Graduated From" />
-                            <select id="graduate_school_graduated_from" v-model="form.graduate_school_graduated_from"
-                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                required>
-                                <option value="" disabled>Select your school</option>
-                                <option v-for="school in schools" :key="school.id" :value="school.id">{{ school.name }}
-                                </option>
-                            </select>
-                            <p v-if="loading" class="text-xs text-gray-500 mt-1">Loading schools...</p>
-                            <InputError class="mt-2" :message="form.errors.graduate_school_graduated_from" />
-                        </div>
-                        <div>
-                            <InputLabel for="graduate_year_graduated" value="Year Graduated" />
-                            <select id="graduate_year_graduated" v-model="form.graduate_year_graduated"
-                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                required>
-                                <option value="" disabled>Select year</option>
-                                <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-                            </select>
-                            <InputError class="mt-2" :message="form.errors.graduate_year_graduated" />
-                        </div>
-                        <div>
-                            <InputLabel for="term" value="Term" />
-                            <select id="term" v-model="form.term"
-                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                required>
-                                <option value="" disabled>Select term</option>
-                                <option v-for="term in terms" :key="term" :value="term">{{ term }}</option>
-                            </select>
-                            <p v-if="loading" class="text-xs text-gray-500 mt-1">Loading terms...</p>
-                            <InputError class="mt-2" :message="form.errors.term" />
-                        </div>
-                        <div>
-                            <InputLabel for="graduate_program_completed" value="Program Completed" />
-                            <select id="graduate_program_completed" v-model="form.graduate_program_completed"
-                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                required>
-                                <option value="" disabled>Select program</option>
-                                <option v-for="program in filteredPrograms" :key="program.id" :value="program.id">{{
-                                    program.name }}</option>
-                            </select>
-                            <p v-if="loading" class="text-xs text-gray-500 mt-1">Loading programs...</p>
-                            <InputError class="mt-2" :message="form.errors.graduate_program_completed" />
-                        </div>
-                        <div>
-                            <InputLabel for="degree" value="Degree" />
-                            <select id="degree" v-model="form.degree"
-                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                required>
-                                <option value="" disabled>Select degree</option>
-                                <option v-for="degree in degrees" :key="degree.id" :value="degree.id">{{ degree.name }}
-                                </option>
-                            </select>
-                            <p v-if="loading" class="text-xs text-gray-500 mt-1">Loading degrees...</p>
-                            <InputError class="mt-2" :message="form.errors.degree" />
-                        </div>
-                            <div class="flex justify-between mt-8">
-                                <button type="button" @click="goToPreviousStep"
-                                    class="inline-flex items-center px-6 py-3 bg-white border-2 border-gray-300 rounded-2xl text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-                                    <i class="fas fa-arrow-left mr-2"></i>
-                                    Previous
+                        
+                        <div class="relative">
+                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password" 
+                                    v-model="form.password" 
+                                    :type="showPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400 text-white placeholder-white/60" 
+                                    placeholder="Enter your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                                    @click="togglePasswordVisibility">
+                                    <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
                                 </button>
-                                <PrimaryButton @click.prevent="goToNextStep" class="ml-4 px-8 py-4 text-lg font-medium">
-                                    Next
-                                    <i class="fas fa-arrow-right ml-2"></i>
-                                </PrimaryButton>
                             </div>
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.password" />
                         </div>
-                        <div v-if="currentStep === 'contact'" class="space-y-6">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-6">Contact Information</h3>
-                        <div>
-                            <InputLabel for="email" value="Email Address" />
-                            <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
-                                placeholder="Enter your email address" required />
-                            <InputError class="mt-2" :message="form.errors.email" />
-                        </div>
-                        <div>
-                            <InputLabel for="phone_number" value="Phone Number" />
-                            <TextInput id="phone_number" v-model="form.phone_number" type="tel"
-                                class="mt-1 block w-full" placeholder="Enter your phone number" required />
-                            <InputError class="mt-2" :message="form.errors.phone_number" />
-                        </div>
-                            <div class="flex justify-between mt-8">
-                                <button type="button" @click="goToPreviousStep"
-                                    class="inline-flex items-center px-6 py-3 bg-white border-2 border-gray-300 rounded-2xl text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-                                    <i class="fas fa-arrow-left mr-2"></i>
-                                    Previous
+                        
+                        <div class="relative">
+                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-white mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password_confirmation" 
+                                    v-model="form.password_confirmation" 
+                                    :type="showConfirmPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-green-400 focus:ring-2 focus:ring-green-400 text-white placeholder-white/60" 
+                                    placeholder="Confirm your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                                    @click="toggleConfirmPasswordVisibility">
+                                    <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
                                 </button>
-                                <PrimaryButton @click.prevent="goToNextStep" class="ml-4 px-8 py-4 text-lg font-medium">
-                                    Next
-                                    <i class="fas fa-arrow-right ml-2"></i>
-                                </PrimaryButton>
                             </div>
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.password_confirmation" />
                         </div>
-                        <div v-if="currentStep === 'security'" class="space-y-6">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-6">Security</h3> <!-- Password -->
-                        <div>
-                            <InputLabel for="password" value="Password" />
-                            <TextInput id="password" v-model="form.password" type="password" class="mt-1 block w-full"
-                                placeholder="Enter your password" required />
-                            <p class="text-xs text-gray-600 mt-1">Password must be at least 8 characters with at least
-                                one uppercase letter, one lowercase letter, and one number.</p>
-                            <InputError class="mt-2" :message="form.errors.password" />
-                        </div>
-                        <div>
-                            <InputLabel for="password_confirmation" value="Confirm Password" />
-                            <TextInput id="password_confirmation" v-model="form.password_confirmation" type="password"
-                                class="mt-1 block w-full" placeholder="Confirm your password" required />
-                            <InputError class="mt-2" :message="form.errors.password_confirmation" />
-                        </div>
-                        <div class="mt-4">
-                            <label class="flex items-center">
-                                <Checkbox v-model:checked="form.terms" name="terms" />
-                                <span class="ml-2 text-xs text-gray-600">
-                                    I accept the <a href="#" class="text-blue-600 hover:underline">Terms and
-                                        Conditions</a>
-                                </span>
-                            </label>
-                            <InputError class="mt-2" :message="form.errors.terms" />
-                        </div>
-                            <div class="flex justify-between mt-8">
-                                <button type="button" @click="goToPreviousStep"
-                                    class="inline-flex items-center px-6 py-3 bg-white border-2 border-gray-300 rounded-2xl text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-                                    <i class="fas fa-arrow-left mr-2"></i> Previous
-                                </button>
-                                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing" class="px-8 py-4 text-lg font-medium">
-                                    Register
-                                </PrimaryButton>
-                            </div>
+                        
+                        <div class="pt-4">
+                            <button type="submit"
+                                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                                :disabled="form.processing">
+                                <span v-if="form.processing">Creating Account...</span>
+                                <span v-else>Create Graduate Account</span>
+                            </button>
                         </div>
                     </form>
                 </div>
-            </div>
 
-            <!-- Institution -->
-            <div v-else-if="currentStep === 'institution' || currentStep === 'institution-info' || currentStep === 'institution-contact' || currentStep === 'institution-security'" class="px-4 sm:px-6 lg:px-8 py-20 max-w-4xl mx-auto">
-                <button @click="currentStep = 'user-level'"
-                    class="absolute top-8 right-8 text-gray-500 hover:text-gray-700 z-10">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
-
-                <div class="text-center mb-16">
-                    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Institution Registration</h2>
-                    <p class="text-lg md:text-xl text-gray-600 leading-relaxed">Register your institution detail</p>
-                </div>
-
-                <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-
-                <!-- Progress Tabs -->
-                <div class="flex justify-between mb-8 border-b">
-                    <div @click="currentStep = 'institution'" class="flex flex-col items-center pb-4 cursor-pointer"
-                        :class="{ 'border-b-2 border-blue-500': currentStep === 'institution' }">
-                        <div
-                            :class="[currentStep === 'institution' ? 'bg-blue-500 text-white' : 'bg-gray-200', 'rounded-full p-2']">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <span
-                            :class="[currentStep === 'institution' ? 'text-blue-500' : 'text-gray-500', 'text-xs mt-1']">Institution</span>
+                <!-- Institution Registration Form -->
+                <div v-else-if="currentStep === 'institution'" class="space-y-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-white neon-text">Institution Registration</h3>
+                        <button @click="currentStep = 'user-level'"
+                                class="text-white/80 hover:text-white hover:neon-text p-2 rounded-xl glass transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-arrow-left text-lg"></i>
+                        </button>
                     </div>
-
-                    <div @click="currentStep = 'president'" class="flex flex-col items-center pb-4 cursor-pointer"
-                        :class="{ 'border-b-2 border-blue-500': currentStep === 'president' }">
-                        <div
-                            :class="[currentStep === 'president' ? 'bg-blue-500 text-white' : 'bg-gray-200', 'rounded-full p-2']">
-                            <i class="fas fa-user-tie"></i>
-                        </div>
-                        <span
-                            :class="[currentStep === 'president' ? 'text-blue-500' : 'text-gray-500', 'text-xs mt-1']">President</span>
-                    </div>
-
-                    <div @click="currentStep = 'contact'" class="flex flex-col items-center pb-4 cursor-pointer"
-                        :class="{ 'border-b-2 border-blue-500': currentStep === 'contact' }">
-                        <div
-                            :class="[currentStep === 'contact' ? 'bg-blue-500 text-white' : 'bg-gray-200', 'rounded-full p-2']">
-                            <i class="fas fa-phone"></i>
-                        </div>
-                        <span
-                            :class="[currentStep === 'contact' ? 'text-blue-500' : 'text-gray-500', 'text-xs mt-1']">Contact</span>
-                    </div>
-
-                    <div @click="currentStep = 'security'" class="flex flex-col items-center pb-4 cursor-pointer"
-                        :class="{ 'border-b-2 border-blue-500': currentStep === 'security' }">
-                        <div
-                            :class="[currentStep === 'security' ? 'bg-blue-500 text-white' : 'bg-gray-200', 'rounded-full p-2']">
-                            <i class="fas fa-lock"></i>
-                        </div>
-                        <span
-                            :class="[currentStep === 'security' ? 'text-blue-500' : 'text-gray-500', 'text-xs mt-1']">Security</span>
-                    </div>
-                </div>
-                </div>
-
-                <form @submit.prevent="submit">
-                    <div v-if="currentStep === 'institution'" class="space-y-4">
-                        <h3 class="text-base font-medium">Institution Detail</h3>
+                    
+                    <form @submit.prevent="submitInstitutionAccount" class="space-y-6">
                         <div>
-                            <InputLabel for="institution_type" value="Institution Type" />
-                            <select id="institution_type" v-model="form.institution_type"
-                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                required>
-                                <option value="" disabled>Select institution type</option>
-                            </select>
-                            <InputError class="mt-2" :message="form.errors.institution_type" />
-                            <div>
-                                <InputLabel for="institution_name" value="Institution Name" />
-                                <TextInput id="institution_name" v-model="form.institution_name" type="text"
-                                    class="mt-1 block w-full" placeholder="Enter your institution name" required />
-                                <InputError class="mt-2" :message="form.errors.institution_name" />
-                            </div>
-                            <div>
-                                <InputLabel for="institution_address" value="Institution Address" />
-                                <TextInput id="institution_address" v-model="form.institution_address" type="text"
-                                    class="mt-1 block w-full" placeholder="Enter your institution address" required />
-                                <InputError class="mt-2" :message="form.errors.institution_address" />
-                            </div>
-                            <div>
-                                <InputLabel for="institution_email" value="Institution Email" />
-                                <TextInput id="institution_email" v-model="form.institution_email" type="email"
-                                    class="mt-1 block w-full" placeholder="Enter your institution email" required />
-                                <InputError class="mt-2" :message="form.errors.institution_email" />
-                            </div>
-                            <div>
-                                <InputLabel for="institution_phone_number" value="Phone Number" />
-                                <TextInput id="institution_phone_number" v-model="form.institution_phone_number"
-                                    type="tel" class="mt-1 block w-full"
-                                    placeholder="Enter your institution phone number" required />
-                                <InputError class="mt-2" :message="form.errors.institution_phone_number" />
-                            </div>
-                            <div>
-                                <InputLabel for="institution_telephone_number" value="Telephone Number (Optional)" />
-                                <TextInput id="institution_telephone_number" v-model="form.institution_telephone_number"
-                                    type="tel" class="mt-1 block w-full"
-                                    placeholder="Enter your institution telephone number" required />
-                                <InputError class="mt-2" :message="form.errors.institution_telephone_number" />
-                            </div>
-                            <div class="flex justify-between mt-6">
-                                <button type="button" @click="goToNextStep"
-                                    class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-full text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition ease-in-out duration-150">
-                                    Next
-                                    <i class="fas fa-arrow-right ml-2 text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div v-if="currentStep === 'president'" class="space-y-4">
-                            <h3 class="text-base font-medium">President Detail</h3>
-                            <div v-if="currentStep === 'personal'" class="space-y-4">
-                                <h3 class="text-base font-medium">Personal Information</h3>
-                                <div>
-                                    <InputLabel for="president_first_name" value="First Name" />
-                                    <TextInput id="president_first_name" v-model="form.president_first_name" type="text"
-                                        class="mt-1 block w-full" placeholder="Enter your President first name"
-                                        required />
-                                    <InputError class="mt-2" :message="form.errors.president_first_name" />
-                                </div>
-                                <div>
-                                    <InputLabel for="president_middle_name" value="Middle Name (optional)" />
-                                    <TextInput id="president_middle_name" v-model="form.president_middle_name"
-                                        type="text" class="mt-1 block w-full" placeholder="Enter your middle name" />
-                                    <InputError class="mt-2" :message="form.errors.president_middle_name" />
-                                </div>
-                                <div>
-                                    <InputLabel for="president_last_name" value="Last Name" />
-                                    <TextInput id="president_last_name" v-model="form.president_last_name" type="text"
-                                        class="mt-1 block w-full" placeholder="Enter your last name" required />
-                                    <InputError class="mt-2" :message="form.errors.president_last_name" />
-                                </div>
-                                <div>
-                                    <InputLabel for="gender" value="Gender" />
-                                    <select id="gender" v-model="form.gender"
-                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        required>
-                                        <option value="" disabled>Select your gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                    </select>
-                                    <InputError class="mt-2" :message="form.errors.gender" />
-                                </div>
-                                <div>
-                                    <InputLabel for="birthdate" value="Birthdate" />
-                                    <TextInput id="birthdate" v-model="form.birthdate" type="date"
-                                        class="mt-1 block w-full" required />
-                                    <InputError class="mt-2" :message="form.errors.birthdate" />
-                                </div>
-                                <div class="flex justify-between mt-6">
-                                    <button type="button" @click="goToPreviousStep"
-                                        class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-full text-sm text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-                                        <i class="fas fa-arrow-left mr-2 text-xs"></i> Previous
-                                    </button>
-                                    <button type="button" @click="goToNextStep"
-                                        class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-full text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition ease-in-out duration-150">
-                                        Next
-                                        <i class="fas fa-arrow-right ml-2 text-xs"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div v-if="currentStep === 'career_officer'" class="space-y-4">
-                            <h3 class="text-lg font-medium">Career Officer Information</h3>
-                            <div>
-                                <InputLabel for="career_officer_first_name" value="First Name" />
-                                <TextInput id="career_officer_first_name" v-model="form.career_officer_first_name"
-                                    type="text" class="mt-1 block w-full"
-                                    placeholder="Enter your Career Officer first name" required />
-                                <InputError class="mt-2" :message="form.errors.career_officer_first_name" />
-                            </div>
-                            <div>
-                                <InputLabel for="career_officer_middle_name" value="Middle Name (optional)" />
-                                <TextInput id="career_officer_middle_name" v-model="form.career_officer_middle_name"
-                                    type="text" class="mt-1 block w-full" placeholder="Enter your middle name" />
-                                <InputError class="mt-2" :message="form.errors.career_officer_middle_name" />
-                            </div>
-                            <div>
-                                <InputLabel for="career_officer_last_name" value="Last Name" />
-                                <TextInput id="career_officer_last_name" v-model="form.career_officer_last_name"
-                                    type="text" class="mt-1 block w-full" placeholder="Enter your last name" required />
-                                <InputError class="mt-2" :message="form.errors.career_officer_last_name" />
-                            </div>
-                            <div>
-                                <InputLabel for="gender" value="Gender" />
-                                <select id="gender" v-model="form.gender"
-                                    class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                    required>
-                                    <option value="" disabled>Select your gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                </select>
-                                <InputError class="mt-2" :message="form.errors.gender" />
-                            </div>
-                            <div>
-                                <InputLabel for="birthdate" value="Birthdate" />
-                                <TextInput id="birthdate" v-model="form.birthdate" type="date" class="mt-1 block w-full"
-                                    required />
-                                <InputError class="mt-2" :message="form.errors.birthdate" />
-                            </div>
-                            <div class="flex justify-between mt-6">
-                                <button type="button" @click="goToPreviousStep"
-                                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-                                    <i class="fas fa-arrow-left mr-2"></i> Previous
-                                </button>
-                                <button type="button" @click="goToNextStep"
-                                    class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition ease-in-out duration-150">
-                                    Next
-                                    <i class="fas fa-arrow-right ml-2"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div v-if="currentStep === 'security'" class="space-y-4">
-                            <h3 class="text-lg font-medium">Security Information</h3>
-                            <div>
-                                <InputLabel for="email" value="Email Address" />
-                                <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
-                                    placeholder="Enter your email address" required />
-                                <InputError class="mt-2" :message="form.errors.email" />
-                            </div>
-                            <div>
-                                <InputLabel for="password" value="Password" />
-                                <TextInput id="password" v-model="form.password" type="password"
-                                    class="mt-1 block w-full" placeholder="Enter your password" required />
-                                <InputError class="mt-2" :message="form.errors.password" />
-                            </div>
-                            <div>
-                                <InputLabel for="password_confirmation" value="Confirm Password" />
-                                <TextInput id="password_confirmation" v-model="form.password_confirmation"
-                                    type="password" class="mt-1 block w-full" placeholder="Confirm your password"
-                                    required />
-                                <InputError class="mt-2" :message="form.errors.password_confirmation" />
-                            </div>
-                            <div class="mt-4">
-                                <label class="flex items-center">
-                                    <Checkbox v-model:checked="form.terms" name="terms" />
-                                    <span class="ml-2 text-sm text-gray-600">
-                                        I accept the <a href="#" class="text-blue-600 hover:underline">Terms and
-                                            Conditions</a>
-                                    </span>
-                                </label>
-                                <InputError class="mt-2" :message="form.errors.terms" />
-                            </div>
-                            <div class="flex justify-between mt-6">
-                                <button type="button" @click="goToPreviousStep"
-                                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-                                    <i class="fas fa-arrow-left mr-2"></i> Previous
-                                </button>
-                                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                                    Register
-                                </PrimaryButton>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Industry Registration Form -->
-            <div v-else-if="currentStep === 'company'" class="p-6 max-w-3xl mx-auto">
-                <button @click="currentStep = 'user-level'"
-                    class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-
-                <!-- Company Registration Step 1 -->
-                <div v-if="currentStep === 'company'">
-                    <h3 class="text-lg font-medium">Company Registration</h3>
-                    <form @submit.prevent="submitCompanyAccount">
-                        <div>
-                            <InputLabel for="email" value="Email Address" />
-                            <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full"
+                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-white mb-2" />
+                            <TextInput 
+                                id="email" 
+                                v-model="form.email" 
+                                type="email" 
+                                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 text-white placeholder-white/60" 
+                                placeholder="Enter institution email"
                                 required />
-                            <InputError class="mt-2" :message="form.errors.email" />
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.email" />
                         </div>
+                        
+                        <div class="relative">
+                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password" 
+                                    v-model="form.password" 
+                                    :type="showPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400 text-white placeholder-white/60" 
+                                    placeholder="Enter your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                                    @click="togglePasswordVisibility">
+                                    <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                            </div>
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.password" />
+                        </div>
+                        
+                        <div class="relative">
+                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-white mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password_confirmation" 
+                                    v-model="form.password_confirmation" 
+                                    :type="showConfirmPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-green-400 focus:ring-2 focus:ring-green-400 text-white placeholder-white/60" 
+                                    placeholder="Confirm your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                                    @click="toggleConfirmPasswordVisibility">
+                                    <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                            </div>
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.password_confirmation" />
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button type="submit"
+                                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                                :disabled="form.processing">
+                                <span v-if="form.processing">Creating Account...</span>
+                                <span v-else>Create Institution Account</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Company Registration Form -->
+                <div v-else-if="currentStep === 'company'" class="space-y-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-white neon-text">Company Registration</h3>
+                        <button @click="currentStep = 'user-level'"
+                                class="text-white/80 hover:text-white hover:neon-text p-2 rounded-xl glass transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-arrow-left text-lg"></i>
+                        </button>
+                    </div>
+                    
+                    <form @submit.prevent="submitCompanyAccount" class="space-y-6">
                         <div>
-                            <InputLabel for="password" value="Password" />
-                            <TextInput id="password" v-model="form.password" type="password" class="mt-1 block w-full"
+                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-white mb-2" />
+                            <TextInput 
+                                id="email" 
+                                v-model="form.email" 
+                                type="email" 
+                                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 text-white placeholder-white/60" 
+                                placeholder="Enter company email"
                                 required />
-                            <InputError class="mt-2" :message="form.errors.password" />
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.email" />
                         </div>
-                        <div>
-                            <InputLabel for="password_confirmation" value="Confirm Password" />
-                            <TextInput id="password_confirmation" v-model="form.password_confirmation" type="password"
-                                class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.password_confirmation" />
+                        
+                        <div class="relative">
+                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password" 
+                                    v-model="form.password" 
+                                    :type="showPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400 text-white placeholder-white/60" 
+                                    placeholder="Enter your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                                    @click="togglePasswordVisibility">
+                                    <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                            </div>
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.password" />
                         </div>
-                        <div class="flex justify-end mt-6">
-                            <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                                Register
-                            </PrimaryButton>
+                        
+                        <div class="relative">
+                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-white mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password_confirmation" 
+                                    v-model="form.password_confirmation" 
+                                    :type="showConfirmPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-green-400 focus:ring-2 focus:ring-green-400 text-white placeholder-white/60" 
+                                    placeholder="Confirm your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                                    @click="toggleConfirmPasswordVisibility">
+                                    <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                            </div>
+                            <InputError class="mt-2 text-pink-300" :message="form.errors.password_confirmation" />
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button type="submit"
+                                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                                :disabled="form.processing">
+                                <span v-if="form.processing">Creating Account...</span>
+                                <span v-else>Create Company Account</span>
+                            </button>
                         </div>
                     </form>
                 </div>

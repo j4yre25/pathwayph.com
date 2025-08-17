@@ -22,8 +22,14 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('company') && !$user->company) {
+        if ($user->hasRole('company') && !$user->company ) {
             return redirect()->route('company.information');
+        }
+        if ($user->hasRole('institution') && !$user->institution) {
+            return redirect()->route('institution.information');
+        }
+        if ($user->hasRole('graduate') && !$user->graduate) {
+            return redirect()->route('graduate.information');
         }
 
         // Default values for all props
@@ -143,9 +149,9 @@ class DashboardController extends Controller
                         ];
                     });
 
-                // Graduates (with all fields needed for dashboard)
+                // Graduates
                 $graduates = Graduate::where('institution_id', $institutionId)
-                    ->with('schoolYear') // eager load the schoolYear relation
+                    ->with('schoolYear')
                     ->get()
                     ->map(function ($g) {
                         return [
@@ -160,6 +166,11 @@ class DashboardController extends Controller
                             'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null,
                         ];
                     });
+
+                // <-- ADD DEBUG LOGS HERE
+                \Log::info('Institution ID: ' . $institutionId);
+                \Log::info('Programs:', $programs->toArray());
+                \Log::info('Graduates:', $graduates->toArray());
 
                 // Career Opportunities (unique job titles)
                 $careerOpportunities = $graduates
@@ -198,6 +209,8 @@ class DashboardController extends Controller
                     'employed' => $graduates->where('employment_status', 'Employed')->count(),
                     'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
                     'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
+                    'total_programs' => $programs->count(), // <-- ADD THIS LINE
+
                 ];
             }
         }
@@ -206,9 +219,28 @@ class DashboardController extends Controller
             $hasReferralLetter = $user->graduate && $user->graduate->referral_letter_submitted;
         }
 
-        return Inertia::render('Dashboard', [
+        // Calculate employed graduates per program
+        $programEmploymentStats = collect($programs)
+            ->map(function ($prog) use ($graduates) {
+                $total = $graduates->where('program_id', $prog['id'])->count();
+                $employed = $graduates->where('program_id', $prog['id'])->where('employment_status', 'Employed')->count();
+                $percent = $total ? round(($employed / $total) * 100, 1) : 0;
+                return [
+                    'program_name' => $prog['name'],
+                    'degree' => $prog['degree'],
+                    'employed' => $employed,
+                    'total' => $total,
+                    'percent' => $percent,
+                ];
+            })
+            ->filter(fn($stat) => $stat['total'] > 0) // <-- Only programs with graduates
+            ->sortByDesc('percent')
+            ->take(10)
+            ->values();
 
+        \Log::info('Top Programs Employment:', $programEmploymentStats->toArray());
 
+        return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
             'userNotApproved' => !$user->is_approved,
             'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
@@ -377,6 +409,7 @@ class DashboardController extends Controller
             'recentApplications' => $recentApplications,
             'applicationTrends' => $applicationTrends,
             'jobPerformance' => $jobPerformance,
+            'topProgramsEmployment' => $programEmploymentStats,
 
         ]);
     }

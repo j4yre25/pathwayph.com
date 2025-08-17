@@ -51,4 +51,12 @@ class Experience extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get the company that owns the experience.
+     */
+    public function company()
+    {
+        return $this->belongsTo(\App\Models\Company::class, 'company_id');
+    }
 }

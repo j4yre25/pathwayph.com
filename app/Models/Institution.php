@@ -21,6 +21,7 @@ class Institution extends Model
         'telephone_number',
         'institution_president_first_name',
         'institution_president_last_name',
+        'verification_file_path',
     ];
 
     public function user()

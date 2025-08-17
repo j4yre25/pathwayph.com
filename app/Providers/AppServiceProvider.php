@@ -70,6 +70,26 @@ class AppServiceProvider extends ServiceProvider
                 ? Graduate::where('user_id', Auth::id())->first()
                 : null,
 
+            'needsApproval' => function () {
+                $user = Auth::user();
+                if (!$user) return false;
+                if ($user->role === 'peso') return false;
+                return !$user->is_approved && $user->has_completed_information;
+            },  
+
+            'notifications' => function () {
+                $user = Auth::user();
+                if (!$user) return [];
+                // Example: fetch notifications from a notifications table or model
+                return $user->notifications()->latest()->take(10)->get()->map(function($notif) {
+                    return [
+                        'id' => $notif->id,
+                        'title' => $notif->data['title'] ?? 'Notification',
+                        'body' => $notif->data['body'] ?? '',
+                        'created_at' => $notif->created_at->diffForHumans(),
+                    ];
+                });
+            },
 
 
         ]);

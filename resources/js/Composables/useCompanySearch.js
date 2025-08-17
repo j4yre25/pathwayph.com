@@ -5,27 +5,25 @@ export function useCompanySearch(form, companies) {
   const showSuggestions = ref(false);
 
   const filteredCompanies = computed(() => {
-    if (!companySearch.value.trim()) return [];
-    const search = companySearch.value.toLowerCase();
-    return companies.value.filter(
-      c => c.name.toLowerCase().includes(search)
+    if (!companySearch.value) return [];
+    return companies.value.filter(c =>
+      c.name.toLowerCase().includes(companySearch.value.toLowerCase())
     );
   });
 
-  const selectCompany = (company) => {
-    form.company_name = company.name;
-    form.company_id = company.id;
+  function selectCompany(company) {
+    form.value.company = company.name;
+    form.value.company_id = company.id;
     companySearch.value = company.name;
     showSuggestions.value = false;
-  };
+    form.value.company_not_found = false;
+  }
 
-  const clearCompany = () => {
-    if (form.company_not_found) {
-      form.company_name = '';
-      form.company_id = '';
-      companySearch.value = '';
-    }
-  };
+  function clearCompany() {
+    form.value.company = '';
+    form.value.company_id = '';
+    companySearch.value = '';
+  }
 
   return {
     companySearch,

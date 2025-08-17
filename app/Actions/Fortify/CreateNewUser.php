@@ -51,12 +51,11 @@ class CreateNewUser implements CreatesNewUsers
         // Add role-specific validation rules
         switch ($role) {
             case 'graduate':
-                $rules['graduate_school_graduated_from'] = ['required', 'integer', 'exists:users,id'];
-                $rules['graduate_program_completed'] = ['required', 'exists:programs,name'];
-                $rules['employment_status'] = ['required', 'in:Employed,Underemployed,Unemployed'];
-                $rules['current_job_title'] = ['required_if:employment_status,Employed,Underemployed', 'nullable', 'string', 'max:255'];
-                $rules['graduate_year_graduated'] = ['required', 'exists:school_years,school_year_range'];
-                $rules['graduate_degree'] = ['required', 'exists:degrees,id'];
+                $rules = [
+                    'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+                    'password' => $this->passwordRules(),
+                ];
+                break;
 
                 if (!empty($input['company_not_found'])) {
                     // Company not found: require other_company_name and sector, but company_name is nullable
@@ -77,13 +76,10 @@ class CreateNewUser implements CreatesNewUsers
                     ];
                 break;
             case 'institution':
-                $rules['institution_type' ] = ['required', 'string'];
-                $rules['institution_name' ] = ['required', 'string'];
-                $rules['institution_address' ] = ['required', 'string'];
-                $rules['institution_president_last_name' ] = ['required', 'string', 'max:255'];
-                $rules['institution_president_first_name' ] = ['required', 'string', 'max:255'];
-                $rules['first_name' ] = ['nullable', 'string', 'max:255'];
-                $rules['last_name' ] = ['nullable', 'string', 'max:255'];
+                $rules = [
+                        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+                        'password' => $this->passwordRules(),
+                    ];
 
                 break;
             default:
@@ -142,13 +138,13 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
             'role' => $role,
-            'is_approved' => false, 
+            'is_approved' => null, 
         ];
 
         $user = User::create($userData);
 
         // Store in Institutions table
-        if ($role === 'institution') {
+        /* if ($role === 'institution') {
             DB::table('institutions')->insert([
                 'user_id' => $user->id,
                 'institution_name' => $input['institution_name'],
@@ -166,7 +162,7 @@ class CreateNewUser implements CreatesNewUsers
             ]);
             $user->assignRole($role);
             return $user; // <-- Ensure return here
-        }
+        } */
 
         // Store in Companies table
         // if ($role === 'company') {
@@ -203,52 +199,52 @@ class CreateNewUser implements CreatesNewUsers
         // }
 
         // Store in Graduates table
-        if ($role === 'graduate') {
-            $company_id = null;
-            $not_company_id = null;
-            $sector_id = null;
+        // // if ($role === 'graduate') {
+        // //     $company_id = null;
+        // //     $not_company_id = null;
+        // //     $sector_id = null;
 
-            if (!empty($input['company_not_found'])) {
-                // Always create a not_company record if company_not_found is checked
-                $notCompany = \App\Models\NotCompany::create([
-                    'name' => $input['other_company_name'],
-                    'sector_id' => $input['other_company_sector'] ?? null,
-                ]);
-                $not_company_id = $notCompany->id;
-                $sector_id = $input['other_company_sector'] ?? null;
-            } else {
-                // Existing company selected
-                $company = Company::where('company_name', $input['company_name'])->first();
-                $company_id = $company ? $company->id : null;
-                $sector_id = $company ? $company->sector_id : null;
-            }
+        // //     if (!empty($input['company_not_found'])) {
+        // //         // Always create a not_company record if company_not_found is checked
+        // //         $notCompany = \App\Models\NotCompany::create([
+        // //             'name' => $input['other_company_name'],
+        // //             'sector_id' => $input['other_company_sector'] ?? null,
+        // //         ]);
+        // //         $not_company_id = $notCompany->id;
+        // //         $sector_id = $input['other_company_sector'] ?? null;
+        // //     } else {
+        // //         // Existing company selected
+        // //         $company = Company::where('company_name', $input['company_name'])->first();
+        // //         $company_id = $company ? $company->id : null;
+        // //         $sector_id = $company ? $company->sector_id : null;
+        // //     }
 
-            DB::table('graduates')->insert([
-                'user_id' => $user->id,
-                'first_name' => $input['first_name'],
-                'last_name' => $input['last_name'],
-                'middle_name' => $input['middle_name'],
-                'dob' => $input['dob'],
-                'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
-                'employment_status' => $input['employment_status'],
-                'contact_number' => $input['mobile_number'],
-                'institution_id' => $input['graduate_school_graduated_from'],
-                'program_id' => $this->getProgramId($input['graduate_program_completed']),
-                'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
-                'degree_id' => $input['graduate_degree'],
-                'company_id' => $company_id,
-                'not_company' => $not_company_id,
-                'sector_id' => $sector_id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        // //     DB::table('graduates')->insert([
+        // //         'user_id' => $user->id,
+        // //         'first_name' => $input['first_name'],
+        // //         'last_name' => $input['last_name'],
+        // //         'middle_name' => $input['middle_name'],
+        // //         'dob' => $input['dob'],
+        // //         'current_job_title' => ($input['employment_status'] === 'Unemployed') ? 'N/A' : $input['current_job_title'],
+        // //         'employment_status' => $input['employment_status'],
+        // //         'contact_number' => $input['mobile_number'],
+        // //         'institution_id' => $input['graduate_school_graduated_from'],
+        // //         'program_id' => $this->getProgramId($input['graduate_program_completed']),
+        // //         'school_year_id' => $this->getYearId($input['graduate_year_graduated']),
+        // //         'degree_id' => $input['graduate_degree'],
+        // //         'company_id' => $company_id,
+        // //         'not_company' => $not_company_id,
+        // //         'sector_id' => $sector_id,
+        // //         'created_at' => now(),
+        // //         'updated_at' => now(),
+        // //     ]);
 
-            $user->assignRole($role);
-            return $user;
-        }
+        //     $user->assignRole($role);
+        //     return $user;
+        // }
 
         $user->assignRole($role);
-        return $user; // Fallback return for any other role
+        return $user; 
     }
 
     protected function determineRole(Request $request): string

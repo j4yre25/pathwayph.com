@@ -54,6 +54,14 @@ const navigateToRegister = () => {
     });
 };
 
+// Navigate to specific register type
+const navigateToRegisterType = (type) => {
+    router.visit(`/register/${type}`, {
+        preserveState: true,
+        preserveScroll: true
+    });
+};
+
 // Close modals
 const closeLoginModal = () => {
     showLoginModal.value = false;
@@ -437,16 +445,22 @@ onUnmounted(() => {
                     </div>
                 </div>
             </header>
-            <main class="absolute inset-0 flex flex-col items-center justify-center text-center px-4 z-20">
-                <!-- Hero Title with Neon Effects -->
-                <h1 class="text-white font-extrabold text-5xl md:text-7xl leading-tight max-w-5xl mb-6 neon-text animate-float">
-                    Connect. Grow. <span class="text-cyan-300 neon-text">Succeed.</span>
+            <main class="min-h-screen flex flex-col items-center justify-center text-center px-4 z-20">
+               <!-- Hero Title with Neon Effects -->
+                <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 neon-text animate-float">
+                    Pathway
                 </h1>
-                
+
+                <!-- Tagline -->
+                <h3 class="text-white font-bold text-3xl md:text-5xl leading-tight mb-8 animate-fade-in">
+                    Connect. Grow. <span class="text-cyan-300 neon-text">Succeed.</span>
+                </h3>
+
                 <!-- Colorful Tagline -->
-                <p class="text-white/90 text-xl md:text-2xl max-w-3xl mb-8 font-light animate-float-reverse">
+                <p class="text-white/90 text-xl md:text-2xl max-w-3xl mb-12 font-light animate-float-reverse">
                     The premier platform connecting <span class="text-pink-300 neon-text">Filipino talent</span> with <span class="text-green-300 neon-text">global opportunities</span>.
                 </p>
+
                 
                 <!-- Primary and Secondary CTAs -->
                 <div class="flex flex-col sm:flex-row gap-6 mb-12">
@@ -466,10 +480,10 @@ onUnmounted(() => {
                 </div>
                 
                 <!-- Colorful Scroll Indicator -->
-                <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 cursor-pointer animate-float" 
+                <div class="mt-auto mb-8 cursor-pointer animate-float" 
                      @click="scrollToSection('about')">
                     <div class="flex flex-col items-center space-y-2 text-white/80 hover:text-white hover:neon-text transition-all duration-300">
-                        <span class="text-sm font-semibold">Discover More ✨</span>
+                        <span class="text-sm font-semibold">Discover More</span>
                         <div class="w-8 h-8 gradient-feature rounded-full flex items-center justify-center animate-pulse-glow">
                             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>

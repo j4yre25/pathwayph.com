@@ -14,6 +14,8 @@ class Graduate extends Model
         'first_name',
         'last_name',
         'middle_name',
+        'dob',
+        'gender',
         'current_job_title',
         'employment_status',
         'contact_number',
@@ -30,6 +32,8 @@ class Graduate extends Model
         'personal_website',
         'other_social_links',
         'graduate_picture',
+        'company_id',
+        'not_company'
 
     ];
 

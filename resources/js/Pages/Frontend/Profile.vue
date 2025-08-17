@@ -438,6 +438,17 @@ watch(() => activeSection.value, (newSection) => {
               :archivedSkillEntries="props.archivedSkillEntries"
               :experienceEntries="props.experienceEntries"
               :archivedExperienceEntries="props.archivedExperienceEntries"
+              :companies="props.companies"
+              :sectors="props.sectors"
+              @close-all-modals="closeAllModals"
+              @reset-all-states="resetAllStates"
+              @refresh-skills="refreshSkills"
+            />
+
+            <!-- Graduate Accomplishments Settings -->
+            <GraduateAccomplishments
+              v-if="activeSection === 'graduate-accomplishments'"
+              :activeSection="activeSection"
               :projectsEntries="props.projectsEntries"
               :archivedProjectsEntries="props.archivedProjectsEntries"
               :certificationsEntries="props.certificationsEntries"

@@ -48,11 +48,7 @@ function handleImageError() {
                                 Log in
                             </Link>
 
-<<<<<<< HEAD
                            
-=======
-                            <!-- REMOVE LINK FOR REGISTER -->
->>>>>>> 6f3cd7f8841184333d13531bc6b3872553462d72
                         </template>
                     </nav>
                 </header>

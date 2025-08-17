@@ -130,27 +130,22 @@ class CustomRegisteredUserController extends Controller
          event(new Registered($user));
 
         // Redirect company users to information section
-        if ($role === 'company') {
+        if ($role === 'company' && !session('information_completed', false)) {
             auth()->login($user); // Make sure the user is logged in
             return redirect()->route('company.information');
         }
 
-        
-
-        event(new Registered($user));
-        
-        // If the user is registered successfully, redirect to the verification page
-        if ($user) {
-            // Send the verification code via email
-            $user->notify(new VerifyEmailWithCode($user->verification_code));
-            
-            // Authenticate the user
-            $this->guard->login($user);
-            
-            // Redirect to the new verification code page
-            return redirect()->route('verification.code');
+        // Redirect company users to information section
+        if ($role === 'institution' && !session('information_completed', false)) {
+            auth()->login($user); // Make sure the user is logged in
+            return redirect()->route('institution.information');
         }
-        
+
+        if ($role === 'graduate' && !session('information_completed', false)) {
+            auth()->login($user); // Make sure the user is logged in
+            return redirect()->route('graduate.information');
+        }
+
         return redirect()->back()->with('flash.banner', 'Registered Successfully!');
     }
 
