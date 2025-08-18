@@ -53,61 +53,90 @@ const goToJob = (jobId) => {
 </script>
 
 <template>
-  <div class="overflow-x-auto">
-    <table class="min-w-full bg-white border border-gray-200">
-      <thead>
-        <tr class="w-full bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-          <th class="py-2 px-4 text-left border">Job Title</th>
-          <th class="py-2 px-4 text-left border">Posted By</th>
-          <th class="py-2 px-4 text-left border">Location</th>
-          <th class="py-2 px-4 text-left border">Employment Type</th>
-          <th class="py-2 px-4 text-left border">Experience Level</th>
-          <th class="py-2 px-4 text-left border">Applicants</th>
-          <th class="py-2 px-4 text-left border">Status</th>
-        </tr>
-      </thead>
-      <tbody class="text-gray-600 text-sm font-light">
-        <tr v-for="job in filteredJobs" :key="job.id" @click="goToJob(job.id)"
-          class="border-b border-gray-200 hover:bg-gray-100">
-          <td class="border border-gray-200 px-6 py-4">{{ job.job_title }}</td>
-          <td class="border border-gray-200 px-6 py-4">
-            <template v-if="job.company">
-              {{ job.company.hr_first_name }} {{ job.company.hr_last_name }}
-            </template>
-            <template v-else-if="job.institution">
-              {{ job.institution.career_officer_first_name }} {{ job.institution.career_officer_last_name }}
-            </template>
-            <template v-else-if="job.peso">
-              {{ job.peso.peso_first_name }} {{ job.peso.peso_last_name }}
-            </template>
-            <template v-else>
-              <span class="text-gray-500 italic">Unknown</span>
-            </template>
-          </td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.job_location }}</td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.job_employment_type }}</td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.job_experience_level }}</td>
-          <td class="border border-gray-200 px-6 py-4">{{ job.applicants_count ?? 0 }}</td>
-          <td class="border border-gray-200 px-6 py-4">
-            <span v-if="job.is_approved === 1" class="text-green-600 font-semibold">Approved</span>
-            <span v-else-if="job.is_approved === 0" class="text-red-600 font-semibold">Disapproved</span>
-            <span v-else class="text-yellow-600 font-semibold">Pending</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- Table Section -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm text-left text-gray-700">
+        <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-600 font-medium">
+          <tr>
+            <th class="px-6 py-4 font-semibold">Job Title</th>
+            <th class="px-6 py-4 font-semibold">Posted By</th>
+            <th class="px-6 py-4 font-semibold">Location</th>
+            <th class="px-6 py-4 font-semibold">Employment Type</th>
+            <th class="px-6 py-4 font-semibold">Experience Level</th>
+            <th class="px-6 py-4 font-semibold">Applicants</th>
+            <th class="px-6 py-4 font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <tr v-for="job in filteredJobs" :key="job.id" @click="goToJob(job.id)"
+            class="hover:bg-gray-50 transition-colors cursor-pointer">
+            <td class="px-6 py-4 font-medium">{{ job.job_title }}</td>
+            <td class="px-6 py-4">
+              <template v-if="job.company">
+                {{ job.company.hr_first_name }} {{ job.company.hr_last_name }}
+              </template>
+              <template v-else-if="job.institution">
+                {{ job.institution.career_officer_first_name }} {{ job.institution.career_officer_last_name }}
+              </template>
+              <template v-else-if="job.peso">
+                {{ job.peso.peso_first_name }} {{ job.peso.peso_last_name }}
+              </template>
+              <template v-else>
+                <span class="text-gray-500 italic">Unknown</span>
+              </template>
+            </td>
+            <td class="px-6 py-4">{{ job.job_location }}</td>
+            <td class="px-6 py-4">{{ job.job_employment_type }}</td>
+            <td class="px-6 py-4">{{ job.job_experience_level }}</td>
+            <td class="px-6 py-4">{{ job.applicants_count ?? 0 }}</td>
+            <td class="px-6 py-4">
+              <span 
+                class="px-2 py-1 text-xs font-medium rounded-full" 
+                :class="{
+                  'bg-green-100 text-green-800': job.is_approved === 1,
+                  'bg-red-100 text-red-800': job.is_approved === 0,
+                  'bg-yellow-100 text-yellow-800': job.is_approved === null
+                }">
+                {{ job.is_approved === 1 ? 'Approved' : (job.is_approved === 0 ? 'Disapproved' : 'Pending') }}
+              </span>
+            </td>
+          </tr>
+          <tr v-if="filteredJobs.length === 0">
+            <td colspan="7" class="px-6 py-8 text-center">
+              <div class="flex flex-col items-center justify-center text-gray-500">
+                <svg class="w-12 h-12 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-lg font-medium">No jobs found</p>
+                <p class="text-sm">Try adjusting your search or filter criteria</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <div class="mt-4">
-    <nav v-if="jobs.links.length > 1" aria-label="Page navigation">
-      <ul class="inline-flex -space-x-px text-sm">
-        <li v-for="link in jobs.links" :key="link.url" :class="{ 'active': link.active }">
+  <!-- Pagination -->
+  <div class="mt-6 flex justify-center">
+    <nav v-if="jobs.links && jobs.links.length > 3" aria-label="Page navigation">
+      <ul class="inline-flex items-center -space-x-px rounded-md shadow-sm">
+        <li v-for="link in jobs.links" :key="link.url">
           <a v-if="link.url" @click.prevent="goTo(link.url)"
-            :class="link.active ? 'flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700' : 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700'">
+            :class="[
+              'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
+              link.active
+                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+              link.label.includes('Previous') ? 'rounded-l-md' : '',
+              link.label.includes('Next') ? 'rounded-r-md' : ''
+            ]"
+            :aria-current="link.active ? 'page' : undefined">
             <span v-html="link.label"></span>
           </a>
           <span v-else
-            class="flex items-center justify-center px-3 h-8 leading-tight text-gray-400 bg-gray-200 border border-gray-300">
+            class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 cursor-not-allowed">
             <span v-html="link.label"></span>
           </span>
         </li>

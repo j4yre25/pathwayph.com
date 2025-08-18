@@ -9,7 +9,11 @@ use Inertia\Inertia;
 use Illuminate\Support\ServiceProvider;
 
 use Laravel\Fortify\Contracts\LoginResponse;
+use Laravel\Fortify\Contracts\LoginViewResponse;
+use Laravel\Fortify\Contracts\RegisterViewResponse;
 use App\Actions\Fortify\LoginResponse as CustomLoginResponse;
+use App\Http\Responses\LoginViewResponse as CustomLoginViewResponse;
+use App\Http\Responses\RegisterViewResponse as CustomRegisterViewResponse;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(LoginResponse::class, CustomLoginResponse::class);
+        $this->app->singleton(LoginViewResponse::class, CustomLoginViewResponse::class);
+        $this->app->singleton(RegisterViewResponse::class, CustomRegisterViewResponse::class);
     }
 
 

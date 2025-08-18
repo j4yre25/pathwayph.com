@@ -7,7 +7,14 @@ import axios from 'axios';
 import Modal from '@/Components/Modal.vue';
 import GraduatePortfolio from '@/Pages/Frontend/GraduatePortfolio.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
+import Dropdown from '@/Components/Dropdown.vue';
+import DropdownLink from '@/Components/DropdownLink.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import TextArea from '@/Components/TextArea.vue';
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
 
 const props = defineProps({

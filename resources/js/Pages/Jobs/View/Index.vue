@@ -1,39 +1,51 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { computed, reactive } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import EmployersJobDetails from './EmployersJobDetails.vue'; // Adjust path if needed
+import EmployersJobDetails from '@/Pages/Jobs/View/EmployersJobDetails.vue';
+import Container from '@/Components/Container.vue';
+import '@fortawesome/fontawesome-free/css/all.css';
 
-defineProps({
-  jobs: Array
+const props = defineProps({
+  jobs: Object,
 });
 
-const user = computed(() => usePage().props.auth.user);
-const queryParams = new URLSearchParams(window.location.search);
-const showDetails = queryParams.get('details'); // pass 'employer' to show
+const user = computed(() => {
+  return props.jobs.user;
+});
 
-const isJobDetailsOpen = ref(false);
+const isJobDetailsOpen = reactive({
+  value: false,
+});
+
+// We can remove the goBack function since it's now in the EmployersJobDetails component
 </script>
 
 
 <template>
-    <AppLayout title="Jobs">
-      <template #header>
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Job Listings</h2>
-      </template>
-  
-      <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-  
-        <!-- Accordion-like section to show EmployersJobDetails -->
-        <div v-if="showDetails === 'employer'">
-            
-          <div v-show="isJobDetailsOpen" id="job-details-body">
-            <div class="p-5 border border-gray-200">
-              <EmployersJobDetails :job="jobs[0]" :user="user" /> <!-- change index if needed -->
-            </div>
-          </div>
+  <AppLayout title="Job Details">
+    <template #header>
+      <div class="flex items-center">
+        <i class="fas fa-briefcase text-blue-500 text-xl mr-2"></i>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+          Job Details
+        </h2>
+      </div>
+    </template>
+
+    <Container class="py-8">
+      <!-- Job Details Content -->
+      <div v-if="$page.props.query.showDetails && jobs.job" class="space-y-6">
+        <EmployersJobDetails :job="jobs.job" :user="user" />
+      </div>
+      <div v-else class="bg-white rounded-lg border border-gray-200 p-8 text-center shadow-sm">
+        <div class="flex flex-col items-center justify-center py-12">
+          <i class="fas fa-search text-gray-400 text-5xl mb-4"></i>
+          <h2 class="text-xl font-semibold text-gray-700 mb-2">No Job Selected</h2>
+          <p class="text-gray-500 max-w-md">Please select a job from the job listings to view its details.</p>
         </div>
       </div>
-    </AppLayout>
-  </template>
+    </Container>
+  </AppLayout>
+</template>
   

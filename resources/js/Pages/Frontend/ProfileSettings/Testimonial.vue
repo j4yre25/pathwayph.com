@@ -54,9 +54,20 @@ const testimonials = useForm({
   file: null
 });
 
+// Replace testimonials form with a request form
+const testimonialRequestForm = useForm({
+  company_id: '',
+  message: '',
+  file: null
+});
+
 // File upload handling
-const handleFileUpload = (event) => {
+const handleTestimonialFileUpload = (event) => {
   testimonials.file = event.target.files[0];
+};
+
+const handleRequestFileUpload = (event) => {
+  testimonialRequestForm.file = event.target.files[0];
 };
 
 // Toggle archived testimonials
@@ -101,6 +112,22 @@ const addTestimonials = () => {
     },
     onError: (errors) => {
       errorMessage.value = 'Failed to add testimonial. Please check the form and try again.';
+      isErrorModalOpen.value = true;
+    }
+  });
+};
+
+// Send request to company instead of adding testimonial
+const sendTestimonialRequest = () => {
+  testimonialRequestForm.post(route('profile.testimonials.request'), {
+    forceFormData: true,
+    onSuccess: () => {
+      closeAddTestimonialsModal();
+      successMessage.value = 'Testimonial request sent to company!';
+      isSuccessModalOpen.value = true;
+    },
+    onError: (errors) => {
+      errorMessage.value = 'Failed to send testimonial request. Please check the form and try again.';
       isErrorModalOpen.value = true;
     }
   });
@@ -284,7 +311,7 @@ onMounted(() => {
             class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center hover:bg-indigo-700 transition-colors"
             @click="isAddTestimonialsModalOpen = true">
             <i class="fas fa-plus mr-2"></i>
-            Add Testimonial
+            Request Testimonial 
           </PrimaryButton>
           <button
             class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
@@ -369,41 +396,33 @@ onMounted(() => {
       class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">Add Testimonials</h2>
+          <h2 class="text-xl font-semibold">Request Testimonial from Company</h2>
           <button class="text-gray-500 hover:text-gray-700" @click="closeAddTestimonialsModal">
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <p class="text-gray-600 mb-4">Add a recommendation from a colleague or client</p>
-        <form @submit.prevent="addTestimonials">
+        <p class="text-gray-600 mb-4">Send a request to a company for a testimonial</p>
+        <form @submit.prevent="sendTestimonialRequest">
           <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-2">Name <span class="text-red-500">*</span></label>
-            <input type="text" v-model="testimonials.author"
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-              placeholder="e.g. John Doe" required />
+            <InputLabel for="company_id" value="Select Company" />
+            <SelectInput id="company_id" v-model="testimonialRequestForm.company_id" :options="companyOptions" required />
+            <InputError :message="testimonialRequestForm.errors.company_id" />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-2">Role/Title <span class="text-red-500">*</span></label>
-            <input type="text" v-model="testimonials.position"
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-              placeholder="e.g. Manager" required />
+            <InputLabel for="message" value="Message" />
+            <TextArea id="message" v-model="testimonialRequestForm.message" rows="3" required />
+            <InputError :message="testimonialRequestForm.errors.message" />
           </div>
           <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-2">Testimonial <span class="text-red-500">*</span></label>
-            <textarea v-model="testimonials.content"
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600" rows="3"
-              placeholder="Write the testimonial here..." required></textarea>
-          </div>
-          <div class="mb-4">
-            <label for="testimonial-file" class="block text-sm font-medium text-gray-700">Upload File</label>
+            <InputLabel for="testimonial-file" value="Attach File (optional)" />
             <input type="file" id="testimonial-file" @change="handleFileUpload"
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
           </div>
           <div class="flex justify-end">
             <button type="submit"
               class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
-              <i class="fas fa-save mr-2"></i>
-              Add Testimonial
+              <i class="fas fa-paper-plane mr-2"></i>
+              Send Request
             </button>
           </div>
         </form>

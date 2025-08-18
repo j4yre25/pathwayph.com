@@ -37,10 +37,13 @@ class JobsController extends Controller
     
     public function create(User $user) {
          $sectors = Sector::with('categories')->get();
-
+         $programs = \App\Models\Program::select('id', 'name')->get();
+         $authUser = Auth::user();
 
         return Inertia::render('Jobs/Index/CreateJobs', [
             'sectors' => $sectors,
+            'programs' => $programs,
+            'authUser' => $authUser,
     ]);
     }
 
