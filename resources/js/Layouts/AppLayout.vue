@@ -317,12 +317,12 @@ console.log(page.props.permissions.canManageInstitution)
 
 
 
-                                <NavLink v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
+                                <!-- <NavLink v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
                                     :href="route('peso.jobs', { user: page.props.auth.user.id })"
                                     :active="route().current('peso.jobs')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     PESO Job Posting
-                                </NavLink>
+                                </NavLink> -->
 
 
 

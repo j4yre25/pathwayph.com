@@ -30,13 +30,17 @@ const stats = computed(() => {
 
 const archiveUser = () => {
     if (userToArchive.value) {
-        router.delete(route('admin.manage_users.delete', { user: userToArchive.value.id }));
-        showModal.value = false;
-        userToArchive.value = null;
+        router.delete(route('admin.manage_users.delete', { user: userToArchive.value.id }), {
+            onSuccess: () => {
+                showModal.value = false;
+                userToArchive.value = null;
+            }
+        });
     }
 };
 
 const confirmArchive = (user) => {
+    console.log('Archive modal should open for:', user);
     userToArchive.value = user;
     showModal.value = true;
 };
