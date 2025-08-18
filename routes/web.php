@@ -135,7 +135,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     ->name('peso.jobs.manage');
 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/view/{job}', [PesoJobsController::class, 'view'])
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/view/{job}', [PesoJobsController::class, 'view']
+    )
     ->name('peso.jobs.view');
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/edit/{job}', [PesoJobsController::class, 'edit'])
@@ -463,7 +464,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/categories/edit/{category}', [CategoryController::class, 'restore'])->name('categories.restore');
 });
 
-
 //Institution Reports Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->prefix('institutions/reports')->group(function () {
     Route::get('/', [InstitutionReportsController::class, 'index'])->name('institutions.reports.index');
@@ -632,12 +632,19 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
 
             Route::get('/email/verify', function () {
                 return Inertia::render('Auth/VerifyEmail', [
-
                     'auth' => [
                         'user' => Auth::user(), // Pass the authenticated user's data
                     ],
                 ]);
             })->middleware('auth')->name('verification.notice');
+            
+            Route::get('/email/verify-code', function () {
+                return Inertia::render('Auth/VerifyEmailCode', [
+                    'auth' => [
+                        'user' => Auth::user(), // Pass the authenticated user's data
+                    ],
+                ]);
+            })->middleware('auth')->name('verification.code');
 
             Route::post('/email/verification-notification', function (Request $request) {
                 $user = $request->user();
@@ -653,13 +660,26 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
                 return back()->with('message', 'Verification code sent!');
             })->middleware(['auth', 'throttle:6,1'])->name('verification.resend');
 
-            Route::get('/register/graduate', [CustomRegisteredUserController::class, 'create'])
+            Route::get('/register/graduate', [CustomRegisteredUserController::class, 'createEmailOnly'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.graduate');
 
-            Route::post('/register/graduate', [CustomRegisteredUserController::class, 'store'])
+            Route::post('/register/graduate', [CustomRegisteredUserController::class, 'storeEmailOnly'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.graduate.store');
+                
+            Route::post('/register/email', [CustomRegisteredUserController::class, 'storeEmailOnly'])
+                ->middleware(['guest:' . config('fortify.guard')])
+                ->name('register.email.store');
+                
+            // AlmostDone page routes
+            Route::get('/graduate/almostdone', function () {
+                return Inertia::render('Auth/AlmostDone');
+            })->middleware(['auth'])->name('graduate.almostdone');
+            
+            Route::post('/graduate/almostdone', [GraduateController::class, 'storeAlmostDone'])
+                ->middleware(['auth'])
+                ->name('graduate.almostdone.store');
 
 
 
@@ -812,7 +832,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Profile Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
-    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
+    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
 
     // Education Routes
     Route::get('/profile/settings/education', [ProfileController::class, 'educationSettings'])->name('profile.settings.education');
@@ -871,6 +891,13 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/profile/testimonials/{id}/unarchive', [ProfileController::class, 'unarchiveTestimonial'])->name('profile.testimonials.unarchive');
     Route::put('/profile/testimonials/{id}/archived', [ProfileController::class, 'archivedTestimonial'])->name('profile.testimonials.archived');
 
+    // Alumni Stories Routes
+    Route::get('/profile/alumni-stories/settings', [ProfileController::class, 'alumniStoriesSettings'])->name('profile.alumni-stories.settings');
+    Route::post('/profile/alumni-stories', [ProfileController::class, 'addAlumniStory'])->name('profile.alumni-stories.add');
+    Route::post('/profile/alumni-stories/{id}', [ProfileController::class, 'updateAlumniStory'])->name('profile.alumni-stories.update');
+    Route::delete('/profile/alumni-stories/{id}', [ProfileController::class, 'deleteAlumniStory'])->name('profile.alumni-stories.delete');
+    Route::put('/profile/alumni-stories/{id}/restore', [ProfileController::class, 'restoreAlumniStory'])->name('profile.alumni-stories.restore');
+
     // Employment Preferences Routes
     Route::post('/profile/employment-preferences', [ProfileController::class, 'updateEmploymentPreferences'])->name('employment.preferences.updateEmploymentPreferences');
     Route::post('/profile/employment-preferences', [ProfileController::class, 'saveEmploymentPreferences'])->name('employment.preferences.updateEmploymentPreferences');
@@ -887,6 +914,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
     Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
+    
+    // Batch Upload Routes
+    Route::get('/profile/batch-upload', [ProfileController::class, 'batchUploadForm'])->name('profile.batch.upload.form');
+    Route::post('/profile/batch-upload', [ProfileController::class, 'batchUpload'])->name('profile.batch.upload');
+    Route::post('/profile/batch-upload-text', [ProfileController::class, 'batchUploadText'])->name('profile.batch.upload.text');
+    Route::get('/profile/template/download', [ProfileController::class, 'downloadTemplate'])->name('profile.template.download');
 });
 Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
 
@@ -919,3 +952,5 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {});
+
+Route::post('/profile/testimonials/request', [ProfileController::class, 'requestTestimonial'])->name('profile.testimonials.request');

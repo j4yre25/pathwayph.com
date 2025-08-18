@@ -110,26 +110,26 @@ console.log('Education:', props.education);
                         <p class="text-gray-600 text-center mt-1">{{ graduate.current_job_title || 'No professional title' }}</p>
                         <div class="flex justify-center space-x-4 mt-3">
                             <a v-if="graduate.linkedin_url" :href="formatUrl(graduate.linkedin_url, 'linkedin.com')"
-                                target="_blank" class="text-gray-500 hover:text-indigo-600 text-2xl"><i
+                                target="_blank" class="text-gray-500 hover:text-blue-600 text-2xl"><i
                                     class="fab fa-linkedin"></i></a>
                             <a v-if="graduate.github_url" :href="formatUrl(graduate.github_url, 'github.com')"
-                                target="_blank" class="text-gray-500 hover:text-indigo-600 text-2xl"><i
+                                target="_blank" class="text-gray-500 hover:text-blue-600 text-2xl"><i
                                     class="fab fa-github"></i></a>
                             <a v-if="graduate.personal_website" :href="formatUrl(graduate.personal_website)"
-                                target="_blank" class="text-gray-500 hover:text-indigo-600 text-2xl"><i
+                                target="_blank" class="text-gray-500 hover:text-blue-600 text-2xl"><i
                                     class="fas fa-globe"></i></a>
                         </div>
                         <div class="mt-6 w-full">
                             <div class="flex items-center mb-2">
-                                <i class="fas fa-envelope text-indigo-500 mr-2"></i>
+                                <i class="fas fa-envelope text-blue-500 mr-2"></i>
                                 <span class="text-gray-700">{{ graduate.user?.email || 'N/A' }}</span>
                             </div>
                             <div class="flex items-center mb-2">
-                                <i class="fas fa-phone text-indigo-500 mr-2"></i>
+                                <i class="fas fa-phone text-blue-500 mr-2"></i>
                                 <span class="text-gray-700">{{ '0' + graduate.contact_number || 'N/A' }}</span>
                             </div>
                             <div class="flex items-center">
-                                <i class="fas fa-map-marker-alt text-indigo-500 mr-2"></i>
+                                <i class="fas fa-map-marker-alt text-blue-500 mr-2"></i>
                                 <span class="text-gray-700">{{ graduate.address || graduate.location || 'N/A' }}</span>
                             </div>
                         </div>
@@ -140,7 +140,7 @@ console.log('Education:', props.education);
                         <h4 class="text-lg font-semibold text-gray-800 mb-3">Skills</h4>
                         <div class="flex flex-wrap gap-2">
                             <span v-for="skill in skills" :key="skill.id"
-                                class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm">
+                                class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
                                 {{ skill.skill_name }}
                             </span>
                         </div>
@@ -157,7 +157,7 @@ console.log('Education:', props.education);
                             <i v-else class="fas fa-file-alt text-3xl text-gray-500"></i>
                             <span class="font-semibold">{{ resume.file_name }}</span>
                             <a :href="resume.file_url" download target="_blank"
-                                class="inline-flex items-center text-indigo-600 hover:underline font-semibold ml-4">
+                                class="inline-flex items-center text-blue-600 hover:underline font-semibold ml-4">
                                 <i class="fas fa-file-download mr-2"></i>
                                 Download
                             </a>
@@ -190,9 +190,9 @@ console.log('Education:', props.education);
                       <!-- Always show the original institution card if it exists -->
                       <div
                         v-if="originalInstitution && originalInstitution.name"
-                        class="mb-6 border border-indigo-200 rounded-lg p-4 bg-indigo-50 shadow"
+                        class="mb-6 border border-blue-200 rounded-lg p-4 bg-blue-50 shadow"
                       >
-                        <div class="text-lg font-bold text-indigo-700">
+                        <div class="text-lg font-bold text-blue-700">
                           {{ originalInstitution.name }}
                         </div>
                         <div class="text-gray-700">
@@ -214,7 +214,7 @@ console.log('Education:', props.education);
                           class="flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50 rounded-lg p-4 shadow-sm"
                         >
                           <div>
-                            <div class="text-lg font-semibold text-indigo-700">
+                            <div class="text-lg font-semibold text-blue-700">
                               {{ edu.institution?.institution_name || edu.education || 'Institution N/A' }}
                             </div>
                             <div class="text-gray-700">
@@ -223,7 +223,7 @@ console.log('Education:', props.education);
                             </div>
                           </div>
                           <div class="mt-2 md:mt-0 text-sm text-gray-500 md:text-right">
-                            <span class="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                            <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded">
                               {{ edu.start_date ? formatDate(edu.start_date) : 'N/A' }}
                               -
                               {{ edu.end_date ? formatDate(edu.end_date) : (edu.is_current ? 'Present' : 'N/A') }}
@@ -236,7 +236,7 @@ console.log('Education:', props.education);
                         <h4 class="text-xl font-semibold text-gray-800 mb-2">
                             {{ latestEducation.is_current ? 'Current School' : 'Latest School Graduated From' }}
                         </h4>
-                        <div class="text-lg font-bold text-indigo-700">{{ latestEducation.education }}</div>
+                        <div class="text-lg font-bold text-blue-700">{{ latestEducation.education }}</div>
                         <div class="text-gray-600">{{ latestEducation.program }}<span
                                 v-if="latestEducation.field_of_study"> in {{ latestEducation.field_of_study }}</span>
                         </div>
@@ -257,12 +257,12 @@ console.log('Education:', props.education);
                             <li v-for="exp in experiences" :key="exp.id"
                                 class="flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50 rounded-lg p-4 shadow-sm">
                                 <div>
-                                    <div class="text-lg font-semibold text-indigo-700">{{ exp.title }}</div>
+                                    <div class="text-lg font-semibold text-blue-700">{{ exp.title }}</div>
                                     <div class="text-gray-600">{{ exp.company }}</div>
                                     <div class="text-gray-600 text-sm mt-2">{{ exp.description }}</div>
                                 </div>
                                 <div class="mt-2 md:mt-0 text-sm text-gray-500 md:text-right">
-                                    <span class="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                                    <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                         {{ formatDate(exp.start_date) ? formatDate(exp.start_date) : 'N/A' }}
                                         -
                                         {{ exp.is_current ? 'Present' : (formatDate(exp.end_date) ?
@@ -281,11 +281,11 @@ console.log('Education:', props.education);
                                 :key="proj.id" class="bg-gray-50 rounded-lg p-4 shadow-sm">
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                                     <div>
-                                        <div class="text-lg font-semibold text-indigo-700">{{ proj.title }}</div>
+                                        <div class="text-lg font-semibold text-blue-700">{{ proj.title }}</div>
                                         <div class="text-gray-600 text-sm mt-1">{{ proj.description }}</div>
                                         <div v-if="proj.file" class="mt-2">
                                             <a :href="proj.file ? `/storage/${proj.file}` : ''" target="_blank"
-                                                class="text-indigo-600 hover:underline flex items-center gap-1">
+                                                class="text-blue-600 hover:underline flex items-center gap-1">
                                                 <i :class="fileIcon(proj.file)"></i>
                                                 View Attachment
                                             </a>
@@ -293,7 +293,7 @@ console.log('Education:', props.education);
                                     </div>
                                     <div v-if="proj.url" class="mt-2 md:mt-0">
                                         <a :href="proj.url" target="_blank"
-                                            class="text-indigo-600 hover:underline break-all">
+                                            class="text-blue-600 hover:underline break-all">
                                             {{ proj.url }}
                                         </a>
                                     </div>
@@ -302,7 +302,7 @@ console.log('Education:', props.education);
                         </ul>
                         <div v-if="projects.length > PROJECTS_LIMIT" class="mt-4 text-center">
                             <button @click="showAllProjects = !showAllProjects"
-                                class="text-indigo-600 hover:underline font-semibold">
+                                class="text-blue-600 hover:underline font-semibold">
                                 {{ showAllProjects ? 'Show Less' : 'See More' }}
                             </button>
                         </div>
@@ -316,19 +316,19 @@ console.log('Education:', props.education);
                                 :key="ach.id" class="bg-gray-50 rounded-lg p-4 shadow-sm">
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                                     <div>
-                                        <div class="text-lg font-semibold text-indigo-700">{{ ach.title }}</div>
+                                        <div class="text-lg font-semibold text-blue-700">{{ ach.title }}</div>
                                         <div class="text-gray-600 text-sm mt-1">{{ ach.description }}</div>
                                         <div v-if="ach.credential_picture" class="mt-2">
                                             <a :href="ach.credential_picture ? `/storage/${ach.credential_picture}` : ''"
                                                 target="_blank"
-                                                class="text-indigo-600 hover:underline flex items-center gap-1">
+                                                class="text-blue-600 hover:underline flex items-center gap-1">
                                                 <i :class="fileIcon(ach.credential_picture)"></i>
                                                 View Attachment
                                             </a>
                                         </div>
                                     </div>
                                     <div class="mt-2 md:mt-0 text-sm text-gray-500 md:text-right">
-                                        <span class="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                                        <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                             {{ ach.issuer }} ({{ formatDate(ach.date) }})
                                         </span>
                                     </div>
@@ -337,7 +337,7 @@ console.log('Education:', props.education);
                         </ul>
                         <div v-if="achievements.length > ACHIEVEMENTS_LIMIT" class="mt-4 text-center">
                             <button @click="showAllAchievements = !showAllAchievements"
-                                class="text-indigo-600 hover:underline font-semibold">
+                                class="text-blue-600 hover:underline font-semibold">
                                 {{ showAllAchievements ? 'Show Less' : 'See More' }}
                             </button>
                         </div>
@@ -351,18 +351,18 @@ console.log('Education:', props.education);
                                 :key="cert.id"
                                 class="bg-gray-50 rounded-lg p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
                                 <div>
-                                    <div class="text-lg font-semibold text-indigo-700">{{ cert.name }}</div>
+                                    <div class="text-lg font-semibold text-blue-700">{{ cert.name }}</div>
                                     <div class="text-gray-600 text-sm mt-1">{{ cert.issuer }}</div>
                                     <div v-if="cert.file_path" class="mt-2">
                                         <a :href="cert.file_path ? `/storage/${cert.file_path}` : ''" target="_blank"
-                                            class="text-indigo-600 hover:underline flex items-center gap-1">
+                                            class="text-blue-600 hover:underline flex items-center gap-1">
                                             <i :class="fileIcon(cert.file_path)"></i>
                                             View Attachment
                                         </a>
                                     </div>
                                 </div>
                                 <div class="mt-2 md:mt-0 text-sm text-gray-500 md:text-right">
-                                    <span class="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                                    <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                         {{ formatDate(cert.issue_date) }}
                                     </span>
                                 </div>
@@ -370,7 +370,7 @@ console.log('Education:', props.education);
                         </ul>
                         <div v-if="certifications.length > CERTIFICATIONS_LIMIT" class="mt-4 text-center">
                             <button @click="showAllCertifications = !showAllCertifications"
-                                class="text-indigo-600 hover:underline font-semibold">
+                                class="text-blue-600 hover:underline font-semibold">
                                 {{ showAllCertifications ? 'Show Less' : 'See More' }}
                             </button>
                         </div>
@@ -382,7 +382,7 @@ console.log('Education:', props.education);
                         <ul class="space-y-4">
                             <li v-for="test in testimonials" :key="test.id" class="bg-gray-50 rounded-lg p-4 shadow-sm">
                                 <div class="flex flex-col">
-                                    <div class="font-semibold text-indigo-700">{{ test.author }}</div>
+                                    <div class="font-semibold text-blue-700">{{ test.author }}</div>
                                     <div class="text-gray-500 text-sm mb-2">{{ test.position }}</div>
                                     <span class="italic text-gray-700">"{{ test.content }}"</span>
                                 </div>

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -466,6 +467,9 @@ function goToProfile() {
             <div class="glass rounded-t-2xl p-6">
               <h2 class="text-3xl font-bold neon-text text-green-400 animate-pulse-glow text-center">Profile Saved!</h2>
             </div>
+            <div class="glass rounded-t-2xl p-6">
+              <h2 class="text-3xl font-bold neon-text text-green-400 animate-pulse-glow text-center">Profile Saved!</h2>
+            </div>
           </template>
           <template #body>
             <div class="glass p-8">
@@ -476,6 +480,14 @@ function goToProfile() {
             </div>
           </template>
           <template #footer>
+            <div class="glass rounded-b-2xl p-6 text-center">
+              <button 
+                @click="goToProfile" 
+                class="gradient-cta hover-rainbow px-8 py-3 rounded-xl font-bold text-white transform hover:scale-105 animate-pulse-glow"
+              >
+                Go to Profile
+              </button>
+            </div>
             <div class="glass rounded-b-2xl p-6 text-center">
               <button 
                 @click="goToProfile" 
@@ -624,3 +636,4 @@ input:focus, select:focus {
     border-color: rgba(79, 172, 254, 0.8);
 }
 </style>
+

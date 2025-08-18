@@ -7,6 +7,7 @@ use App\Models\Graduate;
 use App\Models\Program;
 use App\Models\SchoolYear;
 use App\Models\User;
+use App\Models\Experience;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,80 @@ use Carbon\Carbon;
 
 class GraduateController extends Controller
 {
+    /**
+     * Store the graduate profile information from the AlmostDone page.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function storeAlmostDone(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Validate the request
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'has_experience' => 'boolean',
+            'job_title' => 'required_if:has_experience,true|string|max:255|nullable',
+            'company_name' => 'required_if:has_experience,true|string|max:255|nullable',
+            'started_month' => 'required_if:has_experience,true|string|nullable',
+            'started_year' => 'required_if:has_experience,true|string|nullable',
+            'ended_month' => 'required_if:has_experience,true|string|nullable',
+            'ended_year' => 'required_if:has_experience,true|string|nullable',
+            'still_in_role' => 'boolean',
+            'visibility' => 'required|string|in:standard,limited,hidden',
+        ]);
+        
+        // Update user information
+        $user->first_name = $request->first_name;
+        $user->last_name = $request->last_name;
+        $user->save();
+        
+        // Check if graduate record exists, if not create one
+        $graduate = Graduate::where('user_id', $user->id)->first();
+        
+        if (!$graduate) {
+            $graduate = new Graduate();
+            $graduate->user_id = $user->id;
+        }
+        
+        // Update graduate information
+        $graduate->first_name = $request->first_name;
+        $graduate->last_name = $request->last_name;
+        $graduate->location = $request->location;
+        $graduate->visibility = $request->visibility;
+        $graduate->save();
+        
+        // Handle experience if provided
+        if ($request->has_experience) {
+            $experience = new Experience();
+            $experience->user_id = $user->id;
+            $experience->job_title = $request->job_title;
+            $experience->company_name = $request->company_name;
+            
+            // Format the start date
+            if ($request->started_month && $request->started_year) {
+                $experience->start_date = $request->started_year . '-' . 
+                    date('m', strtotime($request->started_month . ' 1, 2000')) . '-01';
+            }
+            
+            // Format the end date if not still in role
+            if (!$request->still_in_role && $request->ended_month && $request->ended_year) {
+                $experience->end_date = $request->ended_year . '-' . 
+                    date('m', strtotime($request->ended_month . ' 1, 2000')) . '-01';
+            } else if ($request->still_in_role) {
+                $experience->end_date = null;
+                $experience->is_current = true;
+            }
+            
+            $experience->save();
+        }
+        
+        // Redirect to verification success page
+        return redirect()->route('verification.success');
+    }
     public function index(Request $request)
     {
         $institutionId = Auth::user()->institution->id;
@@ -555,11 +630,11 @@ class GraduateController extends Controller
 
     private function getInstitutionSchoolYearId($schoolYearRange, $term, $institutionId)
     {
-        $schoolYearId = \DB::table('school_years')
+        $schoolYearId = DB::table('school_years')
             ->where('school_year_range', $schoolYearRange)
             ->value('id');
 
-        return \DB::table('institution_school_years')
+        return DB::table('institution_school_years')
             ->where('institution_id', $institutionId)
             ->where('school_year_range_id', $schoolYearId)
             ->where('term', $term)
