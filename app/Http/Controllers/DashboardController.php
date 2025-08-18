@@ -22,8 +22,10 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('company') && !$user->company ) {
-            return redirect()->route('company.information');
+        if ($user->hasRole('company')) {
+            if (!$user->company || !$user->has_completed_information) {
+                return redirect()->route('company.information');
+            }
         }
         if ($user->hasRole('institution') && !$user->institution) {
             return redirect()->route('institution.information');

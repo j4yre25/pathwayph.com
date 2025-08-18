@@ -75,7 +75,7 @@ if (userNotApproved.value) {
     showModal.value = true;
 }
 
-console.log("isGraduate:", page.props.roles?.isGraduate);
+console.log("isGraduate:", page.props.roles);
 console.log("userNotApproved:", userNotApproved.value);
 console.log("hasFilledReferral:", hasFilledReferral.value);
 
