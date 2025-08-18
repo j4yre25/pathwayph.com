@@ -20,6 +20,7 @@ use App\Models\InstitutionProgram;
 use App\Models\Company;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class GraduateProfileController extends Controller
 {
@@ -40,7 +41,10 @@ class GraduateProfileController extends Controller
             $term = $graduate->institutionSchoolYear->term;
         }
 
-        return inertia('Frontend/GraduateProfile', [
+        // Get the authenticated user
+        $user = Auth::user();
+        
+        return inertia('Frontend/UpdatedGraduateProfile', [
             'graduate' => $graduate,
             'originalInstitution' => [
                 'name' => optional($graduate->institution)->institution_name,
@@ -63,6 +67,10 @@ class GraduateProfileController extends Controller
             'employmentPreferences' => \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first(),
             'careerGoals' => \App\Models\CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
+            'auth' => [
+                'user' => $user,
+            ],
+            'roles' => $user ? $user->role : null,
         ]);
     }
 

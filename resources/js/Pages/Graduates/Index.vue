@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import GraduateEdit from './GraduateEdit.vue';
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
   graduates: Object,
@@ -118,27 +119,75 @@ function cancelArchive() {
   <AppLayout title="Graduate Management">
     <!-- Page Header -->
     <template #header>
-      <h2 class="font-semibold text-xl text-gray-800 leading-tight">Graduate Management</h2>
+      <div class="flex items-center">
+        <i class="fas fa-user-graduate text-blue-500 text-xl mr-2"></i>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Graduate Management</h2>
+      </div>
     </template>
+    
     <div class="py-8">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white shadow-xl rounded-2xl p-6">
-          <!-- Action Buttons -->
-          <div class="flex justify-between items-center mb-7">
-            <div>
-              <button @click="$inertia.get(route('graduates.list'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-2">
-                List of Graduates
-              </button>
-              <button @click="$inertia.get(route('graduates.archived'))" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                Archived Graduates
-              </button>
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Total Graduates</h3>
+                <p class="text-3xl font-bold text-gray-800">{{ graduates.total || 0 }}</p>
+              </div>
+              <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-user-graduate text-blue-600"></i>
+              </div>
             </div>
-            <div class="flex gap-x-2">
-              <button @click="$inertia.get(route('graduates.create'))" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Add Graduate
+          </div>
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Active Graduates</h3>
+                <p class="text-3xl font-bold text-gray-800">{{ graduates.data.length || 0 }}</p>
+              </div>
+              <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-check-circle text-green-600"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500 relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Programs</h3>
+                <p class="text-3xl font-bold text-gray-800">{{ programs.length || 0 }}</p>
+              </div>
+              <div class="bg-purple-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-graduation-cap text-purple-600"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+          <!-- Action Buttons -->
+          <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200">
+            <div class="flex items-center">
+              <h3 class="text-lg font-semibold text-gray-800">Graduates List</h3>
+              <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ graduates.total }} total</span>
+            </div>
+            <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
+              <button @click="$inertia.get(route('graduates.list'))" 
+                      class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
+                <i class="fas fa-list text-blue-500 mr-2"></i> Active
               </button>
-              <button @click="$inertia.get(route('graduates.batch.page'))" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                Batch Upload
+              <button @click="$inertia.get(route('graduates.archived'))" 
+                      class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
+                <i class="fas fa-archive text-gray-500 mr-2"></i> Archived
+              </button>
+              <button @click="$inertia.get(route('graduates.create'))" 
+                      class="text-sm px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 flex items-center">
+                <i class="fas fa-plus-circle mr-2"></i> Add Graduate
+              </button>
+              <button @click="$inertia.get(route('graduates.batch.page'))" 
+                      class="text-sm px-4 py-2 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition-colors duration-200 flex items-center">
+                <i class="fas fa-upload mr-2"></i> Batch Upload
               </button>
             </div>
           </div>
@@ -218,35 +267,51 @@ function cancelArchive() {
               @click="router.get(graduates.next_page_url, filters, { preserveState: true, replace: true })"
             >Next</button>
           </div>
-          <!-- Graduate Modal -->
-          <GraduateEdit
-            :show="isModalOpen"
-            :graduate="selectedGraduate"
-            :programs="programs"
-            :years="years"
-            :insti-users="instiUsers"
-            @close="closeModal"
-          />
-          <!-- Confirmation Modal -->
-          <div v-if="showConfirmModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="bg-white p-6 rounded shadow-lg">
-              <h3 class="text-lg font-semibold mb-4">Confirm Archive</h3>
-              <p>Are you sure you want to archive this graduate?</p>
-              <div class="mt-4 flex justify-end space-x-2">
-                <button @click="cancelArchive" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                  Cancel
-                </button>
-                <button @click="archiveGraduateConfirmed" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>
-          <!-- Flash Banner -->
-          <div v-if="flashBanner" class="fixed top-0 left-0 right-0 bg-green-500 text-white text-center py-2">
-            {{ flashBanner }}
-          </div>
         </div>
+      </div>
+    </div>
+    
+    <!-- Graduate Modal -->
+    <GraduateEdit
+      :show="isModalOpen"
+      :graduate="selectedGraduate"
+      :programs="programs"
+      :years="years"
+      :insti-users="instiUsers"
+      @close="closeModal"
+    />
+    
+    <!-- Confirmation Modal -->
+    <div v-if="showConfirmModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-800">Confirm Archive</h3>
+        </div>
+        <p class="text-gray-600 mb-6">Are you sure you want to archive this graduate? This action can be reversed later.</p>
+        <div class="flex justify-end space-x-3">
+          <button @click="cancelArchive" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm transition-colors duration-200">
+            Cancel
+          </button>
+          <button @click="archiveGraduateConfirmed" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm transition-colors duration-200">
+            Archive
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Flash Banner -->
+    <div v-if="flashBanner" class="fixed top-0 left-0 right-0 bg-green-500 text-white text-center py-3 shadow-md z-50 transition-all duration-300 ease-in-out">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div class="flex items-center">
+          <i class="fas fa-check-circle mr-2"></i>
+          <span>{{ flashBanner }}</span>
+        </div>
+        <button @click="flashBanner = ''" class="text-white hover:text-gray-200">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
     </div>
   </AppLayout>

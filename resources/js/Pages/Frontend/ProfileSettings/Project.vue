@@ -1,10 +1,20 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, defineAsyncComponent } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import Datepicker from 'vue3-datepicker';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { parseISO, isValid } from 'date-fns';
+
+// Lazy-load components
+const ProjectEntryCard = defineAsyncComponent(() => import('./components/ProjectEntryCard.vue').catch(() => {
+  // Fallback to inline component if module doesn't exist
+  return {
+    render() {
+      return h('div', { class: 'p-4 bg-white rounded-lg shadow' }, this.$slots.default);
+    }
+  };
+}));
 
 // Props
 const props = defineProps({
@@ -52,9 +62,19 @@ const successMessage = ref('');
 const errorMessage = ref('');
 const noProjectUrl = ref(false);
 const showArchivedProjects = ref(false);
+const isProjectsExpanded = ref(true);
+const isArchivedProjectsExpanded = ref(true);
 
 const toggleArchivedProjects = () => {
   showArchivedProjects.value = !showArchivedProjects.value;
+};
+
+const toggleProjectsExpanded = () => {
+  isProjectsExpanded.value = !isProjectsExpanded.value;
+};
+
+const toggleArchivedProjectsExpanded = () => {
+  isArchivedProjectsExpanded.value = !isArchivedProjectsExpanded.value;
 };
 
 // Form
@@ -216,6 +236,68 @@ const updateProject = () => {
   });
 };
 
+// Archive Project
+const archiveProject = (entry) => {
+  useForm().post(route('profile.projects.archive', entry.id), {
+    onSuccess: (response) => {
+      if (response?.props?.projectsEntries) {
+        projectsEntries.value = response.props.projectsEntries;
+      }
+      if (response?.props?.archivedProjectsEntries) {
+        archivedProjectsEntries.value = response.props.archivedProjectsEntries;
+      }
+      successMessage.value = 'Project archived successfully!';
+      isSuccessModalOpen.value = true;
+    },
+    onError: () => {
+      errorMessage.value = 'Failed to archive project. Please try again.';
+      isErrorModalOpen.value = true;
+    },
+  });
+};
+
+// Unarchive Project
+const unarchiveProject = (entry) => {
+  useForm().post(route('profile.projects.unarchive', entry.id), {
+    onSuccess: (response) => {
+      if (response?.props?.projectsEntries) {
+        projectsEntries.value = response.props.projectsEntries;
+      }
+      if (response?.props?.archivedProjectsEntries) {
+        archivedProjectsEntries.value = response.props.archivedProjectsEntries;
+      }
+      successMessage.value = 'Project unarchived successfully!';
+      isSuccessModalOpen.value = true;
+    },
+    onError: () => {
+      errorMessage.value = 'Failed to unarchive project. Please try again.';
+      isErrorModalOpen.value = true;
+    },
+  });
+};
+
+// Remove Project
+const removeProject = (id) => {
+  if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    useForm().delete(route('profile.projects.delete', id), {
+      onSuccess: (response) => {
+        if (response?.props?.projectsEntries) {
+          projectsEntries.value = response.props.projectsEntries;
+        }
+        if (response?.props?.archivedProjectsEntries) {
+          archivedProjectsEntries.value = response.props.archivedProjectsEntries;
+        }
+        successMessage.value = 'Project deleted successfully!';
+        isSuccessModalOpen.value = true;
+      },
+      onError: () => {
+        errorMessage.value = 'Failed to delete project. Please try again.';
+        isErrorModalOpen.value = true;
+      },
+    });
+  }
+};
+
 // Watchers
 watch(() => form.is_current, (val) => {
   if (val) form.graduate_projects_end_date = null;
@@ -297,165 +379,109 @@ watch(
     </div>
   </Modal>
 
-  <div v-if="activeSection === 'projects'" class="flex flex-col lg:flex-row">
-    <div class="w-full mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-xl font-semibold">Projects</h1>
-        <div class="flex space-x-2">
-          <PrimaryButton class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center hover:bg-indigo-700"
-            @click="openAddProjectModal">
-            <i class="fas fa-plus mr-2"></i> Add Project
-          </PrimaryButton>
-          <button
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
-            @click="toggleArchivedProjects">
-            <i class="fas" :class="showArchivedProjects ? 'fa-eye-slash' : 'fa-eye'"></i>
-            <span class="ml-2">{{ showArchivedProjects ? 'Hide Archived' : 'Show Archived' }}</span>
-          </button>
+  <div v-if="activeSection === 'projects'" class="w-full">
+    <!-- Main Content Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left Column -->
+      <div class="space-y-6">
+        <!-- Quick Navigation -->
+        <div v-if="filteredProjectsEntries.length > 0 || filteredArchivedProjectsEntries.length > 0" class="bg-white p-4 rounded-lg shadow-sm border border-blue-100">
+          <h3 class="text-lg font-medium mb-3">Jump to:</h3>
+          <div class="flex flex-wrap gap-3">
+            <a href="#active-projects" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors duration-200 flex items-center">
+              <i class="fas fa-project-diagram mr-2"></i> Active Projects
+            </a>
+            <a v-if="showArchivedProjects && filteredArchivedProjectsEntries.length > 0" href="#archived-projects" class="bg-gray-50 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors duration-200 flex items-center">
+              <i class="fas fa-archive mr-2"></i> Archived Projects
+            </a>
+          </div>
         </div>
-      </div>
-      <p class="text-gray-600 mb-6">Showcase your personal and professional projects</p>
-
-      <!-- Project Entries -->
-      <div>
-        <h2 class="text-lg font-medium mb-4">Active Projects</h2>
-        <div v-if="filteredProjectsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div v-for="entry in filteredProjectsEntries" :key="entry?.id"
-            class="bg-white p-8 rounded-lg shadow relative">
-            <div>
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold text-gray-800">{{ entry.graduate_projects_title }}</h2>
-                <p class="text-sm text-gray-600">{{ entry.graduate_projects_role }}</p>
+        
+        <!-- Active Projects Card -->
+        <div id="active-projects" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
+          <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-600 to-blue-100 border-b border-blue-200">
+            <div class="flex items-center">
+              <div class="bg-white p-2 rounded-full mr-3 shadow-sm">
+                <i class="fas fa-project-diagram text-blue-600"></i>
               </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt mr-2 text-gray-500"></i>
-                <span>
-                  {{ formatDate(entry.graduate_projects_start_date) }} -
-                  {{ entry.graduate_projects_end_date === null ? 'Present' :
-                    formatDate(entry.graduate_projects_end_date) }}
-                </span>
-              </div>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                </strong>
-                {{ entry.graduate_projects_description || 'No description provided' }}
-              </p>
-              <div class="mt-2">
-                <strong>
-                  <i class="fas fa-link text-gray-500 mr-2"></i> Project URL:
-                </strong>
-                <span v-if="entry.graduate_projects_url">
-                  <a :href="entry.graduate_projects_url" target="_blank"
-                    class="text-indigo-600 hover:underline break-all">
-                    {{ entry.graduate_projects_url }}
-                  </a>
-                </span>
-                <span v-else class="text-gray-500">No project URL provided</span>
-              </div>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-trophy text-gray-500 mr-2"></i> Key Accomplishments:
-                </strong>
-                <span v-if="entry.graduate_projects_key_accomplishments">
-                  {{ entry.graduate_projects_key_accomplishments }}
-                </span>
-                <span v-else>No key accomplishment provided</span>
-              </p>
-              <div v-if="entry.graduate_project_file" class="mt-3">
-                <img :src="`/storage/${entry.graduate_project_file}`" :alt="entry.graduate_projects_title"
-                  class="max-w-full h-auto rounded-lg shadow" />
-              </div>
+              <h3 class="text-lg font-semibold text-white">Projects</h3>
             </div>
-            <div class="absolute top-8 right-4 flex space-x-4">
-              <button class="text-gray-600 hover:text-indigo-600" @click="openUpdateProjectModal(entry)">
-                <i class="fas fa-pen"></i>
+            <div class="flex space-x-2">
+              <PrimaryButton class="bg-white text-blue-600 px-4 py-2 rounded flex items-center hover:bg-blue-50 border border-white"
+                @click="openAddProjectModal">
+                <i class="fas fa-plus mr-2"></i> Add Project
+              </PrimaryButton>
+              <button
+                class="bg-white hover:bg-blue-50 text-blue-600 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer border border-white"
+                @click="toggleArchivedProjects">
+                <i class="fas" :class="showArchivedProjects ? 'fa-eye-slash' : 'fa-eye'"></i>
+                <span class="ml-2">{{ showArchivedProjects ? 'Hide Archived' : 'Show Archived' }}</span>
               </button>
-              <button class="text-amber-600 hover:text-amber-800" @click="archiveProject(entry)">
-                <i class="fas fa-archive"></i>
+              <button @click="toggleProjectsExpanded" class="text-white hover:text-blue-100 focus:outline-none">
+                <i class="fas" :class="isProjectsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
               </button>
             </div>
           </div>
-        </div>
+          <div v-show="isProjectsExpanded" class="p-4 transition-all duration-300">
+            <p class="text-gray-600 mb-6">Showcase your personal and professional projects</p>
 
-        <!-- If no projects exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow">
-          <p class="text-gray-600">No project entries added yet.</p>
-        </div>
-      </div>
+            <!-- Project Entries -->
+            <div class="mb-6">
+              <h2 class="text-lg font-medium mb-4">Active Projects</h2>
+              <div v-if="filteredProjectsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ProjectEntryCard 
+                  v-for="entry in filteredProjectsEntries" 
+                  :key="entry?.id"
+                  :entry="entry"
+                  :is-archived="false"
+                  @update="openUpdateProjectModal"
+                  @archive="archiveProject"
+                />
+              </div>
 
-      <!-- Archived Projects -->
-      <div v-if="showArchivedProjects" class="mt-8">
-        <h2 class="text-lg font-medium mb-4">Archived Projects</h2>
-        <div v-if="filteredArchivedProjectsEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div v-for="entry in filteredArchivedProjectsEntries" :key="entry?.id"
-            class="bg-gray-50 p-8 rounded-lg shadow relative border border-gray-200">
-            <div class="opacity-75">
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold text-gray-800">{{ entry.graduate_projects_title }}</h2>
-                <p class="text-sm text-gray-600">{{ entry.graduate_projects_role }}</p>
-              </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt mr-2 text-gray-500"></i>
-                <span>
-                  {{ formatDate(entry.graduate_projects_start_date) }} -
-                  {{ entry.graduate_projects_end_date === null ? 'Present' :
-                    formatDate(entry.graduate_projects_end_date) }}
-                </span>
-              </div>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                </strong>
-                {{ entry.graduate_projects_description || 'No description provided' }}
-              </p>
-              <div class="mt-2">
-                <strong>
-                  <i class="fas fa-link text-gray-500 mr-2"></i> Project URL:
-                </strong>
-                <span v-if="entry.graduate_projects_url">
-                  <a :href="entry.graduate_projects_url" target="_blank"
-                    class="text-indigo-600 hover:underline break-all">
-                    {{ entry.graduate_projects_url }}
-                  </a>
-                </span>
-                <span v-else class="text-gray-500">No project URL provided</span>
-              </div>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-trophy text-gray-500 mr-2"></i> Key Accomplishments:
-                </strong>
-                <span v-if="entry.graduate_projects_key_accomplishments">
-                  {{ entry.graduate_projects_key_accomplishments }}
-                </span>
-                <span v-else>No key accomplishment provided</span>
-              </p>
-              <div v-if="entry.graduate_project_file" class="mt-3">
-                <img :src="`/storage/${entry.graduate_project_file}`" :alt="entry.graduate_projects_title"
-                  class="max-w-full h-auto rounded-lg shadow" />
+              <!-- If no projects exist -->
+              <div v-else class="bg-white p-8 rounded-lg shadow">
+                <p class="text-gray-600">No project entries added yet.</p>
               </div>
             </div>
-            <div class="absolute top-8 right-4 flex space-x-4">
-              <button class="text-green-600 hover:text-green-800" @click="unarchiveProject(entry)">
-                <i class="fas fa-box-open"></i>
-              </button>
-              <button class="text-red-600 hover:text-red-800" @click="removeProject(entry.id)">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
-              Archived
+
+            <!-- Archived Projects -->
+            <div v-if="showArchivedProjects" class="mt-8">
+              <div id="archived-projects" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
+                <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-500 to-gray-100 border-b border-gray-300">
+                  <div class="flex items-center">
+                    <div class="bg-white p-2 rounded-full mr-3 shadow-sm">
+                      <i class="fas fa-archive text-gray-600"></i>
+                    </div>
+                    <h2 class="text-lg font-semibold text-white">Archived Projects</h2>
+                  </div>
+                  <button @click="toggleArchivedProjectsExpanded" class="text-white hover:text-gray-200 focus:outline-none">
+                    <i class="fas" :class="isArchivedProjectsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  </button>
+                </div>
+                <div v-show="isArchivedProjectsExpanded" class="p-4 transition-all duration-300">
+                  <div v-if="filteredArchivedProjectsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <ProjectEntryCard 
+                      v-for="entry in filteredArchivedProjectsEntries" 
+                      :key="entry?.id"
+                      :entry="entry"
+                      :is-archived="true"
+                      @unarchive="unarchiveProject"
+                      @remove="removeProject"
+                    />
+                  </div>
+                  <!-- If no archived project entries exist -->
+                  <div v-else class="bg-white p-8 rounded-lg shadow">
+                    <p class="text-gray-600">No archived project entries found.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <!-- If no archived project entries exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow">
-          <p class="text-gray-600">No archived project entries found.</p>
-        </div>
       </div>
-    </div>
 
-    <!-- Add Project Modal -->
+  <!-- Add Project Modal -->
     <div v-if="isAddProjectModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
@@ -470,31 +496,31 @@ watch(
               <label class="block text-gray-700 font-medium mb-2">Project Title <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="form.graduate_projects_title"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. E-commerce Platform" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="form.graduate_projects_description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="Describe your project..."></textarea>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
               <input type="text" v-model="form.graduate_projects_role"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Your role in the project" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="form.graduate_projects_start_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select start date" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">End Date</label>
               <Datepicker v-model="form.graduate_projects_end_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select end date" :disabled="form.is_current" />
               <div class="mt-2">
                 <input type="checkbox" v-model="form.is_current" id="isCurrentProject" />
@@ -504,7 +530,7 @@ watch(
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Project URL</label>
               <input type="url" v-model="form.graduate_projects_url"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. https://yourproject.com" :disabled="noProjectUrl" />
             </div>
             <div class="mb-4">
@@ -514,15 +540,15 @@ watch(
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Key Accomplishments</label>
               <textarea v-model="form.graduate_projects_key_accomplishments"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="What did you achieve?"></textarea>
             </div>
             <div class="mb-4">
               <label for="project-file" class="block text-sm font-medium text-gray-700">Upload File</label>
               <input type="file" id="project-file" @change="handleFileUpload"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Add
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Add
               Project</button>
           </form>
         </div>
@@ -544,31 +570,31 @@ watch(
               <label class="block text-gray-700 font-medium mb-2">Project Title <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="form.graduate_projects_title"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. E-commerce Platform" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="form.graduate_projects_description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="Describe your personal or professional project..."></textarea>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
               <input type="text" v-model="form.graduate_projects_role"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Your role in the project" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="form.graduate_projects_start_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Start Date" required />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">End Date</label>
               <Datepicker v-model="form.graduate_projects_end_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="End Date" :disabled="form.is_current" />
               <div class="mt-2">
                 <input type="checkbox" v-model="form.is_current" id="isCurrentProject" />
@@ -579,7 +605,7 @@ watch(
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Project URL</label>
               <input type="url" v-model="form.graduate_projects_url"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. https://yourproject.com" :disabled="noProjectUrl" />
             </div>
             <div class="mb-4">
@@ -589,15 +615,15 @@ watch(
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Key Accomplishments</label>
               <textarea v-model="form.graduate_projects_key_accomplishments"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="What did you achieve?"></textarea>
             </div>
             <div class="mb-4">
               <label for="project-file" class="block text-sm font-medium text-gray-700">Upload File</label>
               <input type="file" id="project-file" @change="handleFileUpload"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Update
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Update
               Project
             </button>
           </form>
@@ -605,4 +631,5 @@ watch(
       </div>
     </div>
   </div>
+</div>
 </template>

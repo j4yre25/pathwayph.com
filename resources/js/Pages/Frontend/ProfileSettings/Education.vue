@@ -25,6 +25,7 @@ const modals = reactive({
 
 const errorMessage = ref('');
 const showArchivedEducation = ref(false);
+const graduateInfoExpanded = ref(true); // State for Graduate School Information collapsible section
 const isEducationAddedModalOpen = ref(false);
 const isEducationUpdatedModalOpen = ref(false);
 
@@ -447,7 +448,7 @@ const handleNoAchievements = () => {
 </script>
 
 <template>
-  <div v-if="activeSection === 'education'" class="flex flex-col">
+  <div v-if="activeSection === 'education'" class="w-full">
     <!-- Success Modal -->
     <Modal :show="modals.isSuccessOpen" @close="modals.isSuccessOpen = false">
       <div class="p-6">
@@ -506,11 +507,18 @@ const handleNoAchievements = () => {
         </div>
       </div>
     </Modal>
-    <div class="w-full mb-6">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-xl font-semibold mb-4">Education</h1>
-        <div class="flex space-x-4">
-          <PrimaryButton class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center"
+    
+    <!-- Education Section -->
+    <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+        <div class="flex items-center">
+          <div class="bg-blue-100 p-2 rounded-full mr-3">
+            <i class="fas fa-graduation-cap text-blue-600"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-blue-800">Education</h3>
+        </div>
+        <div class="flex space-x-2">
+          <PrimaryButton class="bg-blue-600 text-white px-4 py-2 rounded flex items-center hover:bg-blue-700"
             @click="openAddEducationModal()">
             <i class="fas fa-plus mr-2"></i>
             Add Education
@@ -523,112 +531,122 @@ const handleNoAchievements = () => {
           </button>
         </div>
       </div>
-      <p class="text-gray-600 mb-6">Manage your educational background</p>
+      <div class="p-4">
+        <p class="text-gray-600 mb-6">Manage your educational background</p>
 
-      <!-- Active Education Entries -->
-      <div>
-        <h2 class="text-lg font-medium mb-4">Education</h2>
-        <div v-if="educationEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-8 rounded-lg shadow relative">
-            <div>
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold">{{ entry.education || 'Unknown Institution' }}</h2>
-                <p class="text-gray-600">
-                  {{ entry.program }} in {{ entry.field_of_study }}
-                </p>
+        <!-- Active Education Entries -->
+        <div>
+          <div v-if="educationEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+              <div class="space-y-2">
+                <div class="border-b pb-2">
+                  <h2 class="text-xl font-bold text-blue-900">{{ entry.education || 'Unknown Institution' }}</h2>
+                  <p class="text-gray-700">
+                    <span class="font-medium">{{ entry.program }}</span> in <span class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">{{ entry.field_of_study }}</span>
+                  </p>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
+                  <span>
+                    {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ?
+                      formatDisplayDate(entry.end_date) : 'present' }}
+                  </span>
+                </div>
+                <div class="mt-3">
+                  <strong>
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i> Description:
+                  </strong>
+                  <p class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400 mt-1">{{ entry.description || 'No description provided' }}</p>
+                </div>
+                <div class="mt-3">
+                  <strong>
+                    <i class="fas fa-trophy text-blue-500 mr-2"></i> Achievements:
+                  </strong>
+                  <span v-if="entry.achievements && entry.achievements.includes(',')">
+                    <ul class="list-disc list-inside mt-1">
+                      <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index" class="text-gray-700">
+                        {{ achievement.trim() }}
+                      </li>
+                    </ul>
+                  </span>
+                  <span v-else class="block bg-gray-50 p-2 rounded mt-1">
+                    {{ entry.achievements || 'None' }}
+                  </span>
+                </div>
               </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt mr-2"></i>
-                <span>
-                  {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ?
-                    formatDisplayDate(entry.end_date) : 'present' }}
-                </span>
+              <div class="absolute top-8 right-4 flex space-x-4">
+                <button class="text-gray-600 hover:text-blue-600" @click="openUpdateModal(entry)">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button class="text-amber-600 hover:text-amber-800" @click="archiveEducation(entry.id)">
+                  <i class="fas fa-archive"></i>
+                </button>
               </div>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                </strong>
-                {{ entry.description || 'No description provided' }}
-              </p>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-trophy text-gray-500 mr-2"></i> Achievements:
-                </strong>
-                <span v-if="entry.achievements && entry.achievements.includes(',')">
-                  <ul class="list-disc list-inside">
-                    <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index">
-                      {{ achievement.trim() }}
-                    </li>
-                  </ul>
-                </span>
-                <span v-else>
-                  {{ entry.achievements || 'None' }}
-                </span>
-              </p>
-            </div>
-            <div class="absolute top-8 right-4 flex space-x-4">
-              <button class="text-gray-600 hover:text-indigo-600" @click="openUpdateModal(entry)">
-                <i class="fas fa-pen"></i>
-              </button>
-              <button class="text-amber-600 hover:text-amber-800" @click="archiveEducation(entry.id)">
-                <i class="fas fa-archive"></i>
-              </button>
             </div>
           </div>
-        </div>
-
-        <!-- If no education entries exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow">
-          <p class="text-gray-600">No education entries added yet.</p>
+          <div v-else class="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">
+            <p class="text-gray-500">No education entries added yet. Click "Add Education" to get started.</p>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Archived Education Entries -->
     <div v-if="showArchivedEducation" class="mt-8">
-      <h2 class="text-lg font-medium mb-4">Archived Education</h2>
-      <div v-if="archivedEducationEntries && archivedEducationEntries.length > 0"
-        class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div v-for="education in archivedEducationEntries" :key="education.id"
-          class="bg-gray-50 p-8 rounded-lg shadow relative border border-gray-200">
-          <div class="opacity-75">
-            <div class="border-b pb-2">
-              <h2 class="text-xl font-bold">{{ education.education || 'Unknown Institution' }}</h2>
-              <p class="text-gray-600">
-                {{ education.program || 'Unknown Program' }} in {{ education.field_of_study || 'Unknown Field' }}
-              </p>
+      <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+          <div class="flex items-center">
+            <div class="bg-amber-100 p-2 rounded-full mr-3">
+              <i class="fas fa-archive text-amber-600"></i>
             </div>
-            <div class="flex items-center text-gray-600 mt-2">
-              <i class="far fa-calendar-alt mr-2"></i>
-              <span>
-                {{ formatDisplayDate(education.start_date) }} - {{ education.end_date ? formatDisplayDate(education.end_date) :
-                  'present' }}
-              </span>
-            </div>
-            <div v-if="education.term" class="flex items-center text-gray-600 mt-2">
-              <i class="far fa-calendar-alt mr-2"></i>
-              <span>
-                {{ education.term }}
-              </span>
-            </div>
-          </div>
-          <div class="absolute top-8 right-4 flex space-x-4">
-            <button class="text-green-600 hover:text-green-800" @click="restoreEducation(education.id)">
-              <i class="fas fa-box-open"></i>
-            </button>
-            <button class="text-red-600 hover:text-red-800" @click="deleteEducation(education.id)">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-          <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
-            Archived
+            <h2 class="text-lg font-semibold text-gray-800">Archived Education</h2>
           </div>
         </div>
-      </div>
+        <div class="p-4">
+          <div v-if="archivedEducationEntries && archivedEducationEntries.length > 0"
+            class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div v-for="education in archivedEducationEntries" :key="education.id"
+              class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200 relative">
+              <div class="opacity-75">
+                <div class="border-b pb-2">
+                  <h2 class="text-xl font-bold">{{ education.education || 'Unknown Institution' }}</h2>
+                  <p class="text-gray-600">
+                    {{ education.program || 'Unknown Program' }} in {{ education.field_of_study || 'Unknown Field' }}
+                  </p>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="far fa-calendar-alt mr-2"></i>
+                  <span>
+                    {{ formatDisplayDate(education.start_date) }} - {{ education.end_date ? formatDisplayDate(education.end_date) :
+                      'present' }}
+                  </span>
+                </div>
+                <div v-if="education.term" class="flex items-center text-gray-600 mt-2">
+                  <i class="far fa-calendar-alt mr-2"></i>
+                  <span>
+                    {{ education.term }}
+                  </span>
+                </div>
+              </div>
+              <div class="absolute top-6 right-4 flex space-x-4">
+                <button class="text-green-600 hover:text-green-800" @click="restoreEducation(education.id)">
+                  <i class="fas fa-box-open"></i>
+                </button>
+                <button class="text-red-600 hover:text-red-800" @click="deleteEducation(education.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
+                Archived
+              </div>
+            </div>
+          </div>
 
-      <!-- If no archived education entries exist -->
-      <div v-else class="bg-white p-8 rounded-lg shadow">
-        <p class="text-gray-600">No archived education entries found.</p>
+          <!-- If no archived education entries exist -->
+          <div v-else class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
+            <p class="text-gray-600">No archived education entries found.</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -648,33 +666,33 @@ const handleNoAchievements = () => {
               <label class="block text-gray-700 font-medium mb-2">Institution <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="education.education"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Harvard University" required>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
               <input type="text" v-model="education.program"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Bachelor of Science" required>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Field of Study <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="education.field_of_study"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Computer Science" required>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="education.start_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select start date" required :enable-time-picker="false" :auto-apply="true"
                 input-class-name="dp-custom-input" />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">End Date</label>
               <Datepicker v-model="education.end_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select end date" :disabled="education.is_current" :enable-time-picker="false"
                 :auto-apply="true" input-class-name="dp-custom-input" />
               <div class="mt-2">
@@ -685,13 +703,13 @@ const handleNoAchievements = () => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="education.description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="Describe your experience..."></textarea>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Achievements</label>
               <textarea v-model="education.achievements"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="List honors, awards, and scholarships..."
                 :disabled="education.noAchievements"></textarea>
               <div class="mt-2">
@@ -702,7 +720,7 @@ const handleNoAchievements = () => {
             </div>
             <div class="flex justify-end">
               <button type="submit"
-                class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
+                class="w-full bg-blue-600 text-white py-2 rounded-md flex items-center justify-center">
                 <i class="fas fa-save mr-2"></i>
                 Add Education
               </button>
@@ -729,33 +747,33 @@ const handleNoAchievements = () => {
               <label class="block text-gray-700 font-medium mb-2">Institution <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="education.education"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Harvard University" required>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
               <input type="text" v-model="education.program"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Bachelor of Science" required>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Field of Study <span
                   class="text-red-500">*</span></label>
               <input type="text" v-model="education.field_of_study"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. Computer Science" required>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="education.start_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select start date" required :enable-time-picker="false" :auto-apply="true"
                 input-class-name="dp-custom-input" />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">End Date</label>
               <Datepicker v-model="education.end_date"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="Select end date" :disabled="education.is_current" :enable-time-picker="false"
                 :auto-apply="true" input-class-name="dp-custom-input" />
               <div class="mt-2">
@@ -768,14 +786,14 @@ const handleNoAchievements = () => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="education.description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="Describe your experience..."></textarea>
             </div>
 
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Achievements</label>
               <textarea v-model="education.achievements"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="List honors, awards, and scholarships..."
                 :disabled="education.noAchievements"></textarea>
               <div class="mt-2">
@@ -787,7 +805,7 @@ const handleNoAchievements = () => {
 
             <div class="flex justify-end">
               <button type="submit"
-                class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
+                class="w-full bg-blue-600 text-white py-2 rounded-md flex items-center justify-center">
                 <i class="fas fa-save mr-2"></i>
                 Update Education
               </button>
@@ -798,31 +816,44 @@ const handleNoAchievements = () => {
     </div>
 
     <!-- Graduate School Information (always visible) -->
-    <div class="bg-white p-6 rounded-lg border border-gray-200 mb-8">
-      <h2 class="text-xl font-semibold mb-2">Education</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        <div>
-          <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
-          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-            {{ graduate?.institution?.institution_name || 'Not specified' }}
+    <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 cursor-pointer" 
+           @click="graduateInfoExpanded = !graduateInfoExpanded">
+        <div class="flex items-center">
+          <div class="bg-blue-100 p-2 rounded-full mr-3">
+            <i class="fas fa-university text-blue-600"></i>
           </div>
+          <h3 class="text-lg font-semibold text-blue-800">Graduate School Information</h3>
         </div>
         <div>
-          <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
-          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-            {{ graduate?.school_year?.school_year_range || 'Not specified' }}
-          </div>
+          <i class="fas" :class="graduateInfoExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </div>
-        <div>
-          <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
-          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-            {{ graduate?.program?.name || 'Not specified' }}
+      </div>
+      <div v-show="graduateInfoExpanded" class="p-4 transition-all duration-300">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+          <div>
+            <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
+            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+              {{ graduate?.institution?.institution_name || 'Not specified' }}
+            </div>
           </div>
-        </div>
-        <div>
-          <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
-          <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-            {{ graduate?.program?.degree?.type || graduate?.degree?.type || 'Not specified' }}
+          <div>
+            <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
+            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+              {{ graduate?.school_year?.school_year_range || 'Not specified' }}
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
+            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+              {{ graduate?.program?.name || 'Not specified' }}
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
+            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+              {{ graduate?.program?.degree?.type || graduate?.degree?.type || 'Not specified' }}
+            </div>
           </div>
         </div>
       </div>
@@ -843,6 +874,6 @@ const handleNoAchievements = () => {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-  --tw-ring-color: rgb(79 70 229 / 0.6);
+  --tw-ring-color: rgb(37 99 235 / 0.6);
 }
 </style>

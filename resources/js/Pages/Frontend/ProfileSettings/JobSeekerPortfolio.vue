@@ -19,7 +19,7 @@
                         <div class="absolute bottom-0 right-0">
                             <label 
                             for="file-input" 
-                            class="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
+                            class="bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
                             <i class="fas fa-camera"></i>
                             </label>
                         </div>
@@ -31,7 +31,7 @@
                     accept="image/*"
                     @change="onFileChange"
                     disabled/>
-                    <label for="file-input" class="text-indigo-600 hover:text-indigo-800 transition-colors font-medium cursor-pointer">
+                    <label for="file-input" class="text-blue-600 hover:text-blue-800 transition-colors font-medium cursor-pointer">
                     Choose an image
                     </label>
                 </div>
@@ -51,7 +51,7 @@
                             <input
                                 type="url"
                                 id="linkedin-url"
-                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                                 :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.linkedin_url}"
                                 v-model="profile.linkedin_url"
                                 placeholder="https://linkedin.com/in/yourprofile"
@@ -70,7 +70,7 @@
                             <input
                             type="url"
                             id="github-url"
-                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                             :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.github_url}"
                             v-model="profile.github_url"
                             placeholder="https://github.com/yourusername"
@@ -90,7 +90,7 @@
                             <input
                             type="url"
                             id="personal-website"
-                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                             :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.personal_website}"
                             v-model="profile.personal_website"
                             placeholder="https://yourwebsite.com"
@@ -108,7 +108,7 @@
                         <i class="fas fa-share-alt absolute left-3 top-3 text-gray-400"></i>
                         <textarea
                             id="other-social-links"
-                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                             rows="2"
                             v-model="profile.other_social_links"
                             placeholder="Add other professional networks (one per line)"
@@ -136,7 +136,7 @@
                             <input
                                 type="text"
                                 id="full-name"
-                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                                 :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.graduate_first_name || settingsForm.errors.graduate_last_name}"
                                 v-model="profile.fullName"
                                 placeholder="Enter your full name"
@@ -157,7 +157,7 @@
                         <i class="fas fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                             <select
                                 id="employment-status"
-                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all appearance-none bg-white"
+                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all appearance-none bg-white"
                                 :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.employment_status}"
                                 v-model="profile.employment_status"
                                 disabled>
@@ -178,7 +178,7 @@
                             <input
                                 type="text"
                                 id="graduate_professional-title"
-                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                                 v-model="profile.graduate_professional_title"
                                 placeholder="Enter your professional title"
                                 disabled/>
@@ -192,7 +192,7 @@
                             <i class="fas fa-venus-mars absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                             <select
                                 id="gender"
-                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all appearance-none bg-white"
+                                class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all appearance-none bg-white"
                                 :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.gender}"
                                 v-model="profile.graduate_gender"
                                 disabled>
@@ -216,7 +216,7 @@
                         <input
                             type="text"
                             id="ethnicity"
-                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                             v-model="profile.graduate_ethnicity"
                             placeholder="Enter your ethnicity"
                             disabled
@@ -233,7 +233,7 @@
                             v-model="profile.graduate_birthdate"
                             :format="datepickerConfig.format"
                             :enable-time-picker="datepickerConfig.enableTime"
-                            input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                            input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                             placeholder="Select your birthdate"
                             :input-attributes="{ style: 'box-shadow: none !important;' }"
                             class="datepicker-no-shadow"
@@ -250,7 +250,7 @@
                         <input
                             type="text"
                             id="address"
-                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                            class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                             v-model="profile.graduate_address"
                             placeholder="City, Country"
                             disabled
@@ -324,7 +324,7 @@
                     <input
                         type="text"
                         id="company-name"
-                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                         v-model="profile.company_name"
                         placeholder="Enter company name"
                         disabled
@@ -340,7 +340,7 @@
                     <input
                         type="text"
                         id="job-title"
-                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                         v-model="profile.job_title"
                         placeholder="Enter job title"
                         disabled
@@ -357,7 +357,7 @@
                         v-model="profile.start_date"
                         :format="datepickerConfig.format"
                         :enable-time-picker="datepickerConfig.enableTime"
-                        input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                        input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                         placeholder="Select start date"
                         :input-attributes="{ style: 'box-shadow: none!important;' }"
                         class="datepicker-no-shadow"
@@ -375,7 +375,7 @@
                         v-model="profile.end_date"
                         :format="datepickerConfig.format"
                         :enable-time-picker="datepickerConfig.enableTime"
-                        input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                        input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                         placeholder="Select end date"
                         :input-attributes="{ style: 'box-shadow: none!important;' }"
                         class="datepicker-no-shadow"
@@ -410,7 +410,7 @@
                         <input
                         type="email"
                         id="email-address"
-                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                         :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.email}"
                         v-model="profile.email"
                         placeholder="Enter your email address"
@@ -429,7 +429,7 @@
                         <input
                         type="text"
                         id="phone"
-                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                         :class="{'border-red-500 focus:ring-red-500': settingsForm.errors.contact_number}"
                         v-model="profile.graduate_phone"
                         placeholder="Enter your phone number"
@@ -452,7 +452,7 @@
                     <i class="fas fa-user-circle absolute left-3 top-3 text-gray-400"></i>
                     <textarea
                         id="about-me"
-                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                        class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                         rows="4"
                         v-model="profile.graduate_about_me"
                         placeholder="Tell us about yourself"

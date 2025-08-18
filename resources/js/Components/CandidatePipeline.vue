@@ -45,7 +45,7 @@ const currentStageIndex = stages.findIndex(s => s === normalizedStage)
 </script>
 
 <template>
-  <div class="flex items-center space-x-2 mt-4">
+  <div class="flex items-center justify-between w-full">
     <template v-for="(step, index) in stages" :key="step">
       <div class="flex flex-col items-center">
         <span
@@ -59,9 +59,10 @@ const currentStageIndex = stages.findIndex(s => s === normalizedStage)
             'w-24 h-1 rounded',
             index <= currentStageIndex ? 'bg-blue-500' : 'bg-gray-300'
           ]"
+          style="width: 120px;"
         ></div>
       </div>
-      <div v-if="index < stages.length - 1" class="text-gray-400">›</div>
+      <div v-if="index < stages.length - 1" class="invisible px-1">.</div>
     </template>
   </div>
 </template>

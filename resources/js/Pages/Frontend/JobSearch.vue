@@ -267,11 +267,11 @@ onMounted(() => {
                                 </div>
                                 <div class="flex justify-end mt-4">
                                     <PrimaryButton type="submit" class="bg-indigo-600 hover:bg-indigo-700">
-                                        Search
+                                        Seek
                                     </PrimaryButton>
                                     <PrimaryButton type="button" class="ml-2 bg-gray-400 hover:bg-gray-500"
                                         @click="clearFilters">
-                                        Clear
+                                        Reset
                                     </PrimaryButton>
                                 </div>
                             </form>
@@ -349,7 +349,7 @@ onMounted(() => {
                                         {{ job.job_experience_level || 'Not specified' }}
                                     </div>
                                     <div class="flex items-center text-gray-600">
-                                        <i class="fas fa-dollar-sign mr-2"></i>
+                                        <i class="fas fa-peso-sign mr-2"></i>
                                         {{ formatSalary(job.salary) }}
                                     </div>
                                 </div>

@@ -1,367 +1,590 @@
-<script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+<script>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { EyeIcon, PlusIcon, XIcon } from 'lucide-vue-next';
+import Container from '@/Components/Container.vue';
+import { router } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
-    internshipPrograms: Array,
-    graduates: Array,
-    programs: Array,
-    institutionCareerOpportunities: Array,
+  internshipPrograms: Array,
+  graduates: Array,
+  programs: Array,
+  careerOpportunities: Array,
+  assignedGraduates: Object,
 });
 
-// Dropdown logic
-const showTopGraduateDropdown = ref(false);
-const topGraduateDropdown = ref(null);
-const topGraduateBtn = ref(null);
+// State variables
+const selectedGraduates = ref([]);
+const selectedInternshipProgram = ref(null);
+const showAssignModal = ref(false);
+const showRemoveModal = ref(false);
+const graduateToRemove = ref(null);
+const internshipProgramToRemoveFrom = ref(null);
+const isAssigning = ref(false);
+const isRemoving = ref(false);
+const selectedProgram = ref('');
+const selectedCareerOpportunity = ref('');
 
-// Filters
-const graduateProgramFilter = ref('');
-const graduateCareerFilter = ref('');
+// Pagination state
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
 
-// Multi-select
-const topSelectedGraduateIds = ref([]);
-const topSelectedInternshipId = ref('');
-const showTopAssignConfirm = ref(false);
-
-// Program filter options
-const allPrograms = computed(() => props.programs);
-
-// Career opportunity options, filtered by selected program
-const filteredCareerOpportunities = computed(() => {
-  let list = props.institutionCareerOpportunities;
-  if (graduateProgramFilter.value) {
-    list = list.filter(co => co.program_id == graduateProgramFilter.value);
-  }
-  // Remove duplicates by id
-  const seen = new Set();
-  return list.filter(co => {
-    if (seen.has(co.id)) return false;
-    seen.add(co.id);
-    return true;
-  });
-});
-
-// Filtered graduates based on selected program and career opportunity
+// Computed properties
 const filteredGraduates = computed(() => {
-    return props.graduates.filter(g => {
-        const matchesProgram = graduateProgramFilter.value
-            ? g.program_id == graduateProgramFilter.value
-            : true;
-        const matchesCareer = graduateCareerFilter.value
-            ? g.current_job_title === (
-                props.institutionCareerOpportunities.find(co => co.id == graduateCareerFilter.value)?.title
-            )
-            : true;
-        return matchesProgram && matchesCareer;
+  let filtered = [...props.graduates];
+
+  if (selectedProgram.value) {
+    filtered = filtered.filter(graduate => {
+      return graduate.program && graduate.program.id == selectedProgram.value;
     });
+  }
+
+  if (selectedCareerOpportunity.value) {
+    filtered = filtered.filter(graduate => {
+      return graduate.career_opportunity && graduate.career_opportunity.id == selectedCareerOpportunity.value;
+    });
+  }
+
+  return filtered;
 });
 
-// Dropdown click outside logic
-function handleClickOutside(event) {
-    if (
-        topGraduateDropdown.value &&
-        !topGraduateDropdown.value.contains(event.target) &&
-        topGraduateBtn.value &&
-        !topGraduateBtn.value.contains(event.target)
-    ) {
-        showTopGraduateDropdown.value = false;
+// Pagination computed properties
+const totalPages = computed(() => {
+  return Math.ceil(filteredGraduates.value.length / itemsPerPage.value);
+});
+
+const paginatedGraduates = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredGraduates.value.slice(start, end);
+});
+
+const stats = computed(() => {
+  return [
+    {
+      title: 'Total Internship Programs',
+      value: props.internshipPrograms.length,
+      icon: 'fas fa-briefcase',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      title: 'Total Graduates',
+      value: props.graduates.length,
+      icon: 'fas fa-user-graduate',
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
+    },
+    {
+      title: 'Total Assignments',
+      value: props.assignedGraduates ? Object.values(props.assignedGraduates).reduce((acc, curr) => acc + curr.length, 0) : 0,
+      icon: 'fas fa-link',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100'
     }
-}
-onMounted(() => {
-    document.addEventListener('click', handleClickOutside);
-});
-onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside);
+  ];
 });
 
-const showDetails = ref(null); // internship id
-const showAddDropdown = ref(null); // internship id
-const selectedGraduateIds = ref([]);
-const showConfirmAdd = ref(false);
-const showConfirmRemove = ref(false);
-const graduateToRemove = ref({ internshipId: null, graduateId: null });
+// Methods
+const confirmAssign = () => {
+  if (!selectedInternshipProgram.value || selectedGraduates.value.length === 0) {
+    return;
+  }
 
-function toggleDetails(id) {
-    showDetails.value = showDetails.value === id ? null : id;
-}
+  showAssignModal.value = true;
+};
 
-function toggleAddDropdown(id) {
-    showAddDropdown.value = showAddDropdown.value === id ? null : id;
-    selectedGraduateIds.value = [];
-}
+const assignGraduates = () => {
+  if (!selectedInternshipProgram.value || selectedGraduates.value.length === 0) {
+    return;
+  }
 
-function confirmAdd(internshipId) {
-    if (!selectedGraduateIds.value.length) return;
-    showConfirmAdd.value = internshipId;
-}
+  isAssigning.value = true;
 
-function addGraduates(internshipId) {
-    router.post(route('internship-programs.assign'), {
-        graduate_ids: selectedGraduateIds.value,
-        internship_program_id: internshipId,
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            showAddDropdown.value = null;
-            showConfirmAdd.value = false;
-            selectedGraduateIds.value = [];
-        }
-    });
-}
+  router.post(
+    route('internship-programs.assign-graduates'),
+    {
+      internship_program_id: selectedInternshipProgram.value,
+      graduate_ids: selectedGraduates.value,
+    },
+    {
+      onSuccess: () => {
+        selectedGraduates.value = [];
+        showAssignModal.value = false;
+        isAssigning.value = false;
+      },
+      onFinish: () => {
+        isAssigning.value = false;
+      },
+    }
+  );
+};
 
-function confirmRemove(internshipId, graduateId) {
-    graduateToRemove.value = { internshipId, graduateId };
-    showConfirmRemove.value = true;
-}
+const confirmRemove = (graduate, internshipProgramId) => {
+  graduateToRemove.value = graduate;
+  internshipProgramToRemoveFrom.value = internshipProgramId;
+  showRemoveModal.value = true;
+};
 
-function removeGraduate() {
-    router.post(route('internship-programs.remove-graduate'), {
-        internship_program_id: graduateToRemove.value.internshipId,
-        graduate_id: graduateToRemove.value.graduateId,
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            showConfirmRemove.value = false;
-            graduateToRemove.value = { internshipId: null, graduateId: null };
-        }
-    });
-}
+const removeGraduate = () => {
+  if (!graduateToRemove.value || !internshipProgramToRemoveFrom.value) {
+    return;
+  }
 
-function confirmTopAssign() {
-    if (!topSelectedGraduateIds.value.length || !topSelectedInternshipId.value) return;
-    showTopAssignConfirm.value = true;
-}
+  isRemoving.value = true;
 
-function assignTopSelected() {
-    router.post(route('internship-programs.assign'), {
-        graduate_ids: topSelectedGraduateIds.value,
-        internship_program_id: topSelectedInternshipId.value,
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            showTopAssignConfirm.value = false;
-            topSelectedGraduateIds.value = [];
-            topSelectedInternshipId.value = '';
-        }
-    });
-}
+  router.post(
+    route('internship-programs.remove-graduate'),
+    {
+      internship_program_id: internshipProgramToRemoveFrom.value,
+      graduate_id: graduateToRemove.value.id,
+    },
+    {
+      onSuccess: () => {
+        showRemoveModal.value = false;
+        isRemoving.value = false;
+      },
+      onFinish: () => {
+        isRemoving.value = false;
+      },
+    }
+  );
+};
+
+const resetFilters = () => {
+  selectedProgram.value = '';
+  selectedCareerOpportunity.value = '';
+  currentPage.value = 1; // Reset to first page when filters change
+};
+
+const goBack = () => {
+  window.history.back();
+};
+
+// Pagination methods
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page;
+  }
+};
+
+// Watch for changes to reset selection when filters change
+watch([selectedProgram, selectedCareerOpportunity], () => {
+  selectedGraduates.value = [];
+  currentPage.value = 1; // Reset to first page when filters change
+});
 </script>
 
 <template>
-    <AppLayout title="Assign Graduates to Internship Programs">
-        <div class="py-8 space-y-8 max-w-7xl mx-auto">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Active Internship Programs</h2>
-
-            <!-- TOP ASSIGN SECTION -->
-            <div class="bg-white rounded-xl shadow p-6 mb-8 flex flex-col md:flex-row md:items-end gap-4">
-                <!-- Custom Dropdown for Graduate Multi-Select -->
-                <div class="flex-1 relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Graduate(s)</label>
-                    <!-- FILTERS -->
-                    <div class="flex gap-2 mb-2">
-                        <div class="flex-1">
-                            <label class="block text-xs text-gray-500 mb-1">Filter by Program</label>
-                            <select v-model="graduateProgramFilter" class="w-full border-gray-300 rounded">
-                                <option value="">All Programs</option>
-                                <option v-for="p in props.programs" :key="p.id" :value="p.id">
-                                    {{ p.degree }} - {{ p.name }}
-                                </option>
-                            </select>
-                        </div>
-                        <div class="flex-1">
-                            <label class="block text-xs text-gray-500 mb-1">Filter by Career Opportunity</label>
-                            <select v-model="graduateCareerFilter" class="w-full border-gray-300 rounded">
-                                <option value="">All Careers</option>
-                                <option v-for="c in filteredCareerOpportunities" :key="c.id" :value="c.id">
-                                    {{ c.title }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                    <!-- DROPDOWN -->
-                    <button ref="topGraduateBtn" type="button"
-                        @click.stop="showTopGraduateDropdown = !showTopGraduateDropdown"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-left bg-white">
-                        <span v-if="topSelectedGraduateIds.length === 0" class="text-gray-400">Select
-                            graduates...</span>
-                        <span v-else>
-                            {{props.graduates.filter(g => topSelectedGraduateIds.includes(g.id)).map(g => g.first_name
-                                + ' ' + g.last_name).join(', ') }}
-                        </span>
-                        <span class="float-right">&#9662;</span>
-                    </button>
-                    <div v-if="showTopGraduateDropdown" ref="topGraduateDropdown" id="top-graduate-dropdown"
-                        class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        <div v-for="g in filteredGraduates" :key="g.id"
-                            class="flex items-center px-3 py-2 hover:bg-gray-100">
-                            <input type="checkbox" :id="'top-graduate-' + g.id" :value="g.id"
-                                v-model="topSelectedGraduateIds" class="mr-2" />
-                            <label :for="'top-graduate-' + g.id" class="cursor-pointer select-none">
-                                {{ g.first_name }} {{ g.last_name }}
-                            </label>
-                        </div>
-                        <div v-if="filteredGraduates.length === 0" class="px-3 py-2 text-gray-400">No graduates found.
-                        </div>
-                    </div>
-                </div>
-                <!-- Internship Program Dropdown -->
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Internship Program</label>
-                    <select v-model="topSelectedInternshipId" class="w-full border-gray-300 rounded-lg shadow-sm">
-                        <option value="">Select Internship</option>
-                        <option v-for="ip in internshipPrograms" :key="ip.id" :value="ip.id">
-                            {{ ip.title }}
-                        </option>
-                    </select>
-                </div>
-                <div class="flex-shrink-0 mt-2 md:mt-0">
-                    <button @click="confirmTopAssign"
-                        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition w-full"
-                        :disabled="!topSelectedGraduateIds.length || !topSelectedInternshipId">
-                        Assign Selected
-                    </button>
-                </div>
-            </div>
-
-            <!-- Confirm Top Assign Modal -->
-            <div v-if="showTopAssignConfirm"
-                class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
-                <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
-                    <div class="text-blue-600 text-3xl mb-2">+</div>
-                    <div class="text-lg font-semibold mb-2">Confirm Assignment</div>
-                    <div class="mb-4">Assign selected graduates to this internship program?</div>
-                    <div class="mt-4 flex justify-center gap-4">
-                        <button @click="assignTopSelected"
-                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-                            Yes
-                        </button>
-                        <button @click="showTopAssignConfirm = false"
-                            class="px-4 py-2 rounded border border-gray-300 bg-white hover:bg-gray-100 transition">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div v-for="ip in internshipPrograms" :key="ip.id"
-                    class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-200 border border-gray-100 relative flex flex-col">
-                    <div class="flex items-center justify-between p-4 border-b border-gray-100">
-                        <div>
-                            <h3 class="text-xl font-semibold text-gray-800">{{ ip.title }}</h3>
-                        </div>
-                        <button @click="toggleDetails(ip.id)"
-                            class="text-gray-400 hover:text-blue-600 p-2 rounded-full transition"
-                            :title="showDetails === ip.id ? 'Hide Details' : 'View Details'">
-                            <EyeIcon class="w-5 h-5" />
-                        </button>
-                    </div>
-                    <div v-if="showDetails === ip.id" class="p-4 flex-1 flex flex-col gap-3">
-                        <div>
-                            <span class="font-semibold text-gray-700">Programs:</span>
-                            <span v-if="ip.programs.length" class="text-gray-600">{{ip.programs.map(p =>
-                                p.name).join(', ') }}</span>
-                            <span v-else class="text-gray-400">None</span>
-                        </div>
-                        <div>
-                            <span class="font-semibold text-gray-700">Career Opportunities:</span>
-                            <span v-if="ip.career_opportunities.length" class="text-gray-600">{{
-                                ip.career_opportunities.map(c => c.title).join(', ') }}</span>
-                            <span v-else class="text-gray-400">None</span>
-                        </div>
-                        <div>
-                            <span class="font-semibold text-gray-700">Assigned Graduates:</span>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span v-if="ip.graduates.length === 0" class="text-gray-400">None</span>
-                                <span v-for="g in ip.graduates" :key="g.id"
-                                    class="inline-flex items-center bg-blue-50 text-blue-800 px-2 py-1 rounded-full text-sm shadow-sm">
-                                    {{ g.first_name }} {{ g.last_name }}
-                                    <button @click="confirmRemove(ip.id, g.id)"
-                                        class="ml-1 text-red-500 hover:text-red-700 p-1 rounded-full transition"
-                                        title="Remove Graduate">
-                                        <XIcon class="w-4 h-4" />
-                                    </button>
-                                </span>
-                            </div>
-                        </div>
-                        <!-- Add Graduate Dropdown -->
-                        <div class="mt-2">
-                            <button @click="toggleAddDropdown(ip.id)"
-                                class="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition"
-                                title="Add Graduate">
-                                <PlusIcon class="w-4 h-4 mr-1" /> Add Graduate
-                            </button>
-                            <div v-if="showAddDropdown === ip.id"
-                                class="mt-2 bg-gray-50 border border-gray-200 rounded p-3 shadow-lg">
-                                <div class="max-h-40 overflow-y-auto">
-                                    <div v-for="g in graduates.filter(g => !ip.graduates.some(ig => ig.id === g.id))"
-                                        :key="g.id" class="flex items-center mb-1">
-                                        <input type="checkbox" :id="`add-gra-${ip.id}-${g.id}`" :value="g.id"
-                                            v-model="selectedGraduateIds" class="mr-2 accent-blue-600" />
-                                        <label :for="`add-gra-${ip.id}-${g.id}`"
-                                            class="cursor-pointer select-none text-gray-700">
-                                            {{ g.first_name }} {{ g.last_name }}
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="mt-3 flex justify-end gap-2">
-                                    <button @click="confirmAdd(ip.id)"
-                                        class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition"
-                                        :disabled="selectedGraduateIds.length === 0">
-                                        Add Selected
-                                    </button>
-                                    <button @click="toggleAddDropdown(null)"
-                                        class="px-4 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 transition">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Confirm Add Modal -->
-            <div v-if="showConfirmAdd"
-                class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
-                <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
-                    <div class="text-blue-600 text-3xl mb-2">+</div>
-                    <div class="text-lg font-semibold mb-2">Confirm Add</div>
-                    <div class="mb-4">Add selected graduates to this internship?</div>
-                    <div class="mt-4 flex justify-center gap-4">
-                        <button @click="addGraduates(showConfirmAdd)"
-                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-                            Yes
-                        </button>
-                        <button @click="showConfirmAdd = false"
-                            class="px-4 py-2 rounded border border-gray-300 bg-white hover:bg-gray-100 transition">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Confirm Remove Modal -->
-            <div v-if="showConfirmRemove"
-                class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
-                <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
-                    <div class="text-red-600 text-3xl mb-2">×</div>
-                    <div class="text-lg font-semibold mb-2">Confirm Remove</div>
-                    <div class="mb-4">Remove this graduate from the internship?</div>
-                    <div class="mt-4 flex justify-center gap-4">
-                        <button @click="removeGraduate"
-                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-                            Yes
-                        </button>
-                        <button @click="showConfirmRemove = false"
-                            class="px-4 py-2 rounded border border-gray-300 bg-white hover:bg-gray-100 transition">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
+  <AppLayout title="Assign Graduates to Internship Programs">
+    <template #header>
+      <div>
+        <div class="flex items-center">
+          <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <i class="fas fa-link text-blue-500 text-xl mr-2"></i>
+          <h2 class="text-2xl font-bold text-gray-800">Assign Graduates to Internship Programs</h2>
         </div>
+        <p class="text-sm text-gray-500 mb-1">Manage graduate assignments to internship programs.</p>
+      </div>
+    </template>
+
+    <Container class="py-8">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div v-for="(stat, index) in stats" :key="index" 
+             class="bg-white rounded-lg shadow-sm p-6 border-l-4" 
+             :class="`border-${stat.color.split('-')[1]}-500`">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+              <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
+            </div>
+            <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
+              <i :class="[stat.icon, stat.color]"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment Section -->
+      <div class="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200 mb-6">
+        <div class="p-4 border-b border-gray-200 bg-gray-50 flex items-center">
+          <i class="fas fa-user-plus text-blue-500 mr-2"></i>
+          <h2 class="font-semibold text-gray-800">Assign Graduates</h2>
+        </div>
+        
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- Internship Program Selection -->
+            <div>
+              <label for="internship-program" class="block text-sm font-medium text-gray-700 mb-2">Select Internship Program</label>
+              <select
+                id="internship-program"
+                v-model="selectedInternshipProgram"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value="">Select an internship program</option>
+                <option v-for="program in internshipPrograms" :key="program.id" :value="program.id">
+                  {{ program.title }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Graduate Filters -->
+            <div>
+              <label for="program-filter" class="block text-sm font-medium text-gray-700 mb-2">Filter by Program</label>
+              <select
+                id="program-filter"
+                v-model="selectedProgram"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Programs</option>
+                <option v-for="program in programs" :key="program.id" :value="program.id">
+                  {{ program.name }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label for="career-filter" class="block text-sm font-medium text-gray-700 mb-2">Filter by Career Opportunity</label>
+              <select
+                id="career-filter"
+                v-model="selectedCareerOpportunity"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Career Opportunities</option>
+                <option v-for="career in careerOpportunities" :key="career.id" :value="career.id">
+                  {{ career.title }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-end space-x-3 mb-6">
+            <button 
+              @click="resetFilters"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <i class="fas fa-undo-alt mr-2"></i>
+              Reset Filters
+            </button>
+            <button 
+              @click="confirmAssign"
+              :disabled="!selectedInternshipProgram || selectedGraduates.length === 0"
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i class="fas fa-user-plus mr-2"></i>
+              Assign Selected Graduates
+            </button>
+          </div>
+
+          <!-- Graduates Table -->
+          <div class="overflow-x-auto border border-gray-200 rounded-lg">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input 
+                      type="checkbox" 
+                      :checked="filteredGraduates.length > 0 && selectedGraduates.length === filteredGraduates.length"
+                      @change="e => e.target.checked ? selectedGraduates = filteredGraduates.map(g => g.id) : selectedGraduates = []"
+                      class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    >
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Career Opportunity</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year Graduated</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="graduate in paginatedGraduates" :key="graduate.id" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <input 
+                      type="checkbox" 
+                      :value="graduate.id"
+                      v-model="selectedGraduates"
+                      class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    >
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-gray-500"></i>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">{{ graduate.first_name }} {{ graduate.last_name }}</div>
+                        <div class="text-sm text-gray-500">{{ graduate.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ graduate.program ? graduate.program.name : 'N/A' }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ graduate.career_opportunity ? graduate.career_opportunity.title : 'N/A' }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ graduate.year_graduated }}
+                  </td>
+                </tr>
+                <tr v-if="filteredGraduates.length === 0">
+                  <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                    No graduates found matching the selected filters.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination Controls -->
+          <div v-if="totalPages > 1" class="px-6 py-4 bg-white border-t border-gray-200 flex items-center justify-between mt-4">
+            <div class="text-sm text-gray-700">
+              Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
+              <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredGraduates.length) }}</span> of
+              <span class="font-medium">{{ filteredGraduates.length }}</span> results
+            </div>
+            <div class="flex space-x-2">
+              <button 
+                @click="goToPage(currentPage - 1)" 
+                :disabled="currentPage === 1"
+                class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <div class="flex space-x-1">
+                <template v-if="totalPages <= 7">
+                  <button 
+                    v-for="page in totalPages" 
+                    :key="page" 
+                    @click="goToPage(page)"
+                    :class="{
+                      'bg-blue-600 text-white': page === currentPage,
+                      'bg-white text-gray-700 hover:bg-gray-50': page !== currentPage
+                    }"
+                    class="px-3 py-1 rounded border border-gray-300 text-sm font-medium"
+                  >
+                    {{ page }}
+                  </button>
+                </template>
+                <template v-else>
+                  <!-- First page -->
+                  <button 
+                    @click="goToPage(1)"
+                    :class="{
+                      'bg-blue-600 text-white': 1 === currentPage,
+                      'bg-white text-gray-700 hover:bg-gray-50': 1 !== currentPage
+                    }"
+                    class="px-3 py-1 rounded border border-gray-300 text-sm font-medium"
+                  >
+                    1
+                  </button>
+                  
+                  <!-- Ellipsis if needed -->
+                  <span v-if="currentPage > 3" class="px-3 py-1 text-gray-500">...</span>
+                  
+                  <!-- Pages around current page -->
+                  <template v-for="page in totalPages" :key="page">
+                    <button 
+                      v-if="page !== 1 && page !== totalPages && Math.abs(page - currentPage) < 2"
+                      @click="goToPage(page)"
+                      :class="{
+                        'bg-blue-600 text-white': page === currentPage,
+                        'bg-white text-gray-700 hover:bg-gray-50': page !== currentPage
+                      }"
+                      class="px-3 py-1 rounded border border-gray-300 text-sm font-medium"
+                    >
+                      {{ page }}
+                    </button>
+                  </template>
+                  
+                  <!-- Ellipsis if needed -->
+                  <span v-if="currentPage < totalPages - 2" class="px-3 py-1 text-gray-500">...</span>
+                  
+                  <!-- Last page -->
+                  <button 
+                    @click="goToPage(totalPages)"
+                    :class="{
+                      'bg-blue-600 text-white': totalPages === currentPage,
+                      'bg-white text-gray-700 hover:bg-gray-50': totalPages !== currentPage
+                    }"
+                    class="px-3 py-1 rounded border border-gray-300 text-sm font-medium"
+                  >
+                    {{ totalPages }}
+                  </button>
+                </template>
+              </div>
+              <button 
+                @click="goToPage(currentPage + 1)" 
+                :disabled="currentPage === totalPages"
+                class="px-3 py-1 rounded border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+
+          <!-- Assigned Graduates Section -->
+          <div>
+            <div class="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200 mb-6">
+              <div class="p-4 border-b border-gray-200 bg-gray-50 flex items-center">
+                <i class="fas fa-users text-green-500 mr-2"></i>
+                <h2 class="font-semibold text-gray-800">Assigned Graduates</h2>
+              </div>
+              
+              <div class="p-6 space-y-8">
+                <div v-for="program in internshipPrograms" :key="program.id" class="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+                  <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-briefcase text-blue-500 mr-2"></i>
+                    {{ program.title }}
+                    <span class="ml-2 text-sm text-gray-500">({{ props.assignedGraduates && props.assignedGraduates[program.id] ? props.assignedGraduates[program.id].length : 0 }} graduates)</span>
+                  </h3>
+                  
+                  <div v-if="props.assignedGraduates && props.assignedGraduates[program.id] && props.assignedGraduates[program.id].length > 0" class="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Career Opportunity</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year Graduated</th>
+                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody class="bg-white divide-y divide-gray-200">
+                        <tr v-for="graduate in props.assignedGraduates && props.assignedGraduates[program.id] ? props.assignedGraduates[program.id] : []" :key="graduate.id" class="hover:bg-gray-50 transition-colors">
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                              <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-gray-500"></i>
+                              </div>
+                              <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ graduate.first_name }} {{ graduate.last_name }}</div>
+                                <div class="text-sm text-gray-500">{{ graduate.email }}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ graduate.program ? graduate.program.name : 'N/A' }}</div>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ graduate.career_opportunity ? graduate.career_opportunity.title : 'N/A' }}</div>
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ graduate.year_graduated }}
+                          </td>
+                          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button 
+                              @click="confirmRemove(graduate, program.id)"
+                              class="text-red-600 hover:text-red-900 focus:outline-none focus:underline"
+                            >
+                              <i class="fas fa-user-minus mr-1"></i>
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-else class="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                    <i class="fas fa-users text-gray-300 text-5xl mb-4"></i>
+                    <p class="text-gray-500">No graduates assigned to this internship program yet</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+
+          <!-- Assign Modal -->
+          <div v-if="showAssignModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showAssignModal = false"></div>
+              <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                      <i class="fas fa-user-plus text-blue-600"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                      <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Assign Graduates</h3>
+                      <div class="mt-2">
+                        <p class="text-sm text-gray-500">
+                          Are you sure you want to assign {{ selectedGraduates.length }} graduate(s) to this internship program?
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button 
+                    type="button" 
+                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    @click="assignGraduates"
+                    :disabled="isAssigning"
+                  >
+                    <span v-if="isAssigning">Assigning...</span>
+                    <span v-else>Assign</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    @click="showAssignModal = false"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Remove Modal -->
+          <div v-if="showRemoveModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showRemoveModal = false"></div>
+              <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                      <i class="fas fa-user-minus text-red-600"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                      <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Remove Graduate</h3>
+                      <div class="mt-2">
+                        <p class="text-sm text-gray-500">
+                          Are you sure you want to remove {{ graduateToRemove ? `${graduateToRemove.first_name} ${graduateToRemove.last_name}` : '' }} from this internship program?
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button 
+                    type="button" 
+                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    @click="removeGraduate"
+                    :disabled="isRemoving"
+                  >
+                    <span v-if="isRemoving">Removing...</span>
+                    <span v-else>Remove</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    @click="showRemoveModal = false"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </Container>
     </AppLayout>
 </template>

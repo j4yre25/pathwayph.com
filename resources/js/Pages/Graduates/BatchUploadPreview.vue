@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import Papa from 'papaparse'
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import dayjs from 'dayjs'
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const file = ref(null)
 const parsedRows = ref([])
@@ -12,6 +13,7 @@ const isValid = ref(false)
 const isLoading = ref(false)
 const loadingPercent = ref(0)
 let loadingInterval = null
+const fileInputRef = ref(null)
 
 const props = defineProps({
   degreeCodes: Array,
@@ -226,109 +228,252 @@ function submitToBackend() {
     },
   })
 }
+function triggerFileInput() {
+  fileInputRef.value.click()
+}
+
+function goBack() {
+  window.history.back()
+}
+
+const stats = computed(() => {
+  return [
+    {
+      title: 'Total Records',
+      value: parsedRows.value.length,
+      icon: 'fas fa-file-alt',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      title: 'Valid Records',
+      value: parsedRows.value.length - new Set(validationErrors.value.map(e => e.row)).size,
+      icon: 'fas fa-check-circle',
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
+    },
+    {
+      title: 'Records with Errors',
+      value: new Set(validationErrors.value.map(e => e.row)).size,
+      icon: 'fas fa-exclamation-triangle',
+      color: 'text-red-600',
+      bgColor: 'bg-red-100'
+    }
+  ]
+})
 </script>
 
 
 <template>
   <AppLayout title="Batch Upload Graduates">
-    <div class="my-8 p-6 bg-white rounded-xl shadow space-y-6">
-      <h2 class="text-xl font-semibold">📋 Upload & Preview CSV</h2>
-
-      <!-- CSV Template Download Button -->
-      <div>
-        <a
-          :href="route('graduates.template.download')"
-          class="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mb-4"
-          download
-        >
-          ⬇ Download CSV Template
-        </a>
+    <!-- Back Button and Header -->
+    <div class="flex items-center mt-6 mb-4 px-6">
+      <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="flex items-center">
+        <i class="fas fa-upload text-blue-500 text-xl mr-2"></i>
+        <h1 class="text-2xl font-bold text-gray-800">Batch Upload Graduates</h1>
       </div>
+    </div>
 
-      <!-- Upload CSV -->
-      <div>
-        <input type="file" @change="handleFileUpload" accept=".csv" />
+    <!-- Stats Cards (only show when data is loaded) -->
+    <div v-if="parsedRows.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 mb-6">
+      <div v-for="(stat, index) in stats" :key="index" 
+           class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
+          </div>
+          <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
+            <i :class="[stat.icon, stat.color]"></i>
+          </div>
+        </div>
       </div>
+    </div>
 
-      <!-- Validation Errors -->
-      <div v-if="validationErrors.length" class="bg-red-100 text-red-800 p-3 rounded">
-        <p class="font-bold mb-2">❌ Issues detected:</p>
-        <ul class="list-disc pl-5 space-y-1">
-          <li v-for="error in validationErrors" :key="error.row">
-            Row {{ error.row }}:
-            <span v-for="msg in error.messages" :key="msg">{{ msg }}; </span>
-          </li>
-        </ul>
-      </div>
+    <div class="px-6">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <!-- Header with back button -->
+        <div class="p-5 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <i class="fas fa-file-csv text-blue-500 text-xl mr-2"></i>
+              <h2 class="text-lg font-semibold text-gray-800">Upload & Preview CSV</h2>
+            </div>
+            <a :href="route('graduates.template.download')" 
+               class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-200 transition">
+              <i class="fas fa-download mr-2"></i>
+              Download CSV Template
+            </a>
+          </div>
+        </div>
 
-      <!-- Preview Table -->
-      <div v-if="parsedRows.length" class="overflow-x-auto">
-        <table class="w-full border text-sm">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="p-2 border">#</th>
-              <th class="p-2 border">Email</th>
-              <th class="p-2 border">First Name</th>
-              <th class="p-2 border">Middle Name</th>
-              <th class="p-2 border">Last Name</th>
-              <th class="p-2 border">Degree Code</th>
-              <th class="p-2 border">Program Code</th>
-              <th class="p-2 border">Year Graduated</th>
+        <!-- File Upload Section -->
+        <div class="p-5 border-b border-gray-200">
+          <input ref="fileInputRef" id="file-upload" type="file" @change="handleFileUpload" accept=".csv" class="hidden">
+          <div @click="triggerFileInput" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+            <div class="flex flex-col items-center justify-center space-y-2">
+              <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+              <p class="text-gray-700 font-medium">Click to upload CSV file</p>
+              <p class="text-xs text-gray-500">or drag and drop</p>
+              <p v-if="file" class="text-sm text-blue-600 font-medium mt-2">
+                <i class="fas fa-file-alt mr-1"></i> {{ file.name }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Validation Errors -->
+        <div v-if="validationErrors.length" class="p-5 border-b border-gray-200">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-exclamation-circle text-red-500 text-xl mr-2"></i>
+            <h3 class="font-semibold text-gray-800">Validation Issues</h3>
+          </div>
+          <div class="bg-red-50 rounded-lg p-4 border border-red-100 max-h-60 overflow-y-auto">
+            <ul class="space-y-2">
+              <li v-for="error in validationErrors" :key="error.row" class="p-2 bg-white rounded border border-red-200">
+                <div class="font-medium text-red-700 flex items-center">
+                  <i class="fas fa-times-circle mr-2"></i>
+                  Row {{ error.row }}
+                </div>
+                <ul class="mt-1 pl-6 text-sm text-red-600 space-y-1">
+                  <li v-for="(msg, idx) in error.messages" :key="idx" class="flex items-start">
+                    <span class="inline-block w-2 h-2 rounded-full bg-red-400 mt-1.5 mr-2"></span>
+                    {{ msg }}
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Preview Table -->
+        <div v-if="parsedRows.length" class="p-5">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-table text-blue-500 mr-2"></i>
+            <h3 class="font-semibold text-gray-800">Data Preview</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">#</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Email</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">First Name</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Middle Name</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Last Name</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Degree Code</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Program Code</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Year Graduated</th>
               <th class="p-2 border">Term</th>
-              <th class="p-2 border">DOB</th>
-              <th class="p-2 border">Gender</th>
-              <th class="p-2 border">Contact No.</th>
-              <th class="p-2 border">Employment</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">DOB</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Gender</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Contact No.</th>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Employment</th>
               <th class="p-2 border">Company Name</th>
-              <th class="p-2 border">Job Title</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, i) in parsedRows" :key="i">
-              <td class="border p-2">{{ i + 2 }}</td>
-              <td class="border p-2">{{ row.email }}</td>
-              <td class="border p-2">{{ row.first_name }}</td>
-              <td class="border p-2">{{ row.middle_name }}</td>
-              <td class="border p-2">{{ row.last_name }}</td>
-              <td class="border p-2">{{ row.degree_code }}</td>
-              <td class="border p-2">{{ row.program_code }}</td>
-              <td class="border p-2">{{ row.year_graduated }}</td>
+                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Job Title</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="(row, i) in parsedRows" :key="i" 
+                    :class="{'bg-red-50': validationErrors.some(e => e.row === i + 2)}">
+                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ i + 2 }}</td>
+                  <td class="p-3 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-envelope text-gray-400 mr-2"></i>
+                      <span>{{ row.email }}</span>
+                    </div>
+                  </td>
+                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.first_name }}</td>
+                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.middle_name }}</td>
+                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.last_name }}</td>
+                  <td class="p-3 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-graduation-cap text-gray-400 mr-2"></i>
+                      <span>{{ row.degree_code }}</span>
+                    </div>
+                  </td>
+                  <td class="p-3 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-book text-gray-400 mr-2"></i>
+                      <span>{{ row.program_code }}</span>
+                    </div>
+                  </td>
+                  <td class="p-3 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-calendar-check text-gray-400 mr-2"></i>
+                      <span>{{ row.year_graduated }}</span>
+                    </div>
+                  </td>
               <td class="border p-2">{{ row.term }}</td>
-              <td class="border p-2">{{ row.dob }}</td>
-              <td class="border p-2">{{ row.gender }}</td>
-              <td class="border p-2">{{ row.contact_number }}</td>
-              <td class="border p-2">{{ row.employment_status }}</td>
+                  <td class="p-3 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-birthday-cake text-gray-400 mr-2"></i>
+                      <span>{{ row.dob }}</span>
+                    </div>
+                  </td>
+                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.gender }}</td>
+                  <td class="p-3 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-phone text-gray-400 mr-2"></i>
+                      <span>{{ row.contact_number }}</span>
+                    </div>
+                  </td>
+                  <td class="p-3 whitespace-nowrap text-sm">
+                    <span :class="{
+                      'px-2 py-1 text-xs rounded-full': true,
+                      'bg-green-100 text-green-800': row.employment_status === 'Employed',
+                      'bg-yellow-100 text-yellow-800': row.employment_status === 'Underemployed',
+                      'bg-gray-100 text-gray-800': row.employment_status === 'Unemployed'
+                    }">
+                      {{ row.employment_status }}
+                    </span>
+                  </td>
               <td class="border p-2">{{ row.company_name }}</td>
-              <td class="border p-2">{{ row.current_job_title || 'N/A' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.current_job_title || 'N/A' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-      <!-- Submit Button -->
-      <div v-if="parsedRows.length" class="flex justify-end">
-        <button
-          @click="submitToBackend"
-          :disabled="!isValid"
-          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          Submit Valid Data
-        </button>
+        <!-- Empty State -->
+        <div v-if="!parsedRows.length && !file" class="p-12 flex flex-col items-center justify-center text-center">
+          <i class="fas fa-file-upload text-gray-300 text-5xl mb-4"></i>
+          <h3 class="text-lg font-medium text-gray-700 mb-2">No Data to Preview</h3>
+          <p class="text-gray-500 mb-6">Upload a CSV file to see a preview of the data</p>
+        </div>
+
+        <!-- Submit Button -->
+        <div v-if="parsedRows.length" class="p-5 border-t border-gray-200 flex justify-end">
+          <button
+            @click="submitToBackend"
+            :disabled="!isValid"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+          >
+            <i class="fas fa-cloud-upload-alt mr-2"></i>
+            {{ isValid ? 'Submit Valid Data' : 'Fix Errors to Submit' }}
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Loading Overlay -->
     <div v-if="isLoading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-60">
-      <div class="bg-white rounded-lg p-8 flex flex-col items-center shadow-lg">
-        <svg class="animate-spin h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-        </svg>
-        <div class="mb-2 text-lg font-semibold text-gray-700">Uploading graduates...</div>
-        <div class="w-64 bg-gray-200 rounded-full h-4 mb-2">
+      <div class="bg-white rounded-lg p-8 flex flex-col items-center shadow-lg max-w-md w-full">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-cloud-upload-alt text-blue-500 text-xl mr-2"></i>
+          <h3 class="text-lg font-semibold text-gray-800">Uploading Graduates</h3>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
           <div class="bg-blue-600 h-4 rounded-full transition-all duration-200" :style="{ width: loadingPercent + '%' }"></div>
         </div>
-        <div class="text-sm text-gray-500">{{ Math.floor(loadingPercent) }}% complete</div>
+        <div class="text-sm text-gray-600 flex items-center">
+          <i class="fas fa-spinner fa-spin mr-2"></i>
+          {{ Math.floor(loadingPercent) }}% complete
+        </div>
         <div class="text-xs text-gray-400 mt-2">Please do not close or refresh this page.</div>
       </div>
     </div>

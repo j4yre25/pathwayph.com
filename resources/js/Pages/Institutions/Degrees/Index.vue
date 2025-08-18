@@ -7,6 +7,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage();
 const degrees = ref([...page.props.degrees]); // Use a local ref array
@@ -31,75 +32,138 @@ const confirmArchive = (degree) => {
   selectedDegree.value = degree;
   open.value = true;
 };
+
+// Get unique degree types for stats
+const uniqueDegreeTypes = new Set(degrees.value.map(d => d.degree?.type));
 </script>
 
 <template>
   <AppLayout title="Degrees">
     <template #header>
-      <h2 class="text-2xl font-semibold text-gray-800">Degrees</h2>
+      <div class="flex items-center">
+        <i class="fas fa-graduation-cap text-blue-500 text-xl mr-2"></i>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Degrees</h2>
+      </div>
     </template>
 
-    <Container class="py-6 space-y-6">
-      <div class="flex flex-wrap gap-4">
-        <Link :href="route('degrees.create', { user: page.props.auth.user.id })">
-          <PrimaryButton>Add Degree</PrimaryButton>
-        </Link>
-        <Link :href="route('degrees.list', { user: page.props.auth.user.id })">
-          <PrimaryButton>All Degrees</PrimaryButton>
-        </Link>
-        <Link :href="route('degrees.archivedlist', { user: page.props.auth.user.id })">
-          <PrimaryButton>Archived Degrees</PrimaryButton>
-        </Link>
+    <Container class="py-8">
+      <!-- Stats Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+          <h3 class="text-gray-600 text-sm font-medium mb-2">Total Degrees</h3>
+          <p class="text-3xl font-bold text-blue-600">
+            {{ degrees.length }}
+          </p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+          <h3 class="text-gray-600 text-sm font-medium mb-2">Degree Types</h3>
+          <p class="text-3xl font-bold text-green-600">
+            {{ uniqueDegreeTypes.size }}
+          </p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-indigo-500">
+          <h3 class="text-gray-600 text-sm font-medium mb-2">Active Degrees</h3>
+          <p class="text-3xl font-bold text-indigo-600">
+            {{ degrees.length }}
+          </p>
+        </div>
       </div>
+      
+      <!-- Main Content -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+        <!-- Action Buttons -->
+        <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200">
+          <div class="flex items-center">
+            <h3 class="text-lg font-semibold text-gray-800">Degrees List</h3>
+            <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ degrees.length }} total</span>
+          </div>
+          <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
+            <Link :href="route('degrees.create', { user: page.props.auth.user.id })" 
+                  class="text-sm px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 flex items-center">
+              <i class="fas fa-plus-circle mr-2"></i> Add Degree
+            </Link>
+            <Link :href="route('degrees.list', { user: page.props.auth.user.id })" 
+                  class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
+              <i class="fas fa-list text-blue-500 mr-2"></i> All Degrees
+            </Link>
+            <Link :href="route('degrees.archivedlist', { user: page.props.auth.user.id })" 
+                  class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
+              <i class="fas fa-archive text-gray-500 mr-2"></i> Archived
+            </Link>
+          </div>
+        </div>
 
-      <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <!-- Degrees Table -->
         <div class="overflow-x-auto">
-          <table class="min-w-full text-sm text-left text-gray-700">
-            <thead class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider">
+          <table class="min-w-full table-auto">
+            <thead class="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
               <tr>
-                <th class="px-6 py-4">Degree</th>
-                <th class="px-6 py-4">Degree Code</th>
-                <th class="px-6 py-4">Actions</th>
+                <th class="px-6 py-3 text-left">Degree</th>
+                <th class="px-6 py-3 text-left">Degree Code</th>
+                <th class="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              <tr
-                v-for="degree in degrees"
-                :key="degree.id"
-                class="border-t hover:bg-gray-50 transition-colors"
-              >
-                <td class="px-6 py-4">{{ degree.degree?.type }}</td>
-                <td class="px-6 py-4">{{ degree.degree_code }}</td>
-                <td class="px-6 py-4 flex gap-2">
-                  <Link :href="route('degrees.edit', { id: degree.id })">
-                    <PrimaryButton>Edit</PrimaryButton>
-                  </Link>
-                  <DangerButton @click="confirmArchive(degree)">
-                    Archive
-                  </DangerButton>
+            <tbody class="divide-y divide-gray-200 bg-white">
+              <tr v-for="degree in degrees" :key="degree.id" class="hover:bg-gray-50 transition-colors duration-150">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                      <i class="fas fa-scroll"></i>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-gray-900">{{ degree.degree?.type }}</div>
+                    </div>
+                  </div>
                 </td>
-              </tr>
-              <tr v-if="degrees.length === 0">
-                <td colspan="2" class="px-6 py-4 text-center text-gray-500">No degrees found.</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  <span class="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
+                    {{ degree.degree_code }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <Link :href="route('degrees.edit', { id: degree.id })" class="text-blue-500 hover:text-blue-700 mr-3">
+                    <i class="fas fa-edit"></i>
+                  </Link>
+                  <button @click="confirmArchive(degree)" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-archive"></i>
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
+        
+        <!-- Empty State -->
+        <div v-if="degrees.length === 0" class="py-12 text-center">
+          <i class="fas fa-graduation-cap text-gray-300 text-5xl mb-4"></i>
+          <h3 class="text-lg font-medium text-gray-700">No degrees found</h3>
+          <p class="text-gray-500 mt-1">Add degrees to see them listed here</p>
+        </div>
       </div>
 
+      <!-- Confirmation Modal -->
       <ConfirmationModal :show="open" @close="open = false">
         <template #title>
-          Are you sure?
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+              <i class="fas fa-exclamation-triangle text-red-500"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Confirm Archive</h3>
+          </div>
         </template>
         <template #content>
-          Are you sure you want to archive the degree
-          <strong>"{{ selectedDegree?.degree?.type }}"</strong>?
+          <p class="text-gray-600">Are you sure you want to archive the degree
+          <strong>"{{ selectedDegree?.degree?.type }}"</strong>? This action can be reversed later.</p>
         </template>
         <template #footer>
-          <DangerButton @click="archiveDegree" class="mr-2">
-            Archive
-          </DangerButton>
-          <SecondaryButton @click="open = false">Cancel</SecondaryButton>
+          <div class="flex justify-end space-x-3">
+            <SecondaryButton @click="open = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm transition-colors duration-200">
+              Cancel
+            </SecondaryButton>
+            <DangerButton @click="archiveDegree" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm transition-colors duration-200">
+              Archive
+            </DangerButton>
+          </div>
         </template>
       </ConfirmationModal>
     </Container>

@@ -6,6 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { ref, computed } from 'vue';
 import { EyeIcon } from 'lucide-vue-next';
 import { Link } from '@inertiajs/vue3';
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
     graduates: {
@@ -25,7 +26,52 @@ const filters = ref({
     status: 'all',
 });
 
-
+// Stats for the dashboard cards
+const stats = computed(() => {
+    const totalGraduates = props.graduates?.data?.length || 0;
+    const activeGraduates = props.graduates?.data?.filter(g => g.status === 'Active').length || 0;
+    const inactiveGraduates = props.graduates?.data?.filter(g => g.status !== 'Active').length || 0;
+    const uniquePrograms = [...new Set(props.graduates?.data?.map(g => g.program_name) || [])].length;
+    
+    return [
+        {
+            title: 'Total Graduates',
+            value: totalGraduates,
+            icon: 'fas fa-user-graduate',
+            iconBg: 'bg-blue-100',
+            iconColor: 'text-blue-600',
+            tooltip: 'Total number of graduates in the system',
+            border: 'border-l-4 border-blue-500'
+        },
+        {
+            title: 'Active Graduates',
+            value: activeGraduates,
+            icon: 'fas fa-check-circle',
+            iconBg: 'bg-green-100',
+            iconColor: 'text-green-600',
+            tooltip: 'Number of graduates currently active',
+            border: 'border-l-4 border-green-500'
+        },
+        {
+            title: 'Inactive Graduates',
+            value: inactiveGraduates,
+            icon: 'fas fa-times-circle',
+            iconBg: 'bg-red-100',
+            iconColor: 'text-red-600',
+            tooltip: 'Number of graduates who are not currently active',
+            border: 'border-l-4 border-red-500'
+        },
+        {
+            title: 'Programs',
+            value: uniquePrograms,
+            icon: 'fas fa-graduation-cap',
+            iconBg: 'bg-purple-100',
+            iconColor: 'text-purple-600',
+            tooltip: 'Number of programs offered',
+            border: 'border-l-4 border-purple-500'
+        }
+    ];
+});
 
 const applyFilters = () => {
     const activeFilters = {};
@@ -68,7 +114,6 @@ const filteredGraduates = computed(() => {
   });
 });
 
-
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString; // fallback for invalid dates
@@ -78,61 +123,112 @@ const formatDate = (dateString) => {
   return `${day}/${month}/${year}`;
 };
 
+const goBack = () => {
+    window.history.back();
+};
 </script>
+
 <template>
     <AppLayout title="Graduate List">
-        <Container>
+        <template #header>
+            <div>
+                <div class="flex items-center">
+                    <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <i class="fas fa-user-graduate text-blue-500 text-xl mr-2"></i>
+                    <h2 class="text-2xl font-bold text-gray-800">Graduate List</h2>
+                </div>
+                <p class="text-sm text-gray-500 mb-1">Manage and filter graduate records by program, date, and status.</p>
+            </div>
+        </template>
 
-            <div class="mt-8 mb-8 flex items-center justify-between flex-wrap gap-4">
-                <div>
-                    <h1 class="text-3xl font-extrabold text-gray-900 leading-tight">Graduate List</h1>
-                    <p class="text-sm text-gray-500 mt-1">Manage and filter graduate records by program, date, and
-                        status.</p>
+            <Container class="py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div v-for="(stat, index) in stats" :key="index" 
+                    :class="[
+                        'bg-white rounded-lg shadow-sm p-6 relative overflow-hidden',
+                        stat.border
+                    ]">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
+                            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
+                        </div>
+                        <div :class="[stat.iconBg, 'rounded-full p-3 flex items-center justify-center']">
+                            <i :class="[stat.icon, stat.iconColor]"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Filter Section -->
-            <div class="bg-white p-6 rounded-2xl shadow mb-8">
+            <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-filter text-blue-500 mr-2"></i>
+                    Filter Graduates
+                </h3>
                 <form @submit.prevent="applyFilters" class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <!-- Program Filter -->
                     <div class="flex flex-col">
-                        <label for="program" class="text-sm font-medium text-gray-700">Program</label>
-                        <select v-model="filters.program" id="program"
-                            class="mt-1 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                            <option value="all">All Programs</option>
-                            <option v-for="program in programs" :key="program" :value="program">
-                                {{ program }}
-                            </option>
-                        </select>
+                        <label for="program" class="text-sm font-medium text-gray-700 mb-1">Program</label>
+                        <div class="relative">
+                            <select v-model="filters.program" id="program"
+                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none">
+                                <option value="all">All Programs</option>
+                                <option v-for="program in programs" :key="program" :value="program">
+                                    {{ program }}
+                                </option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Date Filters -->
                     <div class="flex flex-col">
-                        <label for="date_from" class="text-sm font-medium text-gray-700">Date From</label>
-                        <input v-model="filters.date_from" type="date" id="date_from"
-                            class="mt-1 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label for="date_from" class="text-sm font-medium text-gray-700 mb-1">Date From</label>
+                        <div class="relative">
+                            <input v-model="filters.date_from" type="date" id="date_from"
+                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex flex-col">
-                        <label for="date_to" class="text-sm font-medium text-gray-700">Date To</label>
-                        <input v-model="filters.date_to" type="date" id="date_to"
-                            class="mt-1 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label for="date_to" class="text-sm font-medium text-gray-700 mb-1">Date To</label>
+                        <div class="relative">
+                            <input v-model="filters.date_to" type="date" id="date_to"
+                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Status Filter -->
                     <div class="flex flex-col">
-                        <label for="status" class="text-sm font-medium text-gray-700">Status</label>
-                        <select v-model="filters.status" id="status"
-                            class="mt-1 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                            <option value="all">All</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
+                        <label for="status" class="text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <div class="relative">
+                            <select v-model="filters.status" id="status"
+                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none">
+                                <option value="all">All</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Submit -->
                     <div class="flex items-end">
-                        <PrimaryButton type="submit" class="w-full justify-center">Apply Filters</PrimaryButton>
+                        <button type="submit" class="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center">
+                            <i class="fas fa-search mr-2"></i>
+                            Apply Filters
+                        </button>
                     </div>
                 </form>
             </div>

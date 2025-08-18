@@ -2,17 +2,24 @@
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { ref, watch, onMounted, computed, watchEffect } from 'vue'
 import VueECharts from 'vue-echarts';
-import { usePage } from '@inertiajs/vue3'
+import { usePage, router, Link } from '@inertiajs/vue3'
+import Container from '@/Components/Container.vue';
+import '@fortawesome/fontawesome-free/css/all.css';
 
 import * as echarts from 'echarts/core'
-import { BarChart, HeatmapChart, LineChart } from 'echarts/charts'
-import { TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, LegendComponent, GeoComponent } from 'echarts/components'
+import { BarChart, HeatmapChart, LineChart, PieChart, ScatterChart, TreemapChart, BoxplotChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, GridComponent, VisualMapComponent, LegendComponent, GeoComponent, DataZoomComponent, ToolboxComponent } from 'echarts/components'
 
 import { CanvasRenderer } from 'echarts/renderers'
 
 
 const careerGapYear = ref('');
 const page = usePage()
+
+// Function to go back to previous page
+const goBack = () => {
+  router.visit(route('dashboard'));
+};
 
 console.log(page.props.graduates)
 const currentPage = ref(1)
@@ -1249,16 +1256,28 @@ const schoolEmployabilityBarOption = computed(() => ({
 
 <template>
   <AppLayout title="PESO Reports">
-    <div class="max-w-5xl mx-auto py-8 px-4">
+    <template #header>
+      <div class="flex items-center">
+        <button @click="goBack" class="mr-4 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200">
+          <i class="fas fa-chevron-left text-gray-600"></i>
+        </button>
+        <div class="flex items-center">
+          <i class="fas fa-chart-line text-blue-500 text-xl mr-2"></i>
+          <h2 class="font-semibold text-xl text-gray-800 leading-tight">PESO Reports</h2>
+        </div>
+      </div>
+    </template>
+
+    <Container class="py-8">
       <!-- Horizontal Scrollable Tabs -->
-      <div class="border-b border-gray-200 mb-6 relative">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 relative">
         <nav
           class="flex space-x-2 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
           style="scrollbar-width: thin;">
           <button v-for="tab in allTabs" :key="tab.key" @click="activeTab = tab.key" :class="[
-            'px-4 py-2 rounded-t font-semibold transition',
+            'px-4 py-2 rounded-md font-medium text-sm transition-colors duration-200',
             activeTab === tab.key
-              ? 'bg-gray-200 text-gray-900'
+              ? 'bg-blue-500 text-white'
               : 'text-gray-600 hover:bg-gray-100'
           ]">
             {{ tab.label }}
@@ -1276,56 +1295,61 @@ const schoolEmployabilityBarOption = computed(() => ({
       <div v-if="activeTab === 'employmentStatus'">
         <h2 class="text-2xl font-bold mb-6 text-gray-800">Employment Status Overview</h2>
         <!-- FILTER CONTROLS -->
-        <div class="flex flex-wrap gap-4 mb-8">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
-            <select v-model="selectedYear" class="border rounded px-2 py-1">
-              <option value="">All</option>
-              <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
-            <select v-model="selectedProgram" class="border rounded px-2 py-1">
-              <option value="">All</option>
-              <option v-for="program in programs" :key="program.id" :value="program.id">{{ program.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select v-model="selectedStatus" class="border rounded px-2 py-1">
-              <option value="">All</option>
-              <option value="Employed">Employed</option>
-              <option value="Unemployed">Unemployed</option>
-              <option value="Underemployed">Underemployed</option>
-            </select>
-          </div>
-
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-filter text-blue-500 mr-2"></i>
+            Filter Reports
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+              <select v-model="selectedYear" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
+                <option value="">All Years</option>
+                <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Program</label>
+              <select v-model="selectedProgram" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
+                <option value="">All Programs</option>
+                <option v-for="program in programs" :key="program.id" :value="program.id">{{ program.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select v-model="selectedStatus" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
+                <option value="">All Statuses</option>
+                <option value="Employed">Employed</option>
+                <option value="Unemployed">Unemployed</option>
+                <option value="Underemployed">Underemployed</option>
+              </select>
+            </div>
+  
           <!-- Add this to your filter controls -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Institution</label>
-            <select v-model="selectedInstitution" class="border rounded px-2 py-1">
-              <option value="">All</option>
-              <option v-for="inst in institutions" :key="inst.id" :value="inst.id">{{ inst.institution_name }}</option>
-            </select>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Institution</label>
+              <select v-model="selectedInstitution" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
+                <option value="">All Locations</option>
+                <option v-for="inst in institutions" :key="inst.id" :value="inst.id">{{ inst.institution_name }}</option>
+              </select>
+            </div>
           </div>
         </div>
         <!-- KPI Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
-          <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-            <span class="text-gray-500 text-sm">Employed</span>
-            <span class="text-3xl font-bold text-green-600">{{ employed }}</span>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Employed</h3>
+                <p class="text-3xl font-bold text-green-600">{{ employed }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ ((employed / totalGraduates) * 100).toFixed(1) }}% of graduates</p>
+              </div>
+              <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-briefcase text-green-500"></i>
+              </div>
+            </div>
           </div>
-          <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-            <span class="text-gray-500 text-sm">Unemployed</span>
-            <span class="text-3xl font-bold text-red-600">{{ unemployed }}</span>
-          </div>
-          <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-            <span class="text-gray-500 text-sm">Total Graduates</span>
-            <span class="text-3xl font-bold text-blue-600">{{ totalGraduates }}</span>
-          </div>
-        </div>
-
+  
         <p class="mb-2 text-sm text-gray-500">
           Showing {{ safeFilteredGraduates.length }} of {{ totalGraduates }} graduates
         </p>
@@ -1363,10 +1387,39 @@ const schoolEmployabilityBarOption = computed(() => ({
 
 
 
-        <div v-if="statusCounts && Object.keys(statusCounts).length" class="bg-white rounded-xl shadow p-8">
+        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Unemployed</h3>
+                <p class="text-3xl font-bold text-red-600">{{ unemployed }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ ((unemployed / totalGraduates) * 100).toFixed(1) }}% of graduates</p>
+              </div>
+              <div class="bg-red-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-user-clock text-red-500"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-200">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-gray-600 text-sm font-medium mb-2">Total Graduates</h3>
+                <p class="text-3xl font-bold text-blue-600">{{ totalGraduates }}</p>
+                <p class="text-sm text-gray-500 mt-1">Across all programs</p>
+              </div>
+              <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-user-graduate text-blue-500"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Employment Status Chart -->
+        <div v-if="statusCounts && Object.keys(statusCounts).length" class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 hover:shadow-md transition-shadow duration-200">
           <div class="flex flex-col lg:flex-row gap-12 items-center justify-between">
             <div class="w-full lg:w-2/5 mb-8 lg:mb-0">
-              <h3 class="text-lg font-semibold mb-6 text-gray-700">Detailed Status</h3>
+              <h3 class="text-lg font-semibold mb-6 text-gray-700 flex items-center">
+                <i class="fas fa-list-alt text-blue-500 mr-2"></i>
+                Detailed Status
+              </h3>
               <ul class="space-y-4">
                 <li v-for="(count, status) in filteredStatusCounts" :key="status"
                   class="flex justify-between items-center px-4 py-2 rounded hover:bg-gray-50 transition">
@@ -1405,14 +1458,23 @@ const schoolEmployabilityBarOption = computed(() => ({
           </div>
 
           <!-- Employment By Program -->
-          <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Employment By Program</h2>
-          <div class="bg-white rounded-xl shadow p-8 mt-12">
-            <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment by Program (Stacked Bar)</h3>
+          <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+          Employment by Program
+        </h2>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-bar text-green-500 mr-2"></i>
+            Employment Rate by Program
+          </h3>
             <VueECharts :option="barOption" style="height: 400px; width: 100%;" />
           </div>
-          <div class="bg-white rounded-xl shadow p-8 mt-12">
-            <h3 class="text-lg font-semibold mb-6 text-gray-700">Program Employment Rate Heatmap</h3>
-            <VueECharts :option="heatmapOption" style="height: 350px; width: 100%;" />
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-th text-purple-500 mr-2"></i>
+            Employment Rate Heatmap
+          </h3>
+            <VueECharts :option="heatmapOption" style="height: 400px; width: 100%;" />
           </div>
         </div>
 
@@ -1476,67 +1538,96 @@ const schoolEmployabilityBarOption = computed(() => ({
 
       <!-- Geographic Distribution -->
       <div v-else-if="activeTab === 'geoDistribution'">
-        <h2 class="text-2xl font-bold mb-6 text-gray-800">Geographic Distribution</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-map-marked-alt text-blue-500 mr-2"></i>
+          Geographic Distribution
+        </h2>
 
         <!-- Bubble Map: Job Openings vs. Job Seekers -->
-        <div class="bg-white rounded-xl shadow p-8 mb-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Openings vs. Job Seekers by Location</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-map-pin text-red-500 mr-2"></i>
+            Job Openings vs. Job Seekers by Location
+          </h3>
           <VueECharts :option="bubbleMapOption" style="height: 500px; width: 100%;" />
         </div>
 
         <!-- Heatmap: Referral Success Rate -->
-        <div class="bg-white rounded-xl shadow p-8 mb-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Success Rate by Location (Heatmap)</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-th text-orange-500 mr-2"></i>
+            Referral Success Rate by Location (Heatmap)
+          </h3>
           <VueECharts :option="referralHeatmapOption" style="height: 500px; width: 100%;" />
         </div>
 
         <!-- Bar Chart: Employment Rate by Area -->
-        <div class="bg-white rounded-xl shadow p-8">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment Rate by Area</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-bar text-indigo-500 mr-2"></i>
+            Employment Rate by Area
+          </h3>
           <VueECharts :option="employmentRateBarOption" style="height: 400px; width: 100%;" />
         </div>
       </div>
 
       <!-- Employment Trend Over Time -->
       <div v-else-if="activeTab === 'employmentTrend'">
-        <div class="bg-white rounded-xl shadow p-8 mt-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Employment Trend Over Time</h3>
-          <VueECharts :option="employmentTrendOption" style="height: 350px; width: 100%;" />
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+          Employment Trend Over Time
+        </h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-line text-green-500 mr-2"></i>
+            Employment Trend Over Time
+          </h3>
+          <VueECharts :option="employmentTrendOption" style="height: 400px; width: 100%;" />
         </div>
-        <div class="bg-white rounded-xl shadow p-8 mt-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Placement Rate Over Time</h3>
-          <VueECharts :option="jobPlacementOption" style="height: 350px; width: 100%;" />
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-briefcase text-indigo-500 mr-2"></i>
+            Job Placement Rate Over Time
+          </h3>
+          <VueECharts :option="jobPlacementOption" style="height: 400px; width: 100%;" />
         </div>
       </div>
 
-      <!-- Skills and Roles Analysis -->
+        <!-- Skills and Roles Analysis -->
       <div v-else-if="activeTab === 'skillsRoles'">
-        <div class="bg-white rounded-xl shadow p-8 mt-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Skills and Roles Analysis</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h4 class="font-semibold mb-2">Top Job Roles (Employed Graduates)</h4>
-              <ul class="flex flex-wrap gap-2">
-                <li v-for="[role, count] in topRoles" :key="role"
-                  class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                  {{ role }} <span class="font-bold">({{ count }})</span>
-                </li>
-              </ul>
-              <h4 class="font-semibold mt-6 mb-2">Top Skills (Employed Graduates)</h4>
-              <ul class="flex flex-wrap gap-2">
-                <li v-for="[skill, count] in topSkills" :key="skill"
-                  class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                  {{ skill }} <span class="font-bold">({{ count }})</span>
-                </li>
-              </ul>
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md mb-6">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center">
+              <i class="fas fa-tools text-purple-500 mr-2"></i>
+                <h3 class="text-lg font-medium text-gray-900">Skills and Roles Analysis</h3>
+              </div>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h4 class="text-base font-medium text-gray-700 mb-3">Top Job Roles (Employed Graduates)</h4>
+                  <ul class="flex flex-wrap gap-2">
+                    <li v-for="[role, count] in topRoles" :key="role"
+                      class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                      {{ role }} <span class="font-bold">({{ count }})</span>
+                    </li>
+                  </ul>
+                  <h4 class="text-base font-medium text-gray-700 mt-6 mb-3">Top Skills (Employed Graduates)</h4>
+                  <ul class="flex flex-wrap gap-2">
+                    <li v-for="[skill, count] in topSkills" :key="skill"
+                      class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                      {{ skill }} <span class="font-bold">({{ count }})</span>
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="text-base font-medium text-gray-700 mb-3">Top Skills: Demand vs. Supply</h4>
+                  <VueECharts :option="skillBarOption" style="height: 320px; width: 100%;" />
             </div>
-            <div>
-              <h4 class="font-semibold mb-2">Top Skills: Demand vs. Supply</h4>
-              <VueECharts :option="skillBarOption" style="height: 320px; width: 100%;" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
 
       <!-- Demand-Supply Career Gap Map -->
@@ -1770,75 +1861,132 @@ const schoolEmployabilityBarOption = computed(() => ({
 
       <!-- Job Search Duration -->
       <div v-else-if="activeTab === 'jobSearchDuration'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Job Search Duration</h2>
-        <!-- Add your Job Search Duration content here -->
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-hourglass-half text-blue-500 mr-2"></i>
+          Job Search Duration
+        </h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-clock text-orange-500 mr-2"></i>
+            Average Time to Employment
+          </h3>
+          <p class="text-gray-600 mb-6">This section will display data about job search duration for graduates.</p>
+          <!-- Add your Job Search Duration content here -->
+        </div>
       </div>
 
       <!-- Graduate Satisfaction -->
       <div v-else-if="activeTab === 'graduateSatisfaction'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Graduate Satisfaction</h2>
-        <!-- Add your Graduate Satisfaction content here -->
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-smile text-blue-500 mr-2"></i>
+          Graduate Satisfaction
+        </h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-star text-yellow-500 mr-2"></i>
+            Satisfaction Ratings
+          </h3>
+          <p class="text-gray-600 mb-6">This section will display data about graduate satisfaction with their education and employment.</p>
+          <!-- Add your Graduate Satisfaction content here -->
+        </div>
       </div>
 
       <!-- Skills Gap Analysis -->
       <div v-else-if="activeTab === 'skillsGap'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Skills Gap Analysis</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-puzzle-piece text-blue-500 mr-2"></i>
+          Skills Gap Analysis
+        </h2>
         <!-- Heatmap: Skill Demand Across Industries -->
-        <div class="bg-white rounded-xl shadow p-8 mb-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Skill Demand Across Industries (Heatmap)</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-th text-purple-500 mr-2"></i>
+            Skill Demand Across Industries (Heatmap)
+          </h3>
           <VueECharts :option="skillGapHeatmapOption" style="height: 500px; width: 100%;" />
         </div>
 
         <!-- Bubble Chart: Demand vs. Supply -->
-        <div class="bg-white rounded-xl shadow p-8">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Skill Demand vs. Supply (Bubble Chart)</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-bubble text-teal-500 mr-2"></i>
+            Skill Demand vs. Supply (Bubble Chart)
+          </h3>
           <VueECharts :option="skillGapBubbleOption" style="height: 500px; width: 100%;" />
         </div>
       </div>
 
       <!-- Unemployment Rate -->
       <div v-else-if="activeTab === 'unemploymentRate'">
-        <div class="bg-white rounded-xl shadow p-8 mt-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment Rate Distribution</h3>
-          <VueECharts :option="unemploymentPieOption" style="height: 350px; width: 100%; max-width: 420px;" />
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-user-slash text-blue-500 mr-2"></i>
+          Unemployment Rate
+        </h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-pie text-red-500 mr-2"></i>
+            Unemployment Rate Distribution
+          </h3>
+          <VueECharts :option="unemploymentPieOption" style="height: 400px; width: 100%; max-width: 500px; margin: 0 auto;" />
         </div>
-        <div class="bg-white rounded-xl shadow p-8 mt-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment Rate Over Time</h3>
-          <VueECharts :option="areaOption" style="height: 350px; width: 100%;" />
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-area text-orange-500 mr-2"></i>
+            Unemployment Rate Over Time
+          </h3>
+          <VueECharts :option="areaOption" style="height: 400px; width: 100%;" />
         </div>
       </div>
 
       <!-- Salary Insights -->
       <div v-else-if="activeTab === 'salaryInsights'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Salary Insights</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-money-bill-wave text-blue-500 mr-2"></i>
+          Salary Insights
+        </h2>
         <!-- Box Plot: Salary Ranges Across Industries -->
-        <div class="bg-white rounded-xl shadow p-8 mb-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Salary Ranges Across Industries (Box Plot)</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-box-plot text-green-500 mr-2"></i>
+            Salary Ranges Across Industries (Box Plot)
+          </h3>
           <VueECharts :option="salaryBoxPlotOption" style="height: 500px; width: 100%;" />
         </div>
 
         <!-- Stacked Bar Chart: Entry, Mid, Senior -->
-        <div class="bg-white rounded-xl shadow p-8 mb-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Average Salary by Level (Stacked Bar)</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-layer-group text-indigo-500 mr-2"></i>
+            Average Salary by Level (Stacked Bar)
+          </h3>
           <VueECharts :option="salaryStackedBarOption" style="height: 500px; width: 100%;" />
         </div>
 
         <!-- Histogram: Salary Expectations vs. Offered -->
-        <div class="bg-white rounded-xl shadow p-8">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Salary Expectations vs. Offered (Histogram)</h3>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-chart-bar text-purple-500 mr-2"></i>
+            Salary Expectations vs. Offered (Histogram)
+          </h3>
           <VueECharts :option="salaryHistogramOption" style="height: 500px; width: 100%;" />
         </div>
       </div>
 
       <!-- Career Progression -->
       <div v-else-if="activeTab === 'careerProgression'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Career Progression</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+          Career Progression
+        </h2>
         <!-- Add your Career Progression content here -->
       </div>
 
       <!-- Educational Impact -->
       <div v-else-if="activeTab === 'educationalImpact'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Educational Impact</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+          Educational Impact
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <!-- Bar Chart: Employment Rate by Education Level -->
           <div class="bg-white rounded-xl shadow p-8">
@@ -1855,117 +2003,226 @@ const schoolEmployabilityBarOption = computed(() => ({
 
       <!-- Gender and Diversity Metrics -->
       <div v-else-if="activeTab === 'genderDiversity'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Gender and Diversity Metrics</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-users text-blue-500 mr-2"></i>
+          Gender and Diversity Metrics
+        </h2>
         <!-- Add your Gender and Diversity Metrics content here -->
       </div>
 
       <!-- Job Seeker and Role Alignment -->
       <div v-else-if="activeTab === 'jobSeekerAlignment'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Job Seeker and Role Alignment</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-puzzle-piece text-blue-500 mr-2"></i>
+          Job Seeker and Role Alignment
+        </h2>
         <!-- Add your Job Seeker and Role Alignment content here -->
       </div>
 
       <!-- Matching Success Rate -->
       <div v-else-if="activeTab === 'matchingSuccess'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Matching Success Rate</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-handshake text-blue-500 mr-2"></i>
+          Matching Success Rate
+        </h2>
         <!-- Add your Matching Success Rate content here -->
       </div>
 
       <!-- Job Seeker Demographics -->
       <div v-else-if="activeTab === 'jobSeekerDemographics'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Job Seeker Demographics</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-user-tag text-blue-500 mr-2"></i>
+          Job Seeker Demographics
+        </h2>
         <!-- Add your Job Seeker Demographics content here -->
       </div>
 
       <!-- Employer Preferences -->
       <div v-else-if="activeTab === 'employerPreferences'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Employer Preferences</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-building text-blue-500 mr-2"></i>
+          Employer Preferences
+        </h2>
         <!-- Add your Employer Preferences content here -->
       </div>
 
       <!-- Referral Success Rate -->
       <div v-else-if="activeTab === 'referralSuccess'">
-        <div class="bg-white rounded-xl shadow p-8 mt-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Success Rate Heatmap</h3>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-share-alt text-blue-500 mr-2"></i>
+          Referral Success Rate
+        </h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-th text-teal-500 mr-2"></i>
+            Referral Success Rate Heatmap
+          </h3>
           <VueECharts :option="referralHeatmapOption" style="height: 400px; width: 100%;" />
         </div>
       </div>
 
       <!-- Source of Referrals -->
       <div v-else-if="activeTab === 'sourceOfReferrals'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Source of Referrals</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-sitemap text-blue-500 mr-2"></i>
+          Source of Referrals
+        </h2>
         <!-- Add your Source of Referrals content here -->
       </div>
 
       <!-- Referral Trends Over Time -->
       <div v-else-if="activeTab === 'referralTrends'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Trends Over Time</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+          Referral Trends Over Time
+        </h2>
         <!-- Add your Referral Trends Over Time content here -->
       </div>
 
       <!-- Referral Network Analysis -->
       <div v-else-if="activeTab === 'referralNetwork'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Network Analysis</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-network-wired text-blue-500 mr-2"></i>
+          Referral Network Analysis
+        </h2>
         <!-- Add your Referral Network Analysis content here -->
       </div>
 
       <!-- Referral Performance by Role -->
       <div v-else-if="activeTab === 'referralPerformance'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Performance by Role</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-user-check text-blue-500 mr-2"></i>
+          Referral Performance by Role
+        </h2>
         <!-- Add your Referral Performance by Role content here -->
       </div>
 
       <!-- Referral Bonuses and Outcomes -->
       <div v-else-if="activeTab === 'referralBonuses'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Bonuses and Outcomes</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-gift text-blue-500 mr-2"></i>
+          Referral Bonuses and Outcomes
+        </h2>
         <!-- Add your Referral Bonuses and Outcomes content here -->
       </div>
 
       <!-- Reason for Referral Success -->
       <div v-else-if="activeTab === 'reasonReferralSuccess'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Reason for Referral Success</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-check-circle text-blue-500 mr-2"></i>
+          Reason for Referral Success
+        </h2>
         <!-- Add your Reason for Referral Success content here -->
       </div>
 
       <!-- Economic Impact -->
       <div v-else-if="activeTab === 'economicImpact'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Economic Impact</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-coins text-blue-500 mr-2"></i>
+          Economic Impact
+        </h2>
         <!-- Add your Economic Impact content here -->
       </div>
 
       <!-- Employer Diversity -->
       <div v-else-if="activeTab === 'employerDiversity'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Employer Diversity</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-building text-blue-500 mr-2"></i>
+          Employer Diversity
+        </h2>
         <!-- Add your Employer Diversity content here -->
       </div>
 
       <!-- Industry Performance -->
       <div v-else-if="activeTab === 'industryPerformance'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Industry Performance</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-industry text-blue-500 mr-2"></i>
+          Industry Performance
+        </h2>
         <!-- Add your Industry Performance content here -->
       </div>
 
       <!-- Job Satisfaction -->
       <div v-else-if="activeTab === 'jobSatisfaction'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Job Satisfaction</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-smile text-blue-500 mr-2"></i>
+          Job Satisfaction
+        </h2>
         <!-- Add your Job Satisfaction content here -->
       </div>
 
       <!-- Future Job Trends -->
       <div v-else-if="activeTab === 'futureJobTrends'">
-        <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Future Job Trends</h2>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+          Future Job Trends
+        </h2>
         <!-- Add your Future Job Trends content here -->
       </div>
 
       <!-- Job Openings vs. Seekers -->
       <div v-else-if="activeTab === 'jobOpeningsSeekers'">
-        <div class="bg-white rounded-xl shadow p-8 mt-12">
-          <h3 class="text-lg font-semibold mb-6 text-gray-700">Job Openings vs. Job Seekers</h3>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-balance-scale text-blue-500 mr-2"></i>
+          Job Openings vs. Seekers
+        </h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-map-marked-alt text-purple-500 mr-2"></i>
+            Job Openings vs. Job Seekers
+          </h3>
           <VueECharts :option="bubbleMapOption" style="height: 400px; width: 100%;" />
         </div>
       </div>
 
+      <!-- Filtered Graduates Table -->
+      <div v-else-if="activeTab === 'filteredGraduates'">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
+          <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
+          Filtered Graduates
+        </h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-10 hover:shadow-md transition-shadow duration-200" v-if="filteredGraduates.length">
+          <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-table text-green-500 mr-2"></i>
+            Filtered Graduates
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm border-collapse">
+              <thead>
+                <tr class="bg-gray-50">
+                  <th class="px-4 py-2 text-left font-medium text-gray-600 border-b">Name</th>
+                  <th class="px-4 py-2 text-left font-medium text-gray-600 border-b">Program</th>
+                  <th class="px-4 py-2 text-left font-medium text-gray-600 border-b">Status</th>
+                  <th class="px-4 py-2 text-left font-medium text-gray-600 border-b">Year</th>
+                  <th class="px-4 py-2 text-left font-medium text-gray-600 border-b">Location</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr v-for="g in filteredGraduates" :key="g.id" class="hover:bg-gray-50 border-b border-gray-100">
+                <td class="px-4 py-3">{{ g.name }}</td>
+                <td class="px-4 py-3">{{ g.program?.name }}</td>
+                <td class="px-4 py-3">
+                  <span :class="{
+                    'px-2 py-1 rounded-full text-xs font-medium': true,
+                    'bg-green-100 text-green-800': g.employment_status === 'Employed',
+                    'bg-red-100 text-red-800': g.employment_status === 'Unemployed',
+                    'bg-blue-100 text-blue-800': g.employment_status === 'Internship',
+                    'bg-yellow-100 text-yellow-800': g.employment_status === 'Self-employed',
+                    'bg-purple-100 text-purple-800': g.employment_status === 'Freelance',
+                    'bg-gray-100 text-gray-800': !['Employed', 'Unemployed', 'Internship', 'Self-employed', 'Freelance'].includes(g.employment_status)
+                  }">
+                    {{ g.employment_status }}
+                  </span>
+                </td>
+                <td class="px-4 py-3">{{ g.schoolYear?.school_year_range }}</td>
+                <td class="px-4 py-3">{{ g.location }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
+    </Container>
   </AppLayout>
 </template>
 

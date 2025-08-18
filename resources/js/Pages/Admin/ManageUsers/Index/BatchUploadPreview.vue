@@ -1,8 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import Container from '@/Components/Container.vue'
 import axios from 'axios'
 import Papa from 'papaparse'
+import { router } from '@inertiajs/vue3'
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const csvFile = ref(null)
 const csvPreview = ref([])
@@ -11,7 +14,12 @@ const success = ref(false)
 const uploading = ref(false)
 const templateUrl = '/admin/manage-users/download'
 
-function onFileChange(e) {
+  // Function to go back to previous page
+const goBack = () => {
+  window.history.back()
+}
+
+function handleFileChange(e) {
   errors.value = []
   success.value = false
   csvFile.value = e.target.files[0] || null
@@ -58,63 +66,138 @@ async function handleUpload() {
 
 </script>
 
-
 <template>
-  <AppLayout title="Batch Company Upload">
-    <div class="max-w-2xl mx-auto py-10">
-      <h1 class="text-2xl font-bold mb-6">Batch Upload Companies</h1>
+    <AppLayout title="Batch Upload Preview">
+        <Container>
+            <!-- Header with back button -->
+            <div class="flex items-center mb-6">
+                <button @click="goBack" class="mr-4 text-blue-600 hover:text-blue-800 focus:outline-none">
+                    <i class="fas fa-chevron-left text-lg"></i>
+                </button>
+                <h1 class="text-2xl font-semibold text-gray-800">Batch Upload Preview</h1>
+            </div>
 
-      <form @submit.prevent="handleUpload" class="mb-8">
-        <label class="block mb-2 font-semibold">CSV File</label>
-        <input type="file" accept=".csv,.txt" @change="onFileChange" class="mb-4" />
-        <button
-          type="submit"
-          :disabled="!csvFile || uploading"
-          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {{ uploading ? 'Uploading...' : 'Upload' }}
-        </button>
-        <a
-          :href="templateUrl"
-          class="ml-4 text-blue-600 underline"
-          download
-        >Download CSV Template</a>
-      </form>
+    <div class="space-y-6">
+      <!-- Upload Section -->
+      <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Upload CSV File</h3>
+        
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 mb-2">
+            Please download the template and fill it with your data before uploading.
+          </p>
+          <a 
+            :href="templateUrl" 
+            download 
+            class="text-blue-600 hover:text-blue-800 underline text-sm flex items-center"
+          >
+            <i class="fas fa-download mr-1"></i> Download Template
+          </a>
+        </div>
 
-      <div v-if="csvPreview.length" class="mb-8">
-        <h2 class="font-semibold mb-2">CSV Preview:</h2>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm border">
-            <thead>
-              <tr>
-                <th v-for="(header, i) in csvPreview[0]" :key="i" class="px-2 py-1 border-b">{{ header }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, idx) in csvPreview.slice(1, 6)" :key="idx">
-                <td v-for="(cell, i) in row" :key="i" class="px-2 py-1 border-b">{{ cell }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div v-if="csvPreview.length > 6" class="text-gray-500 text-xs mt-1">Showing first 5 rows...</div>
+        <div class="flex items-center justify-center w-full">
+          <label 
+            class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-300"
+          >
+            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+              <i class="fas fa-cloud-upload-alt text-blue-500 text-3xl mb-2"></i>
+              <p class="mb-2 text-sm text-gray-500">
+                <span class="font-semibold">Click to upload</span> or drag and drop
+              </p>
+              <p class="text-xs text-gray-500">CSV file only</p>
+            </div>
+            <input 
+              type="file" 
+              class="hidden" 
+              accept=".csv" 
+              @change="handleFileChange"
+            />
+          </label>
         </div>
       </div>
 
-      <div v-if="errors && errors.length" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-        <h2 class="font-semibold mb-2">Upload Errors:</h2>
-        <ul>
-          <li v-for="(error, idx) in errors" :key="idx">
-            <span class="font-bold">Row {{ error.row }}:</span>
-            <ul class="ml-4 list-disc">
-              <li v-for="(msg, i) in error.messages" :key="i">{{ msg }}</li>
-            </ul>
-          </li>
-        </ul>
+      <!-- Preview Card -->
+      <div v-if="csvPreview.length" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+        <div class="p-4 flex items-center justify-between border-b border-gray-200">
+          <div class="flex items-center">
+            <i class="fas fa-table text-blue-500 mr-2"></i>
+            <h3 class="text-lg font-semibold text-gray-800">CSV Preview</h3>
+          </div>
+          <span class="text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+            Showing first 5 rows
+          </span>
+        </div>
+        
+        <div class="p-4">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th v-for="(header, i) in csvPreview[0]" :key="i" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {{ header }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="(row, idx) in csvPreview.slice(1, 6)" :key="idx" class="hover:bg-gray-50 transition-colors duration-150">
+                  <td v-for="(cell, i) in row" :key="i" class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
+                    {{ cell }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="mt-6 flex justify-end p-4 border-t border-gray-200">
+          <button 
+            @click="handleUpload" 
+            :disabled="uploading"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          >
+            <i class="fas fa-upload mr-2"></i>
+            {{ uploading ? 'Uploading...' : 'Upload' }}
+          </button>
+        </div>
       </div>
 
-      <div v-if="success" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-        <span>Batch upload successful!</span>
+      <!-- Error Card -->
+      <div v-if="errors && errors.length" class="bg-white rounded-lg shadow-sm border border-red-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+        <div class="p-4 flex items-center justify-between border-b border-red-200 bg-red-50">
+          <div class="flex items-center">
+            <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
+            <h3 class="text-lg font-semibold text-red-700">Upload Errors</h3>
+          </div>
+        </div>
+        
+        <div class="p-4 bg-white">
+          <ul class="space-y-3">
+            <li v-for="(error, idx) in errors" :key="idx" class="border-l-4 border-red-400 pl-3 py-2">
+              <span class="font-bold text-red-700">Row {{ error.row }}:</span>
+              <ul class="ml-4 list-disc text-sm text-red-600 mt-1">
+                <li v-for="(msg, i) in error.messages" :key="i">{{ msg }}</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
+
+      <!-- Success Card -->
+      <div v-if="success" class="bg-white rounded-lg shadow-sm border border-green-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+        <div class="p-4 flex items-center bg-green-50">
+          <i class="fas fa-check-circle text-green-500 mr-2"></i>
+          <span class="font-medium text-green-700">Batch upload completed successfully!</span>
+        </div>
+        
+        <div class="mt-4 p-4 border-t border-gray-200">
+          <button 
+            @click="goBack" 
+            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 transition-colors duration-200 flex items-center"
+          >
+            <i class="fas fa-arrow-left mr-2"></i> Back to Users
+          </button>
+        </div>
+      </div>
+    </Container>
   </AppLayout>
 </template>

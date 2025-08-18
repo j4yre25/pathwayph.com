@@ -13,6 +13,10 @@ const props = defineProps({
   activeSection: {
     type: String,
     default: 'general'
+  },
+  educationEntries: {
+    type: Array,
+    default: () => []
   }
 });
 
@@ -59,7 +63,7 @@ const formatDisplayDate = (date) => {
 const profile = ref({
   fullName: `${pageProps.graduate?.first_name || ''} ${pageProps.graduate?.middle_name || ''} ${pageProps.graduate?.last_name || ''}`.trim(),
   first_name: pageProps.graduate?.first_name || '',
-  middle_name: pageProps.graduate?.graduate_middle_name || '',
+  middle_name: pageProps.graduate?.middle_name || '',
   last_name: pageProps.graduate?.last_name || '',
   dob: pageProps.graduate?.dob || '',
   graduate_picture_url: pageProps.graduate?.graduate_picture
@@ -141,17 +145,6 @@ watch(() => profile.value.fullName, (newFullName) => {
   profile.value.first_name = nameParts[0] || '';
   profile.value.last_name = nameParts[nameParts.length - 1] || '';
   profile.value.middle_name = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
-});
-
-watch(() => profile.value.fullName, (newFullName) => {
-  const nameParts = newFullName.trim().split(' ');
-  profile.value.first_name = nameParts[0] || '';
-  profile.value.last_name = nameParts[nameParts.length - 1] || '';
-  profile.value.middle_name = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
-});
-
-watch(() => profile.value.fullName, () => {
-  parseFullName();
 });
 
 
@@ -522,16 +515,6 @@ onMounted(() => {
                   placeholder="Add other professional networks (one per line)"></textarea>
               </div>
             </div>
-
-            <!-- Contact Form Toggle -->
-            <div class="relative">
-              <label class="flex items-center">
-                <input type="checkbox" v-model="profile.enable_contact_form"
-                  class="form-checkbox h-5 w-5 text-indigo-600 transition duration-150 ease-in-out" />
-                <span class="ml-2 text-gray-700">Enable contact form for networking opportunities</span>
-              </label>
-              <p class="text-gray-500 text-sm mt-1 ml-7">Allow other users to contact you through your profile</p>
-            </div>
           </div>
         </div>
       </div>
@@ -614,8 +597,7 @@ onMounted(() => {
                   <Datepicker v-model="profile.graduate_birthdate" :format="datepickerConfig.format"
                     :enable-time-picker="datepickerConfig.enableTime"
                     input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
-                    placeholder="Select your birthdate" :input-attributes="{ style: 'box-shadow: none !important;' }"
-                    class="datepicker-no-shadow" />
+                    placeholder="Select your birthdate" />
                 </div>
               </div>
 
@@ -632,7 +614,105 @@ onMounted(() => {
             </div>
           </div>
 
-        
+          <!-- Education Information Section -->
+          <div class="bg-white p-6 rounded-lg border border-gray-200">
+            <h2 class="text-xl font-semibold mb-2">Education Information</h2>
+            <p class="text-gray-600 mb-4">Your academic background</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <!-- School Graduated From -->
+              <div class="relative">
+                <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
+                <div class="relative">
+                  <i class="fas fa-university absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+                    {{ profile.graduate_school_graduated_from || 'Not specified' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Year Graduated -->
+              <div class="relative">
+                <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
+                <div class="relative">
+                  <i class="fas fa-calendar-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+                    {{ profile.graduate_year_graduated || 'Not specified' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Program Completed -->
+              <div class="relative">
+                <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
+                <div class="relative">
+                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+                    {{ profile.graduate_program_completed || 'Not specified' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Degree Completed -->
+              <div class="relative">
+                <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
+                <div class="relative">
+                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+                    {{ degreeCompleted }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Additional Education Entries -->
+            <div class="mt-6">
+              <h3 class="text-lg font-medium mb-4">Additional Education</h3>
+              <div v-if="props.educationEntries && props.educationEntries.length > 0" class="grid grid-cols-1 gap-6">
+                <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-6 rounded-lg shadow relative">
+                  <div>
+                    <div class="border-b pb-2">
+                      <h4 class="text-xl font-bold">{{ entry.education || 'Unknown Institution' }}</h4>
+                      <p class="text-gray-600">
+                        {{ entry.program || 'Unknown Program' }} in {{ entry.field_of_study || 'Unknown Field' }}
+                      </p>
+                    </div>
+                    <div class="flex items-center text-gray-600 mt-2">
+                      <i class="far fa-calendar-alt mr-2"></i>
+                      <span>
+                        {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ?
+                          formatDisplayDate(entry.end_date) : 'present' }}
+                      </span>
+                    </div>
+                    <p class="mt-2">
+                      <strong>
+                        <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
+                      </strong>
+                      {{ entry.description || 'No description provided' }}
+                    </p>
+                    <p class="mt-2">
+                      <strong>
+                        <i class="fas fa-trophy text-gray-500 mr-2"></i> Achievements:
+                      </strong>
+                      <span v-if="entry.achievements && entry.achievements.includes(',')">
+                        <ul class="list-disc list-inside">
+                          <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index">
+                            {{ achievement.trim() }}
+                          </li>
+                        </ul>
+                      </span>
+                      <span v-else>
+                        {{ entry.achievements || 'None' }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <!-- If no education entries exist -->
+              <div v-else class="bg-white p-6 rounded-lg shadow">
+                <p class="text-gray-600">No additional education entries found.</p>
+              </div>
+            </div>
+          </div>
 
           <!-- Contact Information Section -->
           <div class="bg-white p-6 rounded-lg border border-gray-200">

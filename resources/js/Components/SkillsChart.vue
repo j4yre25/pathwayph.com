@@ -1,19 +1,3 @@
-<template>
-  <div class="bg-white rounded-lg shadow p-6 w-full float-right ml-6 mb-6">
-    <div class="text-sm text-gray-600 mb-4">Breakdown of your skills by category</div>
-    <h3 class="text-lg font-semibold mb-4">Skills Distribution</h3>
-    <div class="h-[300px] relative">
-      <apexchart
-        type="pie"
-        height="100%"
-        :options="chartOptions"
-        :series="series"
-        class="absolute inset-0"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { default as ApexCharts } from 'vue3-apexcharts';
@@ -110,3 +94,19 @@ const chartOptions = computed(() => ({
   }
 }));
 </script>
+
+<template>
+  <div class="bg-white rounded-lg shadow p-6 w-full">
+    <div class="text-sm text-gray-600 mb-4">Breakdown of your skills by category</div>
+    <h3 class="text-lg font-semibold mb-4">Skills Distribution</h3>
+    <div class="h-[300px] relative">
+      <apexchart
+        type="pie"
+        height="100%"
+        :options="chartOptions"
+        :series="series"
+        class="absolute inset-0"
+      />
+    </div>
+  </div>
+</template>

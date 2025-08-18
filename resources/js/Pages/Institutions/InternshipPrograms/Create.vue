@@ -1,7 +1,8 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
   programs: Array,
@@ -17,134 +18,264 @@ const form = useForm({
 });
 
 const showSuccess = ref(false);
+const currentStep = ref(1);
+const totalSteps = 4;
 
 function submit() {
   form.post(route('internship-programs.store'), {
     onSuccess: () => {
       showSuccess.value = true;
       form.reset();
+      currentStep.value = 1;
     },
     onError: () => {
       showSuccess.value = false;
     },
   });
 }
+
+function nextStep() {
+  if (currentStep.value < totalSteps) {
+    currentStep.value++;
+  }
+}
+
+function prevStep() {
+  if (currentStep.value > 1) {
+    currentStep.value--;
+  }
+}
+
+function goToStep(step) {
+  if (step >= 1 && step <= totalSteps) {
+    currentStep.value = step;
+  }
+}
+
+const stepTitles = [
+  'General Information',
+  'Programs',
+  'Career Opportunities',
+  'Skills'
+];
+
+const stepIcons = [
+  'fas fa-info-circle',
+  'fas fa-graduation-cap',
+  'fas fa-briefcase',
+  'fas fa-tools'
+];
+
+const stepColors = [
+  'blue',
+  'green',
+  'indigo',
+  'purple'
+];
 </script>
 
 <template>
   <AppLayout title="Add Internship Program">
     <template #header>
-      <h2 class="text-2xl font-semibold text-gray-800">Add Internship Program</h2>
+      <div class="flex items-center">
+        <Link :href="route('internship-programs.index')" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+          <i class="fas fa-chevron-left"></i>
+        </Link>
+        <i class="fas fa-plus-circle text-blue-500 text-xl mr-2"></i>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Add Internship Program</h2>
+      </div>
     </template>
 
-    <div class="py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <form @submit.prevent="submit" class="space-y-8">
-
-          <!-- General Information -->
-          <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-            <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">General Information</h3>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-              <input
-                v-model="form.title"
-                type="text"
-                placeholder="Enter internship title"
-                class="w-full rounded-md border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition p-2.5"
-              />
-              <p v-if="form.errors.title" class="text-sm text-red-500 mt-1">{{ form.errors.title }}</p>
-            </div>
-          </section>
-
-          <!-- Programs -->
-          <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-            <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Programs</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              <div
-                v-for="p in programs"
-                :key="p.id"
-                class="flex items-center space-x-2"
-              >
-                <input
-                  type="checkbox"
-                  :id="'program-' + p.id"
-                  :value="p.id"
-                  v-model="form.program_id"
-                  class="rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <label :for="'program-' + p.id" class="text-sm text-gray-700">{{ p.name }}</label>
+    <div class="py-8">
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+          <div class="p-6 bg-white border-b border-gray-200">
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center">
+                <i class="fas fa-briefcase text-blue-500 mr-2"></i>
+                <h3 class="text-lg font-medium text-gray-900">New Internship Program</h3>
               </div>
             </div>
-            <p v-if="form.errors.program_id" class="text-sm text-red-500 mt-1">{{ form.errors.program_id }}</p>
-          </section>
-
-          <!-- Career Opportunities -->
-          <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-            <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Career Opportunities</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              <div
-                v-for="c in careerOpportunities"
-                :key="c.id"
-                class="flex items-center space-x-2"
-              >
-                <input
-                  type="checkbox"
-                  :id="'career-' + c.id"
-                  :value="c.id"
-                  v-model="form.career_opportunity_id"
-                  class="rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <label :for="'career-' + c.id" class="text-sm text-gray-700">{{ c.title }}</label>
+            
+            <!-- Progress Bar -->
+            <div class="mb-8">
+              <div class="flex justify-between mb-2">
+                <div v-for="(title, index) in stepTitles" :key="index" 
+                     class="flex flex-col items-center cursor-pointer" 
+                     @click="goToStep(index + 1)">
+                  <div :class="[`text-${stepColors[index]}-500 bg-${stepColors[index]}-100`, 
+                               currentStep > index + 1 ? `bg-${stepColors[index]}-500 text-white` : '',
+                               currentStep === index + 1 ? `ring-2 ring-${stepColors[index]}-500` : '']"
+                       class="w-10 h-10 rounded-full flex items-center justify-center mb-1 transition-all duration-200">
+                    <i v-if="currentStep > index + 1" class="fas fa-check"></i>
+                    <i v-else :class="stepIcons[index]"></i>
+                  </div>
+                  <span :class="[currentStep === index + 1 ? `text-${stepColors[index]}-600 font-medium` : 'text-gray-500']"
+                        class="text-xs text-center hidden sm:block">
+                    {{ title }}
+                  </span>
+                </div>
+              </div>
+              <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div class="absolute top-0 left-0 h-full transition-all duration-300 ease-in-out"
+                     :class="`bg-${stepColors[currentStep-1]}-500`"
+                     :style="{width: `${(currentStep / totalSteps) * 100}%`}"></div>
               </div>
             </div>
-            <p v-if="form.errors.career_opportunity_id" class="text-sm text-red-500 mt-1">{{ form.errors.career_opportunity_id }}</p>
-          </section>
+            
+            <form @submit.prevent="submit" class="space-y-6">
 
-          <!-- Skills -->
-          <section class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-            <h3 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Skills</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              <div
-                v-for="s in skills"
-                :key="s.id"
-                class="flex items-center space-x-2"
-              >
-                <input
-                  type="checkbox"
-                  :id="'skill-' + s.id"
-                  :value="s.id"
-                  v-model="form.skill_id"
-                  class="rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <label :for="'skill-' + s.id" class="text-sm text-gray-700">{{ s.name }}</label>
+              <!-- Step 1: General Information -->
+              <div v-show="currentStep === 1" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                  General Information
+                </h3>
+                <div>
+                  <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    id="title"
+                    v-model="form.title"
+                    type="text"
+                    placeholder="Enter internship title"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors"
+                  />
+                  <p v-if="form.errors.title" class="text-sm text-red-500 mt-1">{{ form.errors.title }}</p>
+                </div>
               </div>
-            </div>
-            <p v-if="form.errors.skill_id" class="text-sm text-red-500 mt-1">{{ form.errors.skill_id }}</p>
-          </section>
 
-          <!-- Action Buttons -->
-          <div class="flex items-center gap-4">
-            <button
-              type="submit"
-              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow transition"
-            >
-              Add Program
-            </button>
-            <transition name="fade">
-              <div
-                v-if="showSuccess"
-                class="text-green-600 font-medium flex items-center space-x-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M5 13l4 4L19 7"/>
-                </svg>
-                <span>Internship program added!</span>
+              <!-- Step 2: Programs -->
+              <div v-show="currentStep === 2" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
+                  Programs
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div
+                    v-for="p in programs"
+                    :key="p.id"
+                    class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      :id="'program-' + p.id"
+                      :value="p.id"
+                      v-model="form.program_id"
+                      class="rounded text-green-600 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                    />
+                    <label :for="'program-' + p.id" class="text-sm text-gray-700 cursor-pointer">{{ p.name }}</label>
+                  </div>
+                </div>
+                <p v-if="form.errors.program_id" class="text-sm text-red-500 mt-1">{{ form.errors.program_id }}</p>
               </div>
-            </transition>
+
+              <!-- Step 3: Career Opportunities -->
+              <div v-show="currentStep === 3" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-indigo-500">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <i class="fas fa-briefcase text-indigo-500 mr-2"></i>
+                  Career Opportunities
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div
+                    v-for="c in careerOpportunities"
+                    :key="c.id"
+                    class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      :id="'career-' + c.id"
+                      :value="c.id"
+                      v-model="form.career_opportunity_id"
+                      class="rounded text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50"
+                    />
+                    <label :for="'career-' + c.id" class="text-sm text-gray-700 cursor-pointer">{{ c.title }}</label>
+                  </div>
+                </div>
+                <p v-if="form.errors.career_opportunity_id" class="text-sm text-red-500 mt-1">{{ form.errors.career_opportunity_id }}</p>
+              </div>
+
+              <!-- Step 4: Skills -->
+              <div v-show="currentStep === 4" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <i class="fas fa-tools text-purple-500 mr-2"></i>
+                  Skills
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div
+                    v-for="s in skills"
+                    :key="s.id"
+                    class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      :id="'skill-' + s.id"
+                      :value="s.id"
+                      v-model="form.skill_id"
+                      class="rounded text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
+                    />
+                    <label :for="'skill-' + s.id" class="text-sm text-gray-700 cursor-pointer">{{ s.name }}</label>
+                  </div>
+                </div>
+                <p v-if="form.errors.skill_id" class="text-sm text-red-500 mt-1">{{ form.errors.skill_id }}</p>
+              </div>
+
+              <!-- Navigation Buttons -->
+              <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div>
+                  <button 
+                    v-if="currentStep > 1" 
+                    type="button" 
+                    @click="prevStep"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                  >
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    Previous
+                  </button>
+                  <Link 
+                    v-else 
+                    :href="route('internship-programs.index')" 
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                  >
+                    <i class="fas fa-times mr-2"></i>
+                    Cancel
+                  </Link>
+                </div>
+                <div>
+                  <button
+                    v-if="currentStep < totalSteps"
+                    type="button"
+                    @click="nextStep"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                  >
+                    Next
+                    <i class="fas fa-chevron-right ml-2"></i>
+                  </button>
+                  <button
+                    v-else
+                    type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                    :disabled="form.processing"
+                  >
+                    <i class="fas fa-save mr-2"></i>
+                    <span v-if="form.processing">Saving...</span>
+                    <span v-else>Save Program</span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Success Message -->
+              <transition name="fade">
+                <div
+                  v-if="showSuccess"
+                  class="mt-4 p-4 bg-green-50 border border-green-200 rounded-md text-green-600 font-medium flex items-center"
+                >
+                  <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                  <span>Internship program added successfully!</span>
+                </div>
+              </transition>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   </AppLayout>
