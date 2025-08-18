@@ -18,11 +18,16 @@ use App\Models\CareerOpportunity;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
-        if ($user->hasRole('company') && !$user->company ) {
+        // Get filters from request
+        $filterSchoolYear = $request->input('school_year_id');
+        $filterTerm = $request->input('term');
+        $filterGender = $request->input('gender');
+
+        if ($user->hasRole('company') && !$user->company) {
             return redirect()->route('company.information');
         }
         if ($user->hasRole('institution') && !$user->institution) {
@@ -151,6 +156,11 @@ class DashboardController extends Controller
 
                 // Graduates
                 $graduates = Graduate::where('institution_id', $institutionId)
+                    ->when($filterSchoolYear, fn($q) => $q->where('school_year_id', $filterSchoolYear))
+                    ->when($filterTerm, function($q) use ($filterTerm) {
+                        $q->whereHas('schoolYear', fn($sq) => $sq->where('term', $filterTerm));
+                    })
+                    ->when($filterGender, fn($q) => $q->where('gender', $filterGender))
                     ->with('schoolYear')
                     ->get()
                     ->map(function ($g) {
@@ -212,6 +222,45 @@ class DashboardController extends Controller
                     'total_programs' => $programs->count(), // <-- ADD THIS LINE
 
                 ];
+
+                // Calculate employed graduates per program (filtered)
+                $programEmploymentStats = collect($programs)
+                    ->map(function ($prog) use ($graduates) {
+                        $total = $graduates->where('program_id', $prog['id'])->count();
+                        $employed = $graduates->where('program_id', $prog['id'])->where('employment_status', 'Employed')->count();
+                        $percent = $total ? round(($employed / $total) * 100, 1) : 0;
+                        return [
+                            'program_name' => $prog['name'],
+                            'degree' => $prog['degree'],
+                            'employed' => $employed,
+                            'total' => $total,
+                            'percent' => $percent,
+                        ];
+                    })
+                    ->filter(fn($stat) => $stat['total'] > 0)
+                    ->sortByDesc('percent')
+                    ->take(5)
+                    ->values();
+
+                return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
+                    'userNotApproved' => !$user->is_approved,
+                    'roles' => [
+                        'isGraduate' => false,
+                        'isCompany' => false,
+                        'isInstitution' => true,
+                    ],
+                    'summary' => $summary,
+                    'graduates' => $graduates,
+                    'programs' => $programs,
+                    'careerOpportunities' => $careerOpportunities,
+                    'schoolYears' => $schoolYears,
+                    'institutionCareerOpportunities' => $institutionCareerOpportunities,
+                    'selectedSchoolYear' => $filterSchoolYear,
+                    'selectedTerm' => $filterTerm,
+                    'selectedGender' => $filterGender,
+                    'topProgramsEmployment' => $programEmploymentStats,
+                    // ...other institution props...
+                ]);
             }
         }
 
@@ -235,12 +284,31 @@ class DashboardController extends Controller
             })
             ->filter(fn($stat) => $stat['total'] > 0) // <-- Only programs with graduates
             ->sortByDesc('percent')
-            ->take(10)
+            ->take(5)
             ->values();
 
         \Log::info('Top Programs Employment:', $programEmploymentStats->toArray());
+        if ($user->hasRole('institution')) {
 
-        return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
+    return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
+        'userNotApproved' => !$user->is_approved,
+        'roles' => [
+            'isGraduate' => false,
+            'isCompany' => false,
+            'isInstitution' => true,
+        ],
+        'summary' => $summary,
+        'graduates' => $graduates,
+        'programs' => $programs,
+        'careerOpportunities' => $careerOpportunities,
+        'schoolYears' => $schoolYears,
+        'institutionCareerOpportunities' => $institutionCareerOpportunities,
+        'topProgramsEmployment' => $programEmploymentStats,
+        // ...other institution props...
+    ]);
+}
+
+        return Inertia::render('Dashboard', [
             'userNotApproved' => !$user->is_approved,
             'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
@@ -248,12 +316,6 @@ class DashboardController extends Controller
                 'isCompany' => $user->hasRole('company'),
                 'isInstitution' => $user->hasRole('institution'),
             ],
-            'summary' => $summary,
-            'graduates' => $graduates,
-            'programs' => $programs,
-            'careerOpportunities' => $careerOpportunities,
-            'schoolYears' => $schoolYears,
-            'institutionCareerOpportunities' => $institutionCareerOpportunities,
 
             'kpi' => [
                 'registeredEmployers' => 42,
