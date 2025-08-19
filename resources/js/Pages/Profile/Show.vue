@@ -3,8 +3,8 @@ import { usePage, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import UpdateCompanyProfileInformationForm from './Partials/UpdateCompanyProfileInformationForm.vue';
 
-const user = usePage().props.user;
-const company = usePage().props.company;
+const user = usePage().props.user ?? {};
+const company = usePage().props.company ?? {};
 
 const queryParams = new URLSearchParams(window.location.search);
 const editMode = queryParams.get('edit') || 'company';

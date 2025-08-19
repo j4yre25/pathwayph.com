@@ -77,7 +77,7 @@ class CompanyProfileController extends Controller
    public function edit()
     {
         $user = Auth::user()->load('company');
-        return Inertia::render('Profile/Show', [
+        return Inertia::render('Profile/Partials/UpdateCompanyProfileInformationForm', [
             'user' => $user,
             'company' => $user->company,
         ]);

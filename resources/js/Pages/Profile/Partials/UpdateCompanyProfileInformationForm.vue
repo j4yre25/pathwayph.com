@@ -9,27 +9,32 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
-  user: Object,
+  user: {
+    type: Object,
+    default: () => ({}),
+  },
+  company: {
+    type: Object,
+    default: () => ({}),
+  },
 });
-
-const company = computed(() => props.user.company ?? {});
 
 const form = useForm({
   _method: 'PUT',
   photo: null,
   cover_photo: null,
-  company_name: company.value.company_name || '',
-  company_email: company.value.company_email || '',
-  company_street_address: company.value.company_street_address || '',
-  company_brgy: company.value.company_brgy || '',
-  company_city: company.value.company_city || '',
-  company_province: company.value.company_province || '',
-  company_zip_code: company.value.company_zip_code || '',
-  company_contact_number: props.user.company_contact_number || '',
-  telephone_number: company.value.company_tel_phone || '',
-  company_description: company.value.company_description || '',
-  profile_photo_path: props.user.profile_photo_path || '',
-  cover_photo_path: props.user.cover_photo_path || '',
+  company_name: props.company.company_name || '',
+  company_email: props.company.company_email || '',
+  company_street_address: props.company.company_street_address || '',
+  company_brgy: props.company.company_brgy || '',
+  company_city: props.company.company_city || '',
+  company_province: props.company.company_province || '',
+  company_zip_code: props.company.company_zip_code || '',
+  company_contact_number: props.company.company_contact_number || '',
+  telephone_number: props.company.telephone_number || '',
+  company_description: props.company.company_description || '',
+  profile_photo_path: props.company.profile_photo || '',
+  cover_photo_path: props.company.cover_photo || '',
 });
 
 const photoPreview = ref(null);
