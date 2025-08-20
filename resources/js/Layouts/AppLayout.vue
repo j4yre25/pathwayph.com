@@ -157,20 +157,20 @@ console.log(page.props.permissions.canManageInstitution)
                                     :href="route('company.jobs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.jobs')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Job Listing
+                                    Jobs
                                 </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.job.applicants.index', { user: page.props.auth.user.id })"
                                     :active="route().current('company.job.applicants.index')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Manage Applicants
+                                    Applicants
                                 </NavLink>
 
                                 <NavLink v-if="roles.isCompany"
                                     :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')" :disabled="!page.props.auth.user.is_approved">
-                                    Human Resource Accounts
+                                    HR & Departments
                                 </NavLink>
 
                             

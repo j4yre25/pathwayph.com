@@ -22,11 +22,6 @@ const props = defineProps({
   }
 });
 
-// Search and filter functionality
-const searchQuery = ref('');
-const selectedSector = ref('');
-const selectedCategory = ref('');
-
 // Modal and action states
 const showModal = ref(false);
 const jobToArchive = ref(null);
@@ -34,15 +29,63 @@ const isActionLoading = ref(false);
 const activeJobId = ref(null);
 const actionError = ref(null);
 
-// Filtered jobs based on search and filters
+
+// Filters
+const searchQuery = ref('');
+const selectedJobType = ref('');
+const selectedWorkEnvironment = ref('');
+const selectedStatus = ref('');
+const selectedExperienceLevel = ref('');
+
+const workEnvironmentOptions = [
+    { value: '', label: 'All Work Environments' },
+    { value: '1', label: 'On-site' },
+    { value: '2', label: 'Remote' },
+    { value: '3', label: 'Hybrid' }
+];
+
+const statusOptions = [
+    { value: '', label: 'All Statuses' },
+    { value: 'open', label: 'Open' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'expired', label: 'Expired' },
+    { value: 'full', label: 'Full' }
+];
+
+const experienceLevelOptions = [
+    { value: '', label: 'All Experience Levels' },
+    { value: 'Entry-level', label: 'Entry-level' },
+    { value: 'Intermediate', label: 'Intermediate' },
+    { value: 'Mid-level', label: 'Mid-level' },
+    { value: 'Senior/Executive', label: 'Senior/Executive-level' }
+];
+
 const filteredJobs = computed(() => {
-  return props.jobs ? props.jobs.filter(job => {
-    const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
-    const matchesSector = selectedSector.value ? job.sector === selectedSector.value : true;
-    const matchesCategory = selectedCategory.value ? job.category === selectedCategory.value : true;
-    return matchesSearch && matchesSector && matchesCategory;
-  }) : [];
+    return props.jobs.filter(job => {
+        const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
+        const matchesJobType = selectedJobType.value
+            ? job.job_type == selectedJobType.value
+            : true;
+        const matchesWorkEnv = selectedWorkEnvironment.value
+            ? String(job.work_environment) === selectedWorkEnvironment.value
+            : true;
+        const matchesStatus = selectedStatus.value
+            ? job.status === selectedStatus.value
+            : true;
+        const matchesExperience = selectedExperienceLevel.value
+            ? job.job_experience_level === selectedExperienceLevel.value
+            : true;
+        return matchesSearch && matchesJobType && matchesWorkEnv && matchesStatus && matchesExperience;
+    });
 });
+
+function resetFilters() {
+    searchQuery.value = '';
+    selectedJobType.value = '';
+    selectedWorkEnvironment.value = '';
+    selectedStatus.value = '';
+    selectedExperienceLevel.value = '';
+}
 
 // Navigate to job details
 const goToJob = (jobId) => {
@@ -105,61 +148,105 @@ const getStatusText = (status) => {
 
     <Container class="py-6">
       <!-- Search and filters section -->
-      <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Search input -->
-          <div>
-            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search Jobs</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fas fa-search text-gray-400"></i>
-              </div>
-              <input
-                id="search"
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search by job title"
-                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-            </div>
+      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6 shadow-sm">
+          <div class="p-4 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-800">Search & Filter</h3>
           </div>
+          <div class="p-4">
+              <div class="flex justify-end mb-2">
+                  <PrimaryButton
+                      class="bg-blue-200 text-gray-700 hover:bg-gray-300 border-none px-4 py-2 rounded"
+                      @click="resetFilters"
+                  >
+                      <i class="fas fa-undo mr-2"></i> Reset Filters
+                  </PrimaryButton>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <!-- Search Input -->
+                  <div>
+                      <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                      <div class="relative">
+                          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                              <i class="fas fa-search text-gray-400"></i>
+                          </div>
+                          <input 
+                              id="search"
+                              v-model="searchQuery" 
+                              type="text" 
+                              placeholder="Search jobs..." 
+                              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                          />
+                      </div>
+                  </div>
 
-          <!-- Sector filter -->
-          <div v-if="props.sectors">
-            <label for="sector" class="block text-sm font-medium text-gray-700 mb-1">Sector</label>
-            <div class="relative">
-              <select
-                id="sector"
-                v-model="selectedSector"
-                class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="">All Sectors</option>
-                <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">{{ sector.name }}</option>
-              </select>
-              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <i class="fas fa-chevron-down text-gray-400"></i>
-              </div>
-            </div>
-          </div>
+                  <!-- Job Type Dropdown -->
+                  <div>
+                      <label for="jobType" class="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
+                      <div class="relative">
+                          <select 
+                              id="jobType"
+                              v-model="selectedJobType" 
+                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                          >
+                              <option value="">All Employment Types</option>
+                              <option value="1">Full-time</option>
+                              <option value="2">Part-time</option>
+                              <option value="3">Contract</option>
+                              <option value="4">Freelance</option>
+                              <option value="5">Internship</option>
+                          </select>
+                      </div>
+                  </div>
 
-          <!-- Category filter -->
-          <div v-if="props.categories">
-            <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <div class="relative">
-              <select
-                id="category"
-                v-model="selectedCategory"
-                class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              >
-                <option value="">All Categories</option>
-                <option v-for="category in props.categories" :key="category.id" :value="category.id">{{ category.name }}</option>
-              </select>
-              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <i class="fas fa-chevron-down text-gray-400"></i>
+                  <!-- Work Environment Dropdown -->
+                  <div>
+                      <label for="workEnv" class="block text-sm font-medium text-gray-700 mb-1">Work Environment</label>
+                      <div class="relative">
+                          <select 
+                              id="workEnv"
+                              v-model="selectedWorkEnvironment" 
+                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                          >
+                              <option v-for="option in workEnvironmentOptions" :key="option.value" :value="option.value">
+                                  {{ option.label }}
+                              </option>
+                          </select>
+                      </div>
+                  </div>
+
+                  <!-- Status Dropdown -->
+                  <div>
+                      <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                      <div class="relative">
+                          <select 
+                              id="status"
+                              v-model="selectedStatus" 
+                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                          >
+                              <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                                  {{ option.label }}
+                              </option>
+                          </select>
+                      </div>
+                  </div>
+
+                  <!-- Experience Level Dropdown -->
+                  <div>
+                      <label for="expLevel" class="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+                      <div class="relative">
+                          <select 
+                              id="expLevel"
+                              v-model="selectedExperienceLevel" 
+                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                          >
+                              <option v-for="option in experienceLevelOptions" :key="option.value" :value="option.value">
+                                  {{ option.label }}
+                              </option>
+                          </select>
+                      </div>
+                  </div>
               </div>
-            </div>
           </div>
-        </div>
       </div>
 
       <!-- Jobs grid layout -->
@@ -175,20 +262,38 @@ const getStatusText = (status) => {
             </div>
             <div class="mt-2 text-sm text-gray-600 flex items-center">
               <i class="fas fa-map-marker-alt text-gray-500 mr-1"></i>
-              <span>{{ job.locations.map(loc => loc.address).join(', ') }}</span>
+              <span>
+                <template v-if="String(job.work_environment) === '2'">
+                  Remote
+                </template>
+                <template v-else>
+                  {{ job.locations && job.locations.length > 0 ? job.locations.map(loc => loc.address).join(', ') : '—' }}
+                </template>
+              </span>
             </div>
           </div>
           
           <!-- Job card body -->
           <div class="p-4">
-            <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="grid grid-cols-3  text-sm">
               <div class="flex items-center">
                 <i class="fas fa-briefcase text-blue-500 mr-2"></i>
-                <span class="text-gray-700"> {{ job.job_types.map(type => type.type).join(', ') }}</span>
+                <span class="text-gray-700">{{ job.job_types.map(type => type.type).join(', ') }}</span>
               </div>
               <div class="flex items-center">
                 <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
                 <span class="text-gray-700">{{ job.job_experience_level }}</span>
+              </div>
+              <div class="flex items-center ml-5">
+                <i class="fas fa-globe text-blue-500 mr-2"></i>
+                <span class="text-gray-700">
+                  {{
+                    job.work_environment == 1 ? 'On-site'
+                    : job.work_environment == 2 ? 'Remote'
+                    : job.work_environment == 3 ? 'Hybrid'
+                    : '—'
+                  }}
+                </span>
               </div>
             </div>
             

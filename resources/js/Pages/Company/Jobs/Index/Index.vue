@@ -17,43 +17,69 @@ const props = defineProps({
     categories: Array,
 })
 
-const searchQuery = ref('');
-const selectedDate = ref('');
-const selectedJobType = ref('');
-const selectedJobLevel= ref('');
-const selectedVacancy = ref('');
-const selectedCategory = ref('');
+
 
 // Action loading state
 const isActionLoading = ref(false);
 const activeJobId = ref(null);
 const actionError = ref(null);
 
+// Filters
+const searchQuery = ref('');
+const selectedJobType = ref('');
+const selectedWorkEnvironment = ref('');
+const selectedStatus = ref('');
+const selectedExperienceLevel = ref('');
+
+const workEnvironmentOptions = [
+    { value: '', label: 'All Work Environments' },
+    { value: '1', label: 'On-site' },
+    { value: '2', label: 'Remote' },
+    { value: '3', label: 'Hybrid' }
+];
+
+const statusOptions = [
+    { value: '', label: 'All Statuses' },
+    { value: 'open', label: 'Open' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'expired', label: 'Expired' },
+    { value: 'full', label: 'Full' }
+];
+
+const experienceLevelOptions = [
+    { value: '', label: 'All Experience Levels' },
+    { value: 'Entry-level', label: 'Entry-level' },
+    { value: 'Intermediate', label: 'Intermediate' },
+    { value: 'Mid-level', label: 'Mid-level' },
+    { value: 'Senior/Executive', label: 'Senior/Executive-level' }
+];
+
 const filteredJobs = computed(() => {
     return props.jobs.filter(job => {
         const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
-        const matchesDate = selectedDate.value
-            ? job.created_at
-            : true;
         const matchesJobType = selectedJobType.value
-            ? job.type
+            ? job.job_type == selectedJobType.value
             : true;
-
-        const matchesJobLevel = selectedJobLevel.value
-            ? selectedJobLevel.value 
+        const matchesWorkEnv = selectedWorkEnvironment.value
+            ? String(job.work_environment) === selectedWorkEnvironment.value
             : true;
-
-        const matchesVacancy = selectedVacancy.value
-            ? selectedVacancy.value 
+        const matchesStatus = selectedStatus.value
+            ? job.status === selectedStatus.value
             : true;
-            
-        const matchesCategory = selectedCategory.value
-            ? job.category === selectedCategory.value
+        const matchesExperience = selectedExperienceLevel.value
+            ? job.job_experience_level === selectedExperienceLevel.value
             : true;
-
-        return matchesSearch && matchesDate && matchesJobType && matchesJobLevel && matchesVacancy && matchesCategory; 
+        return matchesSearch && matchesJobType && matchesWorkEnv && matchesStatus && matchesExperience;
     });
 });
+
+function resetFilters() {
+    searchQuery.value = '';
+    selectedJobType.value = '';
+    selectedWorkEnvironment.value = '';
+    selectedStatus.value = '';
+    selectedExperienceLevel.value = '';
+}
 
 const form = useForm({
     name: '',
@@ -103,13 +129,20 @@ const form = useForm({
             <!-- Search and filters -->
             <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6 shadow-sm">
                 <div class="p-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800">Search & Filters</h3>
+                    <h3 class="text-lg font-semibold text-gray-800">Search & Filter</h3>
                 </div>
-                
                 <div class="p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="flex justify-end mb-2">
+                        <PrimaryButton
+                            class="bg-blue-200 text-gray-700 hover:bg-gray-300 border-none px-4 py-2 rounded"
+                            @click="resetFilters"
+                        >
+                            <i class="fas fa-undo mr-2"></i> Reset Filters
+                        </PrimaryButton>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <!-- Search Input -->
-                        <div class="col-span-1 md:col-span-2 lg:col-span-1">
+                        <div>
                             <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -125,56 +158,70 @@ const form = useForm({
                             </div>
                         </div>
 
-                        <!-- Category Dropdown -->
-                        <div>
-                            <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <div class="relative">
-                                <select 
-                                    id="category"
-                                    v-model="selectedCategory" 
-                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                                >
-                                    <option value="">All Categories</option>
-                                    <option v-for="(category, index) in categories" :key="index" :value="index + 1">
-                                        {{ category }}
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <!-- Date Dropdown -->
-                        <div>
-                            <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date Posted</label>
-                            <div class="relative">
-                                <select 
-                                    id="date"
-                                    v-model="selectedDate" 
-                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                                >
-                                    <option value="">All Sector</option>
-                                    <option v-for="(sector, index) in sectors" :key="index" :value="index + 1">
-                                        {{ sector }}
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                        
                         <!-- Job Type Dropdown -->
                         <div>
-                            <label for="jobType" class="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
+                            <label for="jobType" class="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
                             <div class="relative">
                                 <select 
                                     id="jobType"
                                     v-model="selectedJobType" 
                                     class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
                                 >
-                                    <option value="">All Job Types</option>
-                                    <option value="Full-time">Full-time</option>
-                                    <option value="Part-time">Part-time</option>
-                                    <option value="Contract">Contract</option>
-                                    <option value="Internship">Internship</option>
+                                    <option value="">All Employment Types</option>
+                                    <option value="1">Full-time</option>
+                                    <option value="2">Part-time</option>
+                                    <option value="3">Contract</option>
+                                    <option value="4">Freelance</option>
+                                    <option value="5">Internship</option>
                                 </select>
-                               
+                            </div>
+                        </div>
+
+                        <!-- Work Environment Dropdown -->
+                        <div>
+                            <label for="workEnv" class="block text-sm font-medium text-gray-700 mb-1">Work Environment</label>
+                            <div class="relative">
+                                <select 
+                                    id="workEnv"
+                                    v-model="selectedWorkEnvironment" 
+                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                                >
+                                    <option v-for="option in workEnvironmentOptions" :key="option.value" :value="option.value">
+                                        {{ option.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Status Dropdown -->
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <div class="relative">
+                                <select 
+                                    id="status"
+                                    v-model="selectedStatus" 
+                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                                >
+                                    <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                                        {{ option.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Experience Level Dropdown -->
+                        <div>
+                            <label for="expLevel" class="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+                            <div class="relative">
+                                <select 
+                                    id="expLevel"
+                                    v-model="selectedExperienceLevel" 
+                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                                >
+                                    <option v-for="option in experienceLevelOptions" :key="option.value" :value="option.value">
+                                        {{ option.label }}
+                                    </option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -194,11 +241,21 @@ const form = useForm({
             <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 flex justify-between items-center">
                     <div class="flex items-center">
-                        <h3 class="text-lg font-semibold text-gray-800">Available Jobs</h3>
+                        <h3 class="text-lg font-semibold text-gray-800">List of Jobs</h3>
                         <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
                     </div>
                 </div>
-                <MyJobs :jobs="filteredJobs.length > 0 ? filteredJobs : jobs" :sectors="sectors" :categories="categories" />
+                <MyJobs
+                    v-if="filteredJobs.length > 0"
+                    :jobs="filteredJobs"
+                    :sectors="sectors"
+                    :categories="categories"
+                />
+                <!-- Show a message if no jobs match the search/filter -->
+                <div v-else class="p-8 text-center text-gray-500">
+                    <i class="fas fa-search-minus text-3xl mb-2 text-gray-400"></i>
+                    <div class="mt-2 text-lg font-semibold">No jobs found matching your search.</div>
+                </div>
             </div>
         </Container>
     </AppLayout>

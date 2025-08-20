@@ -47,14 +47,9 @@ class CompanyJobsController extends Controller
         ->orderBy('created_at', 'desc')            // then by latest
         ->get();
 
-        // dd($jobs->toArray()) ; // Debugging line to check the jobs data
-        $sectors = Sector::pluck('name');
-        $categories = Category::pluck('name');
-
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
-            // 'sectors' => $sectors,
-            // 'categories' => $categories,
+        
         ]);
     }
 
@@ -97,13 +92,15 @@ class CompanyJobsController extends Controller
 
     public function manage(User $user)
     {
-        $jobs = $user->jobs()
-        ->with(['jobTypes:id,type',
+         $jobs = Job::with([
+            'jobTypes:id,type',
             'locations:id,address',
             'workEnvironments:id,environment_type',
-            'salary'])
+            'salary'
+        ])
+        ->where('company_id', $user->hr->company_id)
         ->orderByRaw('is_approved DESC') // prioritize approved jobs
-        ->orderBy('created_at', 'desc') 
+        ->orderBy('created_at', 'desc')            // then by latest
         ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
@@ -581,8 +578,6 @@ class CompanyJobsController extends Controller
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job Archived successfully.');
     }
 
-
-
     public function autoInvite(Job $job)
     {
         $jobSkills = collect($job->skills)
@@ -619,8 +614,7 @@ class CompanyJobsController extends Controller
         return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skills and program.');
     }
 
-
-
+    
     public function restore($job)
     {
         $job = Job::withTrashed()->findOrFail($job);

@@ -169,7 +169,9 @@ function getMissingFields() {
 }
 
 const createJob = () => {
+    console.log('createJob called');
     missingFields.value = getMissingFields();
+    console.log('missingFields:', missingFields.value);
     if (missingFields.value.length > 0) {
         showMissingFieldsModal.value = true;
         return;
@@ -217,18 +219,34 @@ const createJob = () => {
         </template>
         
         <!-- Modal for missing required fields -->
-        <Modal :show="showMissingFieldsModal" @close="showMissingFieldsModal = false">
-            <template #title>
-                Missing Required Fields
+        <Modal :model-value="showMissingFieldsModal" @close="showMissingFieldsModal = false">
+            <template #header>
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                    </span>
+                    <span class="text-lg font-bold text-red-600">Missing Required Fields</span>
+                </div>
             </template>
-            <template #content>
-                <p class="mb-2 text-red-600">Please fill in the following required fields:</p>
-                <ul class="list-disc pl-5">
-                    <li v-for="field in missingFields" :key="field" class="text-gray-700">{{ field }}</li>
-                </ul>
+            <template #body>
+                <div class="py-2">
+                    <p class="mb-3 text-gray-700">
+                        Please fill in the following required fields before posting your job:
+                    </p>
+                    <ul class="list-disc pl-6 space-y-1">
+                        <li v-for="field in missingFields" :key="field" class="text-red-600 font-medium">
+                            <i class="fas fa-asterisk text-xs mr-1"></i>{{ field }}
+                        </li>
+                    </ul>
+                </div>
             </template>
             <template #footer>
-                <PrimaryButton @click="showMissingFieldsModal = false">Close</PrimaryButton>
+                <PrimaryButton
+                    class="bg-red-600 hover:bg-red-700 border-none"
+                    @click="showMissingFieldsModal = false"
+                >
+                    <i class="fas fa-times mr-2"></i> Close
+                </PrimaryButton>
             </template>
         </Modal>
 
