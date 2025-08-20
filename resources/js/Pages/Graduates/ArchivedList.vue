@@ -113,7 +113,7 @@ const stats = computed(() => {
                                     <div class="flex items-center">
                                         <i class="fas fa-user text-gray-400 mr-2"></i>
                                         <span class="text-sm font-medium text-gray-800">
-                                            {{ graduate.first_name }} {{ graduate.middle_initial }} {{ graduate.last_name }}
+                                            {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
                                         </span>
                                     </div>
                                 </td>

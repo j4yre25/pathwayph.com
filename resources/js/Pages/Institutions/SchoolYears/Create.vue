@@ -80,7 +80,7 @@ const goBack = () => {
                                 <select id="term" v-model="form.term" class="mt-1 block w-full">
                                     <option value="">Select Term</option>
                                     <option v-for="n in 5" :key="n" :value="String(n)">{{ n }}</option>
-                                    <option value="off-semester">Off-Semester</option>
+                                    <option value="summer">Summer</option>
                                 </select>
                                 <InputError :message="form.errors.term" class="mt-2" />
                                 <p class="text-xs text-gray-500 mt-1">Enter a value between 1 and 5</p>
