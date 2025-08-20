@@ -16,23 +16,13 @@ const props = defineProps({
   }
 });
 
-const searchQuery = ref('');
-const selectedSector = ref('');
-const selectedCategory = ref('');
 
 // Action loading state
 const isActionLoading = ref(false);
 const activeJobId = ref(null);
 const actionError = ref(null);
 
-const filteredJobs = computed(() => {
-  return props.jobs.filter(job => {
-    const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
-    const matchesSector = selectedSector.value ? job.sector === selectedSector.value : true;
-    const matchesCategory = selectedCategory.value ? job.category === selectedCategory.value : true;
-    return matchesSearch && matchesSector && matchesCategory;
-  });
-});
+
 
 const goToJob = (jobId) => {
   router.visit(route('company.jobs.view', jobId));
@@ -40,15 +30,18 @@ const goToJob = (jobId) => {
 
 // Function to get status class based on job status
 const getStatusClass = (status) => {
-  if (status === 1) return 'bg-green-100 text-green-800';
-  if (status === 0) return 'bg-red-100 text-red-800';
-  return 'bg-yellow-100 text-yellow-800';
+  if (status === 'open') return 'bg-green-100 text-green-800';
+  if (status === 'closed') return 'bg-red-100 text-red-800';
+  if (status === 'expired') return 'bg-gray-200 text-gray-600';
+  if (status === 'full') return 'bg-yellow-100 text-yellow-800';
+  return 'bg-gray-100 text-gray-500';
 };
 
-// Function to get status text
 const getStatusText = (status) => {
-  if (status === 1) return 'Approved';
-  if (status === 0) return 'Disapproved';
+  if (status === 'open') return 'Open';
+  if (status === 'closed') return 'Closed';
+  if (status === 'expired') return 'Expired';
+  if (status === 'full') return 'Full';
   return 'Pending';
 };
 </script>
@@ -123,8 +116,8 @@ const getStatusText = (status) => {
           <!-- Status and actions (right side) -->
           <div class="flex items-center justify-between md:justify-end space-x-4">
             <!-- Status badge -->
-            <span :class="[getStatusClass(job.is_approved), 'text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap']">
-              {{ getStatusText(job.is_approved) }}
+            <span :class="[getStatusClass(job.status), 'text-xs font-medium px-2.5 py-0.5 rounded-full whitespace-nowrap']">
+              {{ getStatusText(job.status) }}
             </span>
             
             <!-- Action buttons -->

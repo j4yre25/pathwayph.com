@@ -64,7 +64,7 @@ const applicantData = monthLabels.map((month, idx) => {
 
 const trendOptions = computed(() => ({
     title: {
-        text: `Job Hiring Trends for Applicants (${currentYear})`,
+        text: `Job Hiring Trends for Applicants as of ${monthLabels[monthLabels.length - 1]} (${currentYear})`,
         left: 'center',
         textStyle: {
             fontSize: 18,
@@ -237,9 +237,7 @@ const totalInPipeline = computed(() => {
         <div class="bg-white p-6 rounded-xl shadow border border-gray-100 mt-4">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-bold text-gray-700">Application Trends</h2>
-                <span class="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold shadow">
-                    <i class="fas fa-calendar-alt mr-1"></i> {{ currentYear }}
-                </span>
+                
             </div>
             <VueECharts :option="trendOptions" style="height: 320px;" />
         </div>
