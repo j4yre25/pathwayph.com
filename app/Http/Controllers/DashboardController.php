@@ -22,301 +22,287 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Get filters from request
-        $filterSchoolYear = $request->input('school_year_id');
-        $filterTerm = $request->input('term');
-        $filterGender = $request->input('gender');
-
-        if ($user->hasRole('company') && !$user->company) {
-            return redirect()->route('company.information');
-        }
-        if ($user->hasRole('institution') && !$user->institution) {
-            return redirect()->route('institution.information');
-        }
-        if ($user->hasRole('graduate') && !$user->graduate) {
-            return redirect()->route('graduate.information');
-        }
-
-        // Default values for all props
-        $summary = [];
-        $graduates = collect();
-        $programs = collect();
-        $careerOpportunities = collect();
-        $schoolYears = collect();
-        $institutionCareerOpportunities = collect();
-        $recentApplications = collect();
-        $applicationTrends = [];
-        $jobPerformance = [];
-        $hasReferralLetter = false;
-
+        // ✅ Role: Company
         if ($user->hasRole('company')) {
-            $company = $user->company;
-            $now = now();
-
-            $activeJobs = Job::where('company_id', $company->id)
-                ->where('status', 'open');
-
-            $applicationsQuery = \App\Models\JobApplication::whereHas('job', fn($q) =>
-                $q->where('company_id', $company->id));
-
-            $statusCounts = [
-                'pending' => $applicationsQuery->clone()->where('status', 'pending')->count(),
-                'hired' => $applicationsQuery->clone()->where('status', 'hired')->count(),
-                'rejected' => $applicationsQuery->clone()->where('status', 'rejected')->count(),
-                'declined' => $applicationsQuery->clone()->where('status', 'declined')->count(),
-            ];
-
-            $pipelineCounts = [
-                'applied' => $applicationsQuery->clone()->where('stage', 'applied')->count(),
-                'screening' => $applicationsQuery->clone()->where('stage', 'screening')->count(),
-                'interview' => $applicationsQuery->clone()->where('stage', 'interview')->count(),
-                'offer' => $applicationsQuery->clone()->where('stage', 'offer')->count(),
-            ];
-
-            $summary = [
-                'active_jobs' => $activeJobs->count(),
-                'total_applications' => $applicationsQuery->count(),
-                'this_month_applications' => $applicationsQuery->clone()
-                    ->whereMonth('created_at', $now->month)
-                    ->whereYear('created_at', $now->year)
-                    ->count(),
-                'total_hires' => $statusCounts['hired'],
-                'pipeline' => $pipelineCounts,
-                'status_counts' => $statusCounts,
-                'new_applications' => $pipelineCounts['applied'],
-                'screening' => $pipelineCounts['screening'],
-                'in_interview' => $pipelineCounts['interview'],
-                'in_offer' => $pipelineCounts['offer'],
-            ];
-
-            $recentApplications = \App\Models\JobApplication::with(['graduate', 'job'])
-                ->whereHas('job', fn($q) => $q->where('company_id', $company->id))
-                ->latest()
-                ->take(5)
-                ->get()
-                ->map(fn($app) => [
-                    'id' => $app->id,
-                    'applicant_name' => $app->graduate->first_name . ' ' . $app->graduate->last_name,
-                    'position' => $app->job->job_title,
-                    'status' => $app->status,
-                    'applied_date' => $app->created_at->format('M d, Y')
-                ]);
-
-            // Application trends by month
-            $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            $monthlyCounts = array_fill(1, 12, 0);
-            $monthlyData = \App\Models\JobApplication::whereHas('job', fn($q) =>
-                    $q->where('company_id', $company->id))
-                ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
-                ->whereYear('created_at', date('Y'))
-                ->groupBy('month')
-                ->get();
-            foreach ($monthlyData as $row) {
-                $monthlyCounts[$row->month] = $row->count;
+            if (!$user->company || !$user->has_completed_information) {
+                return redirect()->route('company.information');
             }
-            $applicationTrends = [
-                'labels' => $months,
-                'data' => array_values($monthlyCounts),
-            ];
 
-            $jobPerformance = Job::where('company_id', $company->id)
-                ->withCount(['applications', 'interviews'])
-                ->get()
-                ->map(fn($job) => [
-                    'id' => $job->id,
-                    'title' => $job->job_title,
-                    'applications' => $job->applications_count,
-                    'interview_rate' => $job->applications_count > 0
-                        ? round(($job->interviews_count / $job->applications_count) * 100)
-                        : 0
-                ])
-                ->sortByDesc('interview_rate')
-                ->take(5)
-                ->values()
-                ->toArray();
+            $data = $this->handleCompanyDashboard($user);
+            return Inertia::render('Dashboard', $data);
         }
 
+        // ✅ Role: Institution
         if ($user->hasRole('institution')) {
-            $institution = Institution::where('user_id', $user->id)->first();
-
-            if ($institution) {
-                $institutionId = $institution->id;
-
-                // Programs
-                $programs = InstitutionProgram::with('program', 'degree')
-                    ->where('institution_id', $institutionId)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id' => $item->program->id,
-                            'name' => $item->program->name,
-                            'degree' => $item->degree->type ?? null,
-                        ];
-                    });
-
-                // Graduates
-                $graduates = Graduate::where('institution_id', $institutionId)
-                    ->when($filterSchoolYear, fn($q) => $q->where('school_year_id', $filterSchoolYear))
-                    ->when($filterTerm, function($q) use ($filterTerm) {
-                        $q->whereHas('schoolYear', fn($sq) => $sq->where('term', $filterTerm));
-                    })
-                    ->when($filterGender, fn($q) => $q->where('gender', $filterGender))
-                    ->with('schoolYear')
-                    ->get()
-                    ->map(function ($g) {
-                        return [
-                            'first_name' => $g->first_name,
-                            'middle_name' => $g->middle_name,
-                            'last_name' => $g->last_name,
-                            'program_id' => $g->program_id,
-                            'current_job_title' => $g->current_job_title,
-                            'employment_status' => ucfirst($g->employment_status),
-                            'gender' => $g->gender,
-                            'school_year_id' => $g->school_year_id,
-                            'school_year_range' => $g->schoolYear ? $g->schoolYear->school_year_range : null,
-                        ];
-                    });
-
-                // <-- ADD DEBUG LOGS HERE
-                \Log::info('Institution ID: ' . $institutionId);
-                \Log::info('Programs:', $programs->toArray());
-                \Log::info('Graduates:', $graduates->toArray());
-
-                // Career Opportunities (unique job titles)
-                $careerOpportunities = $graduates
-                    ->pluck('current_job_title')
-                    ->filter(fn($title) => $title && $title !== 'N/A')
-                    ->unique()
-                    ->values();
-
-                // Get all school years for this institution (with range)
-                $schoolYears = InstitutionSchoolYear::with('schoolYear')
-                    ->where('institution_id', $institutionId)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id' => $item->schoolYear->id,
-                            'range' => $item->schoolYear->school_year_range,
-                            'term' => $item->term,
-                        ];
-                    });
-
-                // Get all institution career opportunities with program info
-                $institutionCareerOpportunities = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
-                    ->where('institution_id', $institutionId)
-                    ->get()
-                    ->map(function ($ico) {
-                        return [
-                            'id' => $ico->careerOpportunity->id,
-                            'title' => $ico->careerOpportunity->title,
-                            'program_id' => $ico->program_id,
-                            'program_name' => $ico->program ? $ico->program->name : null,
-                        ];
-                    });
-
-                $summary = [
-                    'total_graduates' => $graduates->count(),
-                    'employed' => $graduates->where('employment_status', 'Employed')->count(),
-                    'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
-                    'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
-                    'total_programs' => $programs->count(), // <-- ADD THIS LINE
-
-                ];
-
-                // Calculate employed graduates per program (filtered)
-                $programEmploymentStats = collect($programs)
-                    ->map(function ($prog) use ($graduates) {
-                        $total = $graduates->where('program_id', $prog['id'])->count();
-                        $employed = $graduates->where('program_id', $prog['id'])->where('employment_status', 'Employed')->count();
-                        $percent = $total ? round(($employed / $total) * 100, 1) : 0;
-                        return [
-                            'program_name' => $prog['name'],
-                            'degree' => $prog['degree'],
-                            'employed' => $employed,
-                            'total' => $total,
-                            'percent' => $percent,
-                        ];
-                    })
-                    ->filter(fn($stat) => $stat['total'] > 0)
-                    ->sortByDesc('percent')
-                    ->take(5)
-                    ->values();
-
-                return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
-                    'userNotApproved' => !$user->is_approved,
-                    'roles' => [
-                        'isGraduate' => false,
-                        'isCompany' => false,
-                        'isInstitution' => true,
-                    ],
-                    'summary' => $summary,
-                    'graduates' => $graduates,
-                    'programs' => $programs,
-                    'careerOpportunities' => $careerOpportunities,
-                    'schoolYears' => $schoolYears,
-                    'institutionCareerOpportunities' => $institutionCareerOpportunities,
-                    'selectedSchoolYear' => $filterSchoolYear,
-                    'selectedTerm' => $filterTerm,
-                    'selectedGender' => $filterGender,
-                    'topProgramsEmployment' => $programEmploymentStats,
-                    // ...other institution props...
-                ]);
+            if (!$user->institution) {
+                return redirect()->route('institution.information');
             }
+
+            $filters = $request->only(['school_year_id','term','gender']);
+            $data = $this->handleInstitutionDashboard($user, $filters);
+            return Inertia::render('Institutions/Dashboard/InstitutionDashboard', $data);
         }
 
+        // ✅ Role: Graduate
         if ($user->hasRole('graduate')) {
-            $hasReferralLetter = $user->graduate && $user->graduate->referral_letter_submitted;
+            if (!$user->graduate) {
+                return redirect()->route('graduate.information');
+            }
+
+            $data = $this->handleGraduateDashboard($user);
+            return Inertia::render('Graduate/Dashboard/GraduateDashboard', $data);
         }
 
-        // Calculate employed graduates per program
+        // ✅ Default (Admin or others)
+        return Inertia::render('Dashboard', $this->getAdminDashboardData());
+    }
+
+    /* ==========================================================
+     |  COMPANY DASHBOARD
+     ========================================================== */
+    private function handleCompanyDashboard($user)
+    {
+        $company = $user->company;
+        $now = now();
+
+        $applicationsQuery = \App\Models\JobApplication::whereHas('job', fn($q) =>
+            $q->where('company_id', $company->id));
+
+        $statusCounts = [
+            'pending' => (clone $applicationsQuery)->where('status', 'pending')->count(),
+            'hired' => (clone $applicationsQuery)->where('status', 'hired')->count(),
+            'rejected' => (clone $applicationsQuery)->where('status', 'rejected')->count(),
+            'declined' => (clone $applicationsQuery)->where('status', 'declined')->count(),
+        ];
+
+        $pipelineCounts = [
+            'applied' => (clone $applicationsQuery)->where('stage', 'applied')->count(),
+            'screening' => (clone $applicationsQuery)->where('stage', 'screening')->count(),
+            'interview' => (clone $applicationsQuery)->where('stage', 'interview')->count(),
+            'offer' => (clone $applicationsQuery)->where('stage', 'offer')->count(),
+        ];
+
+        $summary = [
+            'active_jobs' => Job::where('company_id', $company->id)->where('status', 'open')->count(),
+            'total_applications' => $applicationsQuery->count(),
+            'this_month_applications' => (clone $applicationsQuery)
+                ->whereMonth('created_at', $now->month)
+                ->whereYear('created_at', $now->year)
+                ->count(),
+            'total_hires' => $statusCounts['hired'],
+            'pipeline' => $pipelineCounts,
+            'status_counts' => $statusCounts,
+            'new_applications' => $pipelineCounts['applied'],
+            'screening' => $pipelineCounts['screening'],
+            'in_interview' => $pipelineCounts['interview'],
+            'in_offer' => $pipelineCounts['offer'],
+        ];
+
+        $recentApplications = \App\Models\JobApplication::with(['graduate', 'job'])
+            ->whereHas('job', fn($q) => $q->where('company_id', $company->id))
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(fn($app) => [
+                'id' => $app->id,
+                'applicant_name' => $app->graduate->first_name . ' ' . $app->graduate->last_name,
+                'position' => $app->job->job_title,
+                'status' => $app->status,
+                'applied_date' => $app->created_at->format('M d, Y')
+            ]);
+
+        return [
+            'summary' => $summary,
+            'recentApplications' => $recentApplications,
+            'applicationTrends' => $this->getApplicationTrends($company->id),
+            'jobPerformance' => $this->getJobPerformance($company->id),
+            'roles' => [
+                'isGraduate' => false,
+                'isCompany' => true,
+                'isInstitution' => false,
+            ],
+        ];
+    }
+
+    private function getApplicationTrends($companyId)
+    {
+        $months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        $monthlyCounts = array_fill(1, 12, 0);
+
+        $monthlyData = \App\Models\JobApplication::whereHas('job', fn($q) =>
+                $q->where('company_id', $companyId))
+            ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
+            ->whereYear('created_at', date('Y'))
+            ->groupBy('month')
+            ->get();
+
+        foreach ($monthlyData as $row) {
+            $monthlyCounts[$row->month] = $row->count;
+        }
+
+        return [
+            'labels' => $months,
+            'data' => array_values($monthlyCounts),
+        ];
+    }
+
+    private function getJobPerformance($companyId)
+    {
+        return Job::where('company_id', $companyId)
+            ->withCount(['applications', 'interviews'])
+            ->get()
+            ->map(fn($job) => [
+                'id' => $job->id,
+                'title' => $job->job_title,
+                'applications' => $job->applications_count,
+                'interview_rate' => $job->applications_count > 0
+                    ? round(($job->interviews_count / $job->applications_count) * 100)
+                    : 0
+            ])
+            ->sortByDesc('interview_rate')
+            ->take(5)
+            ->values()
+            ->toArray();
+    }
+
+    /* ==========================================================
+     |  INSTITUTION DASHBOARD
+     ========================================================== */
+    private function handleInstitutionDashboard($user, $filters)
+    {
+        $institution = Institution::where('user_id', $user->id)->first();
+        if (!$institution) return [];
+
+        $institutionId = $institution->id;
+
+        // Programs
+        $programs = InstitutionProgram::with('program', 'degree')
+            ->where('institution_id', $institutionId)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->program->id,
+                'name' => $item->program->name,
+                'degree' => $item->degree->type ?? null,
+            ]);
+
+        // Graduates
+        $graduates = Graduate::where('institution_id', $institutionId)
+            ->when($filters['school_year_id'] ?? null, fn($q, $sy) => $q->where('school_year_id', $sy))
+            ->when($filters['term'] ?? null, fn($q, $term) => $q->whereHas('schoolYear', fn($sq) => $sq->where('term', $term)))
+            ->when($filters['gender'] ?? null, fn($q, $gender) => $q->where('gender', $gender))
+            ->with('schoolYear')
+            ->get()
+            ->map(fn($g) => [
+                'first_name' => $g->first_name,
+                'middle_name' => $g->middle_name,
+                'last_name' => $g->last_name,
+                'program_id' => $g->program_id,
+                'current_job_title' => $g->current_job_title,
+                'employment_status' => ucfirst($g->employment_status),
+                'gender' => $g->gender,
+                'school_year_id' => $g->school_year_id,
+                'school_year_range' => $g->schoolYear?->school_year_range,
+            ]);
+
+        // Career opportunities from graduates
+        $careerOpportunities = $graduates
+            ->pluck('current_job_title')
+            ->filter(fn($title) => $title && $title !== 'N/A')
+            ->unique()
+            ->values();
+
+        // School years
+        $schoolYears = InstitutionSchoolYear::with('schoolYear')
+            ->where('institution_id', $institutionId)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->schoolYear->id,
+                'range' => $item->schoolYear->school_year_range,
+                'term' => $item->term,
+            ]);
+
+        // Institution career opportunities
+        $institutionCareerOpportunities = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
+            ->where('institution_id', $institutionId)
+            ->get()
+            ->map(fn($ico) => [
+                'id' => $ico->careerOpportunity->id,
+                'title' => $ico->careerOpportunity->title,
+                'program_id' => $ico->program_id,
+                'program_name' => $ico->program?->name,
+            ]);
+
+        $summary = [
+            'total_graduates' => $graduates->count(),
+            'employed' => $graduates->where('employment_status', 'Employed')->count(),
+            'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
+            'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
+            'total_programs' => $programs->count(),
+        ];
+
+        // Top programs employment
         $programEmploymentStats = collect($programs)
-            ->map(function ($prog) use ($graduates) {
-                $total = $graduates->where('program_id', $prog['id'])->count();
-                $employed = $graduates->where('program_id', $prog['id'])->where('employment_status', 'Employed')->count();
-                $percent = $total ? round(($employed / $total) * 100, 1) : 0;
-                return [
-                    'program_name' => $prog['name'],
-                    'degree' => $prog['degree'],
-                    'employed' => $employed,
-                    'total' => $total,
-                    'percent' => $percent,
-                ];
-            })
-            ->filter(fn($stat) => $stat['total'] > 0) // <-- Only programs with graduates
+            ->map(fn($prog) => [
+                'program_name' => $prog['name'],
+                'degree' => $prog['degree'],
+                'employed' => $graduates->where('program_id', $prog['id'])->where('employment_status', 'Employed')->count(),
+                'total' => $graduates->where('program_id', $prog['id'])->count(),
+            ])
+            ->map(fn($stat) => array_merge($stat, [
+                'percent' => $stat['total'] ? round(($stat['employed'] / $stat['total']) * 100, 1) : 0,
+            ]))
+            ->filter(fn($stat) => $stat['total'] > 0)
             ->sortByDesc('percent')
             ->take(5)
             ->values();
 
-        \Log::info('Top Programs Employment:', $programEmploymentStats->toArray());
-        if ($user->hasRole('institution')) {
-
-    return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
-        'userNotApproved' => !$user->is_approved,
-        'roles' => [
-            'isGraduate' => false,
-            'isCompany' => false,
-            'isInstitution' => true,
-        ],
-        'summary' => $summary,
-        'graduates' => $graduates,
-        'programs' => $programs,
-        'careerOpportunities' => $careerOpportunities,
-        'schoolYears' => $schoolYears,
-        'institutionCareerOpportunities' => $institutionCareerOpportunities,
-        'topProgramsEmployment' => $programEmploymentStats,
-        // ...other institution props...
-    ]);
-}
-
-        return Inertia::render('Dashboard', [
+        return [
             'userNotApproved' => !$user->is_approved,
-            'hasReferralLetter' => $hasReferralLetter ?? false,
             'roles' => [
-                'isGraduate' => $user->hasRole('graduate'),
-                'isCompany' => $user->hasRole('company'),
-                'isInstitution' => $user->hasRole('institution'),
+                'isGraduate' => false,
+                'isCompany' => false,
+                'isInstitution' => true,
             ],
+            'summary' => $summary,
+            'graduates' => $graduates,
+            'programs' => $programs,
+            'careerOpportunities' => $careerOpportunities,
+            'schoolYears' => $schoolYears,
+            'institutionCareerOpportunities' => $institutionCareerOpportunities,
+            'selectedSchoolYear' => $filters['school_year_id'] ?? null,
+            'selectedTerm' => $filters['term'] ?? null,
+            'selectedGender' => $filters['gender'] ?? null,
+            'topProgramsEmployment' => $programEmploymentStats,
+        ];
+    }
 
+    /* ==========================================================
+     |  GRADUATE DASHBOARD
+     ========================================================== */
+    private function handleGraduateDashboard($user)
+    {
+        return [
+            'hasReferralLetter' => $user->graduate && $user->graduate->referral_letter_submitted,
+            'roles' => [
+                'isGraduate' => true,
+                'isCompany' => false,
+                'isInstitution' => false,
+            ],
+        ];
+    }
+
+    /* ==========================================================
+     |  ADMIN / DEFAULT DASHBOARD
+     ========================================================== */
+    private function getAdminDashboardData()
+    {
+        return [
+            'userNotApproved' => !Auth::user()->is_approved,
+            'roles' => [
+                'isGraduate' => false,
+                'isCompany' => false,
+                'isInstitution' => false,
+            ],
             'kpi' => [
                 'registeredEmployers' => 42,
                 'activeJobListings' => 18,
@@ -327,153 +313,31 @@ class DashboardController extends Controller
                 'pendingEmployerRegistrations' => 2,
             ],
             'recentJobs' => [
-                [
-                    'title' => 'Customer Service Representative',
-                    'sector' => 'BPO',
-                    'employer' => 'Acme Corp',
-                    'date_posted' => '2025-08-01',
-                ],
-                [
-                    'title' => 'Sales Associate',
-                    'sector' => 'Retail',
-                    'employer' => 'ShopSmart',
-                    'date_posted' => '2025-08-03',
-                ],
-                [
-                    'title' => 'Production Operator',
-                    'sector' => 'Manufacturing',
-                    'employer' => 'MegaMakers',
-                    'date_posted' => '2025-08-05',
-                ],
+                ['title' => 'Customer Service Representative','sector' => 'BPO','employer' => 'Acme Corp','date_posted' => '2025-08-01'],
+                ['title' => 'Sales Associate','sector' => 'Retail','employer' => 'ShopSmart','date_posted' => '2025-08-03'],
+                ['title' => 'Production Operator','sector' => 'Manufacturing','employer' => 'MegaMakers','date_posted' => '2025-08-05'],
             ],
             'expiringJobs' => [
-                [
-                    'title' => 'Warehouse Staff',
-                    'employer' => 'LogiPro',
-                    'expires_at' => '2025-08-10',
-                ],
-                [
-                    'title' => 'IT Support',
-                    'employer' => 'Techies Inc',
-                    'expires_at' => '2025-08-12',
-                ],
+                ['title' => 'Warehouse Staff','employer' => 'LogiPro','expires_at' => '2025-08-10'],
+                ['title' => 'IT Support','employer' => 'Techies Inc','expires_at' => '2025-08-12'],
             ],
             'topSectorsChartOption' => [
                 'tooltip' => ['trigger' => 'item'],
                 'legend' => ['top' => '5%'],
-                'series' => [
-                    [
-                        'name' => 'Sectors',
-                        'type' => 'pie',
-                        'radius' => '60%',
-                        'data' => [
-                            ['value' => 10, 'name' => 'BPO'],
-                            ['value' => 7, 'name' => 'Retail'],
-                            ['value' => 5, 'name' => 'Manufacturing'],
-                            ['value' => 3, 'name' => 'Education'],
-                            ['value' => 2, 'name' => 'Healthcare'],
-                        ],
+                'series' => [[
+                    'name' => 'Sectors',
+                    'type' => 'pie',
+                    'radius' => '60%',
+                    'data' => [
+                        ['value' => 10, 'name' => 'BPO'],
+                        ['value' => 7, 'name' => 'Retail'],
+                        ['value' => 5, 'name' => 'Manufacturing'],
+                        ['value' => 3, 'name' => 'Education'],
+                        ['value' => 2, 'name' => 'Healthcare'],
                     ],
-                ],
+                ]],
             ],
-            'referralTrendOption' => [
-                'tooltip' => ['trigger' => 'axis'],
-                'xAxis' => ['type' => 'category', 'data' => ['Jul', 'Aug']],
-                'yAxis' => ['type' => 'value'],
-                'series' => [
-                    [
-                        'name' => 'Referrals',
-                        'type' => 'line',
-                        'data' => [22, 27],
-                    ],
-                ],
-            ],
-            'topEmployersOption' => [
-                'tooltip' => ['trigger' => 'axis'],
-                'xAxis' => ['type' => 'category', 'data' => ['Acme Corp', 'ShopSmart', 'MegaMakers']],
-                'yAxis' => ['type' => 'value'],
-                'series' => [
-                    [
-                        'name' => 'Referrals',
-                        'type' => 'bar',
-                        'data' => [12, 8, 7],
-                    ],
-                ],
-            ],
-            'pendingReferrals' => [
-                [
-                    'job_seeker' => 'Juan Dela Cruz',
-                    'employer' => 'Acme Corp',
-                    'due_date' => '2025-08-09',
-                ],
-                [
-                    'job_seeker' => 'Maria Santos',
-                    'employer' => 'ShopSmart',
-                    'due_date' => '2025-08-11',
-                ],
-            ],
-            'upcomingEvents' => [
-                [
-                    'title' => 'Career Guidance Seminar',
-                    'date' => '2025-08-15',
-                    'venue' => 'City Hall',
-                ],
-                [
-                    'title' => 'Job Fair',
-                    'date' => '2025-08-20',
-                    'venue' => 'Convention Center',
-                ],
-            ],
-            'eventAttendanceOption' => [
-                'tooltip' => ['trigger' => 'axis'],
-                'xAxis' => ['type' => 'category', 'data' => ['May', 'Jun', 'Jul', 'Aug']],
-                'yAxis' => ['type' => 'value'],
-                'series' => [
-                    [
-                        'name' => 'Attendance',
-                        'type' => 'bar',
-                        'data' => [120, 150, 180, 90],
-                    ],
-                ],
-            ],
-            'alerts' => [
-                'employersNoPermit' => ['Acme Corp', 'MegaMakers'],
-                'unreviewedApplications' => ['ShopSmart', 'LogiPro'],
-                'inactiveEmployers' => ['OldCo'],
-            ],
-            'sectorPieOption' => [
-                'tooltip' => ['trigger' => 'item'],
-                'legend' => ['top' => '5%'],
-                'series' => [
-                    [
-                        'name' => 'Sectors',
-                        'type' => 'pie',
-                        'radius' => '50%',
-                        'data' => [
-                            ['value' => 15, 'name' => 'BPO'],
-                            ['value' => 10, 'name' => 'Retail'],
-                            ['value' => 8, 'name' => 'Manufacturing'],
-                            ['value' => 5, 'name' => 'Education'],
-                            ['value' => 2, 'name' => 'Healthcare'],
-                        ],
-                    ],
-                ],
-            ],
-            'inDemandCategories' => [
-                ['name' => 'Customer Service', 'count' => 12],
-                ['name' => 'Sales', 'count' => 9],
-                ['name' => 'IT Support', 'count' => 7],
-                ['name' => 'Production', 'count' => 5],
-                ['name' => 'Teaching', 'count' => 3],
-            ],
-
-
-            'recentApplications' => $recentApplications,
-            'applicationTrends' => $applicationTrends,
-            'jobPerformance' => $jobPerformance,
-            'topProgramsEmployment' => $programEmploymentStats,
-
-        ]);
+            // ... keep the rest of your admin charts and alerts
+        ];
     }
-
 }

@@ -74,9 +74,18 @@ class CompanyProfileController extends Controller
 
     }
 
+   public function edit()
+    {
+        $user = Auth::user()->load('company');
+        return Inertia::render('Profile/Partials/UpdateCompanyProfileInformationForm', [
+            'user' => $user,
+            'company' => $user->company,
+        ]);
+    }
     public function update(Request $request)
     {
         $user = auth()->user();
+        $company = $user->company;
 
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:255'],
@@ -85,42 +94,52 @@ class CompanyProfileController extends Controller
             'company_city' => ['required', 'string', 'max:255'],
             'company_province' => ['required', 'string', 'max:255'],
             'company_zip_code' => ['required', 'string', 'max:4'],
-            'company_contact_number' => ['required', 'numeric','digits_between:10,15', 'regex:/^9\d{9}$/'],
+            'company_contact_number' => ['required', 'string', 'max:15'],
             'company_email' => ['required', 'string', 'email', 'max:255'],
-            'company_telephone_number' =>  ['nullable', 'regex:/^(02\d{7}|0\d{2}\d{7})$/'],
+            'telephone_number' => ['nullable', 'string', 'max:20'],
             'company_description' => ['nullable', 'string', 'max:1000'],
-            'profile_photo_path' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
-            'cover_photo_path' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
+            'cover_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $user->update($validated);
+        // Update company fields
+        if ($company) {
+            $company->company_name = $validated['company_name'];
+            $company->company_street_address = $validated['company_street_address'];
+            $company->company_brgy = $validated['company_brgy'];
+            $company->company_city = $validated['company_city'];
+            $company->company_province = $validated['company_province'];
+            $company->company_zip_code = $validated['company_zip_code'];
+            $company->company_email = $validated['company_email'];
+            $company->company_tel_phone = $validated['telephone_number'] ?? $company->company_tel_phone;
+            $company->company_description = $validated['company_description'] ?? $company->company_description;
+            $company->save();
+        }
 
-            // Handle profile photo upload if present
-        if ($request->hasFile('profile_photo')) {
-            // Delete old profile photo if it exists
+        // Update user fields
+        $user->company_contact_number = $validated['company_contact_number'];
+        $user->save();
+
+        // Handle profile photo upload if present
+        if ($request->hasFile('photo')) {
             if ($user->profile_photo_path) {
-                Storage::delete($user->profile_photo_path);
+                Storage::disk('public')->delete($user->profile_photo_path);
             }
-            // Store new profile photo
             $user->profile_photo_path = $request->file('photo')->store('profile-photos', 'public');
+            $user->save();
         }
 
         // Handle cover photo upload if present
         if ($request->hasFile('cover_photo')) {
-            // Delete old cover photo if it exists
             if ($user->cover_photo_path) {
-                Storage::delete($user->cover_photo_path);
+                Storage::disk('public')->delete($user->cover_photo_path);
             }
-            // Store new cover photo
             $user->cover_photo_path = $request->file('cover_photo')->store('cover-photos', 'public');
+            $user->save();
         }
-
-        $user->save();
 
         return back()->with('success', 'Company profile updated!');
     }
-
     public function destroyPhoto(Request $request)
     {
         $request->user()->deleteProfilePhoto();

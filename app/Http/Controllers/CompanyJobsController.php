@@ -53,8 +53,8 @@ class CompanyJobsController extends Controller
 
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
-            'sectors' => $sectors,
-            'categories' => $categories,
+            // 'sectors' => $sectors,
+            // 'categories' => $categories,
         ]);
     }
 
@@ -148,10 +148,14 @@ class CompanyJobsController extends Controller
             'job_description' => 'required|string|max:5000',
             'job_requirements' => 'required|string|max:5000',
             'job_deadline' => 'required|date|after:today',
-            'job_application_limit' => 'nullable|integer|min:1',
+            'job_application_limit' => [
+                'nullable',
+                'integer',
+                'min:' . ($request->job_vacancies ?? 1),
+            ],
             'skills' => 'required|array|min:1',
-            'sector' => 'required|exists:sectors,id',
-            'category' => 'required|exists:categories,id',
+            // 'sector' => 'required|exists:sectors,id',
+            // 'category' => 'required|exists:categories,id',
             'program_id' => 'required|array|min:1',
             'program_id.*' => 'exists:programs,id',
         ]);
@@ -399,8 +403,8 @@ class CompanyJobsController extends Controller
                 'work_environment' => 'required|exists:work_environments,id',
                 'program_id' => 'required|array',
                 'program_id.*' => 'exists:programs,id',
-                'category_id' => 'required|exists:categories,id',
-                'sector_id' => 'required|exists:sectors,id',
+                // 'category_id' => 'required|exists:categories,id',
+                // 'sector_id' => 'required|exists:sectors,id',
                 'job_experience_level' => 'required|string|max:255',
                 'status' => 'nullable|string|max:255',
                 'is_approved' => 'nullable|boolean',

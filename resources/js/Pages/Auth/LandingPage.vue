@@ -446,7 +446,7 @@ onUnmounted(() => {
                 </div>
             </header>
             <main class="min-h-screen flex flex-col items-center justify-center text-center px-4 z-20">
-               <!-- Hero Title with Neon Effects -->
+                <!-- Hero Title with Neon Effects -->
                 <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 neon-text animate-float">
                     Pathway
                 </h1>
@@ -461,9 +461,8 @@ onUnmounted(() => {
                     The premier platform connecting <span class="text-pink-300 neon-text">Filipino talent</span> with <span class="text-green-300 neon-text">global opportunities</span>.
                 </p>
 
-                
                 <!-- Primary and Secondary CTAs -->
-                <div class="flex flex-col sm:flex-row gap-6 mb-12">
+                <div class="flex flex-col sm:flex-row gap-6 mb-12 justify-center items-center">
                     <button 
                         @click="navigateToRegister"
                         class="px-10 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 focus:ring-offset-2 shadow-2xl animate-pulse-glow">
@@ -478,10 +477,9 @@ onUnmounted(() => {
                         Learn More
                     </button>
                 </div>
-                
+
                 <!-- Colorful Scroll Indicator -->
-                <div class="mt-auto mb-8 cursor-pointer animate-float" 
-                     @click="scrollToSection('about')">
+                <div class="cursor-pointer animate-float" @click="scrollToSection('about')">
                     <div class="flex flex-col items-center space-y-2 text-white/80 hover:text-white hover:neon-text transition-all duration-300">
                         <span class="text-sm font-semibold">Discover More</span>
                         <div class="w-8 h-8 gradient-feature rounded-full flex items-center justify-center animate-pulse-glow">
