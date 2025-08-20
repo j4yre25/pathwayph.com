@@ -27,7 +27,9 @@ onMounted(() => {
 
 // Dummy Data
 const kpi = computed(() => page.props.kpi ?? {});
-const recentJobs = computed(() => page.props.recentJobs ?? []);
+const recentJobs = page.props.recentJobs ?? [];
+
+console.log('Jobs', recentJobs)
 const expiringJobs = computed(() => page.props.expiringJobs ?? []);
 const topSectorsChartOption = computed(() => page.props.topSectorsChartOption ?? {});
 const referralTrendOption = computed(() => page.props.referralTrendOption ?? {});
@@ -41,33 +43,7 @@ const inDemandCategories = computed(() => page.props.inDemandCategories ?? []);
 
 
 
-const referralForm = useForm({
-    surname: "",
-    first_name: "",
-    middle_name: "",
-    suffix: "",
-    dob: "",
-    sex: "",
-    civil_status: "",
-    religion: "",
-    address: "",
-    contact: "",
-    email: "",
-    tin: "",
-    disability: "",
-    employment_status: "",
-    preferred_occupation: "",
-    preferred_location: "",
-    language: "",
-    educational_background: "",
-    training: "",
-    eligibility: "",
-    work_experience: "",
-    other_skills: "",
-    position: "",
-    company: "",
-    message: "",
-});
+
 
 const hasFilledReferral = ref(page.props.hasReferralLetter ?? false);
 
@@ -290,14 +266,14 @@ function submitReferral() {
                                 </tr>
                             </tbody>
                         </table>
-                        <div>
+                        <!-- <div>
                             <h5 class="font-semibold text-sm mb-1 text-gray-700">Expiring Soon</h5>
                             <ul class="space-y-1">
                                 <li v-for="job in expiringJobs" :key="job.title" class="text-sm text-red-700">
                                     {{ job.title }} <span class="text-xs text-gray-500">({{ job.expires_at }})</span>
                                 </li>
                             </ul>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-center">
                         <h4 class="font-semibold mb-3 text-gray-800">Top Hiring Sectors</h4>
@@ -314,16 +290,15 @@ function submitReferral() {
                         <VueECharts :option="referralTrendOption" style="height: 200px;" />
                     </div>
                     <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="font-semibold mb-3 text-gray-800">Top Employers Receiving Referrals</h4>
-                        <VueECharts :option="topEmployersOption" style="height: 200px;" />
-                        <h5 class="font-semibold text-sm mt-4 mb-1 text-gray-700">Pending Referrals</h5>
-                        <ul class="space-y-1">
+                        <h4 class="font-semibold mb-3 text-gray-800">Top Employers</h4>
+                        <!-- <h5 class="font-semibold text-sm mt-4 mb-1 text-gray-700">Pending Referrals</h5> -->
+                        <!-- <ul class="space-y-1">
                             <li v-for="r in pendingReferrals" :key="r.job_seeker" class="text-sm">
                                 {{ r.job_seeker }} - {{ r.employer }} <span class="text-xs text-gray-500">(Due: {{
                                     r.due_date
                                     }})</span>
                             </li>
-                        </ul>
+                        </ul> -->
                     </div>
                 </div>
             </div>
@@ -331,7 +306,7 @@ function submitReferral() {
             <!-- Career Guidance & Events -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-lg shadow p-6">
+                    <!-- <div class="bg-white rounded-lg shadow p-6">
                         <h4 class="font-semibold mb-3 text-gray-800">Upcoming Events</h4>
                         <ul class="space-y-1">
                             <li v-for="e in upcomingEvents" :key="e.title" class="text-sm">
@@ -342,25 +317,11 @@ function submitReferral() {
                     <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-center">
                         <h4 class="font-semibold mb-3 text-gray-800">Event Attendance Trends</h4>
                         <VueECharts :option="eventAttendanceOption" style="height: 200px;" />
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
-            <!-- Compliance Alerts -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Reports & Compliance Alerts</h2>
-                <ul class="list-disc ml-6 text-sm space-y-1">
-                    <li v-if="alerts.employersNoPermit.length" class="text-red-700">Employers without updated Mayor’s
-                        Permit
-                    </li>
-                    <li v-if="alerts.unreviewedApplications.length" class="text-yellow-700">Unreviewed Employer
-                        Applications
-                    </li>
-                    <li v-if="alerts.inactiveEmployers.length" class="text-gray-700">Inactive Employers (no postings in
-                        last 6
-                        months)</li>
-                </ul>
-            </div>
+    
 
             <!-- Sector & Category Insights -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
@@ -382,23 +343,7 @@ function submitReferral() {
             </div>
 
             <!-- Quick Actions -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                <div class="flex flex-wrap gap-4">
-                    <button
-                        class="rounded-md px-6 py-2 bg-blue-600 text-white shadow hover:bg-blue-700 transition font-semibold">
-                        Add New Job Post
-                    </button>
-                    <button
-                        class="rounded-md px-6 py-2 bg-gray-600 text-white shadow hover:bg-gray-700 transition font-semibold">
-                        Register Employer
-                    </button>
-                    <button
-                        class="rounded-md px-6 py-2 bg-green-600 text-white shadow hover:bg-green-700 transition font-semibold">
-                        Generate Report
-                    </button>
-                </div>
-            </div>
+            
         </div>
 
 

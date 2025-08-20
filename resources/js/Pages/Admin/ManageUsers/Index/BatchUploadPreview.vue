@@ -198,6 +198,7 @@ async function handleUpload() {
           </button>
         </div>
       </div>
+    </div>
     </Container>
   </AppLayout>
 </template>

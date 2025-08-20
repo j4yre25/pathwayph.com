@@ -334,11 +334,11 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Job Referrals
                                 </NavLink>
 
-                                <NavLink :href="route('peso.career-guidance')"
+                                <!-- <NavLink :href="route('peso.career-guidance')"
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('peso.career-guidance')">
                                     Manage Career Guidance
-                                </NavLink>
+                                </NavLink> -->
 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('peso.reports.index', { user: page.props.auth.user.id })"

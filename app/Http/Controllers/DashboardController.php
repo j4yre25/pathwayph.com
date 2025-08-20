@@ -57,7 +57,7 @@ class DashboardController extends Controller
                 ->where('status', 'open');
 
             $applicationsQuery = \App\Models\JobApplication::whereHas('job', fn($q) =>
-                $q->where('company_id', $company->id));
+            $q->where('company_id', $company->id));
 
             $statusCounts = [
                 'pending' => $applicationsQuery->clone()->where('status', 'pending')->count(),
@@ -106,7 +106,7 @@ class DashboardController extends Controller
             $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             $monthlyCounts = array_fill(1, 12, 0);
             $monthlyData = \App\Models\JobApplication::whereHas('job', fn($q) =>
-                    $q->where('company_id', $company->id))
+            $q->where('company_id', $company->id))
                 ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
                 ->whereYear('created_at', date('Y'))
                 ->groupBy('month')
@@ -157,7 +157,7 @@ class DashboardController extends Controller
                 // Graduates
                 $graduates = Graduate::where('institution_id', $institutionId)
                     ->when($filterSchoolYear, fn($q) => $q->where('school_year_id', $filterSchoolYear))
-                    ->when($filterTerm, function($q) use ($filterTerm) {
+                    ->when($filterTerm, function ($q) use ($filterTerm) {
                         $q->whereHas('schoolYear', fn($sq) => $sq->where('term', $filterTerm));
                     })
                     ->when($filterGender, fn($q) => $q->where('gender', $filterGender))
@@ -290,23 +290,50 @@ class DashboardController extends Controller
         \Log::info('Top Programs Employment:', $programEmploymentStats->toArray());
         if ($user->hasRole('institution')) {
 
-    return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
-        'userNotApproved' => !$user->is_approved,
-        'roles' => [
-            'isGraduate' => false,
-            'isCompany' => false,
-            'isInstitution' => true,
-        ],
-        'summary' => $summary,
-        'graduates' => $graduates,
-        'programs' => $programs,
-        'careerOpportunities' => $careerOpportunities,
-        'schoolYears' => $schoolYears,
-        'institutionCareerOpportunities' => $institutionCareerOpportunities,
-        'topProgramsEmployment' => $programEmploymentStats,
-        // ...other institution props...
-    ]);
-}
+            return Inertia::render('Institutions/Dashboard/InstitutionDashboard', [
+                'userNotApproved' => !$user->is_approved,
+                'roles' => [
+                    'isGraduate' => false,
+                    'isCompany' => false,
+                    'isInstitution' => true,
+                ],
+                'summary' => $summary,
+                'graduates' => $graduates,
+                'programs' => $programs,
+                'careerOpportunities' => $careerOpportunities,
+                'schoolYears' => $schoolYears,
+                'institutionCareerOpportunities' => $institutionCareerOpportunities,
+                'topProgramsEmployment' => $programEmploymentStats,
+                // ...other institution props...
+            ]);
+        }
+        $registeredEmployers = \App\Models\User::where('role', 'company')
+            ->whereHas('company')
+            ->count();
+
+        $registeredJobSeekers = \App\Models\User::where('role', 'graduate')
+            ->whereHas('graduate')
+            ->count();
+
+        $activeJobListings = \App\Models\Job::where('status', 'active')->count();
+
+
+        $recentJobs = Job::where('status', 'active')
+            ->with(['company', 'sector', 'category']) // Use correct relationships
+            ->orderBy('created_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'title' => $job->job_title,
+                    'sector' => $job->sector ? $job->sector->name : '-', // sector() relationship
+                    'category' => $job->category ? $job->category->name : '-', // category() relationship
+                    'employer' => $job->company ? $job->company->company_name : '-', // company() relationship
+                    'location' => $job->locations->pluck('name')->join(', ') ?: '-',
+                    'date_posted' => $job->created_at->format('Y-m-d'),
+                ];
+            });
+
 
         return Inertia::render('Dashboard', [
             'userNotApproved' => !$user->is_approved,
@@ -318,64 +345,16 @@ class DashboardController extends Controller
             ],
 
             'kpi' => [
-                'registeredEmployers' => 42,
-                'activeJobListings' => 18,
-                'registeredJobSeekers' => 350,
-                'referralsThisMonth' => 27,
-                'successfulPlacements' => 12,
-                'upcomingCareerGuidance' => 3,
-                'pendingEmployerRegistrations' => 2,
+                'registeredEmployers' => $registeredEmployers,
+                'activeJobListings' => $activeJobListings,
+                'registeredJobSeekers' => $registeredJobSeekers,
+                'referralsThisMonth' => 0,
+                'successfulPlacements' => 0,
+                'upcomingCareerGuidance' => 0,
+                'pendingEmployerRegistrations' => 0,
             ],
-            'recentJobs' => [
-                [
-                    'title' => 'Customer Service Representative',
-                    'sector' => 'BPO',
-                    'employer' => 'Acme Corp',
-                    'date_posted' => '2025-08-01',
-                ],
-                [
-                    'title' => 'Sales Associate',
-                    'sector' => 'Retail',
-                    'employer' => 'ShopSmart',
-                    'date_posted' => '2025-08-03',
-                ],
-                [
-                    'title' => 'Production Operator',
-                    'sector' => 'Manufacturing',
-                    'employer' => 'MegaMakers',
-                    'date_posted' => '2025-08-05',
-                ],
-            ],
-            'expiringJobs' => [
-                [
-                    'title' => 'Warehouse Staff',
-                    'employer' => 'LogiPro',
-                    'expires_at' => '2025-08-10',
-                ],
-                [
-                    'title' => 'IT Support',
-                    'employer' => 'Techies Inc',
-                    'expires_at' => '2025-08-12',
-                ],
-            ],
-            'topSectorsChartOption' => [
-                'tooltip' => ['trigger' => 'item'],
-                'legend' => ['top' => '5%'],
-                'series' => [
-                    [
-                        'name' => 'Sectors',
-                        'type' => 'pie',
-                        'radius' => '60%',
-                        'data' => [
-                            ['value' => 10, 'name' => 'BPO'],
-                            ['value' => 7, 'name' => 'Retail'],
-                            ['value' => 5, 'name' => 'Manufacturing'],
-                            ['value' => 3, 'name' => 'Education'],
-                            ['value' => 2, 'name' => 'Healthcare'],
-                        ],
-                    ],
-                ],
-            ],
+            'recentJobs' => $recentJobs,
+
             'referralTrendOption' => [
                 'tooltip' => ['trigger' => 'axis'],
                 'xAxis' => ['type' => 'category', 'data' => ['Jul', 'Aug']],
@@ -475,5 +454,4 @@ class DashboardController extends Controller
 
         ]);
     }
-
 }
