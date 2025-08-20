@@ -24,6 +24,7 @@ class DashboardController extends Controller
 
         // ✅ Role: Company
         if ($user->hasRole('company')) {
+
             if (!$user->company || !$user->has_completed_information) {
                 return redirect()->route('company.information');
             }
@@ -34,6 +35,7 @@ class DashboardController extends Controller
 
         // ✅ Role: Institution
         if ($user->hasRole('institution')) {
+
             if (!$user->institution) {
                 return redirect()->route('institution.information');
             }
@@ -255,8 +257,37 @@ class DashboardController extends Controller
             ->sortByDesc('percent')
             ->take(5)
             ->values();
+      
+        $registeredEmployers = \App\Models\User::where('role', 'company')
+            ->whereHas('company')
+            ->count();
 
-        return [
+        $registeredJobSeekers = \App\Models\User::where('role', 'graduate')
+            ->whereHas('graduate')
+            ->count();
+
+        $activeJobListings = \App\Models\Job::where('status', 'active')->count();
+
+
+        $recentJobs = Job::where('status', 'active')
+            ->with(['company', 'sector', 'category', 'locations']) // Use correct relationships
+            ->orderBy('created_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'title' => $job->job_title,
+                    'sector' => $job->sector ? $job->sector->name : '-', // sector() relationship
+                    'category' => $job->category ? $job->category->name : '-', // category() relationship
+                    'employer' => $job->company ? $job->company->company_name : '-', // company() relationship
+                    'location' => $job->locations->pluck('name')->join(', ') ?: '-',
+                    'date_posted' => $job->created_at->format('Y-m-d'),
+                ];
+            });
+
+
+        return Inertia::render('Dashboard', [
+
             'userNotApproved' => !$user->is_approved,
             'roles' => [
                 'isGraduate' => false,
@@ -273,7 +304,7 @@ class DashboardController extends Controller
             'selectedTerm' => $filters['term'] ?? null,
             'selectedGender' => $filters['gender'] ?? null,
             'topProgramsEmployment' => $programEmploymentStats,
-        ];
+        ]);
     }
 
     /* ==========================================================
@@ -294,50 +325,98 @@ class DashboardController extends Controller
     /* ==========================================================
      |  ADMIN / DEFAULT DASHBOARD
      ========================================================== */
-    private function getAdminDashboardData()
-    {
-        return [
-            'userNotApproved' => !Auth::user()->is_approved,
-            'roles' => [
-                'isGraduate' => false,
-                'isCompany' => false,
-                'isInstitution' => false,
+
+private function getAdminDashboardData()
+{
+    // KPIs
+    $registeredEmployers = \App\Models\User::where('role', 'company')
+        ->whereHas('company')
+        ->count();
+
+    $registeredJobSeekers = \App\Models\User::where('role', 'graduate')
+        ->whereHas('graduate')
+        ->count();
+
+    $activeJobListings = \App\Models\Job::where('status', 'active')->count();
+
+    $recentJobs = Job::where('status', 'active')
+        ->with(['company', 'sector', 'category', 'locations'])
+        ->orderBy('created_at', 'desc')
+        ->take(3)
+        ->get()
+        ->map(function ($job) {
+            return [
+                'title' => $job->job_title,
+                'sector' => $job->sector ? $job->sector->name : '-',
+                'category' => $job->category ? $job->category->name : '-',
+                'employer' => $job->company ? $job->company->company_name : '-',
+                'location' => $job->locations->pluck('name')->join(', ') ?: '-',
+                'date_posted' => $job->created_at->format('Y-m-d'),
+            ];
+        });
+
+    return [
+        'userNotApproved' => !Auth::user()->is_approved,
+        'roles' => [
+            'isGraduate' => false,
+            'isCompany' => false,
+            'isInstitution' => false,
+        ],
+        'kpi' => [
+            'registeredEmployers' => $registeredEmployers,
+            'activeJobListings' => $activeJobListings,
+            'registeredJobSeekers' => $registeredJobSeekers,
+            'referralsThisMonth' => 0,
+            'successfulPlacements' => 0,
+            'upcomingCareerGuidance' => 0,
+            'pendingEmployerRegistrations' => 0,
+        ],
+        'recentJobs' => $recentJobs,
+        'referralTrendOption' => [
+            'tooltip' => ['trigger' => 'axis'],
+            'xAxis' => ['type' => 'category', 'data' => ['Jul', 'Aug']],
+            'yAxis' => ['type' => 'value'],
+            'series' => [
+                [
+                    'name' => 'Referrals',
+                    'type' => 'line',
+                    'data' => [22, 27],
+                ],
             ],
-            'kpi' => [
-                'registeredEmployers' => 42,
-                'activeJobListings' => 18,
-                'registeredJobSeekers' => 350,
-                'referralsThisMonth' => 27,
-                'successfulPlacements' => 12,
-                'upcomingCareerGuidance' => 3,
-                'pendingEmployerRegistrations' => 2,
+        ],
+        'topEmployersOption' => [
+            'tooltip' => ['trigger' => 'axis'],
+            'xAxis' => ['type' => 'category', 'data' => ['Acme Corp', 'ShopSmart', 'MegaMakers']],
+            'yAxis' => ['type' => 'value'],
+            'series' => [
+                [
+                    'name' => 'Referrals',
+                    'type' => 'bar',
+                    'data' => [12, 8, 7],
+                ],
             ],
-            'recentJobs' => [
-                ['title' => 'Customer Service Representative','sector' => 'BPO','employer' => 'Acme Corp','date_posted' => '2025-08-01'],
-                ['title' => 'Sales Associate','sector' => 'Retail','employer' => 'ShopSmart','date_posted' => '2025-08-03'],
-                ['title' => 'Production Operator','sector' => 'Manufacturing','employer' => 'MegaMakers','date_posted' => '2025-08-05'],
-            ],
-            'expiringJobs' => [
-                ['title' => 'Warehouse Staff','employer' => 'LogiPro','expires_at' => '2025-08-10'],
-                ['title' => 'IT Support','employer' => 'Techies Inc','expires_at' => '2025-08-12'],
-            ],
-            'topSectorsChartOption' => [
-                'tooltip' => ['trigger' => 'item'],
-                'legend' => ['top' => '5%'],
-                'series' => [[
-                    'name' => 'Sectors',
-                    'type' => 'pie',
-                    'radius' => '60%',
-                    'data' => [
-                        ['value' => 10, 'name' => 'BPO'],
-                        ['value' => 7, 'name' => 'Retail'],
-                        ['value' => 5, 'name' => 'Manufacturing'],
-                        ['value' => 3, 'name' => 'Education'],
-                        ['value' => 2, 'name' => 'Healthcare'],
-                    ],
-                ]],
-            ],
-            // ... keep the rest of your admin charts and alerts
-        ];
-    }
+        ],
+        'expiringJobs' => [
+            ['title' => 'Warehouse Staff','employer' => 'LogiPro','expires_at' => '2025-08-10'],
+            ['title' => 'IT Support','employer' => 'Techies Inc','expires_at' => '2025-08-12'],
+        ],
+        'topSectorsChartOption' => [
+            'tooltip' => ['trigger' => 'item'],
+            'legend' => ['top' => '5%'],
+            'series' => [[
+                'name' => 'Sectors',
+                'type' => 'pie',
+                'radius' => '60%',
+                'data' => [
+                    ['value' => 10, 'name' => 'BPO'],
+                    ['value' => 7, 'name' => 'Retail'],
+                    ['value' => 5, 'name' => 'Manufacturing'],
+                    ['value' => 3, 'name' => 'Education'],
+                    ['value' => 2, 'name' => 'Healthcare'],
+                ],
+            ]],
+        ],
+        // ... keep the rest of your admin charts and alerts
+    ];
+}
 }
