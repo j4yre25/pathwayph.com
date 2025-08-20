@@ -8,7 +8,9 @@ const page = usePage();
 const userId = page.props.auth.user.id;
 
 const props = defineProps({
-  careerOpportunities: Array,
+  opportunities: Array,
+  programs: Array,
+  status: String,
 });
 
 const searchQuery = ref('');
@@ -20,7 +22,7 @@ const itemsPerPage = 10;
 
 // Computed property for filtering career opportunities
 const filteredOpportunities = computed(() => {
-  let filtered = props.careerOpportunities;
+  let filtered = props.opportunities;
   
   // Filter by status
   if (selectedStatus.value !== 'all') {
@@ -55,9 +57,9 @@ const totalPages = computed(() => {
 
 // Stats for cards
 const stats = computed(() => {
-  const total = props.careerOpportunities.length;
-  const active = props.careerOpportunities.filter(opportunity => !opportunity.deleted_at).length;
-  const archived = props.careerOpportunities.filter(opportunity => opportunity.deleted_at).length;
+  const total = props.opportunities.length;
+  const active = props.opportunities.filter(opportunity => !opportunity.deleted_at).length;
+  const archived = props.opportunities.filter(opportunity => opportunity.deleted_at).length;
   
   return { total, active, archived };
 });

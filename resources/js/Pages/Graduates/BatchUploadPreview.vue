@@ -57,7 +57,7 @@ function handleFileUpload(e) {
 
         // Normalize term (case-insensitive, allow string or number)
         let inputTerm = (row.term || '').toString().trim();
-        let normalizedTerm = inputTerm.toLowerCase() === 'off-semester' ? 'off-semester' : inputTerm;
+        let normalizedTerm = inputTerm.toLowerCase() === 'summer' ? 'summer' : inputTerm;
 
         return {
           email: row.email || '',
