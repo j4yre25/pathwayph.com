@@ -24,6 +24,7 @@ class DashboardController extends Controller
 
         // ✅ Role: Company
         if ($user->hasRole('company')) {
+
             if (!$user->company || !$user->has_completed_information) {
                 return redirect()->route('company.information');
             }
@@ -34,6 +35,7 @@ class DashboardController extends Controller
 
         // ✅ Role: Institution
         if ($user->hasRole('institution')) {
+
             if (!$user->institution) {
                 return redirect()->route('institution.information');
             }
@@ -256,7 +258,38 @@ class DashboardController extends Controller
             ->take(5)
             ->values();
 
-        return [
+]
+      
+        $registeredEmployers = \App\Models\User::where('role', 'company')
+            ->whereHas('company')
+            ->count();
+
+        $registeredJobSeekers = \App\Models\User::where('role', 'graduate')
+            ->whereHas('graduate')
+            ->count();
+
+        $activeJobListings = \App\Models\Job::where('status', 'active')->count();
+
+
+        $recentJobs = Job::where('status', 'active')
+            ->with(['company', 'sector', 'category']) // Use correct relationships
+            ->orderBy('created_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'title' => $job->job_title,
+                    'sector' => $job->sector ? $job->sector->name : '-', // sector() relationship
+                    'category' => $job->category ? $job->category->name : '-', // category() relationship
+                    'employer' => $job->company ? $job->company->company_name : '-', // company() relationship
+                    'location' => $job->locations->pluck('name')->join(', ') ?: '-',
+                    'date_posted' => $job->created_at->format('Y-m-d'),
+                ];
+            });
+
+
+        return Inertia::render('Dashboard', [
+]
             'userNotApproved' => !$user->is_approved,
             'roles' => [
                 'isGraduate' => false,
@@ -304,6 +337,37 @@ class DashboardController extends Controller
                 'isInstitution' => false,
             ],
             'kpi' => [
+                'registeredEmployers' => $registeredEmployers,
+                'activeJobListings' => $activeJobListings,
+                'registeredJobSeekers' => $registeredJobSeekers,
+                'referralsThisMonth' => 0,
+                'successfulPlacements' => 0,
+                'upcomingCareerGuidance' => 0,
+                'pendingEmployerRegistrations' => 0,
+            ],
+            'recentJobs' => $recentJobs,
+
+            'referralTrendOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['Jul', 'Aug']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Referrals',
+                        'type' => 'line',
+                        'data' => [22, 27],
+                    ],
+                ],
+            ],
+            'topEmployersOption' => [
+                'tooltip' => ['trigger' => 'axis'],
+                'xAxis' => ['type' => 'category', 'data' => ['Acme Corp', 'ShopSmart', 'MegaMakers']],
+                'yAxis' => ['type' => 'value'],
+                'series' => [
+                    [
+                        'name' => 'Referrals',
+                        'type' => 'bar',
+                        'data' => [12, 8, 7],
                 'registeredEmployers' => 42,
                 'activeJobListings' => 18,
                 'registeredJobSeekers' => 350,
