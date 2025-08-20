@@ -13,6 +13,7 @@ import RichTextEditor from '@/Components/RichTextEditor.vue';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import '@fortawesome/fontawesome-free/css/all.css';
+import Modal from '@/Components/Modal.vue';
 import { useSectorCategories } from '@/Composables/useSectorCategories';
 import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
 import { useSalaryValidation } from '@/Composables/useSalaryValidation';
@@ -23,7 +24,7 @@ const page = usePage()
 
 const props = defineProps({
     jobs: Array,
-    sectors: Array,
+    // sectors: Array,
     categories: Array,
     programs: Array,
     authUser: Object,
@@ -32,11 +33,6 @@ const props = defineProps({
 })
 
 const programs = props.programs;
-
-console.log('User ID:', page.props);
-console.log('Programs:', programs);
-console.log('Auth User:', props.authUser);
-console.log('Fullname:', props.authUser.hr.full_name);
 
 const postedBy = computed(() => {
     return props.authUser?.hr?.full_name ?? props.authUser?.name ?? '';
@@ -83,8 +79,8 @@ const form = useForm({
     job_experience_level: '',
     job_description: '',
     skills: [],
-    sector: '',
-    category: '',
+    // sector: '',
+    // category: '',
     job_requirements: '',
     job_application_limit: '',
     job_deadline: '',
@@ -138,20 +134,46 @@ const goToNextStep = () => {
 const expirationDate = ref(null)
 const today = new Date()
 
-const { availableCategories } = useSectorCategories(form, props.sectors);
+//Validation for vacancies and application limit
+watch(() => form.job_vacancies, (vacancies) => {
+    if (form.job_application_limit && Number(form.job_application_limit) < Number(vacancies)) {
+        form.job_application_limit = vacancies;
+    }
+});
+
+// const { availableCategories } = useSectorCategories(form, props.sectors);
 const { validateLocation } = useWorkEnvironmentValidation(form);
 const { salaryError, salaryWarning, validateSalary } = useSalaryValidation(form);
-const { newSkill, isFocused, filteredSkills, addSkill, removeSkill, selectSuggestion } = useSkills(form, props.skills);
+const { newSkill, showSuggestions, filteredSkills, addSkill, removeSkill, selectSuggestion, filterSuggestions } = useSkills(form, props.skills);
 
-const extractProgramIds = () => {
-    // Extract only the ids from the selected programs
-    form.program_id = form.program_id.map(program => program.id);
-};
+const showMissingFieldsModal = ref(false);
+const missingFields = ref([]);
 
-console.log('Department:', form.department_id)
+function getMissingFields() {
+    const fields = [];
+    if (!form.job_title) fields.push('Job Title');
+    if (!form.program_id || form.program_id.length === 0) fields.push('Program');
+    if (!form.job_type) fields.push('Job Type');
+    if (!form.job_experience_level) fields.push('Experience Level');
+    if (!form.job_vacancies) fields.push('Number of Vacancies');
+    if (!form.work_environment) fields.push('Work Environment');
+    if (!form.department_id) fields.push('Department');
+    if (form.work_environment != 2 && !form.location) fields.push('Job Location');
+    if (!form.salary.salary_type) fields.push('Salary Type');
+    if (!form.is_negotiable && (!form.salary.job_min_salary || !form.salary.job_max_salary)) fields.push('Salary Range');
+    if (!form.job_description) fields.push('Job Description');
+    if (!form.job_requirements) fields.push('Job Requirements');
+    if (!form.posted_by) fields.push('Posted By');
+    if (!form.job_deadline) fields.push('Application Deadline');
+    return fields;
+}
 
 const createJob = () => {
-    console.log('Form data:', form);
+    missingFields.value = getMissingFields();
+    if (missingFields.value.length > 0) {
+        showMissingFieldsModal.value = true;
+        return;
+    }
 
     form.program_id = form.program_id.map(program => program.id ?? program);
 
@@ -194,7 +216,22 @@ const createJob = () => {
             </div>
         </template>
         
-        
+        <!-- Modal for missing required fields -->
+        <Modal :show="showMissingFieldsModal" @close="showMissingFieldsModal = false">
+            <template #title>
+                Missing Required Fields
+            </template>
+            <template #content>
+                <p class="mb-2 text-red-600">Please fill in the following required fields:</p>
+                <ul class="list-disc pl-5">
+                    <li v-for="field in missingFields" :key="field" class="text-gray-700">{{ field }}</li>
+                </ul>
+            </template>
+            <template #footer>
+                <PrimaryButton @click="showMissingFieldsModal = false">Close</PrimaryButton>
+            </template>
+        </Modal>
+
         <Container class="py-15">
             <div class="mt-8">
                 <Link
@@ -206,7 +243,7 @@ const createJob = () => {
                 </Link>
             </div>
             <div>
-                <FormSection @submitted="createJob()">
+                <FormSection @submitted="createJob">
                     <template #form>
                         <!-- Progress Tabs -->
                         <div class="flex justify-center mb-8 border-b">
@@ -243,7 +280,9 @@ const createJob = () => {
                             <div>
                                 <!-- Job Title -->
                                 <div>
-                                    <InputLabel for="job_title" value="Job Title" />
+                                    <InputLabel for="job_title">
+                                        Job Title <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <TextInput id="job_title" type="text" class="mt-1 block w-full"
                                         v-model="form.job_title" required autofocus />
                                     <InputError class="mt-2" :message="form.errors.job_title" />
@@ -255,7 +294,9 @@ const createJob = () => {
 
                                 <!-- Program Selection -->
                                 <div>
-                                    <InputLabel for="program_id" value="Program" />
+                                    <InputLabel for="program_id">
+                                        Program <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <MultiSelect id="program_id" class="mt-1 block w-full" v-model="form.program_id"
                                         :options="props.programs" label="name" track-by="id" :searchable="true"
                                         :multiple="true" placeholder="Select programs" />
@@ -264,7 +305,9 @@ const createJob = () => {
 
                                 <!-- Job Type -->
                                 <div>
-                                    <InputLabel for="job_type" value="Job Type" />
+                                    <InputLabel for="job_type">
+                                        Job Type <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <select id="job_type"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.job_type" required>
@@ -278,7 +321,9 @@ const createJob = () => {
 
                                 <!-- Experience Level -->
                                 <div>
-                                    <InputLabel for="job_experience_level" value="Experience Level" />
+                                    <InputLabel for="job_experience_level">
+                                        Experience Level <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <select id="job_experience_level"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.job_experience_level" required>
@@ -293,43 +338,19 @@ const createJob = () => {
 
                                 <!-- Number of Vacancies -->
                                 <div>
-                                    <InputLabel for="job_vacancies" value="Number of Vacancies" />
+                                    <InputLabel for="job_vacancies">
+                                        Number of Vacancies <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <TextInput id="job_vacancies" type="number" class="mt-1 block w-full"
                                         v-model="form.job_vacancies" required min="1" />
                                     <InputError class="mt-2" :message="form.errors.job_vacancies" />
                                 </div>
 
-                                <!-- Sector -->
-                                <div>
-                                    <InputLabel for="sector" value="Sector" />
-                                    <select id="sector" class="mt-1 block w-full border-gray-300 rounded-md"
-                                        v-model="form.sector" required>
-                                        <option value="">Select Sector</option>
-                                        <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
-                                            {{ sector.name }}
-                                        </option>
-                                    </select>
-                                    <InputError class="mt-2" :message="form.errors.sector" />
-                                </div>
-
-                                <!-- Category -->
-                                <div>
-                                    <InputLabel for="category" value="Category" />
-                                    <select id="category" class="mt-1 block w-full border-gray-300 rounded-md"
-                                        v-model="form.category" required :disabled="!form.sector">
-                                        <option value="">Select Category</option>
-                                        <option v-for="category in availableCategories" :key="category.id"
-                                            :value="category.id">
-                                            {{ category.name }}
-                                        </option>
-                                    </select>
-                                    <InputError class="mt-2" :message="form.errors.category" />
-                                </div>
-
-
                                 <!-- Work Environment -->
                                 <div>
-                                    <InputLabel for="work_environment" value="Work Environment" />
+                                    <InputLabel for="work_environment">
+                                        Work Environment <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <select id="work_environment"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.work_environment" required>
@@ -342,7 +363,9 @@ const createJob = () => {
                                 </div>
 
                                 <div v-if="props.departments && props.departments.length">
-                                    <InputLabel for="department_id" value="Department" />
+                                    <InputLabel for="department_id">
+                                        Department <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <select id="department_id"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.department_id" required>
@@ -357,7 +380,9 @@ const createJob = () => {
                             </div>
                             <!-- Job Location (disabled if Remote is selected) -->
                             <div>
-                                <InputLabel for="location" value="Job Location" />
+                                <InputLabel for="location">
+                                    Job Location <span class="text-pink-500" v-if="form.work_environment != 2">*</span>
+                                </InputLabel>
                                 <TextInput id="location" type="text" class="mt-1 block w-full"
                                     v-model="form.location" :disabled="form.work_environment == 2"
                                     :required="form.work_environment != 2"
@@ -378,7 +403,9 @@ const createJob = () => {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <!-- Salary Type -->
                                 <div>
-                                    <InputLabel for="job_salary_type" value="Salary Type" />
+                                    <InputLabel for="job_salary_type">
+                                        Salary Type <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <select id="salary_type"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         v-model="form.salary.salary_type" @change="validateSalary">
@@ -402,7 +429,9 @@ const createJob = () => {
 
                                 <!-- Minimum Salary -->
                                 <div>
-                                    <InputLabel for="job_min_salary" value="Minimum Salary" />
+                                    <InputLabel for="job_min_salary">
+                                        Minimum Salary <span class="text-pink-500" v-if="!form.is_negotiable">*</span>
+                                    </InputLabel>
                                     <div class="relative mt-1">
                                         <div
                                             class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -416,7 +445,9 @@ const createJob = () => {
 
                                 <!-- Maximum Salary -->
                                 <div>
-                                    <InputLabel for="job_max_salary" value="Maximum Salary" />
+                                    <InputLabel for="job_max_salary">
+                                        Maximum Salary <span class="text-pink-500" v-if="!form.is_negotiable">*</span>
+                                    </InputLabel>
                                     <div class="relative mt-1">
                                         <div
                                             class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -429,12 +460,9 @@ const createJob = () => {
                                 </div>
                             </div>
 
-                            <!-- Salary Error Message -->
                             <div v-if="salaryError" class="text-red-500 text-sm">
                                 {{ salaryError }}
                             </div>
-
-                            <!-- Optional Salary Warning Message -->
                             <div v-if="salaryWarning" class="text-yellow-600 text-sm">
                                 {{ salaryWarning }}
                             </div>
@@ -454,7 +482,9 @@ const createJob = () => {
                         <div v-if="currentStep === 'description'" class="space-y-6">
                             <!-- Job Description -->
                             <div>
-                                <InputLabel for="job_description" value="Job Description" />
+                                <InputLabel for="job_description">
+                                    Job Description <span class="text-pink-500">*</span>
+                                </InputLabel>
                                 <RichTextEditor id="job_description" v-model="form.job_description"
                                     class="mt-1 block w-full" placeholder="Enter job description" />
                                 <p class="mt-1 text-xs text-gray-500">Provide a detailed description of the job
@@ -464,7 +494,9 @@ const createJob = () => {
 
                             <!-- Job Requirements -->
                             <div>
-                                <InputLabel for="job_requirements" value="Job Requirements" />
+                                <InputLabel for="job_requirements">
+                                    Job Requirements <span class="text-pink-500">*</span>
+                                </InputLabel>
                                 <RichTextEditor id="job_requirements" v-model="form.job_requirements"
                                     class="mt-1 block w-full" placeholder="Enter job requirements" />
                                 <p class="mt-1 text-xs text-gray-500">List the qualifications, skills, and experience
@@ -474,10 +506,10 @@ const createJob = () => {
 
                             <!-- Skills -->
                             <div>
-                                <InputLabel for="skills" value="Skills" />
-
+                                <InputLabel for="skills">
+                                    Skills  <span class="text-pink-500">*</span>
+                                </InputLabel>
                                 <div class="relative">
-                                    <!-- Input Field -->
                                     <div class="flex mt-1">
                                         <TextInput id="skills" type="text" class="block w-full" v-model="newSkill"
                                             placeholder="Enter a skill" @input="filterSuggestions"
@@ -486,8 +518,6 @@ const createJob = () => {
                                             Add
                                         </PrimaryButton>
                                     </div>
-
-                                    <!-- Suggestions Dropdown -->
                                     <div v-if="showSuggestions && filteredSkills.length > 0"
                                         class="absolute z-10 bg-white border mt-1 w-full rounded shadow max-h-40 overflow-auto">
                                         <div v-for="(suggestion, i) in filteredSkills" :key="i"
@@ -497,13 +527,10 @@ const createJob = () => {
                                         </div>
                                     </div>
                                 </div>
-
                                 <p class="mt-1 text-xs text-gray-500">
                                     Add relevant skills required for this position (e.g., JavaScript, Project
                                     Management).
                                 </p>
-
-                                <!-- Skills List -->
                                 <div v-if="form.skills.length > 0" class="mt-3 flex flex-wrap gap-2">
                                     <div v-for="(skill, index) in form.skills" :key="index"
                                         class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center">
@@ -514,7 +541,6 @@ const createJob = () => {
                                         </button>
                                     </div>
                                 </div>
-
                                 <InputError class="mt-2" :message="form.errors.skills" />
                             </div>
 
@@ -534,7 +560,9 @@ const createJob = () => {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <!-- Posted By -->
                                 <div>
-                                    <InputLabel for="posted_by" value="Posted By" />
+                                    <InputLabel for="posted_by">
+                                        Posted By <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <TextInput id="posted_by" type="text" class="mt-1 block w-full"
                                         v-model="form.posted_by" required />
                                     <InputError class="mt-2" :message="form.errors.posted_by" />
@@ -542,7 +570,9 @@ const createJob = () => {
 
                                 <!-- Application Deadline -->
                                 <div>
-                                    <InputLabel for="job_deadline" value="Application Deadline" />
+                                    <InputLabel for="job_deadline">
+                                        Application Deadline <span class="text-pink-500">*</span>
+                                    </InputLabel>
                                     <Datepicker v-model="form.job_deadline" :enable-time-picker="false"
                                         input-class-name="w-full p-2 border rounded-lg mt-2" :min-date="today"
                                         placeholder="Select date" required />
@@ -551,9 +581,12 @@ const createJob = () => {
 
                                 <!-- Application Limit -->
                                 <div>
-                                    <InputLabel for="job_application_limit" value="Application Limit" />
+                                    <InputLabel for="job_application_limit">
+                                        Application Limit
+                                    </InputLabel>
                                     <TextInput id="job_application_limit" type="number" class="mt-1 block w-full"
-                                        v-model="form.job_application_limit" min="1" />
+                                        v-model="form.job_application_limit" :min="form.job_vacancies || 1"
+                                        :placeholder="form.job_vacancies ? `Minimum: ${form.job_vacancies}` : 'Enter application limit'" />
                                     <p class="mt-1 text-xs text-gray-500">Maximum number of applications to accept
                                         (leave empty for unlimited)</p>
                                     <InputError class="mt-2" :message="form.errors.job_application_limit" />
