@@ -65,7 +65,7 @@ class CompanyJobBatchUploadController extends Controller
             while (($data = fgetcsv($handle, 0, ',')) !== false) {
                 $dataRows[] = $data;
             }
-            fclose($handle); // <-- move here!
+            fclose($handle); 
         }
 
         $errors = [];

@@ -27,9 +27,17 @@ class JobCreationService
 
         $jobData = $this->prepareJobData($validated, $user, $salary, $location);
 
+        // [$jobCode, $jobID] = $this->generateJobCodes(
+        //     $validated['sector'] ?? $validated['sector_id'] ?? null,
+        //     $validated['category'] ?? $validated['category_id'] ?? null,
+        //     $validated['job_title']
+        // );
+        // $jobData['job_code'] = $jobCode;
+        // $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
         [$jobCode, $jobID] = $this->generateJobCodes(
             $validated['sector'] ?? $validated['sector_id'] ?? null,
             $validated['category'] ?? $validated['category_id'] ?? null,
+            $user,
             $validated['job_title']
         );
         $jobData['job_code'] = $jobCode;
@@ -104,20 +112,37 @@ class JobCreationService
         ];
     }
 
-    private function generateJobCodes($sectorId, $categoryId, $jobTitle): array
+    private function generateJobCodes($sectorId, $categoryId,User $user, $jobTitle): array
     {
-        $sector = $sectorId ? Sector::find($sectorId) : null;
-        $category = $categoryId ? Category::find($categoryId) : null;
+        // $sector = $sectorId ? Sector::find($sectorId) : null;
+        // $category = $categoryId ? Category::find($categoryId) : null;
+        // $sectorCode = $sector ? $sector->sector_id : 'SEC';
+        // $divisionCodes = $sector ? $sector->division_codes : 'DIV';
+        // $categoryCode = $category ? $category->division_code : 'CAT';
+        // $initials = collect(explode(' ', $jobTitle))
+        //     ->map(fn($word) => Str::substr($word, 0, 1))
+        //     ->implode('');
+        // $initials = strtoupper($initials);
+        // $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
+        // $jobCount = Job::count() + 1;
+        // $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT);
+        // return [$jobCode, $jobID];
+
+         $company = $user->company;
+        $sector = $company ? $company->sector : null;
+
         $sectorCode = $sector ? $sector->sector_id : 'SEC';
         $divisionCodes = $sector ? $sector->division_codes : 'DIV';
-        $categoryCode = $category ? $category->division_code : 'CAT';
+
         $initials = collect(explode(' ', $jobTitle))
             ->map(fn($word) => Str::substr($word, 0, 1))
             ->implode('');
         $initials = strtoupper($initials);
-        $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
+
+        $jobCode = "{$sectorCode}{$divisionCodes}{$initials}";
         $jobCount = Job::count() + 1;
         $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT);
+
         return [$jobCode, $jobID];
     }
 }

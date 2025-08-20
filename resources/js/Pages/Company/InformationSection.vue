@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -94,6 +95,14 @@ const isStepValid = computed(() => {
 
 const canProceed = computed(() => {
   return isStepValid.value;
+});
+
+const today = new Date();
+const maxDob = computed(() => {
+  const year = today.getFullYear() - 18;
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 });
 
 function onFileChange(e) {
@@ -344,7 +353,7 @@ function goToProfile() {
                 <InputLabel for="dob" class="text-white font-medium">
                   Date of Birth <span class="text-pink-400">*</span>
                 </InputLabel>
-                <TextInput id="dob" v-model="form.dob" type="date" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
+                <TextInput id="dob" v-model="form.dob" type="date" :max="maxDob" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
                 <InputError :message="form.errors.dob" class="text-pink-300" />
               </div>
               <div>
@@ -458,6 +467,9 @@ function goToProfile() {
             <div class="glass rounded-t-2xl p-6">
               <h2 class="text-3xl font-bold neon-text text-green-400 animate-pulse-glow text-center">Profile Saved!</h2>
             </div>
+            <div class="glass rounded-t-2xl p-6">
+              <h2 class="text-3xl font-bold neon-text text-green-400 animate-pulse-glow text-center">Profile Saved!</h2>
+            </div>
           </template>
           <template #body>
             <div class="glass p-8">
@@ -468,6 +480,14 @@ function goToProfile() {
             </div>
           </template>
           <template #footer>
+            <div class="glass rounded-b-2xl p-6 text-center">
+              <button 
+                @click="goToProfile" 
+                class="gradient-cta hover-rainbow px-8 py-3 rounded-xl font-bold text-white transform hover:scale-105 animate-pulse-glow"
+              >
+                Go to Profile
+              </button>
+            </div>
             <div class="glass rounded-b-2xl p-6 text-center">
               <button 
                 @click="goToProfile" 
@@ -616,3 +636,4 @@ input:focus, select:focus {
     border-color: rgba(79, 172, 254, 0.8);
 }
 </style>
+

@@ -80,7 +80,6 @@ class AppServiceProvider extends ServiceProvider
             'notifications' => function () {
                 $user = Auth::user();
                 if (!$user) return [];
-                // Example: fetch notifications from a notifications table or model
                 return $user->notifications()->latest()->take(10)->get()->map(function($notif) {
                     return [
                         'id' => $notif->id,
@@ -89,6 +88,11 @@ class AppServiceProvider extends ServiceProvider
                         'created_at' => $notif->created_at->diffForHumans(),
                     ];
                 });
+            },
+
+            'notifications_count' => function () {
+                $user = Auth::user();
+                return $user ? $user->unreadNotifications()->count() : 0;
             },
 
 
