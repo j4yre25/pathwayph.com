@@ -221,6 +221,41 @@ onMounted(() => {
 
                         </header>
 
+                         <!-- Recommended Jobs Section -->
+                        <div class="mb-8">
+                            <h2 class="text-xl font-semibold mb-2">Recommended for You</h2>
+                            <div v-if="recommendationsLoading" class="py-4">Loading recommendations...</div>
+                            <div v-else-if="!recommendations.length" class="text-gray-500 py-4">No recommendations yet.
+                            </div>
+                            <div v-else class="grid grid-cols-1 gap-4">
+                                <div v-for="job in recommendations" :key="job.id"
+                                    class="bg-blue-50 border border-blue-200 rounded p-4">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="font-bold">{{ job.job_title }}</h3>
+                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p>
+                                        </div>
+                                        <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View</PrimaryButton>
+                                    </div>
+                                    <div class="text-xs text-gray-700 mt-2">
+                                        <span v-if="job.locations && job.locations.length">
+                                            {{job.locations.map(l => l.address).join(', ')}}
+                                        </span>
+                                    </div>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <span v-for="label in job.match_labels" :key="label"
+                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200">
+                                            Match with {{ label }}
+                                        </span>
+                                        <span
+                                            class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                            {{ job.match_percentage }}% Match
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- FILTER BAR -->
                         <div class="mb-8">
                             <form @submit.prevent="fetchJobs">
@@ -384,7 +419,8 @@ onMounted(() => {
                         </div>
 
                         <!-- Job Details Modal -->
-                        <Modal :show="isViewDetailsModalOpen" @close="closeDetailsModal" max-width="2xl">
+                        <Modal :modelValue="isViewDetailsModalOpen" @close="closeDetailsModal" max-width="2xl">
+                             <template #body>
                             <div class="p-6" v-if="selectedJob">
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
@@ -497,10 +533,12 @@ onMounted(() => {
                                     </PrimaryButton>
                                 </div>
                             </div>
+                            </template>
                         </Modal>
 
                         <!-- Success Modal -->
-                        <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+                        <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
+                            <template #body>
                             <div class="p-6">
                                 <div class="flex items-center justify-center mb-4">
                                     <div class="bg-green-100 rounded-full p-2">
@@ -519,10 +557,12 @@ onMounted(() => {
                                     </button>
                                 </div>
                             </div>
+                            </template>
                         </Modal>
 
                         <!-- Error Modal -->
-                        <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+                        <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
+                            <template #body>
                             <div class="p-6">
                                 <div class="flex items-center justify-center mb-4">
                                     <div class="bg-red-100 rounded-full p-2">
@@ -542,10 +582,12 @@ onMounted(() => {
                                     </button>
                                 </div>
                             </div>
+                            </template>
                         </Modal>
 
                         <!-- Apply Job Modal -->
-                        <Modal :show="isApplyModalOpen" @close="closeApplyModal" max-width="2xl">
+                        <Modal :modelValue="isApplyModalOpen" @close="closeApplyModal" max-width="2xl">
+                            <template #body>
                             <div class="p-6" v-if="selectedJob">
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
@@ -623,6 +665,7 @@ onMounted(() => {
                                     </PrimaryButton>
                                 </div>
                             </div>
+                            </template>
                         </Modal>
 
 
@@ -631,40 +674,7 @@ onMounted(() => {
 
 
 
-                        <!-- Recommended Jobs Section -->
-                        <div class="mb-8">
-                            <h2 class="text-xl font-semibold mb-2">Recommended for You</h2>
-                            <div v-if="recommendationsLoading" class="py-4">Loading recommendations...</div>
-                            <div v-else-if="!recommendations.length" class="text-gray-500 py-4">No recommendations yet.
-                            </div>
-                            <div v-else class="grid grid-cols-1 gap-4">
-                                <div v-for="job in recommendations" :key="job.id"
-                                    class="bg-blue-50 border border-blue-200 rounded p-4">
-                                    <div class="flex justify-between items-center">
-                                        <div>
-                                            <h3 class="font-bold">{{ job.job_title }}</h3>
-                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p>
-                                        </div>
-                                        <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View</PrimaryButton>
-                                    </div>
-                                    <div class="text-xs text-gray-700 mt-2">
-                                        <span v-if="job.locations && job.locations.length">
-                                            {{job.locations.map(l => l.address).join(', ')}}
-                                        </span>
-                                    </div>
-                                    <div class="mt-2 flex flex-wrap gap-2">
-                                        <span v-for="label in job.match_labels" :key="label"
-                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200">
-                                            Match with {{ label }}
-                                        </span>
-                                        <span
-                                            class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                                            {{ job.match_percentage }}% Match
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                       
                     </div>
                 </div>
             </div>

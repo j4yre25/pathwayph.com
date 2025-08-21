@@ -9,6 +9,7 @@ import InstitutionDashboard from "./Institutions/Dashboard/InstitutionDashboard.
 import { Inertia } from "@inertiajs/inertia";
 import { useForm } from "@inertiajs/vue3";
 import jsPDF from "jspdf";
+import GraduateDashboard from "@/Pages/Frontend/GraduateDashboard.vue";
 
 
 
