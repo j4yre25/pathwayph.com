@@ -3,6 +3,9 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { computed, ref, watch } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import { defineProps } from 'vue';
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+
 
 
 const props = defineProps({
@@ -19,8 +22,25 @@ const props = defineProps({
   }
 });
 
-function printPage() {
-  window.print();
+function exportCertificateAsPDF() {
+  const element = document.querySelector('.certificate-print-area');
+  html2canvas(element, { scale: 2 }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
+    // Calculate width/height for A4
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pageWidth;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save("referral-certificate.pdf");
+  });
 }
 
 </script>
@@ -86,7 +106,7 @@ function printPage() {
   </AppLayout>
 
      <div class="flex justify-end max-w-2xl mx-auto mb-4 print:hidden">
-        <button @click="printPage" class="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition">
+        <button @click="exportCertificateAsPDF" class="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition">
           Print / Export as PDF
         </button>
       </div>
