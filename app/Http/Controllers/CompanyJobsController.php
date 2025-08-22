@@ -83,7 +83,7 @@ class CompanyJobsController extends Controller
 
     public function archivedlist(User $user)
     {
-        $all_jobs = Job::with('user')->onlyTrashed()->get();
+        $all_jobs = Job::with('user','jobTypes')->onlyTrashed()->get();
 
         return Inertia::render('Company/Jobs/Index/ArchivedList', [
             'all_jobs' => $all_jobs

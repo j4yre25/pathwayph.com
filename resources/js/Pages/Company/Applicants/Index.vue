@@ -146,7 +146,6 @@ const goToJob = (jobId) => {
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6"> <!-- Added container styling -->
         <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
           <div class="flex items-center">
-            <h3 class="text-lg font-semibold text-gray-800">Job Listings</h3>
             <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
           </div>
           <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
@@ -173,7 +172,13 @@ const goToJob = (jobId) => {
       <!-- Active Job Positions -->
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <h3 class="text-lg font-semibold p-4 border-b border-gray-200">Active Job Positions</h3>
-        <ListOfJobs :jobs="paginatedJobs" />
+        <ListOfJobs
+          :jobs="paginatedJobs"
+          :applicants="applicants"
+          :statuses="statuses"
+          :employmentTypes="employmentTypes"
+          :filters="filters"
+        />
         
         <!-- Pagination Controls -->
         <div v-if="totalPages > 1" class="flex justify-center items-center p-4 border-t border-gray-200">
