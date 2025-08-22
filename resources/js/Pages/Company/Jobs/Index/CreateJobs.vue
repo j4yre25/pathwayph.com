@@ -24,8 +24,6 @@ const page = usePage()
 
 const props = defineProps({
     jobs: Array,
-    // sectors: Array,
-    categories: Array,
     programs: Array,
     authUser: Object,
     skills: Array,

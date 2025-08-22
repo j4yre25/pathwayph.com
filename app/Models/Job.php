@@ -22,11 +22,8 @@ class Job extends Model
         'peso_id',
         'company_id',
         'status',
-        // 'sector_id',
-        // 'category_id',
         'department_id',
         'job_title',
-        'salary_id',
         'job_description',
         'job_requirements',
         'is_negotiable',
@@ -196,12 +193,12 @@ class Job extends Model
 
     public function locations()
     {
-        return $this->belongsToMany(Location::class, 'job_location');
+        return $this->belongsToMany(Location::class, table: 'job_location');
     }
 
     public function salary()
     {
-        return $this->belongsTo(Salary::class);
+        return $this->hasOne(Salary::class, 'job_id');
     }
 
     public function workEnvironments()

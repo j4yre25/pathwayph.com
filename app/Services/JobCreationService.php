@@ -22,18 +22,11 @@ class JobCreationService
      */
     public function createJob(array $validated, User $user): Job
     {
-        $salary = $this->createSalary($validated);
         $location = $this->handleLocation($validated);
 
-        $jobData = $this->prepareJobData($validated, $user, $salary, $location);
+        $jobData = $this->prepareJobData($validated, $user, null, $location);
 
-        // [$jobCode, $jobID] = $this->generateJobCodes(
-        //     $validated['sector'] ?? $validated['sector_id'] ?? null,
-        //     $validated['category'] ?? $validated['category_id'] ?? null,
-        //     $validated['job_title']
-        // );
-        // $jobData['job_code'] = $jobCode;
-        // $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
+    
         [$jobCode, $jobID] = $this->generateJobCodes(
             $validated['sector'] ?? $validated['sector_id'] ?? null,
             $validated['category'] ?? $validated['category_id'] ?? null,
@@ -44,6 +37,10 @@ class JobCreationService
         $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
 
         $job = Job::create($jobData);
+
+        $salary = $this->createSalary($validated, $job->id);
+
+        
 
         // Sync relationships if present
         if (!empty($validated['job_type'])) {
@@ -62,9 +59,10 @@ class JobCreationService
         return $job;
     }
 
-    private function createSalary(array $validated): Salary
+    private function createSalary(array $validated, $jobId): Salary
     {
         return Salary::create([
+            'job_id' => $jobId,
             'job_min_salary' => !empty($validated['is_negotiable']) && $validated['is_negotiable'] ? null : ($validated['salary']['job_min_salary'] ?? $validated['job_min_salary'] ?? null),
             'job_max_salary' => !empty($validated['is_negotiable']) && $validated['is_negotiable'] ? null : ($validated['salary']['job_max_salary'] ?? $validated['job_max_salary'] ?? null),
             'salary_type' => $validated['salary']['salary_type'] ?? $validated['job_salary_type'] ?? null,
@@ -81,7 +79,7 @@ class JobCreationService
         return null;
     }
 
-    private function prepareJobData(array $validated, User $user, Salary $salary, $location): array
+    private function prepareJobData(array $validated, User $user, ?Salary $salary = null, $location): array
     {
         return [
             'user_id' => $user->id,
@@ -91,7 +89,6 @@ class JobCreationService
 
             'job_title' => $validated['job_title'],
             'location' => $location ? $location->id : ($validated['location_id'] ?? null),
-            'salary_id' => $salary->id,
             'is_approved' => 1,
             'job_type' => $validated['job_type'] ?? null,
             'job_experience_level' => $validated['job_experience_level'] ?? null,
