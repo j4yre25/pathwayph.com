@@ -52,7 +52,7 @@ class DashboardController extends Controller
             }
 
             $data = $this->handleGraduateDashboard($user);
-            return Inertia::render('Graduate/Dashboard/GraduateDashboard', $data);
+            return Inertia::render('Dashboard', $data);
         }
 
         // ✅ Default (Admin or others)
