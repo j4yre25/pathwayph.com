@@ -534,7 +534,8 @@ console.log(page.props.permissions.canManageInstitution)
                                         <DropdownLink v-if="page.props.auth.user.role === 'graduate'"
                                             :href="route('profile.index', { user: page.props.auth.user.id })"
                                             :active="route().current('profile.index')">
-                                            Profile Settings </DropdownLink>
+                                            Profile Settings 
+                                        </DropdownLink>
 
                                         <DropdownLink
                                             v-if="page.props.auth.user.role === 'graduate' && page.props.graduate"
