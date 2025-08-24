@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Models\Job;
 use App\Models\JobApplication;
+use App\Services\ApplicantScreeningService;
 
 class JobInboxController extends Controller
 {
@@ -219,51 +220,19 @@ class JobInboxController extends Controller
             'applied_at' => now(),
         ]);
 
-        // --- Automated Screening Logic ---
         $job = $application->job;
+        
+        $screening = (new ApplicantScreeningService())->screen($graduate, $job);
 
-        // 1. Retrieve job requirements (example fields, adjust as needed)
-        $requiredDegree = $job->required_degree ?? 'Bachelor';
-        $minExperience = $job->min_experience ?? 2; // years
-        $requiredSkills = $job->required_skills ?? ['PHP', 'Vue.js']; // array or comma-separated
-
-        // 2. Calculate applicant's total experience (in years)
-        $totalExperience = $graduate->experience->sum(function($exp) {
-            $start = $exp->start_date ? \Carbon\Carbon::parse($exp->start_date) : null;
-            $end = $exp->end_date ? \Carbon\Carbon::parse($exp->end_date) : now();
-            return $start && $end ? $start->diffInYears($end) : 0;
-        });
-
-        // 3. Get applicant's skills
-        $skills = $graduate->graduateSkills->pluck('skill.name')->map(fn($s) => strtolower($s))->toArray();
-
-        // 4. Check applicant's education
-        $hasDegree = $graduate->education->contains(function($edu) use ($requiredDegree) {
-            return stripos($edu->education, $requiredDegree) !== false;
-        });
-
-        // 5. Check if all criteria are met
-        $hasSkills = collect($requiredSkills)->every(fn($skill) => in_array(strtolower($skill), $skills));
-        $isQualified = $hasDegree && $totalExperience >= $minExperience && $hasSkills;
-
-        if ($isQualified) {
-            $application->is_shortlisted = true;
-            $application->status = 'shortlisted';
-            $application->stage = 'Screened';
-            $application->screening_feedback = 'Auto-screened: Qualified';
-        } else {
-            $application->is_shortlisted = false;
-            $application->screening_feedback = 'Auto-screened: Not qualified';
-            // Optionally set status to 'rejected'
-            // $application->status = 'rejected';
-        }
+        $application->is_shortlisted = $screening['is_shortlisted'];
+        $application->status = $screening['status'];
+        $application->stage = 'Screening';
+        $application->screening_label = $screening['screening_label'];
+        $application->screening_feedback = $screening['screening_feedback'];
         $application->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Application submitted successfully.',
-            'application' => $application,
-        ]);
+        
+        return back()->with('success', 'Application submitted successfully.');
     }
 
 
