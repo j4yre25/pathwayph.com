@@ -660,17 +660,13 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
                 return back()->with('message', 'Verification code sent!');
             })->middleware(['auth', 'throttle:6,1'])->name('verification.resend');
 
-            Route::get('/register/graduate', [CustomRegisteredUserController::class, 'createEmailOnly'])
-                ->middleware(['guest:' . config('fortify.guard')])
-                ->name('register.graduate');
+     
 
-            Route::post('/register/graduate', [CustomRegisteredUserController::class, 'storeEmailOnly'])
+            Route::post('/register/graduate', [CustomRegisteredUserController::class, 'store'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.graduate.store');
                 
-            Route::post('/register/email', [CustomRegisteredUserController::class, 'storeEmailOnly'])
-                ->middleware(['guest:' . config('fortify.guard')])
-                ->name('register.email.store');
+            
                 
             // AlmostDone page routes
             Route::get('/graduate/almostdone', function () {

@@ -14,62 +14,65 @@ use Carbon\Carbon;
 
 class CompanyJobApplicantController extends Controller
 {
-    public function index(User $user)
+
+    public function index(Request $request)
     {
         $user = Auth::user();
-    
-        // Get the company associated with the logged-in user
         $company = Company::where('user_id', $user->id)->firstOrFail();
-
         $companyId = $company->id;
-        $now = Carbon::now();
 
-        $jobs = Job::withCount('applications')
-        ->with(['jobTypes:id,type',
-            'locations:id,address',
-            'workEnvironments:id,environment_type',
-            'salary'])
-        ->where('company_id', $companyId)
-        ->where('status', 'open')
-        ->orderBy('created_at', 'desc') // then newest
-        ->get();
+        // Get all jobs for the company
+        $jobs = Job::where('company_id', $companyId)->get();
 
-        // Accurate count of active jobs (open + approved)
-        $activeJobCount = Job::where('company_id', $companyId)
-        ->where('status', 'open')
-        ->where('is_approved', true)
-        ->count();
-        
-        // All applications for the company's jobs
-        $allApplications = JobApplication::whereHas('job', fn($q) => $q->where('company_id', $companyId))
-            ->get();
+        // Build base query for applicants
+        $applicationsQuery = JobApplication::with([
+            'graduate.user',
+            'job.jobTypes',
+            'job'
+        ])->whereHas('job', fn($q) => $q->where('company_id', $companyId));
 
-        $totalApplicants = $allApplications->count();
+        // === Filters ===
+        if ($request->filled('job_id')) {
+            $applicationsQuery->where('job_id', $request->input('job_id'));
+        }
+        if ($request->filled('status')) {
+            $applicationsQuery->where('status', $request->input('status'));
+        }
+        if ($request->filled('employment_type')) {
+            $applicationsQuery->whereHas('job.jobTypes', function($q) use ($request) {
+                $q->where('type', $request->input('employment_type'));
+            });
+        }
+        if ($request->filled('date_from')) {
+            $applicationsQuery->whereDate('applied_at', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $applicationsQuery->whereDate('applied_at', '<=', $request->input('date_to'));
+        }
 
-        $applicationsThisMonth = $allApplications
-            ->filter(fn($app) => $app->created_at->month === $now->month && $app->created_at->year === $now->year)
-            ->count();
+        $applicants = $applicationsQuery->get()->map(function ($application) {
+            $graduate = $application->graduate;
+            $user = $graduate?->user;
+            $job = $application->job;
 
-        $startOfMonth = $now->copy()->startOfMonth()->format('F j');
-        $today = $now->format('j, Y'); 
-        $thisMonthLabel = "{$startOfMonth} – {$today}";
-
-        $hiredCount = $allApplications->where('status', 'hired')->count();
-        $rejectedCount = $allApplications->where('status', 'rejected')->count();
-        $interviewsCount = JobApplication::whereHas('interviews', function($q) {
-        })->whereHas('job', fn($q) => $q->where('company_id', $companyId))->count();
+            return [
+                'id' => $application->id,
+                'name' => $graduate ? $graduate->first_name . ' ' . $graduate->last_name : 'N/A',
+                'email' => $user?->email ?? 'N/A',
+                'job_title' => $job?->job_title ?? '',
+                'job_id' => $job?->id ?? '',
+                'employment_type' => $job?->jobTypes?->map(fn($jt) => $jt->type)->join(', '),
+                'status' => $application->status,
+                'applied_at' => optional($application->applied_at)->format('M d, Y'),
+            ];
+        });
 
         return Inertia::render('Company/Applicants/Index', [
-            'jobs' => $jobs,
-            'stats' => [
-                'this_month' => $applicationsThisMonth,
-                'this_month_label' => $thisMonthLabel,
-                'hired' => $hiredCount,
-                'rejected' => $rejectedCount,
-                'interviews' => $interviewsCount,
-                'total_jobs' => $activeJobCount,
-                'total_applicants' => $totalApplicants,
-            ]
+            'applicants' => $applicants,
+            'jobs' => $jobs->map(fn($j) => ['id' => $j->id, 'title' => $j->job_title]),
+            'statuses' => ['applied', 'shortlisted', 'interview', 'hired', 'rejected'],
+            'employmentTypes' => ['Full-time', 'Part-time', 'Internship'],
+            'filters' => $request->only(['job_id', 'status', 'employment_type', 'date_from', 'date_to']),
         ]);
     }
 
@@ -165,7 +168,8 @@ class CompanyJobApplicantController extends Controller
             ]);
         }
 
-    public function autoScreen(Job $job)
+    public function 
+    reen(Job $job)
     {
         $requiredDegree = 'Bachelor'; // Example
         $minExperience = 2; // years

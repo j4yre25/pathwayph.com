@@ -39,13 +39,9 @@ class CreateNewUser implements CreatesNewUsers
         $role = $this->determineRole(request());
 
         $rules = [
-            'first_name' => ['required', 'string', 'max:255'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'mobile_number' => ['required', 'digits_between:10,15', 'regex:/^9\d{9}$/'],
-            'password' => $this->passwordRules(),
-            'telephone_number' => ['nullable', 'regex:/^(02\d{7}|0\d{2}\d{7})$/'],
+            'password' => array_merge($this->passwordRules(), ['confirmed']),
         ];
 
         // Add role-specific validation rules
@@ -53,26 +49,14 @@ class CreateNewUser implements CreatesNewUsers
             case 'graduate':
                 $rules = [
                     'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-                    'password' => $this->passwordRules(),
+                    'password' => array_merge($this->passwordRules(), ['confirmed']),
                 ];
-                break;
-
-                if (!empty($input['company_not_found'])) {
-                    // Company not found: require other_company_name and sector, but company_name is nullable
-                    $rules['other_company_name'] = ['required', 'string', 'max:255'];
-                    $rules['other_company_sector'] = ['required', 'exists:sectors,id'];
-                    $rules['company_name'] = ['nullable', 'string', 'max:255'];
-                } else {
-                    // Existing company: require company_name, other_company_name/sector are nullable
-                    $rules['company_name'] = ['required', 'string', 'max:255'];
-                    $rules['other_company_name'] = ['nullable', 'string', 'max:255'];
-                    $rules['other_company_sector'] = ['nullable', 'exists:sectors,id'];
-                }
                 break;
             case 'company':
                  $rules = [
                         'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
                         'password' => $this->passwordRules(),
+                        'password_confirmation' => ['required'],
                     ];
                 break;
             case 'institution':
@@ -164,40 +148,7 @@ class CreateNewUser implements CreatesNewUsers
             return $user; // <-- Ensure return here
         } */
 
-        // Store in Companies table
-        // if ($role === 'company') {
-            // // $category = \App\Models\Category::find($input['category']);
-            // // $company = Company::create([
-            // //     'user_id' => $user->id,
-            // //     'company_name' => $input['company_name'],
-            // //     'company_street_address' => $input['company_street_address'],
-            // //     'company_brgy' => $input['company_brgy'],
-            // //     'company_city' => $input['company_city'],
-            // //     'sector_id' => $category ? $category->sector_id : null,
-            // //     'category_id' => $category->id,
-            // //     'company_province' => $input['company_province'],
-            // //     'company_zip_code' => $input['company_zip_code'],
-            // //     'company_email' => $input['company_email'],
-            // //     'company_mobile_phone' => $input['company_mobile_phone'],
-            // //     'company_tel_phone' => $input['telephone_number'],
-            // //     'created_at' => now(),
-            // //     'updated_at' => now(),
-            // // ]);
-        //     $user->hr()->create([
-        //         'first_name' => $input['first_name'],
-        //         'middle_name' => $input['middle_name'],
-        //         'last_name' => $input['last_name'],
-        //         'mobile_number' => $input['mobile_number'],
-        //         'dob' => $input['dob'],
-        //         'gender' => $input['gender'],
-        //         // 'company_id' => $company->id,
-        //         'created_at' => now(),
-        //         'updated_at' => now(),
-        //     ]);
-        //     $user->assignRole($role);
-        //     return $user; // <-- Ensure return here
-        // }
-
+        
         // Store in Graduates table
         // // if ($role === 'graduate') {
         // //     $company_id = null;
