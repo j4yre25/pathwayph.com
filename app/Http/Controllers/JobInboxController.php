@@ -184,23 +184,6 @@ class JobInboxController extends Controller
 
 
 
-        $job = $application->job;
-        
-        $screening = (new ApplicantScreeningService())->screen($graduate, $job);
-
-        $application->is_shortlisted = $screening['is_shortlisted'];
-        $application->status = $screening['status'];
-        $application->stage = 'Screening';
-        $application->screening_label = $screening['screening_label'];
-        $application->screening_feedback = $screening['screening_feedback'];
-        $application->save();
-
-        
-        return back()->with('success', 'Application submitted successfully.');
-    }
-
-
-
     // Archive a job opportunity
     public function archiveJobOpportunity(Request $request)
     {
