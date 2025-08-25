@@ -21,8 +21,16 @@ class CompanyJobApplicantController extends Controller
         $company = Company::where('user_id', $user->id)->firstOrFail();
         $companyId = $company->id;
 
-        // Get all jobs for the company
-        $jobs = Job::where('company_id', $companyId)->get();
+        // Get job IDs that have applicants
+        $jobIdsWithApplicants = JobApplication::whereHas('job', fn($q) => $q->where('company_id', $companyId))
+            ->pluck('job_id')
+            ->unique()
+            ->toArray();
+
+        // Only show jobs with applicants
+        $jobs = Job::where('company_id', $companyId)
+            ->whereIn('id', $jobIdsWithApplicants)
+             ->get();
 
         // Build base query for applicants
         $applicationsQuery = JobApplication::with([
@@ -83,7 +91,7 @@ class CompanyJobApplicantController extends Controller
             'applicants' => $applicants,
             'jobs' => $jobs->map(fn($j) => ['id' => $j->id, 'title' => $j->job_title]),
             'statuses' => ['applied', 'shortlisted', 'interview', 'hired', 'rejected'],
-            'employmentTypes' => ['Full-time', 'Part-time', 'Internship'],
+            'employmentTypes' => ['Full-time', 'Part-time', 'Internship', 'Contract', 'Freelance'],
             'filters' => $request->only(['job_id', 'status', 'employment_type', 'date_from', 'date_to']),
             'stats' => [
                 'total_applicants' => $totalApplicants,
