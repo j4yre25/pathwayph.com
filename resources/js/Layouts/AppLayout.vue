@@ -1,4 +1,3 @@
-
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -34,9 +33,9 @@ const showingNavigationDropdown = ref(false);
 const showApprovalModal = ref(false)
 
 onMounted(() => {
-  if (page.props.needsApproval) {
-    showApprovalModal.value = true;
-  }
+    if (page.props.needsApproval) {
+        showApprovalModal.value = true;
+    }
 });
 
 const showNotifications = ref(false);
@@ -45,6 +44,7 @@ const notificationsCount = computed(() => usePage().props.notifications_count ||
 const notifBell = ref(null);
 const notifDropdown = ref(null);
 
+console.log(notifications.value)
 function toggleNotifications() {
     showNotifications.value = !showNotifications.value;
     if (showNotifications.value && notificationsCount.value > 0) {
@@ -53,7 +53,7 @@ function toggleNotifications() {
             only: ['notifications', 'notifications_count'], // Only reload these props
         });
     }
-}   
+}
 
 function handleClickOutside(event) {
     if (
@@ -113,19 +113,19 @@ console.log(page.props.permissions.canManageInstitution)
         <Head :title="title" />
 
         <Banner />
-        
+
         <Modal v-model="showApprovalModal">
             <template #header>
-            <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
+                <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
             </template>
             <template #body>
-            <p class="mb-6 text-gray-700">
-                Your company account is still waiting for admin approval.<br>
-                You will be notified once your account is approved.
-            </p>
+                <p class="mb-6 text-gray-700">
+                    Your company account is still waiting for admin approval.<br>
+                    You will be notified once your account is approved.
+                </p>
             </template>
             <template #footer>
-            <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
+                <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
             </template>
         </Modal>
 
@@ -169,11 +169,12 @@ console.log(page.props.permissions.canManageInstitution)
 
                                 <NavLink v-if="roles.isCompany"
                                     :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
-                                    :active="route().current('company.manage-hrs')" :disabled="!page.props.auth.user.is_approved">
+                                    :active="route().current('company.manage-hrs')"
+                                    :disabled="!page.props.auth.user.is_approved">
                                     HR & Departments
                                 </NavLink>
 
-                            
+
                                 <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.reports.list', { user: page.props.auth.user.id })"
                                     :active="route().current('company.reports.list')"
@@ -190,7 +191,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     :disabled="!page.props.auth.user.is_approved">
                                     Dashboard
                                 </NavLink>
-                                
+
                                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
                                     :active="route().current('job.inbox')"
                                     :disabled="!page.props.auth.user.is_approved">
@@ -202,7 +203,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     :disabled="!page.props.auth.user.is_approved">
                                     Find Jobs
                                 </NavLink>
-                                
+
                             </div>
 
                             <!-- Institution Navigation Links -->
@@ -213,68 +214,70 @@ console.log(page.props.permissions.canManageInstitution)
                                     :disabled="!page.props.auth.user.is_approved">
                                     Dashboard
                                 </NavLink>
-                                
-                                
+
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('graduates.index')" :active="route().current('graduates.index')">
                                     Graduate
                                 </NavLink>
-    
-                                 <NavLink
+
+                                <NavLink
                                     v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                                    :href="route('institutions.reports.index')" :active="route().current('institutions.reports.index')">
+                                    :href="route('institutions.reports.index')"
+                                    :active="route().current('institutions.reports.index')">
                                     Reports
                                 </NavLink>
-    
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('school-years', { user: page.props.auth.user.id })"
                                     :active="route().current('school-years')">
                                     Manage School Year
                                 </NavLink>
-    
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('degrees', { user: page.props.auth.user.id })"
                                     :active="route().current('degrees')">
                                     Manage Degrees
                                 </NavLink>
-    
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('programs', { user: page.props.auth.user.id })"
                                     :active="route().current('programs')">
                                     Manage Programs
                                 </NavLink>
-    
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('careeropportunities', { user: page.props.auth.user.id })"
                                     :active="route().current('careeropportunities')">
                                     Manage Career Opportunities
                                 </NavLink>
-    
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('instiskills', { user: page.props.auth.user.id })"
                                     :active="route().current('instiskills')">
                                     Manage Skills
                                 </NavLink>
-    
+
                                 <!-- Manage Approval Link -->
                                 <NavLink
                                     v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                                     :href="route('graduates.manage')" :active="route().current('graduates.manage')">
                                     Manage Approval
                                 </NavLink>
-    
+
                                 <NavLink
                                     v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                                    :href="route('internship-programs.index')" :active="route().current('internship-programs.index')">
+                                    :href="route('internship-programs.index')"
+                                    :active="route().current('internship-programs.index')">
                                     Manage Internship
                                 </NavLink>
-                                
+
                             </div>
 
                             <!-- Navigation Links -->
@@ -287,7 +290,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 </NavLink>
 
 
-                                
+
 
                                 <!-- Graduate Portfolio -->
                                 <!-- <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.portfolio')"
@@ -401,23 +404,29 @@ console.log(page.props.permissions.canManageInstitution)
                                                 Team Settings
                                             </DropdownLink>
 
-                                            <button
-                                                ref="notifBell"
-                                                @click.stop="toggleNotifications"
-                                                class="relative focus:outline-none mr-3"
-                                                aria-label="Notifications"
-                                            >
+                                            <button ref="notifBell" @click.stop="toggleNotifications"
+                                                class="relative focus:outline-none mr-3" aria-label="Notifications">
                                                 <i class="fas fa-bell text-xl"></i>
-                                                <span v-if="notificationsCount" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
+                                                <span v-if="notificationsCount"
+                                                    class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
                                                     {{ notificationsCount }}
                                                 </span>
                                             </button>
-                                            <div v-if="showNotifications" class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50">
+                                            <div v-if="showNotifications"
+                                                class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50">
                                                 <div v-if="notifications.length">
-                                                    <div v-for="notif in notifications" :key="notif.id" class="p-3 border-b last:border-b-0">
+                                                    <div v-for="notif in notifications" :key="notif.id"
+                                                        class="p-3 border-b last:border-b-0">
                                                         <div class="font-semibold">{{ notif.title }}</div>
                                                         <div class="text-sm text-gray-600">{{ notif.body }}</div>
+                                                        <div v-if="notif.certificate_path">
+                                                            <a :href="route('certificates.download', { filename: notif.certificate_path.split('/').pop() })"
+                                                                target="_blank">
+                                                                Download Certificate
+                                                            </a>
+                                                        </div>
                                                         <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
+
                                                     </div>
                                                 </div>
                                                 <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
@@ -464,16 +473,13 @@ console.log(page.props.permissions.canManageInstitution)
                             <div class="ms-3 relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
-                                       <span class="inline-flex rounded-md items-center relative">
+                                        <span class="inline-flex rounded-md items-center relative">
                                             <!-- Notification Bell -->
-                                            <button
-                                                ref="notifBell"
-                                                @click.stop="toggleNotifications"
-                                                class="relative focus:outline-none mr-3"
-                                                aria-label="Notifications"
-                                            >
+                                            <button ref="notifBell" @click.stop="toggleNotifications"
+                                                class="relative focus:outline-none mr-3" aria-label="Notifications">
                                                 <i class="fas fa-bell text-xl"></i>
-                                                <span v-if="notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
+                                                <span v-if="notifications.length"
+                                                    class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
                                                     {{ notifications.length }}
                                                 </span>
                                             </button>
@@ -507,16 +513,25 @@ console.log(page.props.permissions.canManageInstitution)
                                                     d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                             </svg>
                                             <!-- Notification Dropdown -->
-                                            <div
-                                                v-if="showNotifications"
-                                                ref="notifDropdown"
+                                            <div v-if="showNotifications" ref="notifDropdown"
                                                 class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50"
-                                                style="top: 2.5rem;"
-                                            >
+                                                style="top: 2.5rem;">
                                                 <div v-if="notifications.length">
-                                                    <div v-for="notif in notifications" :key="notif.id" class="p-3 border-b last:border-b-0">
+                                                    <div v-for="notif in notifications" :key="notif.id"
+                                                        class="p-3 border-b last:border-b-0">
                                                         <div class="font-semibold">{{ notif.title }}</div>
                                                         <div class="text-sm text-gray-600">{{ notif.body }}</div>
+                                                        <a v-if="notif.certificate_path"
+                                                            :href="route('certificates.download', { filename: notif.certificate_path.split('/').pop() })"
+                                                            target="_blank"
+                                                            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
+                                                                stroke-width="2" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    d="M12 16v-8m0 8l-4-4m4 4l4-4M4 20h16"></path>
+                                                            </svg>
+                                                            Download Certificate
+                                                        </a>
                                                         <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
                                                     </div>
                                                 </div>
@@ -536,8 +551,7 @@ console.log(page.props.permissions.canManageInstitution)
                                             Profile
                                         </DropdownLink>
 
-                                        <DropdownLink
-                                            v-if="page.props.auth.user.role === 'institution'"
+                                        <DropdownLink v-if="page.props.auth.user.role === 'institution'"
                                             :href="route('institution.profile')">
                                             Profile
                                         </DropdownLink>
@@ -565,8 +579,7 @@ console.log(page.props.permissions.canManageInstitution)
                                             Career Officer Registration
                                         </DropdownLink>
 
-                                        <DropdownLink
-                                            v-if="page.props.auth.user.role === 'company'"
+                                        <DropdownLink v-if="page.props.auth.user.role === 'company'"
                                             :href="route('company.profile')">
                                             Profile
                                         </DropdownLink>

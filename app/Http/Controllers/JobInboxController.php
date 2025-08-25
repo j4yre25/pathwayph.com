@@ -180,45 +180,9 @@ class JobInboxController extends Controller
     }
 
     // Apply for a job
-    public function applyForJob(Request $request)
-    {
-        $user = Auth::user();
-        $graduate = $user->graduate;
+    
 
-        $validated = $request->validate([
-            'job_id' => 'required|exists:jobs,id',
-            'applied_at' => 'nullable|date',
-            'interview_date' => 'nullable|date',
-            'resume_id' => 'nullable|exists:resumes,id',
-            'cover_letter' => 'nullable|string',
-            'additional_documents' => 'nullable|array',
-            // add other fields kung unsa pa ang need (check ang table named job_applications sa database)
-        ]);
 
-        // Check if user already applied for this job
-        $exists = JobApplication::where('user_id', $user->id)
-            ->where('job_id', $validated['job_id'])
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You have already applied to this job.'
-            ], 409);
-        }
-
-        // Create application
-        $application = JobApplication::create([
-            'user_id' => $user->id,
-            'graduate_id' => $graduate->id,
-            'job_id' => $validated['job_id'],
-            'resume_id' => $validated['resume_id'] ?? null,
-            'cover_letter' => $validated['cover_letter'] ?? null,
-            'additional_documents' => $validated['additional_documents'] ?? null,
-            'status' => 'applied',
-            'stage' => 'applying',
-            'applied_at' => now(),
-        ]);
 
         $job = $application->job;
         
@@ -234,6 +198,7 @@ class JobInboxController extends Controller
         
         return back()->with('success', 'Application submitted successfully.');
     }
+
 
 
     // Archive a job opportunity

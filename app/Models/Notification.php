@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
 {
+    public $incrementing = false;
+    protected $keyType = 'string';
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
         'message',
-        'is_read',
+        'certificate_path',
+        'read_at',
     ];
 
     public function user()

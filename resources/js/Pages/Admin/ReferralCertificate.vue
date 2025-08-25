@@ -22,6 +22,9 @@ const props = defineProps({
   }
 });
 
+console.log('Graduate ID:', props.certificate.graduate);
+
+
 function exportCertificateAsPDF() {
   const element = document.querySelector('.certificate-print-area');
   html2canvas(element, { scale: 2 }).then(canvas => {
@@ -40,6 +43,21 @@ function exportCertificateAsPDF() {
 
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
     pdf.save("referral-certificate.pdf");
+
+    const pdfBlob = pdf.output('blob');
+    const formData = new FormData();
+    formData.append('certificate', pdfBlob, 'referral-certificate.pdf');
+    formData.append('graduate_id', props.certificate.graduate_id); // Pass graduate/user id
+
+    fetch(route('certificate.store'), {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },  
+      credentials: 'same-origin'
+    });
+
   });
 }
 
@@ -72,7 +90,7 @@ function exportCertificateAsPDF() {
             <p class="mt-2">
               This office has arranged for Mr./Ms. <span class="font-bold underline">{{ certificate.graduate }}</span>
               to call on you regarding your opening for a <span class="font-bold underline">{{ certificate.job_title
-                }}</span>.
+              }}</span>.
             </p>
             <p class="mt-2">
               We would appreciate it very much if you would let us know the status of application of the said
@@ -93,10 +111,10 @@ function exportCertificateAsPDF() {
             Philippines<br>
             (083) 553-3479 | peso_gensan@yahoo.com
           </div>
-        </div>  
+        </div>
       </div>
 
-   
+
 
     </div>
 
@@ -105,30 +123,37 @@ function exportCertificateAsPDF() {
 
   </AppLayout>
 
-     <div class="flex justify-end max-w-2xl mx-auto mb-4 print:hidden">
-        <button @click="exportCertificateAsPDF" class="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition">
-          Print / Export as PDF
-        </button>
-      </div>
+  <div class="flex justify-end max-w-2xl mx-auto mb-4 print:hidden">
+    <button @click="exportCertificateAsPDF"
+      class="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition">
+      Print / Export as PDF
+    </button>
+  </div>
 </template>
 
 
 <style scoped>
 @media print {
+
   /* Hide everything except the certificate */
-  body, html {
+  body,
+  html {
     background: #fff !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 210mm !important;
     height: 297mm !important;
   }
+
   body * {
     visibility: hidden !important;
   }
-  .certificate-print-area, .certificate-print-area * {
+
+  .certificate-print-area,
+  .certificate-print-area * {
     visibility: visible !important;
   }
+
   .certificate-print-area {
     position: absolute !important;
     left: 0 !important;
@@ -140,15 +165,18 @@ function exportCertificateAsPDF() {
     box-shadow: none !important;
     border: none !important;
     margin: 0 !important;
-    padding: 24mm 18mm !important; /* A4 printable area */
+    padding: 24mm 18mm !important;
+    /* A4 printable area */
     overflow: hidden !important;
   }
+
   /* Hide the print button */
   .print\:hidden {
     display: none !important;
   }
+
   /* Hide AppLayout and its children */
-  #app > *:not(.certificate-print-area) {
+  #app>*:not(.certificate-print-area) {
     display: none !important;
   }
 }

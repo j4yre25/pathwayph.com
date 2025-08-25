@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
+            
             'roles' => [
                 'isPeso' => fn () => $request->user()?->hasRole('peso'),
                 'isInstitution' => fn () => $request->user()?->hasRole('institution'),
@@ -65,9 +66,18 @@ class HandleInertiaRequests extends Middleware
              
             ],
             'csrf_token' => csrf_token(),
-            'userNotApproved' => session('user_not_approved')
-            
-            //
+            'userNotApproved' => session('user_not_approved'),
+            'notifications' => fn () => auth()->check()
+            ? auth()->user()->notifications->map(function ($notif) {
+                return [
+                    'id' => $notif->id,
+                    'title' => 'Notification',
+                    'body' => $notif->data['message'] ?? '',
+                    'certificate_path' => $notif->data['certificate_path'] ?? null,
+                    'created_at' => $notif->created_at->diffForHumans(),
+                ];
+            })
+            : [],
         ]);
     }
     public function handle($request, \Closure $next)
