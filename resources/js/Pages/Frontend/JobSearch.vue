@@ -2,15 +2,20 @@
 import Graduate from '@/Layouts/AppLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import { ref, onMounted, computed } from 'vue';
-import { useForm, usePage, router, } from '@inertiajs/vue3';
+import { useForm, usePage, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 import axios from 'axios';
 
-
 // Props and Page Data
 const { props } = usePage();
+const appliedJobIds = props.appliedJobIds ?? [];
+
+
+// Tabs and toggle state
+const activeTab = ref('jobs'); // 'jobs' or 'applications'
+const showApplied = ref(false);
 
 // State Management
 const searchQuery = ref('');
@@ -36,6 +41,7 @@ const jobsForm = useForm({
     loading: false
 });
 
+
 const jobResponsibilities = computed(() =>
     selectedJob.value && selectedJob.value.job_responsibilities
         ? selectedJob.value.job_responsibilities.split('\n').filter(r => r.trim())
@@ -53,6 +59,20 @@ const jobBenefits = computed(() =>
         ? selectedJob.value.job_benefits.split('\n').filter(b => b.trim())
         : []
 );
+
+// Filter jobs for main list
+const filteredJobs = computed(() => {
+    if (showApplied.value) return jobsForm.jobs;
+    return jobsForm.jobs.filter(job => !appliedJobIds.includes(job.id));
+});
+
+// Jobs the user has applied for
+const myApplications = ref(props.myApplications ?? []);
+
+// Toggle to show/hide applied jobs
+function toggleShowApplied() {
+    router.get(window.location.pathname, { showApplied: showApplied.value }, { preserveScroll: true });
+}
 
 function clearFilters() {
     searchQuery.value = '';
@@ -216,48 +236,46 @@ onMounted(() => {
                     <div class="max-w-[1280px] mx-auto px-4 py-6">
                         <header class="pb-6 mb-6">
                             <h1 class="text-2xl font-extrabold leading-6">Apply for Jobs</h1>
-                            <p class="text-sm text-[#374151] mt-1">Discover and apply for jobs that match your skills
-                                and interests</p>
+                            <p class="text-sm text-[#374151] mt-1">Discover and apply for jobs that match your skills and interests</p>
 
                         </header>
 
-                         <!-- Recommended Jobs Section -->
-                        <div class="mb-8">
-                            <h2 class="text-xl font-semibold mb-2">Recommended for You</h2>
-                            <div v-if="recommendationsLoading" class="py-4">Loading recommendations...</div>
-                            <div v-else-if="!recommendations.length" class="text-gray-500 py-4">No recommendations yet.
-                            </div>
-                            <div v-else class="grid grid-cols-1 gap-4">
-                                <div v-for="job in recommendations" :key="job.id"
-                                    class="bg-blue-50 border border-blue-200 rounded p-4">
-                                    <div class="flex justify-between items-center">
-                                        <div>
-                                            <h3 class="font-bold">{{ job.job_title }}</h3>
-                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p>
-                                        </div>
-                                        <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View</PrimaryButton>
-                                    </div>
-                                    <div class="text-xs text-gray-700 mt-2">
-                                        <span v-if="job.locations && job.locations.length">
-                                            {{job.locations.map(l => l.address).join(', ')}}
-                                        </span>
-                                    </div>
-                                    <div class="mt-2 flex flex-wrap gap-2">
-                                        <span v-for="label in job.match_labels" :key="label"
-                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200">
-                                            Match with {{ label }}
-                                        </span>
-                                        <span
-                                            class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                                            {{ job.match_percentage }}% Match
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- Tabs -->
+                        <div class="flex gap-2 mb-8">
+                            <button
+                                :class="[
+                                    'px-4 py-2 rounded-t-lg font-semibold transition',
+                                    activeTab === 'jobs' ? 'bg-indigo-600 text-white shadow' : 'bg-gray-100 text-gray-700'
+                                ]"
+                                @click="activeTab = 'jobs'"
+                            >
+                                <i class="fas fa-briefcase mr-2"></i> Job Listings
+                            </button>
+                            <button
+                                :class="[
+                                    'px-4 py-2 rounded-t-lg font-semibold transition',
+                                    activeTab === 'applications' ? 'bg-indigo-600 text-white shadow' : 'bg-gray-100 text-gray-700'
+                                ]"
+                                @click="activeTab = 'applications'"
+                            >
+                                <i class="fas fa-file-alt mr-2"></i> My Applications
+                                <span v-if="appliedJobIds.length" class="ml-2 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">
+                                    {{ appliedJobIds.length }}
+                                </span>
+                            </button>
                         </div>
 
-                        <!-- FILTER BAR -->
-                        <div class="mb-8">
+                        <!-- Toggle Checkbox (only for Job Listings tab) -->
+                        <div v-if="activeTab === 'jobs'" class="mb-4 flex items-center">
+                            <input type="checkbox" id="showApplied" v-model="showApplied" @change="toggleShowApplied"
+                                class="accent-indigo-600 h-4 w-4 rounded border-gray-300 focus:ring-indigo-500" />
+                            <label for="showApplied" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                                Show applied jobs in list
+                            </label>
+                        </div>
+
+                        <!-- FILTER BAR (only for Job Listings tab) -->
+                        <div v-if="activeTab === 'jobs'" class="mb-8">
                             <form @submit.prevent="fetchJobs">
                                 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                     <TextInput v-model="searchQuery" class="w-full"
@@ -311,109 +329,208 @@ onMounted(() => {
                                 </div>
                             </form>
                         </div>
-
-
-                        <h2 class="text-xl font-semibold mb-4">Job Listings</h2>
-
-                        <!-- Loading State -->
-                        <div v-if="jobsForm.loading" class="flex justify-center items-center py-8">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                        </div>
-
-                        <!-- Empty State -->
-                        <div v-else-if="!jobsForm.jobs.length" class="text-center py-8">
-                            <div class="text-gray-400">
-                                <i class="fas fa-briefcase text-4xl mb-4"></i>
-                                <h3 class="text-lg font-medium">No Jobs Found</h3>
-                                <p class="text-sm">Try adjusting your search criteria</p>
+                         <!-- Recommended Jobs Section (only for Job Listings tab) -->
+                        <div v-if="activeTab === 'jobs'" class="mb-8">
+                            <h2 class="text-xl font-semibold mb-2">Recommended for You</h2>
+                            <div v-if="recommendationsLoading" class="py-4">Loading recommendations...</div>
+                            <div v-else-if="!recommendations.length" class="text-gray-500 py-4">No recommendations yet.
+                            </div>
+                            <div v-else class="grid grid-cols-1 gap-4">
+                                <div v-for="job in recommendations" :key="job.id"
+                                    class="bg-blue-50 border border-blue-200 rounded p-4">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="font-bold">{{ job.job_title }}</h3>
+                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p>
+                                        </div>
+                                        <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View</PrimaryButton>
+                                    </div>
+                                    <div class="text-xs text-gray-700 mt-2">
+                                        <span v-if="job.locations && job.locations.length">
+                                            {{job.locations.map(l => l.address).join(', ')}}
+                                        </span>
+                                    </div>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <span v-for="label in job.match_labels" :key="label"
+                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200">
+                                            Match with {{ label }}
+                                        </span>
+                                        <span
+                                            class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                             {{ job.match_percentage !== undefined ? job.match_percentage + '%' : 'N/A' }} Match
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Job Listings -->
-                        <div v-else class="grid grid-cols-1 gap-6">
+                        <!-- Job Listings Tab -->
+                        <div v-if="activeTab === 'jobs'">
+                            <h2 class="text-xl font-semibold mb-4">Job Listings</h2>
+                            <!-- Loading State -->
+                            <div v-if="jobsForm.loading" class="flex justify-center items-center py-8">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                            </div>
+                            <!-- Empty State -->
+                            <div v-else-if="!filteredJobs.length" class="text-center py-8">
+                                <div class="text-gray-400">
+                                    <i class="fas fa-briefcase text-4xl mb-4"></i>
+                                    <h3 class="text-lg font-medium">No Jobs Found</h3>
+                                    <p class="text-sm">Try adjusting your search criteria</p>
+                                </div>
+                            </div>
+                            <!-- Job Listings -->
+                            <div v-else class="grid grid-cols-1 gap-6">
 
-                            <div v-for="job in jobsForm.jobs" :key="job.id"
-                                class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                <div class="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 class="text-lg font-semibold text-gray-900">{{ job.job_title }}</h3>
-                                        <p class="text-sm text-gray-600">
-                                            <template v-if="job.company">
-                                                {{ job.company.company_name }}
-                                            </template>
-                                            <template v-else-if="job.institution">
-                                                {{ job.institution.institution_name }}
-                                            </template>
-                                            <template v-else-if="job.peso">
-                                                {{ job.peso.peso_name }}
-                                            </template>
-                                            <template v-else>
-                                                Unknown
-                                            </template>
-                                        </p>
+                                <div v-for="job in filteredJobs" :key="job.id"
+                                    class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-gray-900">{{ job.job_title }}</h3>
+                                            <p class="text-sm text-gray-600">
+                                                <template v-if="job.company">
+                                                    {{ job.company.company_name }}
+                                                </template>
+                                                <template v-else-if="job.institution">
+                                                    {{ job.institution.institution_name }}
+                                                </template>
+                                                <template v-else-if="job.peso">
+                                                    {{ job.peso.peso_name }}
+                                                </template>
+                                                <template v-else>
+                                                    Unknown
+                                                </template>
+                                            </p>
+                                        </div>
+                                        <div class="flex items-center">
+
+                                        </div>
                                     </div>
-                                    <div class="flex items-center">
+                                    <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>
+                                            <span>
+                                                <template v-if="job.locations && job.locations.length">
+                                                    {{job.locations.map(l => l.address).join(', ')}}
+                                                </template>
+                                                <template v-else>
+                                                    Not specified
+                                                </template>
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-briefcase mr-2"></i>
+                                            <span>
+                                                <template v-if="job.jobTypes && job.jobTypes.length">
+                                                    {{job.jobTypes.map(jt => jt.type).join(', ')}}
+                                                </template>
+                                                <template v-else>
+                                                    Not specified
+                                                </template>
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-clock mr-2"></i>
+                                            {{ job.job_experience_level || 'Not specified' }}
+                                        </div>
+                                        <div class="flex items-center text-gray-600">
+                                            <i class="fas fa-peso-sign mr-2"></i>
+                                            {{ formatSalary(job.salary) }}
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <span v-for="skill in job.skills" :key="skill"
+                                            class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                            {{ skill }}
+                                        </span>
+                                    </div>
+                                    <div class="flex space-x-3">
+                                        <PrimaryButton @click="viewJobDetails(job)" class="text-sm">
+                                            View Details
+                                        </PrimaryButton>
+                                        <PrimaryButton v-if="!appliedJobIds.includes(job.id)" @click="showApplyModal(job)"
+                                            class="text-sm bg-green-600 hover:bg-green-700">
+                                            Apply Now
+                                        </PrimaryButton>
+                                        <span v-else class="text-gray-400 text-sm font-semibold flex items-center">
+                                            <i class="fas fa-check-circle mr-1 text-green-500"></i> Already Applied
+                                        </span>
 
+                                        <PrimaryButton @click="oneClickApply(job)"
+                                            class="text-sm bg-green-600 hover:bg-green-700">
+                                            One-Click Apply
+                                        </PrimaryButton>
+
+                                        <PrimaryButton v-if="job.company && job.company.id"
+                                            @click="goToCompanyProfile(job.company.id)"
+                                            class="bg-gray-600 hover:bg-gray-700">
+
+                                            View Company
+                                        </PrimaryButton>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                                    <div class="flex items-center text-gray-600">
+                            </div>
+                        </div>
+
+                        <!-- My Applications Tab -->
+                        <div v-else>
+                            <h2 class="text-xl font-semibold mb-4">My Applications</h2>
+                            <div v-if="!myApplications.length" class="text-center py-8 text-gray-500">
+                                <i class="fas fa-info-circle text-2xl mb-2"></i>
+                                You have not applied to any jobs yet.
+                            </div>
+                            <div v-else class="grid grid-cols-1 gap-6">
+                                <div v-for="job in myApplications" :key="job.id"
+                                    class="bg-indigo-50 border border-indigo-200 rounded-lg p-6 shadow-sm">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-indigo-900">{{ job.job_title }}</h3>
+                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p>
+                                        </div>
+                                        <span class="px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700">
+                                            Applied
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center text-gray-600 mb-2">
                                         <i class="fas fa-map-marker-alt mr-2"></i>
                                         <span>
                                             <template v-if="job.locations && job.locations.length">
-                                                {{job.locations.map(l => l.address).join(', ')}}
+                                                {{ job.locations.map(l => l.address).join(', ') }}
                                             </template>
                                             <template v-else>
                                                 Not specified
                                             </template>
                                         </span>
                                     </div>
-                                    <div class="flex items-center text-gray-600">
+                                    <div class="flex items-center text-gray-600 mb-2">
                                         <i class="fas fa-briefcase mr-2"></i>
                                         <span>
                                             <template v-if="job.jobTypes && job.jobTypes.length">
-                                                {{job.jobTypes.map(jt => jt.type).join(', ')}}
+                                                {{ job.jobTypes.map(jt => jt.type).join(', ') }}
                                             </template>
                                             <template v-else>
                                                 Not specified
                                             </template>
                                         </span>
                                     </div>
-                                    <div class="flex items-center text-gray-600">
+                                    <div class="flex items-center text-gray-600 mb-2">
                                         <i class="fas fa-clock mr-2"></i>
                                         {{ job.job_experience_level || 'Not specified' }}
                                     </div>
-                                    <div class="flex items-center text-gray-600">
-                                        <i class="fas fa-peso-sign mr-2"></i>
+                                    <div class="flex items-center text-gray-600 mb-2">
+                                        <i class="fas fa-dollar-sign mr-2"></i>
                                         {{ formatSalary(job.salary) }}
                                     </div>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mb-4">
-                                    <span v-for="skill in job.skills" :key="skill"
-                                        class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
-                                        {{ skill }}
-                                    </span>
-                                </div>
-                                <div class="flex space-x-3">
-                                    <PrimaryButton @click="viewJobDetails(job)" class="text-sm">
-                                        View Details
-                                    </PrimaryButton>
-                                    <PrimaryButton @click="showApplyModal(job)"
-                                        class="text-sm bg-green-600 hover:bg-green-700">
-                                        Apply Now
-                                    </PrimaryButton>
-
-                                    <PrimaryButton @click="oneClickApply(job)"
-                                        class="text-sm bg-green-600 hover:bg-green-700">
-                                        One-Click Apply
-                                    </PrimaryButton>
-
-                                    <PrimaryButton v-if="job.company && job.company.id"
-                                        @click="goToCompanyProfile(job.company.id)"
-                                        class="bg-gray-600 hover:bg-gray-700">
-
-                                        View Company
-                                    </PrimaryButton>
+                                    <div class="flex space-x-3 mt-4">
+                                        <PrimaryButton @click="viewJobDetails(job)" class="text-sm">
+                                            View Details
+                                        </PrimaryButton>
+                                        <PrimaryButton v-if="job.company && job.company.id"
+                                            @click="goToCompanyProfile(job.company.id)"
+                                            class="bg-gray-600 hover:bg-gray-700">
+                                            View Company
+                                        </PrimaryButton>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -425,6 +542,12 @@ onMounted(() => {
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
                                         <h2 class="text-xl font-bold text-gray-900">{{ selectedJob.job_title }}</h2>
+                                        <span
+                                            class="px-2 py-1 text-xs rounded-full font-semibold bg-blue-100 text-blue-800 border border-blue-200"
+                                            v-if="selectedJob.match_percentage !== undefined"
+                                        >
+                                            {{ selectedJob.match_percentage }}% Match   
+                                        </span>
                                         <p class="text-md text-gray-600">
                                             <template v-if="selectedJob.company">
                                                 {{ selectedJob.company.company_name }}
@@ -505,8 +628,13 @@ onMounted(() => {
                                 <div class="mb-6" v-if="selectedJob.skills && selectedJob.skills.length">
                                     <h3 class="text-lg font-semibold mb-2">Required Skills</h3>
                                     <div class="flex flex-wrap gap-2">
-                                        <span v-for="skill in selectedJob.skills" :key="skill"
-                                            class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
+                                        <span
+                                            v-for="skill in Array.isArray(selectedJob.skills)
+                                                ? selectedJob.skills
+                                                : selectedJob.skills.split(',').map(s => s.trim()).filter(Boolean)"
+                                            :key="skill"
+                                            class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full"
+                                        >
                                             {{ skill }}
                                         </span>
                                     </div>
@@ -516,16 +644,21 @@ onMounted(() => {
                                         class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
                                         Close
                                     </button>
-                                    <PrimaryButton @click="showApplyModal(selectedJob)"
-                                        class="bg-green-600 hover:bg-green-700">
-                                        Apply Now
-                                    </PrimaryButton>
-
-                                    <PrimaryButton @click="oneClickApply(selectedJob)"
-                                        class="text-sm bg-green-600 hover:bg-green-700">
-                                        One-Click Apply
-                                    </PrimaryButton>
-
+                                    <template v-if="!appliedJobIds.includes(selectedJob.id)">
+                                        <PrimaryButton @click="showApplyModal(selectedJob)"
+                                            class="bg-green-600 hover:bg-green-700">
+                                            Apply Now
+                                        </PrimaryButton>
+                                        <PrimaryButton @click="oneClickApply(selectedJob)"
+                                            class="text-sm bg-green-600 hover:bg-green-700">
+                                            One-Click Apply
+                                        </PrimaryButton>
+                                    </template>
+                                    <template v-else>
+                                        <span class="text-gray-400 text-sm font-semibold flex items-center">
+                                            <i class="fas fa-check-circle mr-1 text-green-500"></i> Already Applied
+                                        </span>
+                                    </template>
                                     <PrimaryButton v-if="selectedJob && selectedJob.company && selectedJob.company.id"
                                         @click="goToCompanyProfile(selectedJob.company.id)"
                                         class="bg-gray-600 hover:bg-gray-700">
@@ -610,7 +743,7 @@ onMounted(() => {
                                         'bg-yellow-100 text-yellow-800': calculateMatchPercentage(selectedJob) >= 50 && calculateMatchPercentage(selectedJob) < 70,
                                         'bg-gray-100 text-gray-800': calculateMatchPercentage(selectedJob) < 50
                                     }">
-                                        {{ calculateMatchPercentage(selectedJob) }}% Match
+                                        {{ selectedJob.match_percentage !== undefined ? selectedJob.match_percentage + '%' : 'N/A' }} Match
                                     </span>
                                 </div>
 
@@ -667,14 +800,6 @@ onMounted(() => {
                             </div>
                             </template>
                         </Modal>
-
-
-
-
-
-
-
-                       
                     </div>
                 </div>
             </div>

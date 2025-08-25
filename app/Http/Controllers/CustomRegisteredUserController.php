@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-
 use App\Models\Institution;
 use App\Models\InstitutionSchoolYear;
 use App\Models\InstitutionProgram;
@@ -24,7 +22,7 @@ use Laravel\Fortify\Contracts\RegisterViewResponse;
 use Laravel\Fortify\Fortify;
 use App\Models\User; // Make sure to import your User model
 use App\Notifications\VerifyEmailWithCode;
-
+use Inertia\Inertia;
 
 class CustomRegisteredUserController extends Controller
 {
@@ -38,71 +36,6 @@ class CustomRegisteredUserController extends Controller
     public function create(Request $request): RegisterViewResponse
     {
         return app(RegisterViewResponse::class);
-    }
-
-    /**
-     * Show the email-only registration form.
-     *
-     * @return \Inertia\Response
-     */
-    public function createEmailOnly()
-    {
-        return Inertia::render('Auth/RegisterEmailOnly');
-    }
-
-    /**
-     * Handle the email-only registration request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function storeEmailOnly(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|string|email|max:255|unique:users',
-        ]);
-
-        // Check if the user already exists
-        $existingUser = User::where('email', $request->email)->first();
-
-        if ($existingUser) {
-            // Generate a verification code for existing user
-            $verificationCode = rand(100000, 999999);
-            $existingUser->verification_code = $verificationCode;
-            $existingUser->save();
-
-            // Send the verification code via email
-            $existingUser->notify(new VerifyEmailWithCode($verificationCode));
-
-            // Authenticate the user
-            $this->guard->login($existingUser);
-
-            // Redirect to the verification code page
-            return redirect()->route('verification.code');
-        }
-
-        // Create a new user with minimal information
-        $user = User::create([
-            'email' => $request->email,
-            'password' => bcrypt(Str::random(16)), // Random password that will be reset later
-            'role' => 'graduate',
-        ]);
-
-        // Generate a verification code
-        $verificationCode = rand(100000, 999999);
-        $user->verification_code = $verificationCode;
-        $user->save();
-
-        event(new Registered($user));
-
-        // Send the verification code via email
-        $user->notify(new VerifyEmailWithCode($verificationCode));
-
-        // Authenticate the user
-        $this->guard->login($user);
-
-        // Redirect to the verification code page
-        return redirect()->route('verification.code');
     }
 
     public function store(Request $request, CreatesNewUsers $creator)
@@ -271,19 +204,9 @@ class CustomRegisteredUserController extends Controller
         $user->verification_code = null; // Clear the verification code
         $user->is_approved = true;
         $user->save();
-        
-        // If the request is from the new verification code page, redirect to verification success page
-        if ($request->header('Referer') && str_contains($request->header('Referer'), 'verify-code')) {
-            return Inertia::render('Auth/VerificationSuccess', [
-                'auth' => [
-                    'user' => $user,
-                ],
-            ]);
-        }
-        
+
         return redirect()->route('login')->with('message', 'Email verified successfully! You can now log in.');
     }
-    
     public function resendVerificationCode(Request $request)
     {
         $user = $request->user();

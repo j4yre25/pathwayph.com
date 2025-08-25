@@ -7,6 +7,10 @@ use App\Models\Graduate;
 use App\Models\Job;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
 
 class ManageJobReferralsController extends Controller
 {
@@ -113,6 +117,8 @@ class ManageJobReferralsController extends Controller
         $job = $referral->job;
         $company = $job->company;
 
+
+
         // Return a view for the certificate (blade or PDF)
         return Inertia::render('Admin/ReferralCertificate', [
             'certificate' => [
@@ -122,7 +128,50 @@ class ManageJobReferralsController extends Controller
                 'company' => $company->company_name,
                 'company_address' => $company->address ?? '',
                 'photo' => $graduate->photo_url ?? '/default-photo.png', // adjust as needed
+                'graduate_id' => $graduate->user_id,
             ]
         ]);
+    }
+
+
+
+    public function store(Request $request)
+    {
+        \Log::info('Request received', $request->all());
+
+        try {
+            $request->validate([
+                'certificate' => 'required|file|mimes:pdf',
+                'graduate_id' => 'required|integer|exists:users,id',
+            ]);
+
+            if (!$request->hasFile('certificate')) {
+                \Log::error('No certificate file uploaded');
+                return response()->json(['error' => 'No certificate file uploaded'], 400);
+            }
+
+            $path = $request->file('certificate')->store('private/certificates');
+            \Log::info('Certificate stored at:', ['path' => $path]);
+
+            $user = \App\Models\User::find($request->graduate_id);
+            if ($user) {
+                \Log::info('Notifying user with certificate path:', ['path' => $path]);
+                $user->notify(new \App\Notifications\CertificateAvailable($path));
+            }
+
+            return redirect()->back()->with('success', 'Certificate uploaded successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Certificate store error: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function download($filename)
+    {
+        $path = "private/certificates/{$filename}";
+        if (!Storage::exists($path)) {
+            abort(404);
+        }
+        return Storage::download($path);
     }
 }
