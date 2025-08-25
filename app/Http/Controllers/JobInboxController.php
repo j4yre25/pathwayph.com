@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Models\Job;
 use App\Models\JobApplication;
+use App\Services\ApplicantScreeningService;
 
 class JobInboxController extends Controller
 {
@@ -181,6 +182,22 @@ class JobInboxController extends Controller
     // Apply for a job
     
 
+
+
+        $job = $application->job;
+        
+        $screening = (new ApplicantScreeningService())->screen($graduate, $job);
+
+        $application->is_shortlisted = $screening['is_shortlisted'];
+        $application->status = $screening['status'];
+        $application->stage = 'Screening';
+        $application->screening_label = $screening['screening_label'];
+        $application->screening_feedback = $screening['screening_feedback'];
+        $application->save();
+
+        
+        return back()->with('success', 'Application submitted successfully.');
+    }
 
 
 

@@ -83,7 +83,7 @@ class CompanyJobsController extends Controller
 
     public function archivedlist(User $user)
     {
-        $all_jobs = Job::with('user')->onlyTrashed()->get();
+        $all_jobs = Job::with('user','jobTypes')->onlyTrashed()->get();
 
         return Inertia::render('Company/Jobs/Index/ArchivedList', [
             'all_jobs' => $all_jobs
@@ -531,30 +531,142 @@ class CompanyJobsController extends Controller
 
     public function edit(Job $job)
     {
+        $job->load([
+            'programs:id,name',
+            'jobTypes:id,type',
+            'workEnvironments:id,environment_type',
+            'salary',
+        ]);
+
+        $departments = Department::where('company_id', $job->company_id)
+            ->select('id', 'department_name')
+            ->orderBy('department_name')
+            ->get();
+
+        $programs = Program::select('id', 'name')->get();
+        $jobTypes = JobType::select('id', 'type')->get();
+        $workEnvironments = WorkEnvironment::select('id', 'environment_type')->get();
+        $skills = Skill::orderBy('name')->pluck('name');
+
+        // Prepare job data for Vue
+        $jobData = $job->toArray();
+        $jobData['programs'] = $job->programs->map(fn($p) => ['id' => $p->id, 'name' => $p->name]);
+        $jobData['program_id'] = $job->programs->pluck('id')->map(fn($id) => (string)$id)->toArray();
+        $jobData['job_type'] = $job->jobTypes->first()?->id ? (string)$job->jobTypes->first()->id : '';
+        $jobData['work_environment'] = $job->workEnvironments->first()?->id ? (string)$job->workEnvironments->first()->id : '';
+        $jobData['skills'] = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
+        $jobData['salary'] = $job->salary ? [
+            'salary_type' => $job->salary->salary_type,
+            'job_min_salary' => $job->salary->job_min_salary,
+            'job_max_salary' => $job->salary->job_max_salary,
+        ] : [
+            'salary_type' => $job->salary_type ?? '',
+            'job_min_salary' => $job->job_min_salary ?? '',
+            'job_max_salary' => $job->job_max_salary ?? '',
+        ];
+
         return Inertia::render('Company/Jobs/Edit/Index', [
-            'job' => $job
+            'job' => $jobData,
+            'departments' => $departments,
+            'programs' => $programs,
+            'jobTypes' => $jobTypes,
+            'workEnvironments' => $workEnvironments,
+            'skills' => $skills,
+            'authUser' => Auth::user()->load('hr'),
         ]);
     }
 
     public function update(Request $request, Job $job)
     {
-
         $validated = $request->validate([
-            'job_title' => ['required', 'string', 'max:99'],
-            'job_description' => ['required', 'string', 'max:1000'],
-            'job_requirements' => ['required', 'string', 'max:1000'],
-            'related_skills' => ['nullable', 'array'], // Optional: if you want to update related_skills too
-            'related_skills.*' => ['string', 'max:255'], // Validate each skill
+            'job_title' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('jobs')->ignore($job->id)->where(function ($query) use ($request) {
+                    return $query->where('user_id', $request->user_id)
+                        ->where('location', $request->location);
+                }),
+            ],
+            'posted_by' => 'nullable|string|max:255',
+            'location' => [
+                Rule::requiredIf(function () use ($request) {
+                    return $request->work_environment != 2; // Only required if NOT remote
+                }),
+                'nullable',
+                'string',
+                'max:255'
+            ],
+            'department_id' => [
+                'required',
+                'integer',
+                'exists:departments,id'
+            ],
+            'job_vacancies' => 'required|integer|min:1',
+            'salary.job_min_salary' => 'nullable|numeric',
+            'salary.job_max_salary' => 'nullable|numeric',
+            'salary.salary_type' => 'required|string',
+            'is_negotiable' => 'nullable|boolean',
+            'job_type' => 'required|integer|exists:job_types,id',
+            'job_experience_level' => 'required|string|max:255',
+            'work_environment' => 'required|integer|exists:work_environments,id',
+            'job_description' => 'required|string|max:5000',
+            'job_requirements' => 'required|string|max:5000',
+            'job_deadline' => 'required|date|after:today',
+            'job_application_limit' => [
+                'nullable',
+                'integer',
+                'min:' . ($request->job_vacancies ?? 1),
+            ],
+            'skills' => 'required|array|min:1',
+            'program_id' => 'required|array|min:1',
+            'program_id.*' => 'exists:programs,id',
         ]);
 
+        // Update main job fields
         $job->update([
             'job_title' => $validated['job_title'],
+            'posted_by' => $validated['posted_by'] ?? $job->posted_by,
+            'location' => $validated['location'] ?? null,
+            'department_id' => $validated['department_id'],
+            'job_vacancies' => $validated['job_vacancies'],
+            'job_experience_level' => $validated['job_experience_level'],
+            'work_environment' => $validated['work_environment'],
+            'job_type' => $validated['job_type'],
             'job_description' => $validated['job_description'],
             'job_requirements' => $validated['job_requirements'],
-            'related_skills' => $validated['related_skills'] ?? $job->related_skills, // Keep existing if not updating
+            'job_deadline' => $validated['job_deadline'],
+            'job_application_limit' => $validated['job_application_limit'] ?? null,
+            'is_negotiable' => $validated['is_negotiable'] ?? 0,
+            'skills' => $validated['skills'],
         ]);
-        $job->save();
 
+        // Update salary (if you have a Salary model/relationship)
+        if (isset($validated['salary'])) {
+            $job->salary()->updateOrCreate(
+                ['job_id' => $job->id],
+                [
+                    'salary_type' => $validated['salary']['salary_type'],
+                    'job_min_salary' => $validated['salary']['job_min_salary'],
+                    'job_max_salary' => $validated['salary']['job_max_salary'],
+                ]
+            );
+        }
+
+        // Sync programs (many-to-many)
+        if (isset($validated['program_id'])) {
+            $job->programs()->sync($validated['program_id']);
+        }
+
+        // Sync job types (if you support multiple types)
+        if (isset($validated['job_type'])) {
+            $job->jobTypes()->sync([$validated['job_type']]);
+        }
+
+        // Optionally, sync work environments if you support multiple
+        // $job->workEnvironments()->sync([$validated['work_environment']]);
+
+        $job->save();
 
         return redirect()->back()->with('flash.banner', 'Job updated successfully.');
     }

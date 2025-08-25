@@ -118,7 +118,7 @@ const form = useForm({
                     </PrimaryButton>
                 </Link>
 
-                <Link :href="route('jobs.archivedlist', { user: page.props.auth.user.id })" class="flex-shrink-0">
+                <Link :href="route('company.jobs.archivedlist', { user: page.props.auth.user.id })" class="flex-shrink-0">
                     <PrimaryButton class="flex items-center">
                         <i class="fas fa-archive mr-2"></i>
                         Archived Jobs

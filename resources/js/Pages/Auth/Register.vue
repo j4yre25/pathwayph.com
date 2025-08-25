@@ -26,36 +26,6 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     role: '',
-    gender: '',
-    dob: '',
-    mobile_number: '',
-    telephone_number: '',
-    company_name: '',
-    company_street_address: '',
-    company_brgy: '',
-    company_city: '',
-    company_province: '',
-    company_zip_code: '',
-    company_email: '',
-    company_mobile_phone: '',
-    category: '',
-    first_name: '',
-    last_name: '',
-    middle_name: '',
-    institution_type: '',
-    institution_name: '',
-    institution_address: '',
-    institution_president_last_name: '',
-    institution_president_first_name: '',
-    institution_career_officer_first_name: '',
-    institution_career_officer_middle_name: '',
-    institution_career_officer_last_name: '',
-    graduate_school_graduated_from: '',
-    graduate_program_completed: '',
-    graduate_year_graduated: '',
-    graduate_first_name: '',
-    graduate_middle_name: '',
-    graduate_last_name: '',
     terms: false,
 });
 
@@ -75,21 +45,6 @@ onMounted(() => {
     }
 });
 
-const years = computed(() => {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let i = currentYear; i >= currentYear - 50; i--) {
-        years.push(i);
-    }
-    return years;
-});
-
-const filteredPrograms = computed(() => {
-    if (!form.graduate_school_graduated_from) return programs.value;
-    return programs.value.filter(program =>
-        program.institution_id === form.graduate_school_graduated_from
-    );
-});
 
 const selectUserLevel = (level) => {
     selectedUserLevel.value = level;

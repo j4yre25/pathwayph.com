@@ -1061,7 +1061,7 @@ if (!$file->getRealPath()) {
     }
 
     // Save employment preferences
-    public function saveEmploymentReference(Request $request)
+     function saveEmploymentReference(Request $request)
     {
         $request->validate([
             'job_types' => 'nullable|string',
@@ -1071,7 +1071,7 @@ if (!$file->getRealPath()) {
             'additional_notes' => 'nullable|string',
         ]);
 
-        $user = Auth::user();
+        $user = Auth::upublicser();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
         $employmentReference = EmploymentPreference::firstOrNew([
@@ -1273,8 +1273,7 @@ if (!$file->getRealPath()) {
 
         // 2. Salary
         $salary = Salary::firstOrCreate([
-            'job_min_salary' => $request->employment_min_salary,
-            'job_max_salary' => $request->employment_max_salary,
+            'employment_preference_id' => $employmentPreference->id,
             'salary_type' => $request->salary_type,
             'employment_min_salary' => $request->employment_min_salary,
             'employment_max_salary' => $request->employment_max_salary,

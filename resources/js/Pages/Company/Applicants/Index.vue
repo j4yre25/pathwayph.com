@@ -3,13 +3,17 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import { router, usePage, Link } from '@inertiajs/vue3'
 import { ref, computed, onMounted } from 'vue'
 import Container from '@/Components/Container.vue'
-import ListOfJobs from './ListOfJobs.vue'
+import ListOfApplicants from './ListOfApplicants.vue'
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage()
 
 const props = defineProps({
     jobs: Array,
+    applicants: Array,
+    statuses: Array,
+    employmentTypes: Array,
+    filters: Object,
     stats: {
         type: Object,
         default: () => ({
@@ -61,14 +65,7 @@ const statsDisplay = computed(() => [
         iconBg: 'bg-[#FEF3C7]',
         iconColor: 'text-[#B45309]'
     },
-    {
-        title: 'Total Active Jobs',
-        value: props.stats.total_jobs.toString(),
-        period: props.stats.this_month_label,
-        icon: 'fas fa-briefcase',
-        iconBg: 'bg-[#DBEAFE]',
-        iconColor: 'text-[#4338CA]'
-    }
+
 ]);
 
 // Reactive search query
@@ -146,7 +143,6 @@ const goToJob = (jobId) => {
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6"> <!-- Added container styling -->
         <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
           <div class="flex items-center">
-            <h3 class="text-lg font-semibold text-gray-800">Job Listings</h3>
             <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
           </div>
           <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
@@ -173,7 +169,13 @@ const goToJob = (jobId) => {
       <!-- Active Job Positions -->
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <h3 class="text-lg font-semibold p-4 border-b border-gray-200">Active Job Positions</h3>
-        <ListOfJobs :jobs="paginatedJobs" />
+        <ListOfApplicants
+          :jobs="paginatedJobs"
+          :applicants="applicants"
+          :statuses="statuses"
+          :employmentTypes="employmentTypes"
+          :filters="filters"
+        />
         
         <!-- Pagination Controls -->
         <div v-if="totalPages > 1" class="flex justify-center items-center p-4 border-t border-gray-200">
