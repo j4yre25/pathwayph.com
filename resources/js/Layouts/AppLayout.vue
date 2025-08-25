@@ -18,6 +18,9 @@ const props = defineProps({
 const page = usePage();
 const user = page.props.auth?.user;
 
+console.log('user.company:', user.company);
+console.log('user.hr:', user.hr);
+
 console.log('Graduates', props);
 
 const auth = page.props;
@@ -38,12 +41,19 @@ onMounted(() => {
 
 const showNotifications = ref(false);
 const notifications = computed(() => usePage().props.notifications || []);
+const notificationsCount = computed(() => usePage().props.notifications_count || 0);
 const notifBell = ref(null);
 const notifDropdown = ref(null);
 
 function toggleNotifications() {
     showNotifications.value = !showNotifications.value;
-}
+    if (showNotifications.value && notificationsCount.value > 0) {
+        router.post(route('notifications.markAsRead'), {}, {
+            preserveState: true,
+            only: ['notifications', 'notifications_count'], // Only reload these props
+        });
+    }
+}   
 
 function handleClickOutside(event) {
     if (
@@ -79,8 +89,7 @@ console.log('Sector:', sector);
 console.log('Role', page.props.auth.user.role);
 
 console.log(page.props.app.currentUser.company?.company_name)
-console.log('user.company:', user.company);
-console.log('user.hr:', user.hr);
+
 
 
 const switchToTeam = (team) => {
@@ -148,20 +157,20 @@ console.log(page.props.permissions.canManageInstitution)
                                     :href="route('company.jobs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.jobs')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Job Listing
+                                    Jobs
                                 </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'company'"
                                     :href="route('company.job.applicants.index', { user: page.props.auth.user.id })"
                                     :active="route().current('company.job.applicants.index')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Manage Applicants
+                                    Applicants
                                 </NavLink>
 
                                 <NavLink v-if="roles.isCompany"
                                     :href="route('company.manage-hrs', { user: page.props.auth.user.id })"
                                     :active="route().current('company.manage-hrs')" :disabled="!page.props.auth.user.is_approved">
-                                    Human Resource Accounts
+                                    HR & Departments
                                 </NavLink>
 
                             
@@ -317,12 +326,12 @@ console.log(page.props.permissions.canManageInstitution)
 
 
 
-                                <NavLink v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
+                                <!-- <NavLink v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
                                     :href="route('peso.jobs', { user: page.props.auth.user.id })"
                                     :active="route().current('peso.jobs')"
                                     :disabled="!page.props.auth.user.is_approved">
                                     PESO Job Posting
-                                </NavLink>
+                                </NavLink> -->
 
 
 
@@ -334,11 +343,11 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Job Referrals
                                 </NavLink>
 
-                                <NavLink :href="route('peso.career-guidance')"
+                                <!-- <NavLink :href="route('peso.career-guidance')"
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('peso.career-guidance')">
                                     Manage Career Guidance
-                                </NavLink>
+                                </NavLink> -->
 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('peso.reports.index', { user: page.props.auth.user.id })"
@@ -392,23 +401,26 @@ console.log(page.props.permissions.canManageInstitution)
                                                 Team Settings
                                             </DropdownLink>
 
-                                            <div class="ms-3 relative">
-                                                <button @click="showNotifications = !showNotifications" class="relative focus:outline-none">
-                                                    <i class="fas fa-bell text-xl"></i>
-                                                    <span v-if="notifications.length" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-                                                        {{ notifications.length }}
-                                                    </span>
-                                                </button>
-                                                <div v-if="showNotifications" class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50">
-                                                    <div v-if="notifications.length">
-                                                        <div v-for="notif in notifications" :key="notif.id" class="p-3 border-b last:border-b-0">
-                                                            <div class="font-semibold">{{ notif.title }}</div>
-                                                            <div class="text-sm text-gray-600">{{ notif.body }}</div>
-                                                            <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
-                                                        </div>
+                                            <button
+                                                ref="notifBell"
+                                                @click.stop="toggleNotifications"
+                                                class="relative focus:outline-none mr-3"
+                                                aria-label="Notifications"
+                                            >
+                                                <i class="fas fa-bell text-xl"></i>
+                                                <span v-if="notificationsCount" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
+                                                    {{ notificationsCount }}
+                                                </span>
+                                            </button>
+                                            <div v-if="showNotifications" class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50">
+                                                <div v-if="notifications.length">
+                                                    <div v-for="notif in notifications" :key="notif.id" class="p-3 border-b last:border-b-0">
+                                                        <div class="font-semibold">{{ notif.title }}</div>
+                                                        <div class="text-sm text-gray-600">{{ notif.body }}</div>
+                                                        <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
                                                     </div>
-                                                    <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
                                                 </div>
+                                                <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
                                             </div>
 
                                             <DropdownLink v-if="$page.props.jetstream.canCreateTeams"

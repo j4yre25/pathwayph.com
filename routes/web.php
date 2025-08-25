@@ -92,7 +92,7 @@ Route::get('/', function () {
 
 
 Route::get('/register', function () {
-    return Inertia::render('Auth/PathwayRegister');
+    return Inertia::render('Auth/Register');
 })->name('pathway.register');
 
 
@@ -105,6 +105,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/careerofficer/register', [CareerOfficerRegisterController::class, 'showRegistrationForm'])->name('careerofficer.register');
     Route::post('/careerofficer/register', [CareerOfficerRegisterController::class, 'register'])->name('careerofficer.submit');
 });
+
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->post('/notifications/mark-as-read', function () {
+    $user = Auth::user();
+    if ($user) {
+        $user->unreadNotifications->markAsRead();
+    }
+    return response()->json(['success' => true]);
+})->name('notifications.markAsRead');
 
 // PESO Jobs
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/{user}', [PesoJobsController::class, 'index'])

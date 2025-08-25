@@ -282,7 +282,6 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
     </div>
   </AppLayout>
 </template>
-
 <style scoped>
 /* Clean modern styles for white theme */
 

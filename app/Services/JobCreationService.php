@@ -22,20 +22,25 @@ class JobCreationService
      */
     public function createJob(array $validated, User $user): Job
     {
-        $salary = $this->createSalary($validated);
         $location = $this->handleLocation($validated);
 
-        $jobData = $this->prepareJobData($validated, $user, $salary, $location);
+        $jobData = $this->prepareJobData($validated, $user, null, $location);
 
+    
         [$jobCode, $jobID] = $this->generateJobCodes(
             $validated['sector'] ?? $validated['sector_id'] ?? null,
             $validated['category'] ?? $validated['category_id'] ?? null,
+            $user,
             $validated['job_title']
         );
         $jobData['job_code'] = $jobCode;
         $jobData['job_id'] = "JS-{$jobID}-{$jobCode}";
 
         $job = Job::create($jobData);
+
+        $salary = $this->createSalary($validated, $job->id);
+
+        
 
         // Sync relationships if present
         if (!empty($validated['job_type'])) {
@@ -54,9 +59,10 @@ class JobCreationService
         return $job;
     }
 
-    private function createSalary(array $validated): Salary
+    private function createSalary(array $validated, $jobId): Salary
     {
         return Salary::create([
+            'job_id' => $jobId,
             'job_min_salary' => !empty($validated['is_negotiable']) && $validated['is_negotiable'] ? null : ($validated['salary']['job_min_salary'] ?? $validated['job_min_salary'] ?? null),
             'job_max_salary' => !empty($validated['is_negotiable']) && $validated['is_negotiable'] ? null : ($validated['salary']['job_max_salary'] ?? $validated['job_max_salary'] ?? null),
             'salary_type' => $validated['salary']['salary_type'] ?? $validated['job_salary_type'] ?? null,
@@ -73,7 +79,7 @@ class JobCreationService
         return null;
     }
 
-    private function prepareJobData(array $validated, User $user, Salary $salary, $location): array
+    private function prepareJobData(array $validated, User $user, ?Salary $salary = null, $location): array
     {
         return [
             'user_id' => $user->id,
@@ -83,7 +89,6 @@ class JobCreationService
 
             'job_title' => $validated['job_title'],
             'location' => $location ? $location->id : ($validated['location_id'] ?? null),
-            'salary_id' => $salary->id,
             'is_approved' => 1,
             'job_type' => $validated['job_type'] ?? null,
             'job_experience_level' => $validated['job_experience_level'] ?? null,
@@ -104,20 +109,37 @@ class JobCreationService
         ];
     }
 
-    private function generateJobCodes($sectorId, $categoryId, $jobTitle): array
+    private function generateJobCodes($sectorId, $categoryId,User $user, $jobTitle): array
     {
-        $sector = $sectorId ? Sector::find($sectorId) : null;
-        $category = $categoryId ? Category::find($categoryId) : null;
+        // $sector = $sectorId ? Sector::find($sectorId) : null;
+        // $category = $categoryId ? Category::find($categoryId) : null;
+        // $sectorCode = $sector ? $sector->sector_id : 'SEC';
+        // $divisionCodes = $sector ? $sector->division_codes : 'DIV';
+        // $categoryCode = $category ? $category->division_code : 'CAT';
+        // $initials = collect(explode(' ', $jobTitle))
+        //     ->map(fn($word) => Str::substr($word, 0, 1))
+        //     ->implode('');
+        // $initials = strtoupper($initials);
+        // $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
+        // $jobCount = Job::count() + 1;
+        // $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT);
+        // return [$jobCode, $jobID];
+
+         $company = $user->company;
+        $sector = $company ? $company->sector : null;
+
         $sectorCode = $sector ? $sector->sector_id : 'SEC';
         $divisionCodes = $sector ? $sector->division_codes : 'DIV';
-        $categoryCode = $category ? $category->division_code : 'CAT';
+
         $initials = collect(explode(' ', $jobTitle))
             ->map(fn($word) => Str::substr($word, 0, 1))
             ->implode('');
         $initials = strtoupper($initials);
-        $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
+
+        $jobCode = "{$sectorCode}{$divisionCodes}{$initials}";
         $jobCount = Job::count() + 1;
         $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT);
+
         return [$jobCode, $jobID];
     }
 }

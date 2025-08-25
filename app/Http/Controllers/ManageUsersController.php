@@ -18,9 +18,8 @@ class ManageUsersController extends Controller
             'company',       // relationship: company()
             'institution',   // relationship: institution()
             'peso',          // relationship: peso()
-            'graduate',      // relationship: graduate()
         ])
-            ->whereIn('role', ['company', 'institution', 'peso', 'graduate'])
+            ->whereIn('role', ['company', 'institution', 'peso'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -71,8 +70,8 @@ class ManageUsersController extends Controller
             'company',
             'institution',
             'peso',
-            'graduate',
         ])
+            ->where('role', '!=', 'graduate')
             ->when($request->role && $request->role !== 'all', function ($query) use ($request) {
                 $query->where('role', $request->role);
             })
@@ -107,12 +106,6 @@ class ManageUsersController extends Controller
                         ? trim("{$user->peso->peso_first_name} {$user->peso->peso_last_name}")
                         : 'N/A';
                     $user->organization_name = $user->peso->peso_name ?? '-';
-                    break;
-                case 'graduate':
-                    $user->full_name = $user->graduate
-                        ? trim("{$user->graduate->first_name} {$user->graduate->last_name}")
-                        : 'N/A';
-                    $user->organization_name = '-';
                     break;
                 default:
                     $user->full_name = 'N/A';
