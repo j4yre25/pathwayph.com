@@ -25,7 +25,7 @@ const modals = reactive({
 
 const errorMessage = ref('');
 const showArchivedEducation = ref(false);
-const graduateInfoExpanded = ref(true); // State for Graduate School Information collapsible section
+const graduateInfoExpanded = ref(true);
 const isEducationAddedModalOpen = ref(false);
 const isEducationUpdatedModalOpen = ref(false);
 
@@ -515,7 +515,7 @@ const handleNoAchievements = () => {
           <div class="bg-blue-100 p-2 rounded-full mr-3">
             <i class="fas fa-graduation-cap text-blue-600"></i>
           </div>
-          <h3 class="text-lg font-semibold text-blue-800">Education</h3>
+          <h3 class="text-lg font-semibold text-blue-800">Education History</h3>
         </div>
         <div class="flex space-x-2">
           <PrimaryButton class="bg-blue-600 text-white px-4 py-2 rounded flex items-center hover:bg-blue-700"
@@ -817,13 +817,13 @@ const handleNoAchievements = () => {
 
     <!-- Graduate School Information (always visible) -->
     <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 cursor-pointer" 
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-100 to-white border-b border-blue-100 cursor-pointer" 
            @click="graduateInfoExpanded = !graduateInfoExpanded">
         <div class="flex items-center">
           <div class="bg-blue-100 p-2 rounded-full mr-3">
             <i class="fas fa-university text-blue-600"></i>
           </div>
-          <h3 class="text-lg font-semibold text-blue-800">Graduate School Information</h3>
+          <h3 class="text-lg font-semibold text-blue-800">Education History</h3>
         </div>
         <div>
           <i class="fas" :class="graduateInfoExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>

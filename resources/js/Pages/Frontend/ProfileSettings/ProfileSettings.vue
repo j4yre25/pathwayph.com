@@ -84,22 +84,43 @@ const { props } = usePage();
 
 <template>
   <Graduate>
-    <div class="bg-gray-50 min-h-screen">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
-        <p class="text-gray-600 mb-6">Manage your personal information and account settings</p>
+    <div class="gradient-bg min-h-screen relative overflow-hidden">
+      <!-- Floating background elements -->
+      <div class="absolute top-20 left-10 w-64 h-64 gradient-card rounded-full opacity-20 animate-float"></div>
+      <div class="absolute top-40 right-20 w-48 h-48 gradient-feature rounded-full opacity-30 animate-float-reverse"></div>
+      <div class="absolute bottom-20 left-1/4 w-72 h-72 gradient-cta rounded-full opacity-15 animate-morph"></div>
+      <div class="absolute top-1/3 right-1/3 w-32 h-32 bg-white rounded-full opacity-10 animate-pulse-glow"></div>
+      
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        <!-- Header Section with Background -->
+        <div class="relative mb-8">
+          <!-- Floating background elements -->
+          <div class="absolute inset-0 overflow-hidden rounded-lg">
+            <div class="absolute top-4 left-8 w-32 h-32 gradient-card rounded-full opacity-15 animate-float"></div>
+            <div class="absolute top-8 right-12 w-24 h-24 gradient-feature rounded-full opacity-20 animate-float-reverse"></div>
+            <div class="absolute bottom-4 left-1/3 w-40 h-40 gradient-cta rounded-full opacity-10 animate-morph"></div>
+            <div class="absolute top-1/2 right-1/4 w-16 h-16 bg-white rounded-full opacity-15 animate-pulse-glow"></div>
+          </div>
+          
+          <div class="relative bg-gradient-to-r from-blue-700 to-blue-900 p-8 rounded-lg text-white shadow-lg">
+            <div class="text-center">
+              <h1 class="text-4xl font-bold mb-4 enhanced-text">Profile Settings</h1>
+              <p class="text-white/90 text-lg animate-fade-in">Manage your personal information and account settings</p>
+            </div>
+          </div>
+        </div>
 
         <div class="flex flex-col md:flex-row gap-6 relative">
           <!-- Collapsible Sidebar Navigation -->
-          <div
-            class="w-full md:w-16 md:hover:w-64 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden h-fit mb-6 md:mb-0 transition-all duration-300 sidebar-nav">
-            <div
-              class="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-700 to-blue-900 relative overflow-hidden">
+          <div class="w-full md:w-16 md:hover:w-64 bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden h-fit mb-6 md:mb-0 transition-all duration-300 sidebar-nav group">
+            <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-700 to-blue-900 relative overflow-hidden">
               <div class="absolute inset-0 bg-white opacity-10 transform -skew-x-12"></div>
-              <h2
-                class="font-medium text-white relative z-10 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
-                Settings</h2>
-              <i class="fas fa-cog text-white absolute left-4 top-1/2 transform -translate-y-1/2 md:block hidden"></i>
+              <div class="relative z-10 flex items-center">
+                <i class="fas fa-cog text-white text-lg"></i>
+                <h2 class="font-medium text-white ml-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                  Settings
+                </h2>
+              </div>
             </div>
 
             <div class="p-2">
@@ -107,20 +128,19 @@ const { props } = usePage();
               <div v-for="(item, key) in menuStructure" :key="key" class="mb-1">
                 <!-- Main section button -->
                 <button @click="setActiveSection(key)"
-                  class="w-full text-left px-4 py-3 rounded-md flex items-center transition-all duration-200 mb-1 group"
+                  class="w-full text-left px-4 py-3 rounded-md flex items-center transition-all duration-200 mb-1 hover:shadow-sm"
                   :class="{
-                    'bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 shadow-sm': activeSection === key,
-                    'text-gray-700 hover:bg-gray-50': activeSection !== key
+                    'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 shadow-sm border border-blue-200': activeSection === key,
+                    'text-gray-700 hover:bg-gray-50 hover:text-blue-600': activeSection !== key
                   }">
                   <div class="flex items-center w-full">
-                    <div :class="{'bg-indigo-100 p-2 rounded-full': activeSection === key}"
-                      class="min-w-[32px] flex justify-center">
-                      <i
-                        :class="[item.icon, activeSection === key ? 'text-indigo-600' : 'text-indigo-500', 'w-5 text-center']"></i>
+                    <div :class="{'bg-blue-100 text-blue-600': activeSection === key, 'text-blue-500': activeSection !== key}"
+                      class="min-w-[32px] flex justify-center p-2 rounded-full transition-colors duration-200">
+                      <i :class="[item.icon, 'w-4 text-center']"></i>
                     </div>
-                    <span
-                      class="text-sm font-medium ml-3 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">{{
-                      item.title }}</span>
+                    <span class="text-sm font-medium ml-3 whitespace-nowrap md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                      {{ item.title }}
+                    </span>
                   </div>
                 </button>
               </div>
@@ -141,8 +161,7 @@ const { props } = usePage();
 
               <!-- Professional Background Settings - All subsections in one page -->
               <div v-if="activeSection === 'professional-background'" class="space-y-12">
-                <div
-                  class="flex justify-between items-center bg-gradient-to-r from-blue-700 to-blue-900 p-6 rounded-lg text-white shadow-lg">
+                <div class="flex justify-between items-center bg-gradient-to-r from-blue-700 to-blue-900 p-6 rounded-lg text-white shadow-lg">
                   <div>
                     <h2 class="text-2xl font-bold">Professional Background</h2>
                     <p class="mt-1 opacity-90">Manage your education, work experience, skills, and more</p>
@@ -241,8 +260,7 @@ const { props } = usePage();
 
               <!-- Supporting Documents Settings - All subsections in one page -->
               <div v-if="activeSection === 'supporting-documents'" class="space-y-12">
-                <div
-                  class="flex justify-between items-center bg-gradient-to-r from-blue-700 to-blue-900 p-6 rounded-lg text-white shadow-lg">
+                <div class="flex justify-between items-center bg-gradient-to-r from-blue-700 to-blue-900 p-6 rounded-lg text-white shadow-lg">
                   <div>
                     <h2 class="text-2xl font-bold">Supporting Documents</h2>
                     <p class="mt-1 opacity-90">Manage your testimonials, resumes, and other supporting documents</p>
@@ -486,5 +504,57 @@ const { props } = usePage();
 
 .archive-toggle input {
   margin-right: 0.5rem;
+}
+
+/* Gradient backgrounds for floating elements */
+.gradient-card {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.gradient-feature {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.gradient-cta {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+@keyframes float-reverse {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(20px) rotate(-5deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(1.1); }
+}
+
+@keyframes morph {
+  0%, 100% { border-radius: 50%; transform: rotate(0deg); }
+  25% { border-radius: 30% 70% 70% 30%; transform: rotate(90deg); }
+  50% { border-radius: 70% 30% 30% 70%; transform: rotate(180deg); }
+  75% { border-radius: 40% 60% 60% 40%; transform: rotate(270deg); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 8s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.animate-morph {
+  animation: morph 12s ease-in-out infinite;
 }
 </style>

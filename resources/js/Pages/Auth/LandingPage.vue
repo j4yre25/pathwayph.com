@@ -160,21 +160,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Modern gradient backgrounds */
+/* Modern blue gradient backgrounds */
 .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
 }
 
 .gradient-card {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
 }
 
 .gradient-feature {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
 }
 
 .gradient-cta {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
 }
 
 /* Floating animations */
@@ -207,10 +207,10 @@ onUnmounted(() => {
 /* Pulse glow effect */
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        box-shadow: 0 0 20px rgba(30, 64, 175, 0.3);
     }
     50% {
-        box-shadow: 0 0 40px rgba(79, 172, 254, 0.6);
+        box-shadow: 0 0 40px rgba(30, 64, 175, 0.5);
     }
 }
 
@@ -232,14 +232,14 @@ onUnmounted(() => {
     animation: morph 8s ease-in-out infinite;
 }
 
-/* Colorful hover effects */
-.hover-rainbow:hover {
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+/* Blue hover effects */
+.hover-blue:hover {
+    background: linear-gradient(45deg, #1e40af, #2563eb, #3b82f6, #60a5fa);
     background-size: 400% 400%;
-    animation: rainbow 2s ease infinite;
+    animation: blue-shift 2s ease infinite;
 }
 
-@keyframes rainbow {
+@keyframes blue-shift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
@@ -253,9 +253,9 @@ onUnmounted(() => {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Neon glow text */
-.neon-text {
-    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+/* Subtle text enhancement */
+.enhanced-text {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Smooth transitions */
@@ -293,12 +293,12 @@ onUnmounted(() => {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
 }
 </style>
 
@@ -342,11 +342,11 @@ onUnmounted(() => {
                         <div class="flex items-center">
                             <Link href="/" class="flex items-center space-x-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded">
                                 <div class="w-10 h-10 gradient-card rounded-xl flex items-center justify-center animate-pulse-glow">
-                                    <span class="text-white font-bold text-xl neon-text">P</span>
+                                    <span class="text-white font-bold text-xl enhanced-text">P</span>
                                 </div>
                                 <span :class="[
-                                    'font-extrabold text-xl leading-none select-none transition-colors duration-200 neon-text',
-                                    isScrolled ? 'text-cyan-300' : 'text-white'
+                                    'font-extrabold text-xl leading-none select-none transition-colors duration-200 enhanced-text',
+                                    isScrolled ? 'text-blue-600' : 'text-white'
                                 ]">Pathway</span>
                             </Link>
                         </div>
@@ -358,12 +358,12 @@ onUnmounted(() => {
                                 @click.prevent="scrollToSection('home')"
                                 :aria-current="activeSection === 'home' ? 'page' : null"
                                 :class="[
-                                    'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 rounded px-3 py-2',
+                                    'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded px-3 py-2',
                                     activeSection === 'home' 
-                                        ? (isScrolled ? 'text-cyan-300 neon-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-cyan-600' : 'text-white neon-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
+                                        ? (isScrolled ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-white enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
                                         : isScrolled 
-                                            ? 'text-gray-700 hover:text-cyan-300 hover:neon-text' 
-                                            : 'text-white/90 hover:text-white hover:neon-text']">
+                                            ? 'text-gray-700 hover:text-blue-600 hover:enhanced-text' 
+                                            : 'text-white/90 hover:text-white hover:enhanced-text']">
                                 Home
                             </a>
                             <a 
@@ -371,12 +371,12 @@ onUnmounted(() => {
                                 @click.prevent="scrollToSection('about')"
                                 :aria-current="activeSection === 'about' ? 'page' : null"
                                 :class="[
-                                    'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 rounded px-3 py-2',
+                                    'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded px-3 py-2',
                                     activeSection === 'about' 
-                                        ? (isScrolled ? 'text-cyan-300 neon-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-cyan-600' : 'text-white neon-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
+                                        ? (isScrolled ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-white enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
                                         : isScrolled 
-                                            ? 'text-gray-700 hover:text-cyan-300 hover:neon-text' 
-                                            : 'text-white/90 hover:text-white hover:neon-text']">
+                                            ? 'text-gray-700 hover:text-blue-600 hover:enhanced-text' 
+                                            : 'text-white/90 hover:text-white hover:enhanced-text']">
                                 About
                             </a>
                             <a 
@@ -384,12 +384,12 @@ onUnmounted(() => {
                                 @click.prevent="scrollToSection('features')"
                                 :aria-current="activeSection === 'features' ? 'page' : null"
                                 :class="[
-                                    'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 rounded px-3 py-2',
+                                    'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded px-3 py-2',
                                     activeSection === 'features' 
-                                        ? (isScrolled ? 'text-cyan-300 neon-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-cyan-600' : 'text-white neon-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
+                                        ? (isScrolled ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-white enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
                                         : isScrolled 
-                                            ? 'text-gray-700 hover:text-cyan-300 hover:neon-text' 
-                                            : 'text-white/90 hover:text-white hover:neon-text']">
+                                            ? 'text-gray-700 hover:text-blue-600 hover:enhanced-text' 
+                                            : 'text-white/90 hover:text-white hover:enhanced-text']">
                                 Features
                             </a>
                         </nav>
@@ -399,16 +399,16 @@ onUnmounted(() => {
                             <button 
                                 @click="navigateToLogin"
                                 :class="[
-                                    'px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400',
+                                    'px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400',
                                     isScrolled 
-                                        ? 'glass text-cyan-300 hover:text-cyan-700 hover:neon-text' 
-                                        : 'glass text-white hover:text-white hover:neon-text']
+                                        ? 'glass text-blue-600 hover:text-blue-700 hover:enhanced-text' 
+                                        : 'glass text-white hover:text-white hover:enhanced-text']
                                 ">
                                 Sign In
                             </button>
                             <button 
                                 @click="navigateToRegister"
-                                class="px-6 py-2.5 gradient-cta text-white text-sm font-semibold rounded-xl hover-rainbow transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 shadow-lg animate-pulse-glow">
+                                class="px-6 py-2.5 gradient-cta text-white text-sm font-semibold rounded-xl hover-blue transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 shadow-lg animate-pulse-glow">
                                 Sign up
                             </button>
                         </div>
@@ -420,8 +420,8 @@ onUnmounted(() => {
                                 :aria-expanded="isMobileMenuOpen"
                                 aria-label="Toggle navigation menu"
                                 :class="[
-                                    'p-2 rounded-xl glass transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-400',
-                                    isScrolled ? 'text-cyan-300 hover:neon-text' : 'text-white hover:neon-text'
+                                    'p-2 rounded-xl glass transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400',
+                                    isScrolled ? 'text-blue-600 hover:enhanced-text' : 'text-white hover:enhanced-text'
                                 ]"
                             >
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -446,26 +446,26 @@ onUnmounted(() => {
                 </div>
             </header>
             <main class="min-h-screen flex flex-col items-center justify-center text-center px-4 z-20">
-                <!-- Hero Title with Neon Effects -->
-                <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 neon-text animate-float">
+                <!-- Hero Title -->
+                <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 enhanced-text animate-float">
                     Pathway
                 </h1>
 
                 <!-- Tagline -->
                 <h3 class="text-white font-bold text-3xl md:text-5xl leading-tight mb-8 animate-fade-in">
-                    Connect. Grow. <span class="text-cyan-300 neon-text">Succeed.</span>
+                    Connect. Grow. <span class="text-blue-200 enhanced-text">Succeed.</span>
                 </h3>
 
-                <!-- Colorful Tagline -->
+                <!-- Professional Tagline -->
                 <p class="text-white/90 text-xl md:text-2xl max-w-3xl mb-12 font-light animate-float-reverse">
-                    The premier platform connecting <span class="text-pink-300 neon-text">Filipino talent</span> with <span class="text-green-300 neon-text">global opportunities</span>.
+                    The premier platform connecting <span class="text-blue-200 enhanced-text">Filipino talent</span> with <span class="text-blue-300 enhanced-text">global opportunities</span>.
                 </p>
 
                 <!-- Primary and Secondary CTAs -->
                 <div class="flex flex-col sm:flex-row gap-6 mb-12 justify-center items-center">
                     <button 
                         @click="navigateToRegister"
-                        class="px-10 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 focus:ring-offset-2 shadow-2xl animate-pulse-glow">
+                        class="px-10 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-offset-2 shadow-2xl animate-pulse-glow">
                         Join the Path
                         <svg class="inline-block ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
@@ -473,14 +473,14 @@ onUnmounted(() => {
                     </button>
                     <button 
                         @click="scrollToSection('about')"
-                        class="px-8 py-4 glass text-white text-lg font-semibold rounded-2xl hover:neon-text transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50">
+                        class="px-8 py-4 glass text-white text-lg font-semibold rounded-2xl hover:enhanced-text transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50">
                         Learn More
                     </button>
                 </div>
 
-                <!-- Colorful Scroll Indicator -->
+                <!-- Scroll Indicator -->
                 <div class="cursor-pointer animate-float" @click="scrollToSection('about')">
-                    <div class="flex flex-col items-center space-y-2 text-white/80 hover:text-white hover:neon-text transition-all duration-300">
+                    <div class="flex flex-col items-center space-y-2 text-white/80 hover:text-white hover:enhanced-text transition-all duration-300">
                         <span class="text-sm font-semibold">Discover More</span>
                         <div class="w-8 h-8 gradient-feature rounded-full flex items-center justify-center animate-pulse-glow">
                             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -539,13 +539,13 @@ onUnmounted(() => {
                             <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
                         <div class="flex items-center mb-6">
-                            <div class="bg-blue-100 p-3 rounded-full mr-4 group-hover:bg-blue-200 transition-colors duration-300">
-                                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="bg-emerald-100 p-3 rounded-full mr-4 group-hover:bg-emerald-200 transition-colors duration-300">
+                                <svg class="w-6 h-6 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"></path>
                                     <path d="M5 8a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zM5 11a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">Institutions</h3>
+                            <h3 class="text-2xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors duration-300">Institutions</h3>
                         </div>
                         <p class="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
                             Track graduate outcomes, strengthen industry partnerships,
@@ -562,12 +562,12 @@ onUnmounted(() => {
                             <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
                         <div class="flex items-center mb-6">
-                            <div class="bg-blue-100 p-3 rounded-full mr-4 group-hover:bg-blue-200 transition-colors duration-300">
-                                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="bg-amber-100 p-3 rounded-full mr-4 group-hover:bg-amber-200 transition-colors duration-300">
+                                <svg class="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-6a1 1 0 00-1-1H9a1 1 0 00-1 1v6a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">Industry</h3>
+                            <h3 class="text-2xl font-bold text-gray-900 group-hover:text-amber-600 transition-colors duration-300">Industry</h3>
                         </div>
                         <p class="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
                             Find qualified talent, collaborate with educational

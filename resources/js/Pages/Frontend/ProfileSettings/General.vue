@@ -439,14 +439,14 @@ onMounted(() => {
                 class="rounded-full w-48 h-48 object-cover border border-gray-200 shadow-sm" />
               <div class="absolute bottom-0 right-0">
                 <label for="file-input"
-                  class="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
+                  class="bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
                   <i class="fas fa-camera"></i>
                 </label>
               </div>
             </div>
             <input type="file" id="file-input" class="hidden" accept="image/*" @change="onFileChange" />
             <label for="file-input"
-              class="text-indigo-600 hover:text-indigo-800 transition-colors font-medium cursor-pointer">
+              class="text-blue-600 hover:text-blue-800 transition-colors font-medium cursor-pointer">
               Choose an image
             </label>
           </div>
@@ -569,8 +569,6 @@ onMounted(() => {
                     <option value="" disabled selected>Select gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 </div>
                 <div v-if="settingsForm.errors.gender" class="text-red-500 text-sm mt-1">
@@ -664,10 +662,10 @@ onMounted(() => {
               </div>
             </div>
             
-            <!-- Additional Education Entries -->
-            <div class="mt-6">
-              <h3 class="text-lg font-medium mb-4">Additional Education</h3>
-              <div v-if="props.educationEntries && props.educationEntries.length > 0" class="grid grid-cols-1 gap-6">
+            <!-- Other Education Entries - Only show if entries exist -->
+            <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
+              <h3 class="text-lg font-medium mb-4">Other Education</h3>
+              <div class="grid grid-cols-1 gap-6">
                 <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-6 rounded-lg shadow relative">
                   <div>
                     <div class="border-b pb-2">
@@ -706,10 +704,6 @@ onMounted(() => {
                     </p>
                   </div>
                 </div>
-              </div>
-              <!-- If no education entries exist -->
-              <div v-else class="bg-white p-6 rounded-lg shadow">
-                <p class="text-gray-600">No additional education entries found.</p>
               </div>
             </div>
           </div>

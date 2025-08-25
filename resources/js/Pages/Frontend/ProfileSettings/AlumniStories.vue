@@ -561,9 +561,6 @@ onMounted(() => {
         </div>
         <h3 class="text-xl font-medium text-gray-800 mb-3">No Alumni Stories Yet</h3>
         <p class="text-gray-600 text-sm mb-6 max-w-md mx-auto">Share your journey and inspire others by adding your first alumni story. Your experiences can help guide future graduates.</p>
-        <button @click="isAddStoryModalOpen = true" class="text-sm px-5 py-2.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-200 flex items-center shadow-sm btn-hover-effect">
-          <i class="fas fa-plus-circle mr-2"></i> Add Your Story
-        </button>
       </div>
     </div>
 

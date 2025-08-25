@@ -128,15 +128,15 @@ function goToProfile() {
     <!-- Modern gradient background with floating elements -->
     <div class="min-h-screen gradient-bg relative overflow-hidden">
       <!-- Floating background elements -->
-      <div class="absolute top-20 left-10 w-32 h-32 gradient-feature rounded-full animate-float animate-morph opacity-20"></div>
-      <div class="absolute top-40 right-20 w-24 h-24 gradient-card rounded-full animate-float-reverse opacity-30"></div>
-      <div class="absolute bottom-32 left-1/4 w-40 h-40 gradient-cta rounded-full animate-float animate-morph opacity-15"></div>
-      <div class="absolute bottom-20 right-10 w-28 h-28 gradient-feature rounded-full animate-float-reverse opacity-25"></div>
+      <div class="absolute top-20 left-10 w-32 h-32 gradient-feature rounded-full animate-float animate-morph opacity-10"></div>
+      <div class="absolute top-40 right-20 w-24 h-24 gradient-card rounded-full animate-float-reverse opacity-15"></div>
+      <div class="absolute bottom-32 left-1/4 w-40 h-40 gradient-cta rounded-full animate-float animate-morph opacity-8"></div>
+      <div class="absolute bottom-20 right-10 w-28 h-28 gradient-feature rounded-full animate-float-reverse opacity-12"></div>
       
       <div class="max-w-3xl mx-auto py-10 relative z-10">
         <!-- Modern header with neon text -->
         <div class="text-center mb-8">
-          <h1 class="text-4xl font-bold neon-text text-white animate-pulse-glow mb-2">
+          <h1 class="text-4xl font-bold enhanced-text text-white animate-pulse-glow mb-2">
             Complete Your Company Profile
           </h1>
           <p class="text-white/80 text-lg">Build your professional presence with us</p>
@@ -168,13 +168,13 @@ function goToProfile() {
         <!-- Step 1: Company Details -->
         <div v-show="currentStep === 1" class="glass rounded-2xl p-8 reveal">
           <div class="flex items-center mb-6">
-            <div class="w-12 h-12 gradient-card rounded-xl flex items-center justify-center mr-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white neon-text">Business Details</h2>
+              <h2 class="text-2xl font-bold text-white enhanced-text">Business Details</h2>
               <p class="text-white/70">Tell us about your company</p>
             </div>
           </div>
@@ -182,71 +182,71 @@ function goToProfile() {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <InputLabel for="company_name" class="text-white font-medium">
-                  Business Name <span class="text-pink-400">*</span>
+                  Business Name <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="company_name" v-model="form.company_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.company_name" class="text-pink-300" />
+                <TextInput id="company_name" v-model="form.company_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.company_name" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="sector_id" class="text-white font-medium">
-                  Sector <span class="text-pink-400">*</span>
+                  Sector <span class="text-amber-400">*</span>
                 </InputLabel>
-                <select id="sector_id" v-model="form.sector_id" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-cyan-400 focus:ring-cyan-400 rounded-lg">
+                <select id="sector_id" v-model="form.sector_id" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
                   <option value="" class="bg-gray-800">Select Sector</option>
                   <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id" class="bg-gray-800">
                     {{ sector.name }}
                   </option>
                 </select>
-                <InputError :message="form.errors.sector_id" class="text-pink-300" />
+                <InputError :message="form.errors.sector_id" class="text-blue-300" />
               </div>
             </div>
             <div>
               <InputLabel for="category_id" class="text-white font-medium">
-                Category <span class="text-pink-400">*</span>
+                Category <span class="text-amber-400">*</span>
               </InputLabel>
-              <select id="category_id" v-model="form.category_id" :disabled="!form.sector_id" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-cyan-400 focus:ring-cyan-400 rounded-lg disabled:opacity-50">
+              <select id="category_id" v-model="form.category_id" :disabled="!form.sector_id" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg disabled:opacity-50">
                 <option value="" class="bg-gray-800">Select Category</option>
                 <option v-for="cat in filteredCategories" :key="cat.id" :value="cat.id" class="bg-gray-800">
                   {{ cat.name }}
                 </option>
               </select>
-              <InputError :message="form.errors.category_id" class="text-pink-300" />
+              <InputError :message="form.errors.category_id" class="text-blue-300" />
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="md:col-span-2">
                 <InputLabel for="company_street_address" class="text-white font-medium">
-                  Street Address <span class="text-pink-400">*</span>
+                  Street Address <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="company_street_address" v-model="form.company_street_address" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.company_street_address" class="text-pink-300" />
+                <TextInput id="company_street_address" v-model="form.company_street_address" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.company_street_address" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="company_brgy" class="text-white font-medium">
-                  Barangay <span class="text-pink-400">*</span>
+                  Barangay <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="company_brgy" v-model="form.company_brgy" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.company_brgy" class="text-pink-300" />
+                <TextInput id="company_brgy" v-model="form.company_brgy" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.company_brgy" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="company_city" class="text-white font-medium">
-                  City <span class="text-pink-400">*</span>
+                  City <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="company_city" v-model="form.company_city" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.company_city" class="text-pink-300" />
+                <TextInput id="company_city" v-model="form.company_city" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.company_city" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="company_province" class="text-white font-medium">
-                  Province <span class="text-pink-400">*</span>
+                  Province <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="company_province" v-model="form.company_province" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.company_province" class="text-pink-300" />
+                <TextInput id="company_province" v-model="form.company_province" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.company_province" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="company_zip_code" class="text-white font-medium">
-                  ZIP Code <span class="text-pink-400">*</span>
+                  ZIP Code <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="company_zip_code" v-model="form.company_zip_code" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.company_zip_code" class="text-pink-300" />
+                <TextInput id="company_zip_code" v-model="form.company_zip_code" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.company_zip_code" class="text-blue-300" />
               </div>
             </div>
           </div>
@@ -255,13 +255,13 @@ function goToProfile() {
         <!-- Step 2: Company Contact -->
         <div v-show="currentStep === 2" class="glass rounded-2xl p-8 reveal">
           <div class="flex items-center mb-6">
-            <div class="w-12 h-12 gradient-card rounded-xl flex items-center justify-center mr-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white neon-text">Company Contact Information</h2>
+              <h2 class="text-2xl font-bold text-white enhanced-text">Company Contact Information</h2>
               <p class="text-white/70">How can we reach your company?</p>
             </div>
           </div>
@@ -269,24 +269,24 @@ function goToProfile() {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <InputLabel for="company_email" class="text-white font-medium">
-                  Email Address <span class="text-pink-400">*</span>
+                  Email Address <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="company_email" v-model="form.company_email" type="email" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.company_email" class="text-pink-300" />
+                <TextInput id="company_email" v-model="form.company_email" type="email" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.company_email" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="company_mobile_phone" class="text-white font-medium">
-                  Mobile Number <span class="text-pink-400">*</span>
+                  Mobile Number <span class="text-amber-400">*</span>
                 </InputLabel>
                 <TextInput
                   id="company_mobile_phone"
                   v-model="formattedMobileNumber"
                   type="text"
                   required
-                  class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400"
+                  class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400"
                   placeholder="+63 912 345 6789"
                 />
-                <InputError :message="form.errors.company_mobile_phone" class="text-pink-300" />
+                <InputError :message="form.errors.company_mobile_phone" class="text-blue-300" />
               </div>
             </div>
             <div>
@@ -295,10 +295,10 @@ function goToProfile() {
                 id="telephone_number"
                 v-model="formattedTelephoneNumber"
                 type="text"
-                class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400"
+                class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400"
                 placeholder="(02) 123-4567"
               />
-              <InputError :message="form.errors.telephone_number" class="text-pink-300" />
+              <InputError :message="form.errors.telephone_number" class="text-blue-300" />
             </div>
           </div>
         </div>
@@ -306,13 +306,13 @@ function goToProfile() {
         <!-- Step 3: HR Details -->
         <div v-show="currentStep === 3" class="glass rounded-2xl p-8 reveal">
           <div class="flex items-center mb-6">
-            <div class="w-12 h-12 gradient-card rounded-xl flex items-center justify-center mr-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white neon-text">HR Officer Information</h2>
+              <h2 class="text-2xl font-bold text-white enhanced-text">HR Officer Information</h2>
               <p class="text-white/70">Details about your HR representative</p>
             </div>
           </div>
@@ -320,61 +320,61 @@ function goToProfile() {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <InputLabel for="first_name" class="text-white font-medium">
-                  First Name <span class="text-pink-400">*</span>
+                  First Name <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="first_name" v-model="form.first_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.first_name" class="text-pink-300" />
+                <TextInput id="first_name" v-model="form.first_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.first_name" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="last_name" class="text-white font-medium">
-                  Last Name <span class="text-pink-400">*</span>
+                  Last Name <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="last_name" v-model="form.last_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.last_name" class="text-pink-300" />
+                <TextInput id="last_name" v-model="form.last_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.last_name" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="middle_name" class="text-white font-medium" value="Middle Name" />
-                <TextInput id="middle_name" v-model="form.middle_name" type="text" class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.middle_name" class="text-pink-300" />
+                <TextInput id="middle_name" v-model="form.middle_name" type="text" class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.middle_name" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="gender" class="text-white font-medium">
-                  Gender <span class="text-pink-400">*</span>
+                  Gender <span class="text-amber-400">*</span>
                 </InputLabel>
-                <select id="gender" v-model="form.gender" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-cyan-400 focus:ring-cyan-400 rounded-lg">
+                <select id="gender" v-model="form.gender" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
                   <option value="" class="bg-gray-800">Select Gender</option>
                   <option value="Male" class="bg-gray-800">Male</option>
                   <option value="Female" class="bg-gray-800">Female</option>
                 </select>
-                <InputError :message="form.errors.gender" class="text-pink-300" />
+                <InputError :message="form.errors.gender" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="dob" class="text-white font-medium">
-                  Date of Birth <span class="text-pink-400">*</span>
+                  Date of Birth <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="dob" v-model="form.dob" type="date" :max="maxDob" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.dob" class="text-pink-300" />
+                <TextInput id="dob" v-model="form.dob" type="date" :max="maxDob" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.dob" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="email" class="text-white font-medium">
-                  HR Email Address <span class="text-pink-400">*</span>
+                  HR Email Address <span class="text-amber-400">*</span>
                 </InputLabel>
-                <TextInput id="email" v-model="form.email" type="email" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400" />
-                <InputError :message="form.errors.email" class="text-pink-300" />
+                <TextInput id="email" v-model="form.email" type="email" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
+                <InputError :message="form.errors.email" class="text-blue-300" />
               </div>
               <div>
                 <InputLabel for="mobile_number" class="text-white font-medium">
-                  HR Mobile Number <span class="text-pink-400">*</span>
+                  HR Mobile Number <span class="text-amber-400">*</span>
                 </InputLabel>
                 <TextInput
                   id="mobile_number"
                   v-model="formattedHRMobileNumber"
                   type="text"
                   required
-                  class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-cyan-400 focus:ring-cyan-400"
+                  class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400"
                   placeholder="+63 912 345 6789"
                 />
-                <InputError :message="form.errors.mobile_number" class="text-pink-300" />
+                <InputError :message="form.errors.mobile_number" class="text-blue-300" />
               </div>
             </div>
           </div>
@@ -383,31 +383,31 @@ function goToProfile() {
         <!-- Step 4: Verification Document -->
         <div v-show="currentStep === 4" class="glass rounded-2xl p-8 reveal">
           <div class="flex items-center mb-6">
-            <div class="w-12 h-12 gradient-card rounded-xl flex items-center justify-center mr-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white neon-text">Verification Document</h2>
+              <h2 class="text-2xl font-bold text-white enhanced-text">Verification Document</h2>
               <p class="text-white/70">Upload your company verification document</p>
             </div>
           </div>
           <div class="space-y-4">
             <div>
               <InputLabel for="verification_file" class="text-white font-medium">
-                Upload Document <span class="text-pink-400">*</span>
+                Upload Document <span class="text-amber-400">*</span>
               </InputLabel>
               <input
                 id="verification_file"
                 type="file"
-                class="mt-2 block w-full glass border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gradient-to-r file:from-cyan-500 file:to-purple-500 file:text-white hover:file:from-cyan-600 hover:file:to-purple-600 focus:border-cyan-400 focus:ring-cyan-400"
+                class="mt-2 block w-full glass border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gradient-to-r file:from-blue-500 file:to-blue-600 file:text-white hover:file:from-blue-600 hover:file:to-blue-700 focus:border-blue-400 focus:ring-blue-400"
                 @change="onFileChange"
                 required
                 accept=".pdf,.jpg,.jpeg,.png"
               />
-              <InputError :message="form.errors.verification_file" class="text-pink-300" />
-              <div v-if="form.verification_file" class="mt-2 text-sm text-cyan-300">
+              <InputError :message="form.errors.verification_file" class="text-blue-300" />
+              <div v-if="form.verification_file" class="mt-2 text-sm text-blue-300">
                 Selected: {{ form.verification_file.name }}
               </div>
               <p class="text-white/50 text-sm mt-2">Accepted formats: PDF, JPG, JPEG, PNG</p>
@@ -505,19 +505,19 @@ function goToProfile() {
 <style scoped>
 /* Modern gradient backgrounds */
 .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #2563eb 50%, #3b82f6 75%, #60a5fa 100%);
 }
 
 .gradient-card {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
 }
 
 .gradient-feature {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
 }
 
 .gradient-cta {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
 }
 
 /* Floating animations */
@@ -550,10 +550,10 @@ function goToProfile() {
 /* Pulse glow effect */
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
     }
     50% {
-        box-shadow: 0 0 40px rgba(79, 172, 254, 0.6);
+        box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
     }
 }
 
@@ -591,14 +591,14 @@ function goToProfile() {
     animation: reveal 0.6s ease-out;
 }
 
-/* Colorful hover effects */
-.hover-rainbow:hover {
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+/* Blue hover effects */
+.hover-blue:hover {
+    background: linear-gradient(45deg, #1e40af, #2563eb, #3b82f6, #60a5fa, #93c5fd, #dbeafe);
     background-size: 400% 400%;
-    animation: rainbow 2s ease infinite;
+    animation: blue-shift 2s ease infinite;
 }
 
-@keyframes rainbow {
+@keyframes blue-shift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
@@ -612,9 +612,9 @@ function goToProfile() {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Neon glow text */
-.neon-text {
-    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+/* Enhanced text */
+.enhanced-text {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
 /* Smooth transitions */
@@ -631,8 +631,8 @@ select option {
 /* Input focus effects */
 input:focus, select:focus {
     outline: none;
-    box-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
-    border-color: rgba(79, 172, 254, 0.8);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    border-color: rgba(59, 130, 246, 0.8);
 }
 </style>
 

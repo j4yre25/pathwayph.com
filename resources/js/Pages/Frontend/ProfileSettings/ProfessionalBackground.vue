@@ -8,7 +8,7 @@ const CertificationSection = defineAsyncComponent(() => import('./Certification.
 const AchievementSection = defineAsyncComponent(() => import('./Achievement.vue'));
 const SkillSection = defineAsyncComponent(() => import('./Skill.vue'));
 const ProjectSection = defineAsyncComponent(() => import('./Project.vue'));
-import SkillsChart from './SkillsChart.vue';
+
 
 // Props from parent (Profile.vue)
 const props = defineProps({
@@ -68,8 +68,7 @@ const hasProjectsData = computed(() => props.projectsEntries && props.projectsEn
 const hasCertificationsData = computed(() => props.certificationsEntries && props.certificationsEntries.length > 0);
 const hasAchievementsData = computed(() => props.achievementEntries && props.achievementEntries.length > 0);
 
-// Show skills chart modal
-const isSkillsChartModalOpen = ref(false);
+
 </script>
 
 <template>
@@ -81,29 +80,7 @@ const isSkillsChartModalOpen = ref(false);
       </div>
     </div>
     
-    <!-- In-page Jump Navigation -->
-    <div class="bg-white p-4 rounded-lg shadow-sm border border-blue-100 mb-6">
-      <div class="flex flex-wrap gap-2">
-        <a href="#education" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center">
-          <i class="fas fa-graduation-cap mr-2"></i> Education
-        </a>
-        <a href="#experience" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center">
-          <i class="fas fa-briefcase mr-2"></i> Experience
-        </a>
-        <a href="#skills" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center">
-          <i class="fas fa-chart-bar mr-2"></i> Skills
-        </a>
-        <a href="#projects" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center">
-          <i class="fas fa-project-diagram mr-2"></i> Projects
-        </a>
-        <a href="#certifications" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center">
-          <i class="fas fa-certificate mr-2"></i> Certifications
-        </a>
-        <a href="#achievements" class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center">
-          <i class="fas fa-trophy mr-2"></i> Achievements
-        </a>
-      </div>
-    </div>
+
     
     <!-- Display the appropriate component based on activeSubsection -->
     <div v-if="!activeSubsection" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -164,14 +141,7 @@ const isSkillsChartModalOpen = ref(false);
             <h3 class="text-lg font-semibold text-blue-800">Skills</h3>
           </div>
           <div class="flex items-center">
-            <button 
-              v-if="hasSkillsData"
-              @click.stop="isSkillsChartModalOpen = true" 
-              class="mr-3 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors"
-              title="View Skills Distribution Chart"
-            >
-              <i class="fas fa-chart-pie"></i>
-            </button>
+
             <i class="fas" :class="expandedSections.skills ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </div>
         </div>
@@ -315,20 +285,7 @@ const isSkillsChartModalOpen = ref(false);
       />
     </div>
     
-    <!-- Skills Chart Modal -->
-    <div v-if="isSkillsChartModalOpen" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl overflow-hidden">
-        <div class="flex justify-between items-center p-4 border-b border-blue-100">
-          <h3 class="text-lg font-semibold text-blue-800">Skills Distribution</h3>
-          <button @click="isSkillsChartModalOpen = false" class="text-gray-500 hover:text-gray-700">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="p-6">
-          <SkillsChart :skills="skillEntries" />
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 

@@ -381,21 +381,9 @@ watch(
 
   <div v-if="activeSection === 'projects'" class="w-full">
     <!-- Main Content Grid Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
       <!-- Left Column -->
       <div class="space-y-6">
-        <!-- Quick Navigation -->
-        <div v-if="filteredProjectsEntries.length > 0 || filteredArchivedProjectsEntries.length > 0" class="bg-white p-4 rounded-lg shadow-sm border border-blue-100">
-          <h3 class="text-lg font-medium mb-3">Jump to:</h3>
-          <div class="flex flex-wrap gap-3">
-            <a href="#active-projects" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors duration-200 flex items-center">
-              <i class="fas fa-project-diagram mr-2"></i> Active Projects
-            </a>
-            <a v-if="showArchivedProjects && filteredArchivedProjectsEntries.length > 0" href="#archived-projects" class="bg-gray-50 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors duration-200 flex items-center">
-              <i class="fas fa-archive mr-2"></i> Archived Projects
-            </a>
-          </div>
-        </div>
         
         <!-- Active Projects Card -->
         <div id="active-projects" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SkillsChart from '@/Components/SkillsChart.vue';
+
 import ApexCharts from 'vue3-apexcharts';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -481,7 +481,6 @@ const archiveExperience = (experienceEntry) => {
 
 <template>
   <div v-if="activeSection === 'skills' || activeSection === 'skills-experience'" class="flex flex-col">
-    <!-- -------------------- SKILLS SECTION -------------------- -->
     <div class="w-full mb-12">
       <div class="flex justify-between items-center mb-4">
         <h1 class="text-2xl font-semibold text-gray-900">Skills</h1>
@@ -615,12 +614,7 @@ const archiveExperience = (experienceEntry) => {
             </div>
           </div>
 
-          <!-- Skills Chart -->
-          <div class="xl:col-span-1">
-            <div class="bg-white rounded-xl shadow-sm border border-blue-50 p-6 sticky top-4">
-              <SkillsChart :skills="skills" />
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -841,106 +835,6 @@ const archiveExperience = (experienceEntry) => {
             Update Skill
           </button>
         </form>
-      </div>
-    </div>
-
-    <!-- -------------------- EXPERIENCE SECTION -------------------- -->
-    <div class="w-full mb-12 mt-12">
-      <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center">
-          <div class="bg-blue-100 text-blue-700 p-2 rounded-full mr-3">
-            <i class="fas fa-briefcase"></i>
-          </div>
-          <h1 class="text-2xl font-semibold text-blue-800">Work Experience</h1>
-        </div>
-        <div class="flex space-x-4">
-          <PrimaryButton class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
-            @click="openAddExperienceModal">
-            <i class="fas fa-plus mr-2"></i>
-            Add Experience
-          </PrimaryButton>
-          <button class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" @click="toggleArchivedExperience">
-            <i class="fas" :class="showArchivedExperience ? 'fa-eye-slash' : 'fa-eye'"></i>
-            <span class="ml-2">{{ showArchivedExperience ? 'Hide Archived' : 'Show Archived' }}</span>
-          </button>
-        </div>
-      </div>
-      <p class="text-gray-600 mb-6">Showcase your professional experience and career journey</p>
-
-      <!-- Experience Entries -->
-      <div>
-        <h2 class="text-lg font-medium mb-4">Active Experience</h2>
-        <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div v-for="experienceEntry in experienceEntries" :key="experienceEntry.id"
-            class="bg-white rounded-lg shadow-md p-6 space-y-4 relative border border-blue-50 hover:shadow-lg transition-all duration-300 group">
-            <div>
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
-                <p class="text-gray-600">{{ experienceEntry.company ? experienceEntry.company.name : experienceEntry.not_company }}</p>
-              </div>
-              <div class="mt-4 space-y-3">
-                <div class="flex items-center text-gray-600">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3">
-                    <i class="fas fa-map-marker-alt text-blue-500"></i>
-                  </div>
-                  <span>{{ experienceEntry.address }}</span>
-                </div>
-                <div class="flex items-center text-gray-600">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3">
-                    <i class="far fa-calendar-alt text-blue-500"></i>
-                  </div>
-                  <span>
-                    {{ formatDate(experienceEntry.start_date) }} - {{ experienceEntry.is_current ? 'Present' :
-                      formatDate(experienceEntry.end_date) }}
-                  </span>
-                </div>
-                <div class="flex items-center text-gray-600">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3">
-                    <i class="fas fa-briefcase text-blue-500"></i>
-                  </div>
-                  <span><strong>Employment Type:</strong> {{ experienceEntry.employment_type }}</span>
-                </div>
-                <div class="flex items-start text-gray-600 mt-1">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3 mt-0.5">
-                    <i class="fas fa-info-circle text-blue-500"></i>
-                  </div>
-                  <div>
-                    <strong>Description:</strong>
-                    <p class="mt-1">{{ experienceEntry.description || 'No description provided' }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button class="text-blue-600 hover:text-blue-800 bg-blue-50 p-1.5 rounded-full" @click="openUpdateExperienceModal(experienceEntry)">
-                <i class="fas fa-pen"></i>
-              </button>
-              <button class="text-amber-600 hover:text-amber-800 bg-amber-50 p-1.5 rounded-full" @click="archiveExperience(experienceEntry)">
-                <i class="fas fa-archive"></i>
-              </button>
-              <button class="text-red-600 hover:text-red-800 bg-red-50 p-1.5 rounded-full" @click="deleteExperience(experienceEntry.id)">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- If no experience entries exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow border border-blue-50 text-center">
-          <div class="flex flex-col items-center justify-center py-6">
-            <div class="bg-blue-50 text-blue-500 p-4 rounded-full mb-4">
-              <i class="fas fa-briefcase text-3xl"></i>
-            </div>
-            <h3 class="text-lg font-medium text-blue-800 mb-2">No experience entries added yet</h3>
-            <p class="text-gray-600 max-w-md mx-auto mb-4">
-              You haven't added any work experience yet. Add an internship, part-time job, or volunteer work to enhance your portfolio!
-            </p>
-            <button @click="openAddExperienceModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center transition duration-200 ease-in-out">
-              <i class="fas fa-plus mr-2"></i>
-              Add Experience
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Archived Experience Entries -->
