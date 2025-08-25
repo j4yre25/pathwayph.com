@@ -24,7 +24,7 @@ const props = defineProps({
     default: () => ({}),
   },
 });
-
+console.log("Props", props);
 const filters = ref({ ...props.filters });
 
 const filteredApplicants = computed(() => {

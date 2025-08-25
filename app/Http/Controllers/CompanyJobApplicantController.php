@@ -67,12 +67,32 @@ class CompanyJobApplicantController extends Controller
             ];
         });
 
+        // KPI calculations
+        $totalApplicants = $applicants->count();
+        $hiredCount = $applicants->where('status', 'hired')->count();
+        $rejectedCount = $applicants->where('status', 'rejected')->count();
+        $interviewsCount = $applicants->where('status', 'interview')->count();
+
+        // This month label and count (optional)
+        $thisMonthLabel = Carbon::now()->format('F Y');
+        $thisMonthApplicants = $applicants->filter(function ($a) {
+            return Carbon::parse($a['applied_at'])->isCurrentMonth();
+        })->count();
+
         return Inertia::render('Company/Applicants/Index', [
             'applicants' => $applicants,
             'jobs' => $jobs->map(fn($j) => ['id' => $j->id, 'title' => $j->job_title]),
             'statuses' => ['applied', 'shortlisted', 'interview', 'hired', 'rejected'],
             'employmentTypes' => ['Full-time', 'Part-time', 'Internship'],
             'filters' => $request->only(['job_id', 'status', 'employment_type', 'date_from', 'date_to']),
+            'stats' => [
+                'total_applicants' => $totalApplicants,
+                'hired' => $hiredCount,
+                'rejected' => $rejectedCount,
+                'interviews' => $interviewsCount,
+                'this_month' => $thisMonthApplicants,
+                'this_month_label' => $thisMonthLabel,
+            ],
         ]);
     }
 
@@ -168,8 +188,7 @@ class CompanyJobApplicantController extends Controller
             ]);
         }
 
-    public function 
-    reen(Job $job)
+    public function autoScreen(Job $job)
     {
         $requiredDegree = 'Bachelor'; // Example
         $minExperience = 2; // years
