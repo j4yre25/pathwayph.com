@@ -179,92 +179,9 @@ class JobInboxController extends Controller
     }
 
     // Apply for a job
-    public function applyForJob(Request $request)
-    {
-        $user = Auth::user();
-        $graduate = $user->graduate;
+    
 
-        $validated = $request->validate([
-            'job_id' => 'required|exists:jobs,id',
-            'applied_at' => 'nullable|date',
-            'interview_date' => 'nullable|date',
-            'resume_id' => 'nullable|exists:resumes,id',
-            'cover_letter' => 'nullable|string',
-            'additional_documents' => 'nullable|array',
-            // add other fields kung unsa pa ang need (check ang table named job_applications sa database)
-        ]);
 
-        // Check if user already applied for this job
-        $exists = JobApplication::where('user_id', $user->id)
-            ->where('job_id', $validated['job_id'])
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You have already applied to this job.'
-            ], 409);
-        }
-
-        // Create application
-        $application = JobApplication::create([
-            'user_id' => $user->id,
-            'graduate_id' => $graduate->id,
-            'job_id' => $validated['job_id'],
-            'resume_id' => $validated['resume_id'] ?? null,
-            'cover_letter' => $validated['cover_letter'] ?? null,
-            'additional_documents' => $validated['additional_documents'] ?? null,
-            'status' => 'applied',
-            'stage' => 'applying',
-            'applied_at' => now(),
-        ]);
-
-        // --- Automated Screening Logic ---
-        $job = $application->job;
-
-        // 1. Retrieve job requirements (example fields, adjust as needed)
-        $requiredDegree = $job->required_degree ?? 'Bachelor';
-        $minExperience = $job->min_experience ?? 2; // years
-        $requiredSkills = $job->required_skills ?? ['PHP', 'Vue.js']; // array or comma-separated
-
-        // 2. Calculate applicant's total experience (in years)
-        $totalExperience = $graduate->experience->sum(function($exp) {
-            $start = $exp->start_date ? \Carbon\Carbon::parse($exp->start_date) : null;
-            $end = $exp->end_date ? \Carbon\Carbon::parse($exp->end_date) : now();
-            return $start && $end ? $start->diffInYears($end) : 0;
-        });
-
-        // 3. Get applicant's skills
-        $skills = $graduate->graduateSkills->pluck('skill.name')->map(fn($s) => strtolower($s))->toArray();
-
-        // 4. Check applicant's education
-        $hasDegree = $graduate->education->contains(function($edu) use ($requiredDegree) {
-            return stripos($edu->education, $requiredDegree) !== false;
-        });
-
-        // 5. Check if all criteria are met
-        $hasSkills = collect($requiredSkills)->every(fn($skill) => in_array(strtolower($skill), $skills));
-        $isQualified = $hasDegree && $totalExperience >= $minExperience && $hasSkills;
-
-        if ($isQualified) {
-            $application->is_shortlisted = true;
-            $application->status = 'shortlisted';
-            $application->stage = 'Screened';
-            $application->screening_feedback = 'Auto-screened: Qualified';
-        } else {
-            $application->is_shortlisted = false;
-            $application->screening_feedback = 'Auto-screened: Not qualified';
-            // Optionally set status to 'rejected'
-            // $application->status = 'rejected';
-        }
-        $application->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Application submitted successfully.',
-            'application' => $application,
-        ]);
-    }
 
 
     // Archive a job opportunity

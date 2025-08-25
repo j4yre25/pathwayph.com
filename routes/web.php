@@ -37,6 +37,8 @@ use App\Http\Controllers\CompanyManageHRController;
 use App\Http\Controllers\CompanyDepartmentController;
 use App\Http\Controllers\CompanyJobBatchUploadController;
 use App\Http\Controllers\Company\CompanyReportsController;
+use App\Models\Notification;
+use Illuminate\Support\Facades\Storage;
 
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmablePasswordController;
@@ -135,8 +137,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     ->name('peso.jobs.manage');
 
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/view/{job}', [PesoJobsController::class, 'view']
-    )
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get(
+    'peso/jobs/view/{job}',
+    [PesoJobsController::class, 'view']
+)
     ->name('peso.jobs.view');
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/edit/{job}', [PesoJobsController::class, 'edit'])
@@ -248,7 +252,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
         // Update an applicant's status (e.g., mark as hired)
         Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
-        
+
         Route::post('/company/applications/{application}/offer', [CompanyApplicationController::class, 'storeOffer'])->name('company.applications.offer');
         Route::put('{application}/reject', [CompanyApplicationController::class, 'reject'])->name('applicants.reject');
 
@@ -637,7 +641,7 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
                     ],
                 ]);
             })->middleware('auth')->name('verification.notice');
-            
+
             Route::get('/email/verify-code', function () {
                 return Inertia::render('Auth/VerifyEmailCode', [
                     'auth' => [
@@ -667,16 +671,16 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
             Route::post('/register/graduate', [CustomRegisteredUserController::class, 'storeEmailOnly'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.graduate.store');
-                
+
             Route::post('/register/email', [CustomRegisteredUserController::class, 'storeEmailOnly'])
                 ->middleware(['guest:' . config('fortify.guard')])
                 ->name('register.email.store');
-                
+
             // AlmostDone page routes
             Route::get('/graduate/almostdone', function () {
                 return Inertia::render('Auth/AlmostDone');
             })->middleware(['auth'])->name('graduate.almostdone');
-            
+
             Route::post('/graduate/almostdone', [GraduateController::class, 'storeAlmostDone'])
                 ->middleware(['auth'])
                 ->name('graduate.almostdone.store');
@@ -823,7 +827,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/notifications', [JobInboxController::class, 'getNotifications'])->name('notifications');
         Route::get('/notifications/{id}', [JobInboxController::class, 'showNotification'])->name('notifications.show');
         Route::post('/applications/{application}/offer-response', [JobInboxController::class, 'offerResponse'])->name('applications.offer.response');
-        Route::post('/apply-for-job', [JobInboxController::class, 'applyForJob'])->name('apply-for-job');
         Route::post('/archive-job-opportunity', [JobInboxController::class, 'archiveJobOpportunity'])->name('archive-job-opportunity');
         Route::post('/mark-notification-as-read', [JobInboxController::class, 'markNotificationAsRead'])->name('mark-notification-as-read');
     });
@@ -914,7 +917,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/resume/upload', [ProfileController::class, 'uploadResume'])->name('resume.upload');
     Route::delete('/resume/delete', [ProfileController::class, 'deleteResume'])->name('resume.delete');
     Route::get('/profile/resume/settings', [ProfileController::class, 'resumeSettings'])->name('profile.resume.settings');
-    
+
     // Batch Upload Routes
     Route::get('/profile/batch-upload', [ProfileController::class, 'batchUploadForm'])->name('profile.batch.upload.form');
     Route::post('/profile/batch-upload', [ProfileController::class, 'batchUpload'])->name('profile.batch.upload');
@@ -934,14 +937,22 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
     Route::get('/graduate-jobs/recommendations', [GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
+    Route::post('/apply-for-job', [GraduateJobsController::class, 'applyForJob'])->name('apply-for-job');
+    Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
+
     // Graduate Portfolio+
+
     Route::post('/graduate/referral/request', [GraduateJobsController::class, 'requestReferral'])->name('graduate.referral.request');
     Route::get('/company/profile/{id}', [CompanyProfileController::class, 'showPublic'])->name('company.profile.public');
-
     Route::get('/profile/graduate-portfolio', [ProfileController::class, 'graduatePortfolio'])->name(name: 'graduate.portfolio');
 });
 
-Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    Route::post('/certificates/store', [ManageJobReferralsController::class, 'store'])->name('certificate.store');
+    Route::get('/certificates/download/{filename}', [\App\Http\Controllers\ManageJobReferralsController::class, 'download'])
+        ->name('certificates.download');
+});
+
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
@@ -949,6 +960,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
 });
+
 
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {});
