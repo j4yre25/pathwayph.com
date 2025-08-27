@@ -20,10 +20,53 @@ const showReferralModal = ref(false);
 
 const showApprovalModal = ref(false)
 
+const selectedCompany = ref("");
+const searchQuery = ref("");
+const companies = page.props.companies ?? [];
+
+const filteredCompanies = computed(() =>
+    companies.filter(c =>
+        c.company_name.toLowerCase().includes(searchQuery.value.toLowerCase())
+    )
+);
+
+
+function selectCompany(company) {
+    selectedCompany.value = company.id;
+    searchQuery.value = company.company_name;
+    showSuggestions.value = false;
+    Inertia.get(route("dashboard"), { company_id: company.id });
+}
+
+const showSuggestions = ref(false);
+
+
+const employerMetric = ref(page.props.employerMetric ?? "openings");
+function filterEmployers() {
+    Inertia.get(route("dashboard"), { employer_metric: employerMetric.value }, { preserveState: true });
+}
+
+const sectorSearch = ref("");
+const sectors = computed(() => page.props.topSectorsChartOption?.series?.[0]?.data ?? []);
+const filteredSectors = computed(() =>
+    sectors.value.filter(s =>
+        s.name.toLowerCase().includes(sectorSearch.value.toLowerCase())
+    )
+);
+
+const categorySearch = ref("");
+const categories = computed(() => page.props.inDemandCategories ?? []);
+const filteredCategories = computed(() =>
+    categories.value.filter(c =>
+        c.name.toLowerCase().includes(categorySearch.value.toLowerCase())
+    )
+);
+
+
 onMounted(() => {
-  if (page.props.needsApproval) {
-    showApprovalModal.value = true;
-  }
+    if (page.props.needsApproval) {
+        showApprovalModal.value = true;
+    }
 });
 
 // Dummy Data
@@ -39,7 +82,7 @@ const pendingReferrals = computed(() => page.props.pendingReferrals ?? []);
 const upcomingEvents = computed(() => page.props.upcomingEvents ?? []);
 const eventAttendanceOption = computed(() => page.props.eventAttendanceOption ?? {});
 const alerts = computed(() => page.props.alerts ?? {});
-const sectorPieOption = computed(() => page.props.sectorPieOption ?? {});
+const sectorPieOption = computed(() => page.props.topSectorsChartOption ?? {});
 const inDemandCategories = computed(() => page.props.inDemandCategories ?? []);
 
 
@@ -158,16 +201,16 @@ function submitReferral() {
 
         <Modal v-model="showApprovalModal">
             <template #header>
-            <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
+                <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
             </template>
             <template #body>
-            <p class="mb-6 text-gray-700">
-                Your company account is still waiting for admin approval.<br>
-                You will be notified once your account is approved.
-            </p>
+                <p class="mb-6 text-gray-700">
+                    Your company account is still waiting for admin approval.<br>
+                    You will be notified once your account is approved.
+                </p>
             </template>
             <template #footer>
-            <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
+                <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
             </template>
         </Modal>
 
@@ -181,29 +224,25 @@ function submitReferral() {
                     Here you can manage your account and view your statistics.
                 </p>
             </div>
-            <CompanyDashboard   
-                :summary="page.props.summary"
-                :recentApplications="page.props.recentApplications"
-                :applicationTrends="page.props.applicationTrends"
-                :jobPerformance="page.props.jobPerformance"
-                />
+            <CompanyDashboard :summary="page.props.summary" :recentApplications="page.props.recentApplications"
+                :applicationTrends="page.props.applicationTrends" :jobPerformance="page.props.jobPerformance" />
         </div>
 
-<div v-else-if="page.props.roles?.isInstitution" class="py-12">
-    <Welcome v-if="!page.props.roles?.isInstitution" />
-    <div class="p-6">
-        <h3 class="text-lg font-semibold text-gray-800">
-            Welcome to the Dashboard
-        </h3>
-        <p class="mt-2 text-gray-600">
-            Here you can manage your account and view your statistics.
-        </p>
-    </div>
-    <InstitutionDashboard :summary="page.props.summary" :graduates="page.props.graduates"
-        :programs="page.props.programs" :careerOpportunities="page.props.careerOpportunities"
-        :schoolYears="page.props.schoolYears"
-        :institutionCareerOpportunities="page.props.institutionCareerOpportunities" />
-</div>
+        <div v-else-if="page.props.roles?.isInstitution" class="py-12">
+            <Welcome v-if="!page.props.roles?.isInstitution" />
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Welcome to the Dashboard
+                </h3>
+                <p class="mt-2 text-gray-600">
+                    Here you can manage your account and view your statistics.
+                </p>
+            </div>
+            <InstitutionDashboard :summary="page.props.summary" :graduates="page.props.graduates"
+                :programs="page.props.programs" :careerOpportunities="page.props.careerOpportunities"
+                :schoolYears="page.props.schoolYears"
+                :institutionCareerOpportunities="page.props.institutionCareerOpportunities" />
+        </div>
 
         <div v-if="page.props.auth.user.role === 'peso'" class="py-12">
             <!-- Dashboard Header -->
@@ -239,16 +278,32 @@ function submitReferral() {
                     <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
                         <span class="text-gray-500 text-sm">Pending Employer Registrations</span>
                         <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.pendingEmployerRegistrations
-                            }}</span>
+                        }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Job Posting Overview -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                    <!-- Recent Job Listings By Company -->
                     <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="font-semibold mb-3 text-gray-800">Recent Job Listings</h4>
+                        <div class="mb-4">
+                            <h4 class="font-semibold mb-3 text-gray-800">Recent Job Listings By Company</h4>
+                            <input type="text" v-model="searchQuery" @focus="showSuggestions = true"
+                                @input="showSuggestions = true" placeholder="Type to search company..."
+                                class="border rounded px-3 py-2 w-full max-w-xs" />
+                            <ul v-if="showSuggestions && searchQuery"
+                                class="absolute z-10 bg-white border rounded w-full max-w-xs shadow mt-1">
+                                <li v-for="company in filteredCompanies" :key="company.id"
+                                    @click="selectCompany(company)" class="px-3 py-2 cursor-pointer hover:bg-blue-100">
+                                    {{ company.company_name }}
+                                </li>
+                                <li v-if="filteredCompanies.length === 0" class="px-3 py-2 text-gray-400">
+                                    No companies found.
+                                </li>
+                            </ul>
+                        </div>
                         <table class="min-w-full text-sm mb-4">
                             <thead>
                                 <tr class="text-gray-600">
@@ -267,84 +322,78 @@ function submitReferral() {
                                 </tr>
                             </tbody>
                         </table>
-                        <!-- <div>
-                            <h5 class="font-semibold text-sm mb-1 text-gray-700">Expiring Soon</h5>
-                            <ul class="space-y-1">
-                                <li v-for="job in expiringJobs" :key="job.title" class="text-sm text-red-700">
-                                    {{ job.title }} <span class="text-xs text-gray-500">({{ job.expires_at }})</span>
-                                </li>
-                            </ul>
-                        </div> -->
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-center">
-                        <h4 class="font-semibold mb-3 text-gray-800">Top Hiring Sectors</h4>
-                        <VueECharts :option="topSectorsChartOption" style="height: 300px;" />
+
+                    <!-- Top Sectors Table -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="font-semibold mb-3 text-gray-800">Top Sectors</h4>
+                        <input type="text" v-model="sectorSearch" placeholder="Search sector..."
+                            class="border rounded px-3 py-2 mb-3 w-full max-w-xs" />
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-gray-600">
+                                    <th class="py-2 px-2 text-left">Sector</th>
+                                    <th class="py-2 px-2 text-left">Jobs Posted</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="sector in filteredSectors" :key="sector.name"
+                                    class="hover:bg-gray-50 transition">
+                                    <td class="py-2 px-2">{{ sector.name }}</td>
+                                    <td class="py-2 px-2">{{ sector.value }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Referral Activity -->
+            <!-- Referral Activity & Top Employers -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="font-semibold mb-3 text-gray-800">Referrals This Month vs Last Month</h4>
+                        <h4 class="font-semibold mb-3 text-gray-800">Referrals This Month vs Last Month By PESO</h4>
                         <VueECharts :option="referralTrendOption" style="height: 200px;" />
                     </div>
                     <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="font-semibold mb-3 text-gray-800">Top Employers</h4>
-                        <!-- <h5 class="font-semibold text-sm mt-4 mb-1 text-gray-700">Pending Referrals</h5> -->
-                        <!-- <ul class="space-y-1">
-                            <li v-for="r in pendingReferrals" :key="r.job_seeker" class="text-sm">
-                                {{ r.job_seeker }} - {{ r.employer }} <span class="text-xs text-gray-500">(Due: {{
-                                    r.due_date
-                                    }})</span>
-                            </li>
-                        </ul> -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Career Guidance & Events -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="font-semibold mb-3 text-gray-800">Upcoming Events</h4>
-                        <ul class="space-y-1">
-                            <li v-for="e in upcomingEvents" :key="e.title" class="text-sm">
-                                {{ e.title }} <span class="text-xs text-gray-500">- {{ e.date }} @ {{ e.venue }}</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-center">
-                        <h4 class="font-semibold mb-3 text-gray-800">Event Attendance Trends</h4>
-                        <VueECharts :option="eventAttendanceOption" style="height: 200px;" />
-                    </div> -->
-                </div>
-            </div>
-
-    
-
-            <!-- Sector & Category Insights -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="font-semibold mb-3 text-gray-800">Job Distribution by Sector</h4>
-                        <VueECharts :option="sectorPieOption" style="height: 250px;" />
-                    </div>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories</h4>
-                        <div>
-                            <span v-for="tag in inDemandCategories" :key="tag.name"
-                                class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full m-1 font-medium">
-                                {{ tag.name }} <span class="text-xs text-gray-500">({{ tag.count }})</span>
-                            </span>
+                        <h4 class="font-semibold mb-3 text-gray-800">Top Employers By</h4>
+                        <div class="mb-4">
+                            <select v-model="employerMetric" @change="filterEmployers"
+                                class="border rounded px-3 py-2 w-full max-w-xs">
+                                <option value="openings">Job Openings</option>
+                                <option value="referrals">Referrals</option>
+                                <option value="hired">Hired Applicants</option>
+                            </select>
                         </div>
+                        <VueECharts :option="topEmployersOption" style="height: 300px;" />
                     </div>
                 </div>
             </div>
 
+            <!-- In-demand Categories Table -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories</h4>
+                    <input type="text" v-model="categorySearch" placeholder="Search category..."
+                        class="border rounded px-3 py-2 mb-3 w-full max-w-xs" />
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="text-gray-600">
+                                <th class="py-2 px-2 text-left">Category</th>
+                                <th class="py-2 px-2 text-left">Jobs Posted</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="cat in filteredCategories" :key="cat.name" class="hover:bg-gray-50 transition">
+                                <td class="py-2 px-2">{{ cat.name }}</td>
+                                <td class="py-2 px-2">{{ cat.count }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             <!-- Quick Actions -->
-            
+
         </div>
 
 
@@ -352,13 +401,13 @@ function submitReferral() {
 
 
 
-<div class="py-12">
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-            <!-- Account Not Approved Modal -->
-            <Modal v-if="showModal" :show="showModal">
-                <template #title> Account Not Approved </template>
-                <template #content>
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                    <!-- Account Not Approved Modal -->
+                    <Modal v-if="showModal" :show="showModal">
+                        <template #title> Account Not Approved </template>
+                        <template #content>
                             <p>
                                 Your account is not approved yet. Some features
                                 may be disabled.
@@ -573,7 +622,8 @@ function submitReferral() {
                     </Modal>
 
                     <!-- Only show if graduate, approved, and has not filled up the referral letter -->
-                    <button v-if="page.props.auth.user.role === 'graduate' && !userNotApproved.value && !hasFilledReferral"
+                    <button
+                        v-if="page.props.auth.user.role === 'graduate' && !userNotApproved.value && !hasFilledReferral"
                         class="mt-4 px-4 py-2 bg-green-600 text-white rounded" @click="showReferralModal = true">
                         Create Job Referral Letter
                     </button>
