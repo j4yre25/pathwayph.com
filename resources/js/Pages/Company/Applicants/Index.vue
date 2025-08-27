@@ -1,7 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { ref, computed } from 'vue'
 import { router, usePage, Link } from '@inertiajs/vue3'
-import { ref, computed, onMounted } from 'vue'
 import Container from '@/Components/Container.vue'
 import ListOfApplicants from './ListOfApplicants.vue'
 import '@fortawesome/fontawesome-free/css/all.css';
@@ -13,7 +13,10 @@ const props = defineProps({
     applicants: Array,
     statuses: Array,
     employmentTypes: Array,
-    filters: Object,
+    filters: {
+      type: Object,
+      default: () => ({}),
+    },
     stats: {
         type: Object,
         default: () => ({
@@ -108,6 +111,55 @@ const goToPage = (page) => {
 const goToJob = (jobId) => {
   router.get(route('company.job.applicants.show', { job: jobId }));
 };
+
+const filters = ref({ ...props.filters, keywords: '' })
+
+const filteredApplicants = computed(() => {
+  let apps = props.applicants;
+  if (filters.value.job_id) {
+    apps = apps.filter(a => a.job_id == filters.value.job_id);
+  }
+  if (filters.value.status) {
+    apps = apps.filter(a => a.status === filters.value.status);
+  }
+  if (filters.value.employment_type) {
+    apps = apps.filter(a => a.employment_type?.includes(filters.value.employment_type));
+  }
+  if (filters.value.date_from) {
+    apps = apps.filter(a => new Date(a.applied_at) >= new Date(filters.value.date_from));
+  }
+  if (filters.value.date_to) {
+    apps = apps.filter(a => new Date(a.applied_at) <= new Date(filters.value.date_to));
+  }
+  if (filters.value.keywords) {
+    const kw = filters.value.keywords.toLowerCase();
+    apps = apps.filter(a =>
+      (a.name && a.name.toLowerCase().includes(kw)) ||
+      (a.job_title && a.job_title.toLowerCase().includes(kw)) ||
+      (a.status && a.status.toLowerCase().includes(kw))
+    );
+  }
+  // Match % Range filter
+  if (filters.value.match_range) {
+    const minMatch = parseInt(filters.value.match_range, 10);
+    apps = apps.filter(a => (a.match_percentage || 0) >= minMatch);
+  }
+  // Pipeline Stage filter
+  if (filters.value.stage) {
+    apps = apps.filter(a => a.stage === filters.value.stage);
+  }
+  return apps;
+});
+
+const averageMatchPercent = computed(() => {
+  if (!props.applicants.length) return 0;
+  const total = props.applicants.reduce((sum, a) => sum + (a.match_percentage || 0), 0);
+  return Math.round(total / props.applicants.length);
+});
+
+function applyFilters() {
+  router.get(window.location.pathname, filters.value, { preserveState: true })
+}
 </script>
 
 <template>
@@ -135,6 +187,16 @@ const goToJob = (jobId) => {
             <div :class="[stat.iconBg, 'rounded-full p-3 flex items-center justify-center']">
               <i :class="[stat.icon, stat.iconColor]"></i>
             </div>
+
+          </div>
+        </div>
+        <div class="flex gap-6 mb-6">
+          <div class="bg-white rounded-lg shadow p-4 flex-1 text-center">
+            <div class="text-lg font-bold">Average Match %</div>
+            <div class="text-3xl font-extrabold text-indigo-600">
+              {{ averageMatchPercent }}%
+            </div>
+            <div class="text-xs text-gray-500">Across all applicants</div>
           </div>
         </div>
       </div>
@@ -142,36 +204,118 @@ const goToJob = (jobId) => {
       <!-- Job Listings Header with Container -->
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6"> <!-- Added container styling -->
         <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-          <div class="flex items-center">
-            <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
-          </div>
           <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
             <div class="relative">
-              <input 
-                type="search" 
-                id="search"
-                v-model="searchQuery" 
-                placeholder="Search by title, location, type..." 
-                class="border border-gray-300 rounded-lg px-4 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500 w-64"
-              />
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                <i class="fas fa-search"></i>
+              <div class="flex flex-wrap gap-4 mb-4">
+                <!-- Keyword Search -->
+                <div class="flex flex-col">
+                  <label for="keywordSearch" class="text-sm font-medium mb-1">Search</label>
+                  <input
+                    id="keywordSearch"
+                    type="text"
+                    v-model="filters.keywords"
+                    @input="applyFilters"
+                    placeholder="Applicants, job title, or status"
+                    class="border px-2 py-1 rounded w-64"
+                  />
+                </div>
+
+                <!-- Job Position -->
+                <div class="flex flex-col">
+                  <label for="jobSelect" class="text-sm font-medium mb-1">Job Position</label>
+                  <select
+                    id="jobSelect"
+                    v-model="filters.job_id"
+                    @change="applyFilters"
+                    class="border px-2 py-1 rounded w-48"
+                  >
+                    <option value="">All Positions</option>
+                    <option
+                      v-for="job in jobs || []"
+                      :key="job.id"
+                      :value="job.id"
+                    >
+                      {{ job.job_title || job.title }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Status -->
+                <div class="flex flex-col">
+                  <label for="statusSelect" class="text-sm font-medium mb-1">Status</label>
+                    <select v-model="filters.status" @change="applyFilters" class="border px-2 py-1 rounded">
+                      <option value="">All Statuses</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="under_review">Under Review</option>
+                      <option value="not_recommended">Not Recommended</option>
+                    </select>
+                </div>
+
+                  <!-- Match % Range -->
+                <div class="flex flex-col">
+                  <label for="employmentTypeSelect" class="text-sm font-medium mb-1">Match % Range</label>
+                  <select v-model="filters.match_range" @change="applyFilters" class="border px-2 py-1 rounded">
+                    <option value="">All Match %</option>
+                    <option value="75">75%+</option>
+                    <option value="50">50%+</option>
+                    <option value="30">30%+</option>
+                  </select>
+                </div>
+
+                <!-- Date From -->
+                <div class="flex flex-col">
+                  <label for="dateFrom" class="text-sm font-medium mb-1">From</label>
+                  <input
+                    id="dateFrom"
+                    type="date"
+                    v-model="filters.date_from"
+                    @change="applyFilters"
+                    class="border px-2 py-1 rounded w-40"
+                  />
+                </div>
+
+                <!-- Date To -->
+                <div class="flex flex-col">
+                  <label for="dateTo" class="text-sm font-medium mb-1">To</label>
+                  <input
+                    id="dateTo"
+                    type="date"
+                    v-model="filters.date_to"
+                    @change="applyFilters"
+                    class="border px-2 py-1 rounded w-40"
+                  />
+                </div>
+
+                <div class="flex flex-col">
+                  <label for="dateTo" class="text-sm font-medium mb-1">Stages</label>
+                  <select v-model="filters.stage" @change="applyFilters" class="border px-2 py-1 rounded">
+                    <option value="">All Stages</option>
+                    <option value="applied">Applied</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="interview">Interview</option>
+                    <option value="offer">Offer</option>
+                    <option value="hired">Hired</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
               </div>
+
             </div>
-            <Link :href="route('company.jobs.create', { user: page.props.auth.user.id })"
-              class="bg-blue-500 text-white text-sm font-semibold rounded-md px-4 py-2 hover:bg-blue-600 transition">
-              + Add Job
-            </Link>
+            
           </div>
         </div>
       </div>
 
+      
       <!-- Active Job Positions -->
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <h3 class="text-lg font-semibold p-4 border-b border-gray-200">Active Job Positions</h3>
+        <div class="flex items-center">
+          <h3 class="text-lg font-semibold p-4 border-b border-gray-200">List of Applicants</h3>
+            <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
+          </div>
         <ListOfApplicants
-          :jobs="paginatedJobs"
-          :applicants="applicants"
+          :jobs="jobs"
+          :applicants="filteredApplicants"
           :statuses="statuses"
           :employmentTypes="employmentTypes"
           :filters="filters"

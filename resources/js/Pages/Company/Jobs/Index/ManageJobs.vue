@@ -36,6 +36,10 @@ const selectedJobType = ref('');
 const selectedWorkEnvironment = ref('');
 const selectedStatus = ref('');
 const selectedExperienceLevel = ref('');
+const selectedOpenDate = ref('');
+const customFromDate = ref('');
+const customToDate = ref('');
+
 
 const workEnvironmentOptions = [
     { value: '', label: 'All Work Environments' },
@@ -75,7 +79,46 @@ const filteredJobs = computed(() => {
         const matchesExperience = selectedExperienceLevel.value
             ? job.job_experience_level === selectedExperienceLevel.value
             : true;
-        return matchesSearch && matchesJobType && matchesWorkEnv && matchesStatus && matchesExperience;
+
+        // --- NEW Posted Date Filter ---
+        const createdDate = new Date(job.created_at); // assumes job.created_at exists
+        const today = new Date();
+        let matchesOpenDate = true;
+
+        if (selectedOpenDate.value === 'today') {
+            matchesOpenDate = createdDate.toDateString() === today.toDateString();
+        } else if (selectedOpenDate.value === 'week') {
+            const weekAgo = new Date();
+            weekAgo.setDate(today.getDate() - 7);
+            matchesOpenDate = createdDate >= weekAgo;
+        } else if (selectedOpenDate.value === 'month') {
+            const monthAgo = new Date();
+            monthAgo.setMonth(today.getMonth() - 1);
+            matchesOpenDate = createdDate >= monthAgo;
+        } else if (selectedOpenDate.value === '3months') {
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(today.getMonth() - 3);
+            matchesOpenDate = createdDate >= threeMonthsAgo;
+        } else if (selectedOpenDate.value === 'custom') {
+            if (customFromDate.value && customToDate.value) {
+                const from = new Date(customFromDate.value);
+                const to = new Date(customToDate.value);
+                // normalize "to" to include whole day
+                to.setHours(23, 59, 59, 999);
+                matchesOpenDate = createdDate >= from && createdDate <= to;
+            } else {
+                matchesOpenDate = true; // if no range yet, don't filter
+            }
+        }
+
+        return (
+            matchesSearch &&
+            matchesJobType &&
+            matchesWorkEnv &&
+            matchesStatus &&
+            matchesExperience &&
+            matchesOpenDate
+        );
     });
 });
 
@@ -85,6 +128,9 @@ function resetFilters() {
     selectedWorkEnvironment.value = '';
     selectedStatus.value = '';
     selectedExperienceLevel.value = '';
+    selectedOpenDate.value = '';
+    customFromDate.value = '';
+    customToDate.value = '';
 }
 
 // Navigate to job details
@@ -245,6 +291,45 @@ const getStatusText = (status) => {
                           </select>
                       </div>
                   </div>
+                  <div>
+                    <label for="openDate" class="block text-sm font-medium text-gray-700 mb-1">
+                        Posted Date
+                    </label>
+                    <div class="relative">
+                        <select 
+                        id="openDate"
+                        v-model="selectedOpenDate" 
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none 
+                                focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                        >
+                            <option value="">All Dates</option>
+                            <option value="today">Opened Today</option>
+                            <option value="week">Opened This Week</option>
+                            <option value="month">Opened This Month</option>
+                            <option value="3months">Opened in Last 3 Months</option>
+                            <option value="custom">Custom Range…</option>
+                        </select>
+                    </div>
+                    <!-- Custom Range Fields -->
+                    <div v-if="selectedOpenDate === 'custom'" class="flex gap-2 mt-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600">From</label>
+                            <input 
+                            type="date" 
+                            v-model="customFromDate" 
+                            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600">To</label>
+                            <input 
+                            type="date" 
+                            v-model="customToDate" 
+                            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                    </div>
+                </div>
               </div>
           </div>
       </div>
