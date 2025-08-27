@@ -4,7 +4,7 @@ import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Container from '@/Components/Container.vue'
-import ListOfApplicants from './ListOfApplicants.vue'
+import ListOfApplicants from './Applicants.vue'
 import StatCard from '@/Components/StatsCard.vue'
 import '@fortawesome/fontawesome-free/css/all.css';
 

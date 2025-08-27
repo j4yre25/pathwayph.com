@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use App\Services\ApplicantScreeningService;
 
 class CompanyJobApplicantController extends Controller
 {
@@ -21,14 +22,25 @@ class CompanyJobApplicantController extends Controller
         $company = Company::where('user_id', $user->id)->firstOrFail();
         $companyId = $company->id;
 
-        // Get all jobs for the company
-        $jobs = Job::where('company_id', $companyId)->get();
+        // Get job IDs that have applicants
+        $jobIdsWithApplicants = JobApplication::whereHas('job', fn($q) => $q->where('company_id', $companyId))
+            ->pluck('job_id')
+            ->unique()
+            ->toArray();
+
+        // Only show jobs with applicants
+        $jobs = Job::where('company_id', $companyId)
+            ->whereIn('id', $jobIdsWithApplicants)
+            ->get();
 
         // Build base query for applicants
         $applicationsQuery = JobApplication::with([
             'graduate.user',
             'job.jobTypes',
-            'job'
+            'job',
+            'graduate.education',
+            'graduate.experience',
+            'graduate.graduateSkills.skill'
         ])->whereHas('job', fn($q) => $q->where('company_id', $companyId));
 
         // === Filters ===
@@ -49,11 +61,19 @@ class CompanyJobApplicantController extends Controller
         if ($request->filled('date_to')) {
             $applicationsQuery->whereDate('applied_at', '<=', $request->input('date_to'));
         }
+        if ($request->filled('stage')) {
+            $applicationsQuery->where('stage', $request->input('stage'));
+        }
 
-        $applicants = $applicationsQuery->get()->map(function ($application) {
+        $screeningService = new ApplicantScreeningService();
+
+        $applicants = $applicationsQuery->get()->map(function ($application) use ($screeningService) {
             $graduate = $application->graduate;
             $user = $graduate?->user;
             $job = $application->job;
+
+            // Calculate match percentage using your service
+            $match = $screeningService->screen($graduate, $job);
 
             return [
                 'id' => $application->id,
@@ -63,7 +83,11 @@ class CompanyJobApplicantController extends Controller
                 'job_id' => $job?->id ?? '',
                 'employment_type' => $job?->jobTypes?->map(fn($jt) => $jt->type)->join(', '),
                 'status' => $application->status,
+                'stage' => $application->stage,
                 'applied_at' => optional($application->applied_at)->format('M d, Y'),
+                'match_percentage' => $match['match_percentage'] ?? 0,
+                'notes' => $application->notes ?? '',
+                'profile_picture' => $graduate?->graduate_picture ?? null,
             ];
         });
 
@@ -72,6 +96,11 @@ class CompanyJobApplicantController extends Controller
         $hiredCount = $applicants->where('status', 'hired')->count();
         $rejectedCount = $applicants->where('status', 'rejected')->count();
         $interviewsCount = $applicants->where('status', 'interview')->count();
+
+        // Average match %
+        $averageMatch = $totalApplicants
+            ? round($applicants->avg('match_percentage'))
+            : 0;
 
         // This month label and count (optional)
         $thisMonthLabel = Carbon::now()->format('F Y');
@@ -82,14 +111,15 @@ class CompanyJobApplicantController extends Controller
         return Inertia::render('Company/Applicants/Index', [
             'applicants' => $applicants,
             'jobs' => $jobs->map(fn($j) => ['id' => $j->id, 'title' => $j->job_title]),
-            'statuses' => ['applied', 'shortlisted', 'interview', 'hired', 'rejected'],
-            'employmentTypes' => ['Full-time', 'Part-time', 'Internship'],
-            'filters' => $request->only(['job_id', 'status', 'employment_type', 'date_from', 'date_to']),
+            'statuses' => ['shortlisted', 'under_review', 'not_recommended', 'applied', 'interview', 'hired', 'rejected'],
+            'employmentTypes' => ['Full-time', 'Part-time', 'Internship', 'Contract', 'Freelance'],
+            'filters' => $request->only(['job_id', 'status', 'employment_type', 'date_from', 'date_to', 'stage', 'match_range']),
             'stats' => [
                 'total_applicants' => $totalApplicants,
                 'hired' => $hiredCount,
                 'rejected' => $rejectedCount,
                 'interviews' => $interviewsCount,
+                'average_match' => $averageMatch,
                 'this_month' => $thisMonthApplicants,
                 'this_month_label' => $thisMonthLabel,
             ],

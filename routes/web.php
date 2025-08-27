@@ -9,6 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PesoCareerGuidanceController;
+use App\Http\Controllers\InstitutionCareerGuidanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManageJobReferralsController;
 use App\Http\Controllers\AdminController;
@@ -580,6 +581,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/{user}/archivedlist', [SkillController::class, 'archivedlist'])->name('instiskills.archivedlist');
     Route::post('/restore/{id}', [SkillController::class, 'restore'])->name('instiskills.restore');
 });
+
+//Career Guidance
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
+    ->prefix('skills')
+    ->group(function () {
+        Route::get('/institutions/career-guidance', [InstitutionCareerGuidanceController::class, 'index'])
+            ->name('institutions.career-guidance');
+    });
 
 
 // MAIN INSITUTION GRADUATE ROUTES

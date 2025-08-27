@@ -133,6 +133,7 @@ class DashboardController extends Controller
 
         $monthlyData = \App\Models\JobApplication::whereHas('job', fn($q) =>
         $q->where('company_id', $companyId))
+
             ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
             ->whereYear('created_at', date('Y'))
             ->groupBy('month')
@@ -173,7 +174,8 @@ class DashboardController extends Controller
     private function handleInstitutionDashboard($user, $filters)
     {
         $institution = Institution::where('user_id', $user->id)->first();
-        if (!$institution) return [];
+        if (!$institution)
+            return [];
 
         $institutionId = $institution->id;
 
@@ -286,8 +288,7 @@ class DashboardController extends Controller
             });
 
 
-        return Inertia::render('Dashboard', [
-
+        return [
             'userNotApproved' => !$user->is_approved,
             'roles' => [
                 'isGraduate' => false,
@@ -307,7 +308,7 @@ class DashboardController extends Controller
             'selectedTerm' => $filters['term'] ?? null,
             'selectedGender' => $filters['gender'] ?? null,
             'topProgramsEmployment' => $programEmploymentStats,
-        ]);
+        ];
     }
 
     /* ==========================================================
@@ -355,6 +356,7 @@ class DashboardController extends Controller
     }
 
     private function getAdminDashboardData(Request $request)
+
     {
         // KPIs
         $registeredEmployers = \App\Models\User::where('role', 'company')
@@ -379,6 +381,7 @@ class DashboardController extends Controller
         }
 
         $recentJobs = $recentJobsQuery
+
             ->orderBy('created_at', 'desc')
             ->take(3)
             ->get()
@@ -545,3 +548,4 @@ class DashboardController extends Controller
         ];
     }
 }
+
