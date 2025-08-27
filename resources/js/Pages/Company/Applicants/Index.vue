@@ -30,7 +30,6 @@ const props = defineProps({
         }),
     },
 })
-console.log("Employ Type:", props.employmentTypes)
 
 // Use jobs directly from props
 const allJobs = ref(props.jobs || []);
@@ -116,37 +115,46 @@ const goToJob = (jobId) => {
 const filters = ref({ ...props.filters, keywords: '' })
 
 const filteredApplicants = computed(() => {
-  let apps = props.applicants
+  let apps = props.applicants;
   if (filters.value.job_id) {
-    apps = apps.filter(a => a.job_id == filters.value.job_id)
+    apps = apps.filter(a => a.job_id == filters.value.job_id);
   }
   if (filters.value.status) {
-    apps = apps.filter(a => a.status == filters.value.status)
+    apps = apps.filter(a => a.status === filters.value.status);
   }
   if (filters.value.employment_type) {
-    apps = apps.filter(a => a.employment_type?.includes(filters.value.employment_type))
+    apps = apps.filter(a => a.employment_type?.includes(filters.value.employment_type));
   }
   if (filters.value.date_from) {
-    apps = apps.filter(a => new Date(a.applied_at) >= new Date(filters.value.date_from))
+    apps = apps.filter(a => new Date(a.applied_at) >= new Date(filters.value.date_from));
   }
   if (filters.value.date_to) {
-    apps = apps.filter(a => new Date(a.applied_at) <= new Date(filters.value.date_to))
+    apps = apps.filter(a => new Date(a.applied_at) <= new Date(filters.value.date_to));
   }
   if (filters.value.keywords) {
-    const kw = filters.value.keywords.toLowerCase()
+    const kw = filters.value.keywords.toLowerCase();
     apps = apps.filter(a =>
       (a.name && a.name.toLowerCase().includes(kw)) ||
       (a.job_title && a.job_title.toLowerCase().includes(kw)) ||
       (a.status && a.status.toLowerCase().includes(kw))
-    )
+    );
   }
-  return apps
-})
+  // Match % Range filter
+  if (filters.value.match_range) {
+    const minMatch = parseInt(filters.value.match_range, 10);
+    apps = apps.filter(a => (a.match_percentage || 0) >= minMatch);
+  }
+  // Pipeline Stage filter
+  if (filters.value.stage) {
+    apps = apps.filter(a => a.stage === filters.value.stage);
+  }
+  return apps;
+});
 
 const averageMatchPercent = computed(() => {
-  if (!filteredApplicants.value.length) return 0;
-  const total = filteredApplicants.value.reduce((sum, a) => sum + (a.match_percentage || 0), 0);
-  return Math.round(total / filteredApplicants.value.length);
+  if (!props.applicants.length) return 0;
+  const total = props.applicants.reduce((sum, a) => sum + (a.match_percentage || 0), 0);
+  return Math.round(total / props.applicants.length);
 });
 
 function applyFilters() {

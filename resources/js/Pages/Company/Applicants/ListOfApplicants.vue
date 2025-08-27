@@ -1,8 +1,8 @@
 <script setup>
-import { ref } from 'vue';
 import CandidatePipeline from '@/Components/CandidatePipeline.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
   applicants: {
@@ -21,6 +21,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  filters: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 
 const getStatusBadge = (status) => {
@@ -36,26 +40,27 @@ const getStatusText = (status) => {
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
 };
 const getMatchColor = (percent) => {
-  if (percent >= 75) return '#059669'; // green
-  if (percent >= 50) return '#F59E42'; // yellow
+  if (percent >= 70) return '#059669'; // green
+  if (percent >= 30) return '#F59E42'; // yellow
   return '#DC2626'; // red
 };
-const getMatchClass = (percent) => {
-  if (percent >= 75) return 'match-green';
-  if (percent >= 50) return 'match-yellow';
-  return 'match-red';
-};
 function saveNotes(applicant) {
-  // Save notes via API or Inertia
+  router.put(route('applicants.update', applicant.id), { notes: applicant.notes }, { preserveState: true });
 }
 function moveStage(applicant, stage) {
-  // Move applicant to new stage via API or Inertia
+  router.put(route('applicants.update', applicant.id), { stage }, { preserveState: true });
+}
+const viewProfile = (applicant) => {
+  router.get(route('applicants.show', applicant.id));
+};
+function scheduleInterview(applicant) {
+  router.get(route('applicants.scheduleInterview', applicant.id));
 }
 </script>
 
 <template>
   <div>
-    <div v-if="applicants && applicants.length > 0" class="space-y-4">
+    <div v-if="applicants.length > 0" class="space-y-4">
       <div
         v-for="applicant in applicants"
         :key="applicant.id"
@@ -136,9 +141,21 @@ function moveStage(applicant, stage) {
 
         <!-- Right: Actions -->
         <div class="flex flex-col gap-2 mt-4 md:mt-0 md:w-48 items-end">
-          <button class="text-blue-600 hover:underline text-sm mb-1">View Profile</button>
-          <button class="text-green-600 hover:underline text-sm mb-1">Schedule Interview</button>
-          <span v-if="applicant.status === 'shortlisted'" class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold mb-1">Shortlisted</span>
+          <!-- View Profile -->
+          <button
+            class="text-blue-600 hover:underline text-sm mb-1"
+            @click="viewProfile(applicant)"
+          >
+            View Profile
+          </button>
+
+          <!-- Schedule Interview -->
+          <button
+            class="text-green-600 hover:underline text-sm mb-1"
+            @click="scheduleInterview(applicant)"
+          >
+            Schedule Interview
+          </button>
           <Dropdown>
             <DropdownLink @click="moveStage(applicant, 'interview')">Move to Interview</DropdownLink>
             <DropdownLink @click="moveStage(applicant, 'offer')">Move to Offer</DropdownLink>
