@@ -159,6 +159,12 @@ class ManageJobReferralsController extends Controller
                 $user->notify(new \App\Notifications\CertificateAvailable($path));
             }
 
+            \App\Models\ReferralExport::create([
+                'graduate_id' => $request->graduate_id,
+                'job_invitation_id' => $request->job_invitation_id ?? null,
+                'certificate_path' => $path,
+            ]);
+
             return redirect()->back()->with('success', 'Certificate uploaded successfully.');
         } catch (\Exception $e) {
             \Log::error('Certificate store error: ' . $e->getMessage());
