@@ -28,10 +28,6 @@ const submit = () => {
 };
 
 const resendCode = () => {
-    if (!isApproved) {
-        showApprovalModal.value = true;
-        return;
-    }
     form.post(route('verification.resend'), {
         onSuccess: () => {
             alert('A new verification code has been sent to your email.');

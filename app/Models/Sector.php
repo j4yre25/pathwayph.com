@@ -24,6 +24,9 @@ class Sector extends Model
         return $this->hasMany(NotCompany::class);
     }
 
+    public function jobs() {
+    return $this->hasMany(Job::class, 'sector_id');
+}
 
     protected $fillable = [
         'name',

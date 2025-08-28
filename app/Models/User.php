@@ -48,7 +48,7 @@ class User extends Authenticatable
         'profile_picture',
         'archived_at',
         'last_login_at'
-       
+
     ];
 
     /**
@@ -112,6 +112,11 @@ class User extends Authenticatable
         return $this->getRelationValue('company') ?? null;
     }
 
+    public function hr()
+    {
+        return $this->hasOne(\App\Models\HumanResource::class, 'user_id');
+    }
+
     public function getHrAttribute($value)
     {
         return $this->getRelationValue('hr') ?? null;
@@ -122,10 +127,7 @@ class User extends Authenticatable
         return $this->hasMany(Job::class);
     }
 
-    public function hr()
-    {
-        return $this->hasOne(HumanResource::class, 'user_id');
-    }
+
 
 
     public function sectors()
@@ -320,16 +322,18 @@ class User extends Authenticatable
         return $this->hasOne(Graduate::class, 'user_id');
     }
 
-    public function scopeArchived($query) {
+    public function scopeArchived($query)
+    {
         return $query->whereNotNull('archived_at');
     }
 
-    public function scopeActive($query) {
+    public function scopeActive($query)
+    {
         return $query->whereNull('archived_at');
     }
 
-    public function isArchived() {
+    public function isArchived()
+    {
         return !is_null($this->archived_at);
     }
-
 }

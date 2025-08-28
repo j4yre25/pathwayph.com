@@ -40,7 +40,7 @@ class DashboardController extends Controller
                 return redirect()->route('institution.information');
             }
 
-            $filters = $request->only(['school_year_id','term','gender']);
+            $filters = $request->only(['school_year_id', 'term', 'gender']);
             $data = $this->handleInstitutionDashboard($user, $filters);
             return Inertia::render('Institutions/Dashboard/InstitutionDashboard', $data);
         }
@@ -56,7 +56,7 @@ class DashboardController extends Controller
         }
 
         // ✅ Default (Admin or others)
-        return Inertia::render('Dashboard', $this->getAdminDashboardData());
+        return Inertia::render('Dashboard', $this->getAdminDashboardData($request));
     }
 
     /* ==========================================================
@@ -68,7 +68,7 @@ class DashboardController extends Controller
         $now = now();
 
         $applicationsQuery = \App\Models\JobApplication::whereHas('job', fn($q) =>
-            $q->where('company_id', $company->id));
+        $q->where('company_id', $company->id));
 
         $statusCounts = [
             'pending' => (clone $applicationsQuery)->where('status', 'pending')->count(),
@@ -128,11 +128,12 @@ class DashboardController extends Controller
 
     private function getApplicationTrends($companyId)
     {
-        $months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         $monthlyCounts = array_fill(1, 12, 0);
 
         $monthlyData = \App\Models\JobApplication::whereHas('job', fn($q) =>
-                $q->where('company_id', $companyId))
+        $q->where('company_id', $companyId))
+
             ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
             ->whereYear('created_at', date('Y'))
             ->groupBy('month')
@@ -173,7 +174,8 @@ class DashboardController extends Controller
     private function handleInstitutionDashboard($user, $filters)
     {
         $institution = Institution::where('user_id', $user->id)->first();
-        if (!$institution) return [];
+        if (!$institution)
+            return [];
 
         $institutionId = $institution->id;
 
@@ -257,7 +259,7 @@ class DashboardController extends Controller
             ->sortByDesc('percent')
             ->take(5)
             ->values();
-      
+
         $registeredEmployers = \App\Models\User::where('role', 'company')
             ->whereHas('company')
             ->count();
@@ -266,10 +268,10 @@ class DashboardController extends Controller
             ->whereHas('graduate')
             ->count();
 
-        $activeJobListings = \App\Models\Job::where('status', 'active')->count();
+        $activeJobListings = \App\Models\Job::where('status', 'open')->count();
 
 
-        $recentJobs = Job::where('status', 'active')
+        $recentJobs = Job::where('status', 'open')
             ->with(['company', 'sector', 'category', 'locations']) // Use correct relationships
             ->orderBy('created_at', 'desc')
             ->take(3)
@@ -286,14 +288,16 @@ class DashboardController extends Controller
             });
 
 
-        return Inertia::render('Dashboard', [
-
+        return [
             'userNotApproved' => !$user->is_approved,
             'roles' => [
                 'isGraduate' => false,
                 'isCompany' => false,
                 'isInstitution' => true,
             ],
+            'registeredEmployers' => $registeredEmployers,
+            'registeredJobSeekers' => $registeredJobSeekers,
+            'activeJobListings' => $activeJobListings,
             'summary' => $summary,
             'graduates' => $graduates,
             'programs' => $programs,
@@ -304,7 +308,7 @@ class DashboardController extends Controller
             'selectedTerm' => $filters['term'] ?? null,
             'selectedGender' => $filters['gender'] ?? null,
             'topProgramsEmployment' => $programEmploymentStats,
-        ]);
+        ];
     }
 
     /* ==========================================================
@@ -326,97 +330,222 @@ class DashboardController extends Controller
      |  ADMIN / DEFAULT DASHBOARD
      ========================================================== */
 
-private function getAdminDashboardData()
-{
-    // KPIs
-    $registeredEmployers = \App\Models\User::where('role', 'company')
-        ->whereHas('company')
-        ->count();
+    private function getTopSectorsChartOption()
+    {
 
-    $registeredJobSeekers = \App\Models\User::where('role', 'graduate')
-        ->whereHas('graduate')
-        ->count();
+        $topSectors = \App\Models\Sector::withCount('jobs')
+            ->orderByDesc('jobs_count')
+            ->take(5)
+            ->get()
+            ->map(fn($sector) => [
+                'name' => $sector->name,
+                'value' => $sector->jobs_count,
+            ])
+            ->toArray();
 
-    $activeJobListings = \App\Models\Job::where('status', 'active')->count();
-
-    $recentJobs = Job::where('status', 'active')
-        ->with(['company', 'sector', 'category', 'locations'])
-        ->orderBy('created_at', 'desc')
-        ->take(3)
-        ->get()
-        ->map(function ($job) {
-            return [
-                'title' => $job->job_title,
-                'sector' => $job->sector ? $job->sector->name : '-',
-                'category' => $job->category ? $job->category->name : '-',
-                'employer' => $job->company ? $job->company->company_name : '-',
-                'location' => $job->locations->pluck('name')->join(', ') ?: '-',
-                'date_posted' => $job->created_at->format('Y-m-d'),
-            ];
-        });
-
-    return [
-        'userNotApproved' => !Auth::user()->is_approved,
-        'roles' => [
-            'isGraduate' => false,
-            'isCompany' => false,
-            'isInstitution' => false,
-        ],
-        'kpi' => [
-            'registeredEmployers' => $registeredEmployers,
-            'activeJobListings' => $activeJobListings,
-            'registeredJobSeekers' => $registeredJobSeekers,
-            'referralsThisMonth' => 0,
-            'successfulPlacements' => 0,
-            'upcomingCareerGuidance' => 0,
-            'pendingEmployerRegistrations' => 0,
-        ],
-        'recentJobs' => $recentJobs,
-        'referralTrendOption' => [
-            'tooltip' => ['trigger' => 'axis'],
-            'xAxis' => ['type' => 'category', 'data' => ['Jul', 'Aug']],
-            'yAxis' => ['type' => 'value'],
-            'series' => [
-                [
-                    'name' => 'Referrals',
-                    'type' => 'line',
-                    'data' => [22, 27],
-                ],
-            ],
-        ],
-        'topEmployersOption' => [
-            'tooltip' => ['trigger' => 'axis'],
-            'xAxis' => ['type' => 'category', 'data' => ['Acme Corp', 'ShopSmart', 'MegaMakers']],
-            'yAxis' => ['type' => 'value'],
-            'series' => [
-                [
-                    'name' => 'Referrals',
-                    'type' => 'bar',
-                    'data' => [12, 8, 7],
-                ],
-            ],
-        ],
-        'expiringJobs' => [
-            ['title' => 'Warehouse Staff','employer' => 'LogiPro','expires_at' => '2025-08-10'],
-            ['title' => 'IT Support','employer' => 'Techies Inc','expires_at' => '2025-08-12'],
-        ],
-        'topSectorsChartOption' => [
+        return [
             'tooltip' => ['trigger' => 'item'],
             'legend' => ['top' => '5%'],
             'series' => [[
                 'name' => 'Sectors',
                 'type' => 'pie',
                 'radius' => '60%',
-                'data' => [
-                    ['value' => 10, 'name' => 'BPO'],
-                    ['value' => 7, 'name' => 'Retail'],
-                    ['value' => 5, 'name' => 'Manufacturing'],
-                    ['value' => 3, 'name' => 'Education'],
-                    ['value' => 2, 'name' => 'Healthcare'],
-                ],
+                'data' => $topSectors,
             ]],
-        ],
-        // ... keep the rest of your admin charts and alerts
-    ];
+        ];
+    }
+
+    private function getAdminDashboardData(Request $request)
+
+    {
+        // KPIs
+        $registeredEmployers = \App\Models\User::where('role', 'company')
+            ->whereHas('company')
+            ->count();
+
+        $registeredJobSeekers = \App\Models\User::where('role', 'graduate')
+            ->whereHas('graduate')
+            ->count();
+
+        $activeJobListings = \App\Models\Job::where('status', 'open')->count();
+
+        $companies = \App\Models\Company::select('id', 'company_name')->get();
+
+        $companyId = $request->input('company_id'); // Get company_id from query
+
+        $recentJobsQuery = Job::where('status', 'open')
+            ->with(['company', 'sector', 'category', 'locations']);
+
+        if ($companyId) {
+            $recentJobsQuery->where('company_id', $companyId);
+        }
+
+        $recentJobs = $recentJobsQuery
+
+            ->orderBy('created_at', 'desc')
+            ->take(3)
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'title' => $job->job_title,
+                    'sector' => $job->sector ? $job->sector->name : '-',
+                    'category' => $job->category ? $job->category->name : '-',
+                    'employer' => $job->company ? $job->company->company_name : '-',
+                    'location' => $job->locations->pluck('name')->join(', ') ?: '-',
+                    'date_posted' => $job->created_at->format('Y-m-d'),
+                ];
+            });
+
+        $referralExports = \App\Models\ReferralExport::selectRaw('COUNT(*) as count, MONTH(created_at) as month')
+            ->whereYear('created_at', date('Y'))
+            ->groupBy('month')
+            ->get();
+
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $monthlyCounts = array_fill(1, 12, 0);
+
+        foreach ($referralExports as $row) {
+            $monthlyCounts[$row->month] = $row->count;
+        }
+
+        $referralTrendOption = [
+            'tooltip' => ['trigger' => 'axis'],
+            'xAxis' => ['type' => 'category', 'data' => $months],
+            'yAxis' => ['type' => 'value'],
+            'series' => [
+                [
+                    'name' => 'Referrals Exported',
+                    'type' => 'line',
+                    'data' => array_values($monthlyCounts),
+                ],
+            ],
+        ];
+
+        $employerMetric = $request->input('employer_metric', 'openings'); // default to openings
+
+        if ($employerMetric === 'referrals') {
+            $topCompanies = \App\Models\Company::select('companies.id', 'companies.company_name')
+                ->join('jobs', 'jobs.company_id', '=', 'companies.id')
+                ->join('referral_exports', 'referral_exports.job_invitation_id', '=', 'jobs.id')
+                ->selectRaw('companies.company_name, COUNT(referral_exports.id) as referral_count')
+                ->groupBy('companies.id', 'companies.company_name')
+                ->orderByDesc('referral_count')
+                ->take(5)
+                ->get();
+
+            $companyNames = $topCompanies->pluck('company_name')->toArray();
+            $metricCounts = $topCompanies->pluck('referral_count')->toArray();
+            $metricLabel = 'Referrals';
+        } elseif ($employerMetric === 'hired') {
+            $topCompanies = \App\Models\Company::select('companies.id', 'companies.company_name')
+                ->join('jobs', 'jobs.company_id', '=', 'companies.id')
+                ->join('job_applications', function ($join) {
+                    $join->on('job_applications.job_id', '=', 'jobs.id')
+                        ->where('job_applications.status', '=', 'hired');
+                })
+                ->selectRaw('companies.company_name, COUNT(job_applications.id) as hired_count')
+                ->groupBy('companies.id', 'companies.company_name')
+                ->orderByDesc('hired_count')
+                ->take(5)
+                ->get();
+
+            $companyNames = $topCompanies->pluck('company_name')->toArray();
+            $metricCounts = $topCompanies->pluck('hired_count')->toArray();
+            $metricLabel = 'Hired';
+        } else { // openings
+            $topCompanies = \App\Models\Company::withCount(['jobs' => function ($q) {
+                $q->where('status', 'open');
+            }])
+                ->orderByDesc('jobs_count')
+                ->take(5)
+                ->get();
+
+            $companyNames = $topCompanies->pluck('company_name')->toArray();
+            $metricCounts = $topCompanies->pluck('jobs_count')->toArray();
+            $metricLabel = 'Openings';
+        }
+
+        $topEmployersOption = [
+            'tooltip' => ['trigger' => 'axis'],
+            'xAxis' => ['type' => 'category', 'data' => $companyNames],
+            'yAxis' => ['type' => 'value'],
+            'series' => [
+                [
+                    'name' => $metricLabel,
+                    'type' => 'bar',
+                    'data' => $metricCounts,
+                ],
+            ],
+        ];
+
+        $topSectors = \App\Models\Sector::select('sectors.id', 'sectors.name')
+            ->leftJoin('jobs', 'jobs.sector_id', '=', 'sectors.id')
+            ->whereNull('jobs.deleted_at')
+            ->selectRaw('sectors.name, COUNT(jobs.id) as jobs_count')
+            ->groupBy('sectors.id', 'sectors.name')
+            ->orderByDesc('jobs_count')
+            ->take(5)
+            ->get()
+            ->map(fn($sector) => [
+                'name' => $sector->name,
+                'value' => $sector->jobs_count,
+            ])
+            ->toArray();
+
+        $topSectorsChartOption = [
+            'tooltip' => ['trigger' => 'item'],
+            'legend' => ['top' => '5%'],
+            'series' => [[
+                'name' => 'Sectors',
+                'type' => 'pie',
+                'radius' => '60%',
+                'data' => $topSectors,
+            ]],
+        ];
+
+
+        $inDemandCategories = \App\Models\Category::select('categories.id', 'categories.name')
+            ->leftJoin('jobs', 'jobs.category_id', '=', 'categories.id')
+            ->whereNull('jobs.deleted_at')
+            ->selectRaw('categories.name, COUNT(jobs.id) as jobs_count')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc('jobs_count')
+            ->take(10)
+            ->get()
+            ->map(fn($cat) => [
+                'name' => $cat->name,
+                'count' => $cat->jobs_count,
+            ])
+            ->toArray();
+
+
+        return [
+            'userNotApproved' => !Auth::user()->is_approved,
+            'companies' => $companies,
+            'roles' => [
+                'isGraduate' => false,
+                'isCompany' => false,
+                'isInstitution' => false,
+            ],
+            'kpi' => [
+                'registeredEmployers' => $registeredEmployers,
+                'activeJobListings' => $activeJobListings,
+                'registeredJobSeekers' => $registeredJobSeekers,
+                'referralsThisMonth' => 0,
+                'successfulPlacements' => 0,
+                'upcomingCareerGuidance' => 0,
+                'pendingEmployerRegistrations' => 0,
+            ],
+            'recentJobs' => $recentJobs,
+            'referralTrendOption' => $referralTrendOption,
+            'topEmployersOption' => $topEmployersOption,
+            'employerMetric' => $employerMetric,
+            'topSectorsChartOption' => $this->getTopSectorsChartOption(),
+            'inDemandCategories' => $inDemandCategories,
+            'topSectorsChartOption' => $topSectorsChartOption,
+
+            // ... keep the rest of your admin charts and alerts
+        ];
+    }
 }
-}
+

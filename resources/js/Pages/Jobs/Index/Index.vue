@@ -18,7 +18,7 @@ const props = defineProps({
 })
 
 const searchQuery = ref('');
-const selectedDate = ref('');
+const selectedDate = ref(''); // filter by posted date
 const selectedJobType = ref('');
 const selectedJobLevel= ref('');
 const selectedVacancy = ref('');
@@ -30,23 +30,50 @@ const activeJobId = ref(null);
 const actionError = ref(null);
 
 const filteredJobs = computed(() => {
+    const today = new Date();
+
     return props.jobs.filter(job => {
-        const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
-        const matchesDate = selectedDate.value
-            ? job.created_at
-            : true;
+        // Normalize job.created_at to Date
+        const jobDate = new Date(job.created_at);
+
+        // ---- Search Filter ----
+        const matchesSearch = job.job_title
+            .toLowerCase()
+            .includes(searchQuery.value.toLowerCase());
+
+        // ---- Date Filter ----
+        let matchesDate = true;
+        if (selectedDate.value === 'today') {
+            matchesDate = jobDate.toDateString() === today.toDateString();
+        } else if (selectedDate.value === 'week') {
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+            matchesDate = jobDate >= startOfWeek && jobDate <= today;
+        } else if (selectedDate.value === 'month') {
+            matchesDate = jobDate.getMonth() === today.getMonth() &&
+                          jobDate.getFullYear() === today.getFullYear();
+        } else if (selectedDate.value === '3months') {
+            const threeMonthsAgo = new Date(today);
+            threeMonthsAgo.setMonth(today.getMonth() - 3);
+            matchesDate = jobDate >= threeMonthsAgo && jobDate <= today;
+        }
+
+        // ---- Job Type Filter ----
         const matchesJobType = selectedJobType.value
-            ? job.type
+            ? job.type === selectedJobType.value
             : true;
 
+        // ---- Job Level Filter ----
         const matchesJobLevel = selectedJobLevel.value
-            ? selectedJobLevel.value 
+            ? job.level === selectedJobLevel.value
             : true;
 
+        // ---- Vacancy Filter ----
         const matchesVacancy = selectedVacancy.value
-            ? selectedVacancy.value 
+            ? job.vacancy == selectedVacancy.value
             : true;
             
+        // ---- Category Filter ----
         const matchesCategory = selectedCategory.value
             ? job.category === selectedCategory.value
             : true;
@@ -63,6 +90,7 @@ const form = useForm({
     location: ''
 });
 </script>
+
 
 <template>
     <AppLayout title="Jobs">
@@ -182,6 +210,29 @@ const form = useForm({
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                                     <i class="fas fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="openDate" class="block text-sm font-medium text-gray-700 mb-1">
+                                Posted Date
+                            </label>
+                            <div class="relative">
+                                <select 
+                                id="openDate"
+                                v-model="selectedOpenDate" 
+                                class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none 
+                                        focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                                >
+                                <option value="">All Dates</option>
+                                <option value="today">Opened Today</option>
+                                <option value="week">Opened This Week</option>
+                                <option value="month">Opened This Month</option>
+                                <option value="3months">Opened in Last 3 Months</option>
+                                <option value="custom">Custom Range…</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
                                 </div>
                             </div>
                         </div>
