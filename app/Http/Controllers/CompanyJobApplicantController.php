@@ -84,6 +84,7 @@ class CompanyJobApplicantController extends Controller
                 'employment_type' => $job?->jobTypes?->map(fn($jt) => $jt->type)->join(', '),
                 'status' => $application->status,
                 'stage' => $application->stage,
+                'screening_label' => $match['screening_label'],
                 'applied_at' => optional($application->applied_at)->format('M d, Y'),
                 'match_percentage' => $match['match_percentage'] ?? 0,
                 'notes' => $application->notes ?? '',

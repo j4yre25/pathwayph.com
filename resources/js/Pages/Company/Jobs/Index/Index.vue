@@ -305,6 +305,7 @@ const form = useForm({
                                     <input 
                                     type="date" 
                                     v-model="customToDate" 
+                                    :min="customFromDate || undefined"
                                     class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
@@ -331,16 +332,33 @@ const form = useForm({
                         <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
                     </div>
                 </div>
-                <MyJobs
-                    v-if="filteredJobs.length > 0"
-                    :jobs="filteredJobs"
-                    :sectors="sectors"
-                    :categories="categories"
-                />
-                <!-- Show a message if no jobs match the search/filter -->
-                <div v-else class="p-8 text-center text-gray-500">
-                    <i class="fas fa-search-minus text-3xl mb-2 text-gray-400"></i>
-                    <div class="mt-2 text-lg font-semibold">No jobs found matching your search.</div>
+                <!-- Jobs listing and empty states -->
+                <div>
+                    <!-- No posted jobs at all -->
+                    <div v-if="props.jobs.length === 0" class="p-8 text-center text-gray-500">
+                        <i class="fas fa-briefcase text-3xl mb-2 text-gray-400"></i>
+                        <div class="mt-2 text-lg font-semibold">You have not posted any jobs yet.</div>
+                        <div class="mt-1 text-sm">Click <span class="font-bold text-blue-600">Post Jobs</span> above to create your first job posting.</div>
+                    </div>
+                    <!-- Jobs exist, but none match filter -->
+                    <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <h3 class="text-lg font-semibold text-gray-800">List of Jobs</h3>
+                                <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
+                            </div>
+                        </div>
+                        <MyJobs
+                            v-if="filteredJobs.length > 0"
+                            :jobs="filteredJobs"
+                            :sectors="sectors"
+                            :categories="categories"
+                        />
+                        <div v-else class="p-8 text-center text-gray-500">
+                            <i class="fas fa-search-minus text-3xl mb-2 text-gray-400"></i>
+                            <div class="mt-2 text-lg font-semibold">No jobs found matching your search.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </Container>

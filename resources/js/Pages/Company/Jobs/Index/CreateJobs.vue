@@ -155,7 +155,7 @@ function getMissingFields() {
     if (!form.job_experience_level) fields.push('Experience Level');
     if (!form.job_vacancies) fields.push('Number of Vacancies');
     if (!form.work_environment) fields.push('Work Environment');
-    if (!form.department_id) fields.push('Department');
+    if (props.departments && props.departments.length && !form.department_id) fields.push('Department');
     if (form.work_environment != 2 && !form.location) fields.push('Job Location');
     if (!form.salary.salary_type) fields.push('Salary Type');
     if (!form.is_negotiable && (!form.salary.job_min_salary || !form.salary.job_max_salary)) fields.push('Salary Range');
@@ -378,20 +378,32 @@ const createJob = () => {
                                     <InputError class="mt-2" :message="form.errors.work_environment" />
                                 </div>
 
-                                <div v-if="props.departments && props.departments.length">
-                                    <InputLabel for="department_id">
-                                        Department <span class="text-pink-500">*</span>
-                                    </InputLabel>
+                            <!-- Department Field -->
+                            <div>
+                                <InputLabel for="department_id">
+                                    Department
+                                    <span v-if="props.departments && props.departments.length" class="text-pink-500">*</span>
+                                </InputLabel>
+                                <template v-if="props.departments && props.departments.length">
                                     <select id="department_id"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        v-model="form.department_id" required>
+                                        v-model="form.department_id"
+                                        required
+                                    >
                                         <option value="">Select Department</option>
                                         <option v-for="dep in props.departments" :key="dep.id" :value="dep.id">
                                             {{ dep.department_name }}
                                         </option>
                                     </select>
                                     <InputError class="mt-2" :message="form.errors.department_id" />
-                                </div>
+                                </template>
+                                <template v-else>
+                                    <div class="mt-2 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
+                                        No departments found for your company.<br>
+                                        You can add a department in the HR & Departments tab. This field will be required once a department is added.
+                                    </div>
+                                </template>
+                            </div>
 
                             </div>
                             <!-- Job Location (disabled if Remote is selected) -->
