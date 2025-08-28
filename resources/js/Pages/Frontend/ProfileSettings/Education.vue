@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch, reactive } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { useForm, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 
@@ -11,7 +13,7 @@ const props = defineProps({
   user: { type: Object, default: () => ({}) },
   graduate: { type: Object, default: () => ({}) }, // <-- add this
   educationEntries: Array,
-  archivedEducationEntries: { type: Array, default: () => [] },
+
 });
 const emit = defineEmits(['close-all-modals', 'reset-all-states', 'refresh-education']);
 
@@ -24,8 +26,7 @@ const modals = reactive({
 });
 
 const errorMessage = ref('');
-const showArchivedEducation = ref(false);
-const graduateInfoExpanded = ref(true);
+
 const isEducationAddedModalOpen = ref(false);
 const isEducationUpdatedModalOpen = ref(false);
 
@@ -82,7 +83,6 @@ const formattedEndDate = computed(() => {
 });
 
 const educationEntries = computed(() => props.educationEntries || []);
-const archivedEducationEntries = computed(() => props.archivedEducationEntries || []);
 
 onMounted(() => {
   // Optionally log data
@@ -384,61 +384,7 @@ const openUpdateEducationModal = (entry) => {
 };
 
 
-const archiveEducation = (id) => {
-  if (confirm('Are you sure you want to archive this education entry?')) {
-    const archiveForm = useForm({});
-    archiveForm.put(route('profile.education.archive', { id }), {
-      onSuccess: () => {
-        emit('refresh-education');
-        errorMessage.value = 'Education entry archived successfully';
-        modals.isSuccessOpen = true;
-      },
-      onError: (error) => {
-        errorMessage.value = 'Failed to archive education entry';
-        modals.isErrorOpen = true;
-      }
-    });
-  }
-};
 
-const restoreEducation = (id) => {
-  if (confirm('Are you sure you want to restore this education entry?')) {
-    const restoreForm = useForm({});
-    restoreForm.put(route('profile.education.unarchive', { id }), {
-      onSuccess: () => {
-        emit('refresh-education');
-        errorMessage.value = 'Education entry restored successfully';
-        modals.isSuccessOpen = true;
-      },
-      onError: (error) => {
-        errorMessage.value = 'Failed to restore education entry';
-        modals.isErrorOpen = true;
-      }
-    });
-  }
-};
-
-const deleteEducation = (id) => {
-  if (confirm('Are you sure you want to permanently delete this education entry? This action cannot be undone.')) {
-    const deleteForm = useForm({});
-    deleteForm.delete(route('profile.education.delete', { id }), {
-      onSuccess: () => {
-        emit('refresh-education');
-        errorMessage.value = 'Education entry deleted successfully';
-        modals.isSuccessOpen = true;
-      },
-      onError: (error) => {
-        errorMessage.value = 'Failed to delete education entry';
-        modals.isErrorOpen = true;
-      }
-    });
-  }
-};
-
-const toggleArchivedEducation = () => {
-  showArchivedEducation.value = !showArchivedEducation.value;
-  router.reload();
-};
 
 const handleNoAchievements = () => {
   if (education.value.noAchievements) {
@@ -460,11 +406,11 @@ const handleNoAchievements = () => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Success!</h3>
         <p class="text-center text-gray-600">Your education information has been added successfully.</p>
         <div class="mt-6 flex justify-center">
-          <button type="button"
+          <PrimaryButton type="button"
             class="bg-green-500 hover:bg-green-600 transition-colors text-white px-4 py-2 rounded-md"
             @click="modals.isSuccessOpen = false">
             Close
-          </button>
+          </PrimaryButton>
         </div>
       </div>
     </Modal>
@@ -480,10 +426,10 @@ const handleNoAchievements = () => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h3>
         <p class="text-center text-gray-600">{{ errorMessage }}</p>
         <div class="mt-6 flex justify-center">
-          <button type="button" class="bg-red-500 hover:bg-red-600 transition-colors text-white px-4 py-2 rounded-md"
+          <DangerButton type="button" class="bg-red-500 hover:bg-red-600 transition-colors text-white px-4 py-2 rounded-md"
             @click="modals.isErrorOpen = false">
             Close
-          </button>
+          </DangerButton>
         </div>
       </div>
     </Modal>
@@ -499,11 +445,11 @@ const handleNoAchievements = () => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Duplicate Entry</h3>
         <p class="text-center text-gray-600">An education entry with these details already exists.</p>
         <div class="mt-6 flex justify-center">
-          <button type="button"
+          <SecondaryButton type="button"
             class="bg-yellow-500 hover:bg-yellow-600 transition-colors text-white px-4 py-2 rounded-md"
             @click="modals.isDuplicateOpen = false">
             Close
-          </button>
+          </SecondaryButton>
         </div>
       </div>
     </Modal>
@@ -523,17 +469,9 @@ const handleNoAchievements = () => {
             <i class="fas fa-plus mr-2"></i>
             Add Education
           </PrimaryButton>
-          <button
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
-            @click="toggleArchivedEducation">
-            <i class="fas" :class="showArchivedEducation ? 'fa-eye-slash' : 'fa-eye'"></i>
-            <span class="ml-2">{{ showArchivedEducation ? 'Hide Archived' : 'Show Archived' }}</span>
-          </button>
         </div>
       </div>
       <div class="p-4">
-        <p class="text-gray-600 mb-6">Manage your educational background</p>
-
         <!-- Active Education Entries -->
         <div>
           <div v-if="educationEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -575,80 +513,18 @@ const handleNoAchievements = () => {
                 </div>
               </div>
               <div class="absolute top-8 right-4 flex space-x-4">
-                <button class="text-gray-600 hover:text-blue-600" @click="openUpdateModal(entry)">
-                  <i class="fas fa-pen"></i>
-                </button>
-                <button class="text-amber-600 hover:text-amber-800" @click="archiveEducation(entry.id)">
-                  <i class="fas fa-archive"></i>
-                </button>
+                <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150" @click="openUpdateModal(entry)">
+                <i class="fas fa-edit"></i>
+              </button>
               </div>
             </div>
           </div>
-          <div v-else class="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">
-            <p class="text-gray-500">No education entries added yet. Click "Add Education" to get started.</p>
-          </div>
+          <!-- Empty state removed as requested -->
         </div>
       </div>
     </div>
 
-    <!-- Archived Education Entries -->
-    <div v-if="showArchivedEducation" class="mt-8">
-      <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
-          <div class="flex items-center">
-            <div class="bg-amber-100 p-2 rounded-full mr-3">
-              <i class="fas fa-archive text-amber-600"></i>
-            </div>
-            <h2 class="text-lg font-semibold text-gray-800">Archived Education</h2>
-          </div>
-        </div>
-        <div class="p-4">
-          <div v-if="archivedEducationEntries && archivedEducationEntries.length > 0"
-            class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div v-for="education in archivedEducationEntries" :key="education.id"
-              class="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200 relative">
-              <div class="opacity-75">
-                <div class="border-b pb-2">
-                  <h2 class="text-xl font-bold">{{ education.education || 'Unknown Institution' }}</h2>
-                  <p class="text-gray-600">
-                    {{ education.program || 'Unknown Program' }} in {{ education.field_of_study || 'Unknown Field' }}
-                  </p>
-                </div>
-                <div class="flex items-center text-gray-600 mt-2">
-                  <i class="far fa-calendar-alt mr-2"></i>
-                  <span>
-                    {{ formatDisplayDate(education.start_date) }} - {{ education.end_date ? formatDisplayDate(education.end_date) :
-                      'present' }}
-                  </span>
-                </div>
-                <div v-if="education.term" class="flex items-center text-gray-600 mt-2">
-                  <i class="far fa-calendar-alt mr-2"></i>
-                  <span>
-                    {{ education.term }}
-                  </span>
-                </div>
-              </div>
-              <div class="absolute top-6 right-4 flex space-x-4">
-                <button class="text-green-600 hover:text-green-800" @click="restoreEducation(education.id)">
-                  <i class="fas fa-box-open"></i>
-                </button>
-                <button class="text-red-600 hover:text-red-800" @click="deleteEducation(education.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-              <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
-                Archived
-              </div>
-            </div>
-          </div>
 
-          <!-- If no archived education entries exist -->
-          <div v-else class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
-            <p class="text-gray-600">No archived education entries found.</p>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Add Education Modal -->
     <div v-if="isAddEducationModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
@@ -719,11 +595,11 @@ const handleNoAchievements = () => {
               </div>
             </div>
             <div class="flex justify-end">
-              <button type="submit"
+              <PrimaryButton type="submit"
                 class="w-full bg-blue-600 text-white py-2 rounded-md flex items-center justify-center">
                 <i class="fas fa-save mr-2"></i>
                 Add Education
-              </button>
+              </PrimaryButton>
             </div>
           </form>
         </div>
@@ -804,11 +680,11 @@ const handleNoAchievements = () => {
             </div>
 
             <div class="flex justify-end">
-              <button type="submit"
+              <PrimaryButton type="submit"
                 class="w-full bg-blue-600 text-white py-2 rounded-md flex items-center justify-center">
                 <i class="fas fa-save mr-2"></i>
                 Update Education
-              </button>
+              </PrimaryButton>
             </div>
           </form>
         </div>
@@ -817,19 +693,15 @@ const handleNoAchievements = () => {
 
     <!-- Graduate School Information (always visible) -->
     <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-100 to-white border-b border-blue-100 cursor-pointer" 
-           @click="graduateInfoExpanded = !graduateInfoExpanded">
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
         <div class="flex items-center">
           <div class="bg-blue-100 p-2 rounded-full mr-3">
             <i class="fas fa-university text-blue-600"></i>
           </div>
-          <h3 class="text-lg font-semibold text-blue-800">Education History</h3>
-        </div>
-        <div>
-          <i class="fas" :class="graduateInfoExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          <h3 class="text-lg font-semibold text-blue-800">Graduate Education</h3>
         </div>
       </div>
-      <div v-show="graduateInfoExpanded" class="p-4 transition-all duration-300">
+      <div class="p-4 transition-all duration-300">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
           <div>
             <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
@@ -861,12 +733,52 @@ const handleNoAchievements = () => {
   </div>
 </template>
 
-<style>
+<style scoped>
+/* Glow effect animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input focus effects with glow */
+input:focus, textarea:focus, select:focus {
+  animation: pulse 1.5s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:not(:disabled) {
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form element transitions */
+form div {
+  animation: fadeIn 0.3s ease-out;
+}
+
 .dp-custom-input {
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
   border-width: 1px;
   width: 100%;
+  transition: all 0.3s ease;
 }
 
 .dp-custom-input:focus {
@@ -875,5 +787,6 @@ const handleNoAchievements = () => {
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   --tw-ring-color: rgb(37 99 235 / 0.6);
+  animation: pulse 1.5s ease-in-out;
 }
 </style>

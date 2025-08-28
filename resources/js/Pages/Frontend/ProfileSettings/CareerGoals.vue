@@ -32,6 +32,7 @@ const isErrorModalOpen = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 
+
 // Temporary form data for editing
 const tempCareerGoals = ref({
   short_term_goals: '',
@@ -190,6 +191,8 @@ const closeSuccessModal = () => {
 const closeErrorModal = () => {
   isErrorModalOpen.value = false;
 };
+
+
 </script>
 
 <template>
@@ -235,13 +238,27 @@ const closeErrorModal = () => {
     </Modal>
 
     <div class="w-full">
-      <div class="flex justify-between items-center mb-6">
-        <p class="text-gray-600">Define your short and long-term career aspirations</p>
-        <button @click="openEditModal" 
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-          <i class="fas fa-edit mr-2"></i>Edit Goals
-        </button>
+      <!-- Career Goals Header -->
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-lg mb-4">
+        <div class="flex items-center">
+          <div class="bg-blue-100 p-2 rounded-full mr-3">
+            <i class="fas fa-bullseye text-blue-600"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-blue-800">Career Goals</h3>
+            <p class="text-sm text-gray-600">Define your short and long-term career aspirations</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="openEditModal" 
+                  class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
+            <i class="fas fa-edit mr-1"></i>Edit
+          </button>
+        </div>
       </div>
+
+      <!-- Career Goals Content -->
+      <div class="transition-all duration-300">
       
       <!-- Career Goals Display -->
       <div v-if="careerGoals.short_term_goals || careerGoals.long_term_goals || careerGoals.industries_of_interest.length || careerGoals.career_path"
@@ -312,6 +329,7 @@ const closeErrorModal = () => {
           <i class="fas fa-plus mr-2"></i>Set Career Goals
         </button>
       </div>
+      </div> <!-- End Career Goals Content -->
     </div>
 
     <!-- Edit Career Goals Modal -->
@@ -434,3 +452,44 @@ const closeErrorModal = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Glow effect animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input focus effects with glow */
+input:focus, textarea:focus, select:focus {
+  animation: pulse 1.5s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:not(:disabled) {
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form element transitions */
+form div {
+  animation: fadeIn 0.3s ease-out;
+}
+</style>

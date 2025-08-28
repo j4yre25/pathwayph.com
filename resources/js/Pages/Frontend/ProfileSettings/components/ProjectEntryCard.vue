@@ -42,8 +42,8 @@ const handleRemove = () => {
 </script>
 
 <template>
-  <div class="bg-white p-8 rounded-lg shadow relative hover:shadow-md transition-shadow duration-200"
-    :class="{ 'bg-gray-50 border border-gray-200 opacity-75': isArchived }">
+  <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 relative hover:shadow-lg transition-all duration-300 group"
+    :class="{ 'bg-gray-50 opacity-85': isArchived }">
     <div>
       <div class="border-b pb-2">
         <h2 class="text-xl font-bold text-gray-800">{{ entry.graduate_projects_title }}</h2>
@@ -89,21 +89,21 @@ const handleRemove = () => {
           class="max-w-full h-auto rounded-lg shadow" />
       </div>
     </div>
-    <div class="absolute top-8 right-4 flex space-x-4">
-      <button v-if="!isArchived" class="text-gray-600 hover:text-blue-600" @click="handleUpdate">
-        <i class="fas fa-pen"></i>
+    <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <button v-if="!isArchived" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200" @click="handleUpdate">
+        <i class="fas fa-edit"></i>
       </button>
-      <button v-if="!isArchived" class="text-amber-600 hover:text-amber-800" @click="handleArchive">
+      <button v-if="!isArchived" class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200" @click="handleArchive">
         <i class="fas fa-archive"></i>
       </button>
-      <button v-if="isArchived" class="text-green-600 hover:text-green-800" @click="handleUnarchive">
-        <i class="fas fa-box-open"></i>
+      <button v-if="isArchived" class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200" @click="handleUnarchive">
+        <i class="fas fa-undo"></i>
       </button>
-      <button v-if="isArchived" class="text-red-600 hover:text-red-800" @click="handleRemove">
+      <button v-if="isArchived" class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="handleRemove">
         <i class="fas fa-trash"></i>
       </button>
     </div>
-    <div v-if="isArchived" class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
+    <div v-if="isArchived" class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-md font-medium">
       Archived
     </div>
   </div>

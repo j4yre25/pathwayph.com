@@ -293,25 +293,42 @@ watch(() => activeSection.value, (newSection) => {
 
 <template>
   <Graduate>
-    <div class="bg-gray-50 min-h-screen">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Profile Settings</h1>
-        <p class="text-gray-600 mb-6">Manage your personal information and account settings</p>
-        
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <!-- Tab Navigation - Modern Style -->
-          <div class="flex border-b border-gray-200 overflow-x-auto scrollbar-hide">
+    <div class="min-h-screen bg-gray-50">
+      <!-- Modern Header Section -->
+      <div class="bg-white border-b border-gray-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-3xl font-bold text-gray-900">Profile Settings</h1>
+              <p class="mt-2 text-gray-600">Manage your personal information and account settings</p>
+            </div>
+            <div class="hidden sm:flex items-center space-x-3">
+              <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
+                <i class="fas fa-user-cog text-indigo-600 text-xl"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main Content Area -->
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <!-- Enhanced Tab Navigation -->
+          <div class="flex border-b border-gray-100 overflow-x-auto scrollbar-hide bg-gray-50/50">
             <button 
-              class="py-3.5 px-5 font-medium text-sm transition-colors duration-200 focus:outline-none whitespace-nowrap"
-              :class="activeSection === 'general' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-900'"
+              class="py-4 px-6 font-medium text-sm transition-all duration-200 focus:outline-none whitespace-nowrap relative"
+              :class="activeSection === 'general' ? 'text-indigo-600 bg-white border-b-2 border-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'"
               @click="setActiveSection('general')">
+              <i class="fas fa-user mr-2"></i>
               General
             </button>
             
             <button 
-              class="py-3.5 px-5 font-medium text-sm transition-colors duration-200 focus:outline-none whitespace-nowrap"
-              :class="activeSection === 'security' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-900'"
+              class="py-4 px-6 font-medium text-sm transition-all duration-200 focus:outline-none whitespace-nowrap relative"
+              :class="activeSection === 'security' ? 'text-indigo-600 bg-white border-b-2 border-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'"
               @click="setActiveSection('security')">
+              <i class="fas fa-shield-alt mr-2"></i>
               Security
             </button>
             
@@ -319,9 +336,10 @@ watch(() => activeSection.value, (newSection) => {
             <div class="relative">
               <button 
                 id="professional-background-button"
-                class="py-3.5 px-5 font-medium text-sm transition-colors duration-200 focus:outline-none whitespace-nowrap flex items-center gap-1.5"
-                :class="activeSection === 'professional-background' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-900'"
+                class="py-4 px-6 font-medium text-sm transition-all duration-200 focus:outline-none whitespace-nowrap flex items-center gap-2 relative"
+                :class="activeSection === 'professional-background' ? 'text-indigo-600 bg-white border-b-2 border-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'"
                 @click="toggleFlyout('professional-background')">
+                <i class="fas fa-briefcase mr-1"></i>
                 Professional Background
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" :class="{'rotate-180': openFlyout === 'professional-background'}" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -345,9 +363,10 @@ watch(() => activeSection.value, (newSection) => {
             <div class="relative">
               <button 
                 id="supporting-documents-button"
-                class="py-3.5 px-5 font-medium text-sm transition-colors duration-200 focus:outline-none whitespace-nowrap flex items-center gap-1.5"
-                :class="activeSection === 'supporting-documents' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-900'"
+                class="py-4 px-6 font-medium text-sm transition-all duration-200 focus:outline-none whitespace-nowrap flex items-center gap-2 relative"
+                :class="activeSection === 'supporting-documents' ? 'text-indigo-600 bg-white border-b-2 border-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'"
                 @click="toggleFlyout('supporting-documents')">
+                <i class="fas fa-file-alt mr-1"></i>
                 Supporting Documents
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" :class="{'rotate-180': openFlyout === 'supporting-documents'}" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -371,9 +390,10 @@ watch(() => activeSection.value, (newSection) => {
             <div class="relative">
               <button 
                 id="career-profile-button"
-                class="py-3.5 px-5 font-medium text-sm transition-colors duration-200 focus:outline-none whitespace-nowrap flex items-center gap-1.5"
-                :class="activeSection === 'career-profile' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-900'"
+                class="py-4 px-6 font-medium text-sm transition-all duration-200 focus:outline-none whitespace-nowrap flex items-center gap-2 relative"
+                :class="activeSection === 'career-profile' ? 'text-indigo-600 bg-white border-b-2 border-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'"
                 @click="toggleFlyout('career-profile')">
+                <i class="fas fa-bullseye mr-1"></i>
                 Career Profile
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" :class="{'rotate-180': openFlyout === 'career-profile'}" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -393,21 +413,23 @@ watch(() => activeSection.value, (newSection) => {
               />
             </div>
             <button 
-              class="py-3.5 px-5 font-medium text-sm transition-colors duration-200 focus:outline-none whitespace-nowrap"
-              :class="activeSection === 'internship' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-900'"
+              class="py-4 px-6 font-medium text-sm transition-all duration-200 focus:outline-none whitespace-nowrap relative"
+              :class="activeSection === 'internship' ? 'text-indigo-600 bg-white border-b-2 border-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'"
               @click="setActiveSection('internship')">
+              <i class="fas fa-graduation-cap mr-2"></i>
               Internship
             </button>
             <button 
-              class="py-3.5 px-5 font-medium text-sm transition-colors duration-200 focus:outline-none whitespace-nowrap"
-              :class="activeSection === 'batch-upload' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-900'"
+              class="py-4 px-6 font-medium text-sm transition-all duration-200 focus:outline-none whitespace-nowrap relative"
+              :class="activeSection === 'batch-upload' ? 'text-indigo-600 bg-white border-b-2 border-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'"
               @click="setActiveSection('batch-upload')">
+              <i class="fas fa-upload mr-2"></i>
               Batch Upload
             </button>
           </div>
 
-          <!-- Tab Content -->
-          <div class="p-5">
+          <!-- Enhanced Tab Content -->
+          <div class="p-8">
             <!-- General Settings -->
             <General 
               v-if="activeSection === 'general'"

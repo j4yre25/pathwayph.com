@@ -149,10 +149,10 @@ watch(() => profile.value.fullName, (newFullName) => {
 
 
 const saveProfile = () => {
-  // if (!validateForm()) {
-  //   showErrorModal('Please correct the errors in the form.');
-  //   return;
-  // }
+  if (!validateForm()) {
+    showErrorModal('Please correct the errors in the form.');
+    return;
+  }
 
   // Format birthdate
   if (profile.value.graduate_birthdate) {
@@ -197,14 +197,16 @@ const saveProfile = () => {
   console.log('Submitting form:', settingsForm);
 
   if (!settingsForm.graduate_picture) {
-  delete settingsForm.graduate_picture;
-}
+    delete settingsForm.graduate_picture;
+  }
 
   // Submit form
   settingsForm.post(route('profile.updateProfile'), {
     forceFormData: true,
     onSuccess: (response) => {
-      emit('close-all-modals');      profile.value.first_name = settingsForm.first_name;
+      emit('close-all-modals');
+      
+      profile.value.first_name = settingsForm.first_name;
       profile.value.middle_name = settingsForm.middle_name;
       profile.value.last_name = settingsForm.last_name;
       profile.value.graduate_professional_title = settingsForm.graduate_professional_title;
@@ -368,6 +370,64 @@ onMounted(() => {
 }); 
 </script>
 
+<style scoped>
+/* Glow effect animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input focus effects with glow */
+input:focus, textarea:focus, select:focus {
+  animation: pulse 1.5s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:not(:disabled) {
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form element transitions */
+form div {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dp-custom-input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border-width: 1px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.dp-custom-input:focus {
+  outline: none;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  --tw-ring-color: rgb(37 99 235 / 0.6);
+  animation: pulse 1.5s ease-in-out;
+}
+</style>
+
 <template>
   <div v-if="activeSection === 'general'" class="flex flex-col">
     <Modal :show="isSuccessModalOpen" @close="isSuccessModalOpen = false">
@@ -400,10 +460,10 @@ onMounted(() => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h3>
         <p class="text-center text-gray-600">{{ errorMessage }}</p>
         <div class="mt-6 flex justify-center">
-          <button type="button" class="bg-red-500 hover:bg-red-600 transition-colors text-white px-4 py-2 rounded-md"
-            @click="isErrorModalOpen = false">
-            Close
-          </button>
+          <DangerButton type="button"
+             @click="isErrorModalOpen = false">
+             Close
+           </DangerButton>
         </div>
       </div>
     </Modal>
@@ -419,10 +479,10 @@ onMounted(() => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">No Changes Detected</h3>
         <p class="text-center text-gray-600">No changes were made to your profile.</p>
         <div class="mt-6 flex justify-center">
-          <button type="button" class="bg-blue-500 hover:bg-blue-600 transition-colors text-white px-4 py-2 rounded-md"
-            @click="isNoChangesModalOpen = false">
-            Close
-          </button>
+          <PrimaryButton type="button"
+             @click="isNoChangesModalOpen = false">
+             Close
+           </PrimaryButton>
         </div>
       </div>
     </Modal>
@@ -613,49 +673,45 @@ onMounted(() => {
           </div>
 
           <!-- Education Information Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 class="text-xl font-semibold mb-2">Education Information</h2>
-            <p class="text-gray-600 mb-4">Your academic background</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              <!-- School Graduated From -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
-                <div class="relative">
-                  <i class="fas fa-university absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+          <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+            <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+              <div class="flex items-center">
+                <div class="bg-blue-100 p-2 rounded-full mr-3">
+                  <i class="fas fa-university text-blue-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-blue-800">Education Information</h3>
+              </div>
+            </div>
+            <div class="p-4 transition-all duration-300">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+                <!-- School Graduated From -->
+                <div>
+                  <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
                     {{ profile.graduate_school_graduated_from || 'Not specified' }}
                   </div>
                 </div>
-              </div>
 
-              <!-- Year Graduated -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
-                <div class="relative">
-                  <i class="fas fa-calendar-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+                <!-- Year Graduated -->
+                <div>
+                  <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
                     {{ profile.graduate_year_graduated || 'Not specified' }}
                   </div>
                 </div>
-              </div>
 
-              <!-- Program Completed -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
-                <div class="relative">
-                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+                <!-- Program Completed -->
+                <div>
+                  <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
                     {{ profile.graduate_program_completed || 'Not specified' }}
                   </div>
                 </div>
-              </div>
 
-              <!-- Degree Completed -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
-                <div class="relative">
-                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
+                <!-- Degree Completed -->
+                <div>
+                  <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
                     {{ degreeCompleted }}
                   </div>
                 </div>
@@ -664,44 +720,56 @@ onMounted(() => {
             
             <!-- Other Education Entries - Only show if entries exist -->
             <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
-              <h3 class="text-lg font-medium mb-4">Other Education</h3>
-              <div class="grid grid-cols-1 gap-6">
-                <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-6 rounded-lg shadow relative">
-                  <div>
-                    <div class="border-b pb-2">
-                      <h4 class="text-xl font-bold">{{ entry.education || 'Unknown Institution' }}</h4>
-                      <p class="text-gray-600">
-                        {{ entry.program || 'Unknown Program' }} in {{ entry.field_of_study || 'Unknown Field' }}
-                      </p>
-                    </div>
-                    <div class="flex items-center text-gray-600 mt-2">
-                      <i class="far fa-calendar-alt mr-2"></i>
-                      <span>
-                        {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ?
-                          formatDisplayDate(entry.end_date) : 'present' }}
-                      </span>
-                    </div>
-                    <p class="mt-2">
-                      <strong>
-                        <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                      </strong>
-                      {{ entry.description || 'No description provided' }}
+              <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 rounded-t-lg">
+                <div class="flex items-center">
+                  <div class="bg-blue-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-graduation-cap text-blue-600"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-blue-800">Education History</h3>
+                </div>
+              </div>
+              <div class="p-4">
+                <div v-if="props.educationEntries.length > 0" class="grid grid-cols-1 gap-6">
+                  <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+                  <div class="absolute top-4 right-4 flex space-x-2">
+                    <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                  </div>
+                  <div class="border-b pb-2">
+                    <h2 class="text-xl font-bold text-blue-900">{{ entry.education || 'Unknown Institution' }}</h2>
+                    <p class="text-gray-700">
+                      <span class="font-medium">{{ entry.program || 'Not specified' }}</span> 
+                      <span v-if="entry.field_of_study">in <span class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">{{ entry.field_of_study }}</span></span>
                     </p>
-                    <p class="mt-2">
-                      <strong>
-                        <i class="fas fa-trophy text-gray-500 mr-2"></i> Achievements:
-                      </strong>
-                      <span v-if="entry.achievements && entry.achievements.includes(',')">
-                        <ul class="list-disc list-inside">
-                          <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index">
-                            {{ achievement.trim() }}
-                          </li>
-                        </ul>
-                      </span>
-                      <span v-else>
-                        {{ entry.achievements || 'None' }}
-                      </span>
-                    </p>
+                  </div>
+                  <div class="flex items-center text-gray-600 mt-2">
+                    <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
+                    <span>
+                      {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ? formatDisplayDate(entry.end_date) : 'Present' }}
+                    </span>
+                  </div>
+                  <div class="mt-3">
+                    <strong>
+                      <i class="fas fa-info-circle text-blue-500 mr-2"></i> Description:
+                    </strong>
+                    <p class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400 mt-1">{{ entry.description || 'No description provided' }}</p>
+                  </div>
+                  <div class="mt-3">
+                    <strong>
+                      <i class="fas fa-trophy text-blue-500 mr-2"></i> Achievements:
+                    </strong>
+                    <span v-if="entry.achievements && entry.achievements.includes(',')">
+                      <ul class="list-disc list-inside mt-1">
+                        <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index" class="text-gray-700">
+                          {{ achievement.trim() }}
+                        </li>
+                      </ul>
+                    </span>
+                    <span v-else class="block bg-gray-50 p-2 rounded mt-1">
+                      {{ entry.achievements || 'None' }}
+                    </span>
+                  </div>
                   </div>
                 </div>
               </div>

@@ -71,6 +71,7 @@ const isErrorModalOpen = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 
+
 // Temporary form data for editing
 const tempEmploymentPreferences = ref({
   jobTypes: [],
@@ -252,12 +253,34 @@ watch(
   },
   { immediate: true }
 );
+
+
 </script>
 
 <template>
   <div v-if="activeSection === 'employment'">
     <div class="w-full">
-      <p class="text-gray-600 mb-6">Set your job preferences and requirements</p>
+      <!-- Employment Preferences Header -->
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-lg mb-4">
+        <div class="flex items-center">
+          <div class="bg-blue-100 p-2 rounded-full mr-3">
+            <i class="fas fa-briefcase text-blue-600"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-blue-800">Employment Preferences</h3>
+            <p class="text-sm text-gray-600">Set your job preferences and requirements</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="openEditModal" 
+                  class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
+            <i class="fas fa-edit mr-1"></i>Edit
+          </button>
+        </div>
+      </div>
+
+      <!-- Employment Preferences Content -->
+      <div class="transition-all duration-300">
 
       <!-- Success Modal -->
       <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
@@ -306,9 +329,9 @@ watch(
            class="mb-6 p-5 border border-blue-100 rounded-lg bg-white shadow-md hover:shadow-lg transition-all duration-300">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-blue-800 border-b border-blue-100 pb-2">Employment Preferences</h2>
-          <button @click="openEditModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center">
-            <i class="fas fa-edit mr-2"></i> Edit Preferences
-          </button>
+          <PrimaryButton @click="openEditModal" class="flex items-center">
+             <i class="fas fa-edit mr-2"></i> Edit Preferences
+           </PrimaryButton>
         </div>
         <div class="space-y-4">
           <div class="bg-blue-50 p-3 rounded-md">
@@ -405,9 +428,9 @@ watch(
         </div>
         <h3 class="text-lg font-medium text-gray-900 mb-2">No Employment Preferences Set</h3>
         <p class="text-gray-600 mb-4">Set your employment preferences to help employers find you.</p>
-        <button @click="openEditModal" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center mx-auto">
-          <i class="fas fa-plus mr-2"></i> Set Employment Preferences
-        </button>
+        <PrimaryButton @click="openEditModal" class="flex items-center mx-auto">
+           <i class="fas fa-plus mr-2"></i> Set Employment Preferences
+         </PrimaryButton>
       </div>
       
       <!-- Success Modal -->
@@ -419,9 +442,9 @@ watch(
           <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Success!</h3>
           <p class="text-center text-gray-600 mb-6">{{ successMessage }}</p>
           <div class="flex justify-center">
-            <button @click="closeSuccessModal" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200">
-              Close
-            </button>
+            <PrimaryButton @click="closeSuccessModal" class="bg-green-600 hover:bg-green-700 focus:bg-green-700 active:bg-green-800 focus:ring-green-500">
+               Close
+             </PrimaryButton>
           </div>
         </div>
       </Modal>
@@ -435,9 +458,9 @@ watch(
           <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h3>
           <p class="text-center text-gray-600 mb-6">{{ errorMessage }}</p>
           <div class="flex justify-center">
-            <button @click="closeErrorModal" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200">
-              Close
-            </button>
+            <DangerButton @click="closeErrorModal">
+               Close
+             </DangerButton>
           </div>
         </div>
       </Modal>
@@ -501,10 +524,10 @@ watch(
                     &times;
                   </button>
                 </span>
-                <button class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition-colors duration-200"
-                  @click="isAddLocationModalOpen = true">
-                  + Add Location
-                </button>
+                <PrimaryButton class="rounded-full"
+                   @click="isAddLocationModalOpen = true">
+                   + Add Location
+                 </PrimaryButton>
               </div>
             </div>
             
@@ -541,15 +564,16 @@ watch(
 
           <!-- Modal Action Buttons -->
           <div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
-            <button @click="closeEditModal" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors duration-200">
-              Cancel
-            </button>
-            <button @click="saveEmploymentPreferences" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center">
-              <i class="fas fa-save mr-2"></i> Save Preferences
-            </button>
+            <SecondaryButton @click="closeEditModal">
+               Cancel
+             </SecondaryButton>
+            <PrimaryButton @click="saveEmploymentPreferences" class="flex items-center">
+               <i class="fas fa-save mr-2"></i> Save Preferences
+             </PrimaryButton>
           </div>
         </div>
       </Modal>
+      </div> <!-- End Collapsible Content -->
     </div>
     
     <!-- Add Location Modal -->
@@ -570,10 +594,51 @@ watch(
               placeholder="e.g. New York, NY" required />
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200">Add</button>
+            <PrimaryButton type="submit">Add</PrimaryButton>
           </div>
         </form>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Glow effect animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input focus effects with glow */
+input:focus, textarea:focus, select:focus {
+  animation: pulse 1.5s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:not(:disabled) {
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form element transitions */
+form div {
+  animation: fadeIn 0.3s ease-out;
+}
+</style>

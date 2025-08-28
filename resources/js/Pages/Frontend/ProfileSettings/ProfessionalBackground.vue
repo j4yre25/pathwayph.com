@@ -45,20 +45,7 @@ watch(() => props.activeSubsection, (newValue) => {
   activeSubsection.value = newValue;
 });
 
-// State for collapsible sections
-const expandedSections = ref({
-  education: true,
-  experience: true,
-  skills: true,
-  projects: true,
-  certifications: true,
-  achievements: true
-});
-
-// Toggle section expansion
-const toggleSection = (section) => {
-  expandedSections.value[section] = !expandedSections.value[section];
-};
+// Removed expand functionality - all sections are now always visible
 
 // Check if sections have data
 const hasEducationData = computed(() => props.educationEntries && props.educationEntries.length > 0);
@@ -86,16 +73,15 @@ const hasAchievementsData = computed(() => props.achievementEntries && props.ach
     <div v-if="!activeSubsection" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Education Section -->
       <div v-if="hasEducationData || true" id="education" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
-        <div @click="toggleSection('education')" class="flex justify-between items-center p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
           <div class="flex items-center">
             <div class="bg-blue-100 p-2 rounded-full mr-3">
               <i class="fas fa-graduation-cap text-blue-600"></i>
             </div>
             <h3 class="text-lg font-semibold text-blue-800">Education</h3>
           </div>
-          <i class="fas" :class="expandedSections.education ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </div>
-        <div v-show="expandedSections.education" class="p-4">
+        <div class="p-4">
           <EducationSection
             :activeSection="'education'"
             :educationEntries="educationEntries"
@@ -111,16 +97,15 @@ const hasAchievementsData = computed(() => props.achievementEntries && props.ach
       
       <!-- Experience Section -->
       <div v-if="hasExperienceData || true" id="experience" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
-        <div @click="toggleSection('experience')" class="flex justify-between items-center p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
           <div class="flex items-center">
             <div class="bg-blue-100 p-2 rounded-full mr-3">
               <i class="fas fa-briefcase text-blue-600"></i>
             </div>
             <h3 class="text-lg font-semibold text-blue-800">Work Experience</h3>
           </div>
-          <i class="fas" :class="expandedSections.experience ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </div>
-        <div v-show="expandedSections.experience" class="p-4">
+        <div class="p-4">
           <ExperienceSection
             :activeSection="'experience'"
             :experienceEntries="experienceEntries"
@@ -133,19 +118,15 @@ const hasAchievementsData = computed(() => props.achievementEntries && props.ach
       
       <!-- Skills Section -->
       <div v-if="hasSkillsData || true" id="skills" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
-        <div @click="toggleSection('skills')" class="flex justify-between items-center p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
           <div class="flex items-center">
             <div class="bg-blue-100 p-2 rounded-full mr-3">
               <i class="fas fa-chart-bar text-blue-600"></i>
             </div>
             <h3 class="text-lg font-semibold text-blue-800">Skills</h3>
           </div>
-          <div class="flex items-center">
-
-            <i class="fas" :class="expandedSections.skills ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-          </div>
         </div>
-        <div v-show="expandedSections.skills" class="p-4">
+        <div class="p-4">
           <SkillSection
             :activeSection="'skills'"
             :skillEntries="skillEntries"
@@ -159,16 +140,15 @@ const hasAchievementsData = computed(() => props.achievementEntries && props.ach
       
       <!-- Projects Section -->
       <div v-if="hasProjectsData || true" id="projects" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
-        <div @click="toggleSection('projects')" class="flex justify-between items-center p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
           <div class="flex items-center">
             <div class="bg-blue-100 p-2 rounded-full mr-3">
               <i class="fas fa-project-diagram text-blue-600"></i>
             </div>
             <h3 class="text-lg font-semibold text-blue-800">Projects</h3>
           </div>
-          <i class="fas" :class="expandedSections.projects ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </div>
-        <div v-show="expandedSections.projects" class="p-4">
+        <div class="p-4">
           <ProjectSection
             :activeSection="'projects'"
             :projectsEntries="projectsEntries"
@@ -181,16 +161,15 @@ const hasAchievementsData = computed(() => props.achievementEntries && props.ach
       
       <!-- Certifications Section -->
       <div v-if="hasCertificationsData || true" id="certifications" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
-        <div @click="toggleSection('certifications')" class="flex justify-between items-center p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
           <div class="flex items-center">
             <div class="bg-blue-100 p-2 rounded-full mr-3">
               <i class="fas fa-certificate text-blue-600"></i>
             </div>
             <h3 class="text-lg font-semibold text-blue-800">Certifications</h3>
           </div>
-          <i class="fas" :class="expandedSections.certifications ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </div>
-        <div v-show="expandedSections.certifications" class="p-4">
+        <div class="p-4">
           <CertificationSection
             :activeSection="'certifications'"
             :certificationsEntries="certificationsEntries"
@@ -203,16 +182,15 @@ const hasAchievementsData = computed(() => props.achievementEntries && props.ach
       
       <!-- Achievements Section -->
       <div v-if="hasAchievementsData || true" id="achievements" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
-        <div @click="toggleSection('achievements')" class="flex justify-between items-center p-4 cursor-pointer bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
           <div class="flex items-center">
             <div class="bg-blue-100 p-2 rounded-full mr-3">
               <i class="fas fa-trophy text-blue-600"></i>
             </div>
             <h3 class="text-lg font-semibold text-blue-800">Achievements</h3>
           </div>
-          <i class="fas" :class="expandedSections.achievements ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </div>
-        <div v-show="expandedSections.achievements" class="p-4">
+        <div class="p-4">
           <AchievementSection
             :activeSection="'achievements'"
             :achievementEntries="achievementEntries"

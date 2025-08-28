@@ -87,9 +87,9 @@ const removeResume = () => {
       <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Success</h2>
       <p class="text-center text-gray-600">{{ successMessage }}</p>
       <div class="mt-6 flex justify-center">
-        <button @click="isSuccessModalOpen = false" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-          OK
-        </button>
+        <PrimaryButton @click="isSuccessModalOpen = false">
+           OK
+         </PrimaryButton>
       </div>
     </div>
   </Modal>
@@ -101,9 +101,9 @@ const removeResume = () => {
       <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h2>
       <p class="text-center text-gray-600">{{ errorMessage }}</p>
       <div class="mt-6 flex justify-center">
-        <button @click="isErrorModalOpen = false" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-          OK
-        </button>
+        <PrimaryButton @click="isErrorModalOpen = false">
+           OK
+         </PrimaryButton>
       </div>
     </div>
   </Modal>
@@ -132,9 +132,9 @@ const removeResume = () => {
             <p class="text-gray-500 text-sm mt-1">Click to view</p>
           </div>
         </div>
-        <button class="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-50 transition-colors duration-300" @click="removeResume">
-          <i class="fas fa-trash-alt"></i>
-        </button>
+        <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="removeResume">
+                        <i class="fas fa-trash"></i>
+                    </button>
       </div>
       <!-- If No Resume Uploaded -->
       <div v-else class="border-2 border-dashed border-blue-200 rounded-lg p-6 mb-6 text-center bg-blue-50 hover:bg-blue-100 transition-colors duration-300">
@@ -162,3 +162,50 @@ const removeResume = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Glow effects for form elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  animation: pulse 1.5s infinite;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.modal-content {
+  animation: fadeIn 0.4s ease-out;
+}
+</style>

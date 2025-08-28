@@ -65,221 +65,211 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
 
 <template>
   <AppLayout title="Company Profile">
-    <!-- Clean White Gradient Background -->
-    <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-hidden">
-      <!-- Subtle Background Elements -->
-      <div class="absolute inset-0">
-        <div class="absolute top-10 left-10 w-32 h-32 bg-blue-100 rounded-full opacity-30 animate-float"></div>
-        <div class="absolute top-1/4 right-20 w-24 h-24 bg-purple-100 rounded-full opacity-40 animate-float-reverse"></div>
-        <div class="absolute bottom-20 left-1/4 w-40 h-40 bg-green-100 rounded-full opacity-25 animate-morph"></div>
-        <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-pink-100 rounded-full opacity-20 animate-pulse-glow"></div>
-      </div>
-      
+    <!-- Modern Clean Background -->
+    <div class="min-h-screen bg-gray-50">
       <!-- Cover Photo Section -->
-      <div class="relative h-48 overflow-hidden">
+      <div class="relative h-64 bg-gradient-to-r from-blue-600 to-purple-600">
         <img
           :src="company.cover_photo_path || '/images/default-cover.jpg'"
           alt="Cover Photo"
-          class="absolute inset-0 w-full h-full object-cover opacity-30"
+          class="absolute inset-0 w-full h-full object-cover mix-blend-overlay"
         />
-        <!-- Subtle overlay -->
-        <div class="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+      </div>
+
+      <!-- Profile Header Card -->
+      <div class="relative -mt-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div class="p-8">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+              <!-- Profile Image -->
+              <div class="relative">
+                <div class="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-white">
+                  <img
+                    :src="company.profile_photo_path || '/images/default-logo.png'"
+                    alt="Company Logo"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              
+              <!-- Profile Info -->
+              <div class="flex-1 text-center sm:text-left">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ company.company_name }}</h1>
+                <p class="text-gray-600 mb-4 flex items-center justify-center sm:justify-start">
+                  <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+                  {{ company.address || 'Location not available' }}
+                </p>
+                
+                <!-- Quick Info Tags -->
+                <div class="flex flex-wrap gap-2 justify-center sm:justify-start mb-4">
+                  <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                    {{ company.sector || 'Industry' }}
+                  </span>
+                  <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                    ID: {{ company.company_id || 'N/A' }}
+                  </span>
+                </div>
+                
+                <!-- Social Links -->
+                <div class="flex space-x-3 justify-center sm:justify-start">
+                  <a
+                    v-for="(link, key) in company.social_links || {}"
+                    :key="key"
+                    :href="link"
+                    target="_blank"
+                    class="w-10 h-10 rounded-lg bg-gray-100 hover:bg-blue-100 flex items-center justify-center text-gray-600 hover:text-blue-600 transition-all duration-200"
+                  >
+                    <i :class="`fab fa-${key}`"></i>
+                  </a>
+                </div>
+              </div>
+              
+              <!-- Action Button -->
+              <div class="flex-shrink-0">
+                <a
+                  v-if="canEdit"
+                  :href="route('profile.show', { id: company.id, edit: 'company' })"
+                  class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <i class="fas fa-edit mr-2"></i>
+                  Edit Profile
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Company Header -->
-      <div class="relative -mt-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
-        <div class="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-xl">
-              <div class="p-6 flex flex-col md:flex-row md:items-center md:space-x-6">
-                  <!-- Logo and Featured Badge -->
-                  <div class="relative flex-shrink-0 mx-auto md:mx-0 mb-4 md:mb-0">
-                      <div class="w-28 h-28 rounded-2xl overflow-hidden border-4 border-gray-200 bg-white shadow-lg">
-                          <img
-                              :src="company.profile_photo_path || '/images/default-logo.png'"
-                              alt="Company Logo"
-                              class="w-full h-full object-cover"
-                          />
-                      </div>
-                  </div>
-
-                  <!-- Company Info -->
-                  <div class="flex-1 text-center md:text-left">
-                      
-                      <div class="space-y-4">
-                          <h1 class="text-4xl font-bold text-gray-800 mb-3">{{ company.company_name }}</h1>
-                          <!-- Location -->
-                          <p class="text-gray-600 flex items-center space-x-2 justify-center md:justify-start text-lg">
-                              <i class="fas fa-map-marker-alt text-blue-500"></i>
-                              <span>{{ company.address || 'Location not available' }}</span>
-                              <a
-                                  v-if="company.map_link"
-                                  :href="company.map_link"
-                                  target="_blank"
-                                  class="text-blue-600 hover:text-blue-800 text-sm flex items-center transition-all duration-200">
-                                  <i class="fas fa-external-link-alt mr-1"></i> Map
-                              </a>
-                          </p>
-                        
-                          <!-- Company Details in single column -->
-                          <div class="space-y-3 text-base">
-                              <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                                  <p class="text-sm text-blue-600 font-semibold">Industry Sector</p>
-                                  <p class="text-gray-700">{{ company.sector || 'Not specified' }}</p>
-                              </div>
-                              <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                                  <p class="text-sm text-purple-600 font-semibold">Company ID</p>
-                                  <p class="text-gray-700">{{ company.company_id || 'Not available' }}</p>
-                              </div>
-                          </div>
-                      </div>
-                    
-                      <div class="mt-4 flex space-x-3 justify-center md:justify-start">
-                          <a
-                              v-for="(link, key) in company.social_links || {}"
-                              :key="key"
-                              :href="link"
-                              target="_blank"
-                              class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 hover:text-blue-600 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 hover:scale-110"
-                          >
-                              <i :class="`fab fa-${key}`"></i>
-                          </a>
-                      </div>
-                  </div>
-
-                  <!-- Action Buttons -->
-                  <div class="mt-4 md:mt-0 flex justify-center md:justify-end">
-                          <a
-                              v-if="canEdit"
-                              :href="route('profile.show', { id: company.id, edit: 'company' })"
-                              class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-2xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-lg inline-flex items-center">
-                              <i class="fas fa-edit mr-2"></i> Edit Profile
-                          </a>
-                  </div>
-              </div>
-          </div>
-      </div>
-
       <!-- Main Content -->
-      <div class="py-8 relative z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
+            <div class="flex items-center">
+              <div class="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
+                <i class="fas fa-calendar-alt text-blue-600 text-xl"></i>
+              </div>
+              <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">Date Joined</h3>
+                <p class="text-lg font-semibold text-gray-900">{{ company.created_at || 'Not available' }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
+            <div class="flex items-center">
+              <div class="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center">
+                <i class="fas fa-briefcase text-green-600 text-xl"></i>
+              </div>
+              <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">Posted Jobs</h3>
+                <p class="text-lg font-semibold text-gray-900">{{ company.job_post_count || 0 }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        
-          <!-- Overview Section -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <div class="flex items-center mb-3">
-                      <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mr-4">
-                          <i class="fas fa-calendar-alt text-blue-600 text-lg"></i>
-                      </div>
-                      <h4 class="text-lg font-bold text-gray-800">Date Joined</h4>
-                  </div>
-                  <p class="text-gray-600 ml-16 text-base">{{ company.created_at || 'Not available' }}</p>
+        <!-- Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Description Section -->
+          <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-gray-900">About Company</h2>
+                <button
+                  v-if="canEdit"
+                  @click="isEditing = true"
+                  class="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+
+              <!-- Edit Mode -->
+              <div v-if="isEditing" class="space-y-4">
+                <textarea
+                  v-model="localDescription"
+                  class="w-full border border-gray-300 rounded-lg p-4 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
+                  rows="6"
+                  placeholder="Describe your company, its mission, values, and what sets it apart..."
+                ></textarea>
+                <div class="flex justify-end space-x-3">
+                  <button 
+                    @click="cancelEditing" 
+                    class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    @click="saveDescription" 
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
               
-              <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <div class="flex items-center mb-3">
-                      <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mr-4">
-                          <i class="fas fa-briefcase text-green-600 text-lg"></i>
-                      </div>
-                      <h4 class="text-lg font-bold text-gray-800">Posted Jobs</h4>
-                  </div>
-                  <p class="text-gray-600 ml-16 text-base">{{ company.job_post_count || 0 }}</p>
+              <!-- View Mode -->
+              <div v-else class="prose prose-gray max-w-none">
+                <p class="text-gray-700 leading-relaxed">{{ localDescription || 'No description available.' }}</p>
               </div>
+            </div>
           </div>
-
-          <!-- Description and Contact Info in Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-               <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-lg">
-                  <div class="flex items-center justify-between mb-4">
-                      <h4 class="text-2xl font-bold text-gray-800">Company Description</h4>
-                      <i
-                          v-if="canEdit"
-                          @click="isEditing = true"
-                          class="fas fa-pencil-alt text-blue-600 hover:text-blue-800 cursor-pointer text-lg transition-all duration-200 hover:scale-110"></i>
+          <!-- Contact Information Sidebar -->
+          <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h2 class="text-xl font-semibold text-gray-900 mb-6">Contact Information</h2>
+              <div class="space-y-6">
+                <div class="flex items-start space-x-3">
+                  <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-map-marker-alt text-blue-600"></i>
                   </div>
-
-                  <!-- Edit Mode -->
-                  <div v-if="isEditing" class="mt-4">
-                      <textarea
-                          v-model="localDescription"
-                          class="w-full bg-gray-50 border border-gray-300 rounded-xl p-4 text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                          rows="6"
-                          placeholder="Describe your company, its mission, values, and what sets it apart..."
-                      ></textarea>
-                      <div class="flex justify-end mt-4 space-x-3">
-                          <button 
-                              @click="cancelEditing" 
-                              class="px-4 py-2 bg-gray-100 border border-gray-300 rounded-xl text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-all duration-200 font-medium"
-                          >
-                              Cancel
-                          </button>
-                          <button 
-                              @click="saveDescription" 
-                              class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transform hover:scale-105 transition-all duration-300 font-semibold"
-                          >
-                              Save Changes
-                          </button>
-                      </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-gray-500">Address</p>
+                    <p class="text-sm text-gray-900 mt-1">{{ company.address || 'No address provided' }}</p>
                   </div>
-
-                  <!-- View Mode -->
-                  <p v-else class="text-gray-700 mt-4 text-base leading-relaxed">{{ localDescription || 'No description available.' }}</p>
+                </div>
+                
+                <div class="flex items-start space-x-3">
+                  <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-envelope text-purple-600"></i>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-gray-500">Email</p>
+                    <p class="text-sm text-gray-900 mt-1 break-all">{{ company.company_email || 'No email provided' }}</p>
+                  </div>
+                </div>
+                
+                <div class="flex items-start space-x-3">
+                  <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-mobile-alt text-green-600"></i>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-gray-500">Mobile Number</p>
+                    <p class="text-sm text-gray-900 mt-1">{{ formattedMobileNumber || 'No mobile number provided' }}</p>
+                  </div>
+                </div>
+                
+                <div class="flex items-start space-x-3">
+                  <div class="w-10 h-10 rounded-lg bg-pink-50 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-phone text-pink-600"></i>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-gray-500">Telephone</p>
+                    <p class="text-sm text-gray-900 mt-1">{{ formattedTelephoneNumber || 'No telephone number provided' }}</p>
+                  </div>
+                </div>
               </div>
-              <!-- Contact Information -->
-              <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg">
-                  <div class="border-b border-gray-200 pb-3 mb-4">
-                      <h4 class="text-xl font-bold text-gray-800">Contact Information</h4>
-                  </div>
-                  <div class="space-y-4">
-                      <div class="flex items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
-                          <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mr-4">
-                              <i class="fas fa-map-marker-alt text-blue-600"></i>
-                          </div>
-                          <div>
-                              <p class="text-sm text-blue-600 font-semibold">Address</p>
-                              <p class="text-gray-700">{{ company.address || 'No address provided' }}</p>
-                          </div>
-                      </div>
-                      
-                      <div class="flex items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
-                          <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center mr-4">
-                              <i class="fas fa-envelope text-purple-600"></i>
-                          </div>
-                          <div>
-                              <p class="text-sm text-purple-600 font-semibold">Email</p>
-                              <p class="text-gray-700">{{ company.company_email || 'No email provided' }}</p>
-                          </div>
-                      </div>
-                      
-                      <div class="flex items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
-                          <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center mr-4">
-                              <i class="fas fa-mobile-alt text-green-600"></i>
-                          </div>
-                          <div>
-                              <p class="text-sm text-green-600 font-semibold">Mobile Number</p>
-                              <p class="text-gray-700">{{ formattedMobileNumber || 'No mobile number provided' }}</p>
-                          </div>
-                      </div>
-                      
-                      <div class="flex items-center bg-gray-50 p-3 rounded-xl border border-gray-200">
-                          <div class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center mr-4">
-                              <i class="fas fa-phone text-pink-600"></i>
-                          </div>
-                          <div>
-                              <p class="text-sm text-pink-600 font-semibold">Telephone Number</p>
-                              <p class="text-gray-700">{{ formattedTelephoneNumber || 'No telephone number provided' }}</p>
-                          </div>
-                      </div>
-                  </div>
-              </div>
+            </div>
           </div>
+        </div>
 
           <!-- Company Details section has been removed and integrated with the location section above -->
           
         </div>
       </div>
-    </div>
+    
   </AppLayout>
 </template>
 <style scoped>

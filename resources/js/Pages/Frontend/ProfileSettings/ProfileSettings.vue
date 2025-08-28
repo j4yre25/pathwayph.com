@@ -171,7 +171,7 @@ const { props } = usePage();
                   </div>
                 </div>
 
-                <!-- Education Section -->
+                <!-- Education Section - Most Important -->
                 <div
                   class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="flex items-center mb-4 border-b pb-3">
@@ -186,7 +186,7 @@ const { props } = usePage();
                     @refresh-education="refreshEducation" />
                 </div>
 
-                <!-- Experience Section -->
+                <!-- Experience Section - Second Most Important -->
                 <div
                   class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="flex items-center mb-4 border-b pb-3">
@@ -200,7 +200,35 @@ const { props } = usePage();
                     @reset-all-states="resetAllStates" />
                 </div>
 
-                <!-- Certifications Section -->
+                <!-- Skills Section - Third Most Important -->
+                <div
+                  class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div class="flex items-center mb-4 border-b pb-3">
+                    <div class="bg-indigo-100 p-2 rounded-full mr-3">
+                      <i class="fas fa-tools text-blue-700"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800">Skills</h3>
+                  </div>
+                  <SkillSection :activeSection="'skills'" :skillEntries="props.skillEntries"
+                    :archivedSkillEntries="props.archivedSkillEntries" @close-all-modals="closeAllModals"
+                    @reset-all-states="resetAllStates" @refresh-skills="refreshSkills" />
+                </div>
+
+                <!-- Projects Section - Fourth Most Important -->
+                <div
+                  class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div class="flex items-center mb-4 border-b pb-3">
+                    <div class="bg-indigo-100 p-2 rounded-full mr-3">
+                      <i class="fas fa-project-diagram text-blue-700"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800">Projects</h3>
+                  </div>
+                  <ProjectSection :activeSection="'projects'" :projectsEntries="props.projectsEntries"
+                    :archivedProjectsEntries="props.archivedProjectsEntries" @close-all-modals="closeAllModals"
+                    @reset-all-states="resetAllStates" />
+                </div>
+
+                <!-- Certifications Section - Fifth Most Important -->
                 <div
                   class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="flex items-center mb-4 border-b pb-3">
@@ -215,7 +243,7 @@ const { props } = usePage();
                     @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
                 </div>
 
-                <!-- Achievements Section -->
+                <!-- Achievements Section - Least Important -->
                 <div
                   class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="flex items-center mb-4 border-b pb-3">
@@ -226,34 +254,6 @@ const { props } = usePage();
                   </div>
                   <AchievementSection :activeSection="'achievements'" :achievementEntries="props.achievementEntries"
                     :archivedAchievementEntries="props.archivedAchievementEntries" @close-all-modals="closeAllModals"
-                    @reset-all-states="resetAllStates" />
-                </div>
-
-                <!-- Skills Section -->
-                <div
-                  class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <div class="flex items-center mb-4 border-b pb-3">
-                    <div class="bg-indigo-100 p-2 rounded-full mr-3">
-                      <i class="fas fa-tools text-blue-700"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Skills</h3>
-                  </div>
-                  <SkillSection :activeSection="'skills'" :skillEntries="props.skillEntries"
-                    :archivedSkillEntries="props.archivedSkillEntries" @close-all-modals="closeAllModals"
-                    @reset-all-states="resetAllStates" @refresh-skills="refreshSkills" />
-                </div>
-
-                <!-- Projects Section -->
-                <div
-                  class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <div class="flex items-center mb-4 border-b pb-3">
-                    <div class="bg-indigo-100 p-2 rounded-full mr-3">
-                      <i class="fas fa-project-diagram text-blue-700"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Projects</h3>
-                  </div>
-                  <ProjectSection :activeSection="'projects'" :projectsEntries="props.projectsEntries"
-                    :archivedProjectsEntries="props.archivedProjectsEntries" @close-all-modals="closeAllModals"
                     @reset-all-states="resetAllStates" />
                 </div>
               </div>
@@ -270,7 +270,20 @@ const { props } = usePage();
                   </div>
                 </div>
 
-                <!-- Testimonials Section -->
+                <!-- Resume Section - Most Important -->
+                <div
+                  class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
+                  <div class="flex items-center mb-4 border-b pb-3">
+                    <div class="bg-indigo-100 p-2 rounded-full mr-3">
+                      <i class="fas fa-file-alt text-blue-700"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800">Resume</h3>
+                  </div>
+                  <ResumeSection :activeSection="'resume'" :resume="props.resume" @close-all-modals="closeAllModals"
+                    @reset-all-states="resetAllStates" />
+                </div>
+
+                <!-- Testimonials Section - Second Most Important -->
                 <div
                   class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="flex items-center mb-4 border-b pb-3">
@@ -284,7 +297,7 @@ const { props } = usePage();
                     @reset-all-states="resetAllStates" />
                 </div>
 
-                <!-- Alumni Stories Section -->
+                <!-- Alumni Stories Section - Least Important -->
                 <div
                   class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="flex items-center mb-4 border-b pb-3">
@@ -297,19 +310,6 @@ const { props } = usePage();
                     :alumniStoriesEntries="props.alumniStoriesEntries"
                     :archivedAlumniStoriesEntries="props.archivedAlumniStoriesEntries"
                     @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
-                </div>
-
-                <!-- Resume Section -->
-                <div
-                  class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
-                  <div class="flex items-center mb-4 border-b pb-3">
-                    <div class="bg-indigo-100 p-2 rounded-full mr-3">
-                      <i class="fas fa-file-alt text-blue-700"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Resume</h3>
-                  </div>
-                  <ResumeSection :activeSection="'resume'" :resume="props.resume" @close-all-modals="closeAllModals"
-                    @reset-all-states="resetAllStates" />
                 </div>
               </div>
 
