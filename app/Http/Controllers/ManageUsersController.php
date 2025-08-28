@@ -27,8 +27,8 @@ class ManageUsersController extends Controller
         $users->getCollection()->transform(function ($user) {
             switch ($user->role) {
                 case 'company':
-                    $user->full_name = $user->company
-                        ? trim("{$user->company->first_name} {$user->company->last_name}")
+                    $user->full_name = $user->hr
+                        ? trim("{$user->hr->first_name} " . ($user->hr->middle_name ? "{$user->hr->middle_name} " : "") . "{$user->hr->last_name}")
                         : 'N/A';
                     $user->organization_name = ($user->company && !empty($user->company->company_name))
                         ? $user->company->company_name
@@ -90,8 +90,8 @@ class ManageUsersController extends Controller
         $users->getCollection()->transform(function ($user) {
             switch ($user->role) {
                 case 'company':
-                    $user->full_name = $user->company
-                        ? trim("{$user->company->first_name} {$user->company->last_name}")
+                      $user->full_name = $user->hr
+                        ? trim("{$user->hr->first_name} " . ($user->hr->middle_name ? "{$user->hr->middle_name} " : "") . "{$user->hr->last_name}")
                         : 'N/A';
                     $user->organization_name = $user->company->company_name ?? '-';
                     break;
