@@ -60,26 +60,119 @@ class ManageJobReferralsController extends Controller
         $referralData = $referrals->getCollection()->map(function ($ref) {
             $matchScore = 0;
             $matchDetails = [];
-
+            $criteria = 0;
             $graduate = $ref->graduate;
             $job = $ref->job;
 
             if ($graduate && $job) {
-                // Program match
-                if ($graduate->program_id && $job->programs->pluck('id')->contains($graduate->program_id)) {
-                    $matchScore += 20;
-                    $matchDetails[] = 'Program Match';
+                // Skills
+                $criteria++;
+                $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
+                $jobSkills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
+                $skillMatch = false;
+                foreach ($graduateSkills as $skill) {
+                    if (stripos(json_encode($jobSkills), $skill) !== false) {
+                        $matchDetails[] = 'Skills';
+                        $skillMatch = true;
+                        break;
+                    }
                 }
-                // Skills match
-                $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->map(fn($s) => strtolower($s))->toArray();
-                $jobSkills = collect(is_array($job->skills) ? $job->skills : json_decode($job->skills, true))->map(fn($s) => strtolower($s))->toArray();
-                $skillsMatched = array_intersect($graduateSkills, $jobSkills);
-                if (count($skillsMatched)) {
-                    $matchScore += 40;
-                    $matchDetails[] = 'Skills Match';
+                if ($skillMatch) $matchScore++;
+
+                // Education (Program)
+                $criteria++;
+                $program = $graduate->program_id ? \App\Models\Program::find($graduate->program_id)->name ?? null : null;
+                $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
+                if ($educationMatch) {
+                    $matchDetails[] = 'Education';
+                    $matchScore++;
                 }
-                // Add more checks for experience, preferences, etc.
+
+                // Experience
+                $criteria++;
+                $experiences = $graduate->experience ? $graduate->experience->pluck('job_title')->filter()->unique()->toArray() : [];
+                $experienceMatch = false;
+                foreach ($experiences as $title) {
+                    if (stripos($job->job_title, $title) !== false) {
+                        $matchDetails[] = 'Experience';
+                        $experienceMatch = true;
+                        break;
+                    }
+                }
+                if ($experienceMatch) $matchScore++;
+
+                // Preferred Job Type
+                $criteria++;
+                $preferences = $graduate->employmentPreference;
+                $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
+                $jobTypeMatch = in_array($job->job_type, $preferredJobTypes);
+                if ($jobTypeMatch) {
+                    $matchDetails[] = 'Preferred Job Type';
+                    $matchScore++;
+                }
+
+                // Preferred Location
+                $criteria++;
+                $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
+                $locationMatch = in_array($job->location, $preferredLocations);
+                if ($locationMatch) {
+                    $matchDetails[] = 'Preferred Location';
+                    $matchScore++;
+                }
+
+                // Preferred Work Environment
+                $criteria++;
+                $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
+                $workEnvMatch = in_array($job->work_environment, $preferredWorkEnvironments);
+                if ($workEnvMatch) {
+                    $matchDetails[] = 'Preferred Work Environment';
+                    $matchScore++;
+                }
+
+                // Preferred Min Salary
+                $criteria++;
+                $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
+                $minSalaryMatch = $minSalary && $job->job_min_salary >= $minSalary;
+                if ($minSalaryMatch) {
+                    $matchDetails[] = 'Preferred Min Salary';
+                    $matchScore++;
+                }
+
+                // Preferred Max Salary
+                $criteria++;
+                $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
+                $maxSalaryMatch = $maxSalary && $job->job_max_salary <= $maxSalary;
+                if ($maxSalaryMatch) {
+                    $matchDetails[] = 'Preferred Max Salary';
+                    $matchScore++;
+                }
+
+                // Preferred Salary Type
+                $criteria++;
+                $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
+                $salaryTypeMatch = $salaryType && stripos($job->job_salary_type, $salaryType) !== false;
+                if ($salaryTypeMatch) {
+                    $matchDetails[] = 'Preferred Salary Type';
+                    $matchScore++;
+                }
+
+                // Past Search Keywords
+                $criteria++;
+                $pastKeywords = $graduate->jobSearchHistory ? $graduate->jobSearchHistory->pluck('keywords')->unique()->toArray() : [];
+                $pastKeywordMatch = false;
+                foreach ($pastKeywords as $keyword) {
+                    if (
+                        stripos($job->job_title, $keyword) !== false ||
+                        stripos($job->job_description, $keyword) !== false
+                    ) {
+                        $matchDetails[] = 'Past Search';
+                        $pastKeywordMatch = true;
+                        break;
+                    }
+                }
+                if ($pastKeywordMatch) $matchScore++;
             }
+            $match_percentage = $criteria > 0 ? round(($matchScore / $criteria) * 100) : 0;
 
             return [
                 'id' => $ref->id,
@@ -94,6 +187,7 @@ class ManageJobReferralsController extends Controller
                 'hired_at' => $ref->status === 'hired' && $ref->updated_at ? $ref->updated_at->toDateString() : null,
                 'match_score' => $matchScore,
                 'match_details' => $matchDetails,
+                'match_percentage' => $match_percentage,
             ];
         });
 

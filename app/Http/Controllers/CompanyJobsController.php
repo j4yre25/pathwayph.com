@@ -130,7 +130,12 @@ class CompanyJobsController extends Controller
                 'max:255'
             ],
             'department_id' => [
-                'required',
+                Rule::requiredIf(function () use ($request) {
+                    // Only required if there are departments for this company
+                    $departments = Department::where('company_id', $request->user()->hr->company_id)->count();
+                    return $departments > 0;
+                }),
+                'nullable',
                 'integer',
                 'exists:departments,id'
             ],

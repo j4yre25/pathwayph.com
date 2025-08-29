@@ -28,15 +28,15 @@ const props = defineProps({
 });
 
 const getStatusBadge = (status) => {
-  if (status === 'shortlisted') return 'bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold';
-  if (status === 'under_review') return 'bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold';
-  if (status === 'not_recommended') return 'bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold';
+  if (status === 'Shortlisted') return 'bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold';
+  if (status === 'Review Further') return 'bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold';
+  if (status === 'Not Recommended') return 'bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold';
   return 'bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold';
 };
 const getStatusText = (status) => {
-  if (status === 'shortlisted') return 'Shortlisted';
-  if (status === 'under_review') return 'Under Review';
-  if (status === 'not_recommended') return 'Not Recommended';
+  if (status === 'Shortlisted') return 'Shortlisted';
+  if (status === 'Under Review') return 'Under Review';
+  if (status === 'Not Recommended') return 'Not Recommended';
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
 };
 const getMatchColor = (percent) => {
@@ -115,8 +115,8 @@ function scheduleInterview(applicant) {
           </div>
           <!-- Status Badge -->
           <div>
-            <span :class="getStatusBadge(applicant.status)">
-              {{ getStatusText(applicant.status) }}
+            <span :class="getStatusBadge(applicant.screening_label)">
+              {{ getStatusText(applicant.screening_label) }}
             </span>
           </div>
           <!-- Stage/Progress -->

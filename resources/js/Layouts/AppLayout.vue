@@ -120,7 +120,7 @@ console.log(page.props.permissions.canManageInstitution)
             </template>
             <template #body>
                 <p class="mb-6 text-gray-700">
-                    Your company account is still waiting for admin approval.<br>
+                    Your account is still waiting for admin approval.<br>
                     You will be notified once your account is approved.
                 </p>
             </template>
@@ -305,7 +305,6 @@ console.log(page.props.permissions.canManageInstitution)
                                     :href="route('admin.manage_users', { user: page.props.auth.user.id })"
                                     :active="route().current('admin.manage_users')">
                                     Manage Users
-
                                 </NavLink>
 
 
@@ -322,6 +321,8 @@ console.log(page.props.permissions.canManageInstitution)
                                     :active="route().current('categories.index')">
                                     Manage Categories
                                 </NavLink>
+
+                                
 
 
 
@@ -346,11 +347,11 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Job Referrals
                                 </NavLink>
 
-                                <!-- <NavLink :href="route('peso.career-guidance')"
+                                <NavLink :href="route('peso.career-guidance')"
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('peso.career-guidance')">
                                     Manage Career Guidance
-                                </NavLink> -->
+                                </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('peso.reports.index', { user: page.props.auth.user.id })"
