@@ -150,7 +150,7 @@ function goToPage(link) {
                 <th class="px-6 py-4 font-semibold">Company</th>
                 <th class="px-6 py-4 font-semibold">Status</th>
                 <th class="px-6 py-4 font-semibold">Referred At</th>
-                <th class="px-6 py-4 font-semibold">Hired At</th>
+                <th class="px-6 py-4 font-semibold">Date Hired</th>
                 <th class="px-6 py-4 font-semibold">Match Score</th>
                 <th class="px-6 py-4 font-semibold">Match Details</th>
                 <th class="py-3 px-4 text-left">Actions</th>
