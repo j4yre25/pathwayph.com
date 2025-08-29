@@ -466,27 +466,16 @@ function goToProfile() {
             <div class="glass rounded-t-2xl p-6">
               <h2 class="text-3xl font-bold neon-text text-green-400 animate-pulse-glow text-center">Profile Saved!</h2>
             </div>
-            <div class="glass rounded-t-2xl p-6">
-              <h2 class="text-3xl font-bold neon-text text-green-400 animate-pulse-glow text-center">Profile Saved!</h2>
-            </div>
           </template>
           <template #body>
             <div class="glass p-8">
-              <p class="mb-6 text-white/90 text-center text-lg">
+              <p class="mb-6 text-black /90 text-center text-lg">
                 Your company information has been saved successfully!<br>
                 You will now be redirected to your profile page.
               </p>
             </div>
           </template>
           <template #footer>
-            <div class="glass rounded-b-2xl p-6 text-center">
-              <button 
-                @click="goToProfile" 
-                class="gradient-cta hover-rainbow px-8 py-3 rounded-xl font-bold text-white transform hover:scale-105 animate-pulse-glow"
-              >
-                Go to Profile
-              </button>
-            </div>
             <div class="glass rounded-b-2xl p-6 text-center">
               <button 
                 @click="goToProfile" 
