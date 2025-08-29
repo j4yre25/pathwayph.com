@@ -130,8 +130,8 @@ const filteredApplicants = computed(() => {
   }
   // Match % Range filter
   if (filters.value.match_range) {
-    if (filters.value.match_range === '75') {
-      apps = apps.filter(a => (a.match_percentage || 0) >= 70); 
+    if (filters.value.match_range === '70') {
+      apps = apps.filter(a => (a.match_percentage || 0) > 70); 
     } else if (filters.value.match_range === '30') {
       apps = apps.filter(a => (a.match_percentage || 0) >= 30 && (a.match_percentage || 0) < 70); 
     } else if (filters.value.match_range === 'lt30') {
@@ -240,7 +240,7 @@ function applyFilters() {
                     <select v-model="filters.screening_label" @change="applyFilters" class="border px-2 py-1 rounded">
                       <option value="">All Statuses</option>
                       <option value="Shortlisted">Shortlisted</option>
-                      <option value="Under Review">Under Review</option>
+                      <option value="Review Further">Review Further</option>
                       <option value="Not Recommended">Not Recommended</option>
                     </select>
                 </div>
@@ -250,9 +250,9 @@ function applyFilters() {
                   <label for="employmentTypeSelect" class="text-sm font-medium mb-1">Match % Range</label>
                   <select v-model="filters.match_range" @change="applyFilters" class="border px-2 py-1 rounded">
                     <option value="">All Match %</option>
-                    <option value="70">More than 70%</option>
-                    <option value="50">30%-69%</option>
-                    <option value="30">Less than 30%</option>
+                    <option value="70">Higher than 70%</option>
+                    <option value="30">30%-70%</option>
+                    <option value="lt30">Lower than 30%</option>
                   </select>
                 </div>
 

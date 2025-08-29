@@ -438,6 +438,7 @@ class GraduateJobsController extends Controller
         $application->status = $screening['status'];
         $application->stage = 'Screening';
         $application->screening_feedback = $screening['screening_feedback'];
+        $application->match_percentage = $screening['match_percentage'];
         $application->save();
 
         // Notify applicant if rejected
@@ -497,6 +498,7 @@ class GraduateJobsController extends Controller
         $application->stage = 'Screening';
         $application->screening_label = $screening['screening_label'];
         $application->screening_feedback = $screening['screening_feedback'];
+        $application->match_percentage = $screening['match_percentage'];
         $application->save();
 
         
