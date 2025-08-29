@@ -725,51 +725,89 @@ form div {
                   <div class="bg-blue-100 p-2 rounded-full mr-3">
                     <i class="fas fa-graduation-cap text-blue-600"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-blue-800">Education History</h3>
+                  <h3 class="text-lg font-semibold text-blue-800">Additional Education</h3>
                 </div>
               </div>
-              <div class="p-4">
-                <div v-if="props.educationEntries.length > 0" class="grid grid-cols-1 gap-6">
-                  <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+              <div class="grid grid-cols-1 gap-6 p-4">
+                <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 relative">
                   <div class="absolute top-4 right-4 flex space-x-2">
                     <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150">
                       <i class="fas fa-edit"></i>
                     </button>
                   </div>
-                  <div class="border-b pb-2">
-                    <h2 class="text-xl font-bold text-blue-900">{{ entry.education || 'Unknown Institution' }}</h2>
-                    <p class="text-gray-700">
-                      <span class="font-medium">{{ entry.program || 'Not specified' }}</span> 
-                      <span v-if="entry.field_of_study">in <span class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">{{ entry.field_of_study }}</span></span>
-                    </p>
-                  </div>
-                  <div class="flex items-center text-gray-600 mt-2">
-                    <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
-                    <span>
-                      {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ? formatDisplayDate(entry.end_date) : 'Present' }}
-                    </span>
-                  </div>
-                  <div class="mt-3">
-                    <strong>
-                      <i class="fas fa-info-circle text-blue-500 mr-2"></i> Description:
-                    </strong>
-                    <p class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400 mt-1">{{ entry.description || 'No description provided' }}</p>
-                  </div>
-                  <div class="mt-3">
-                    <strong>
-                      <i class="fas fa-trophy text-blue-500 mr-2"></i> Achievements:
-                    </strong>
-                    <span v-if="entry.achievements && entry.achievements.includes(',')">
-                      <ul class="list-disc list-inside mt-1">
-                        <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index" class="text-gray-700">
-                          {{ achievement.trim() }}
-                        </li>
-                      </ul>
-                    </span>
-                    <span v-else class="block bg-gray-50 p-2 rounded mt-1">
-                      {{ entry.achievements || 'None' }}
-                    </span>
-                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <!-- Institution -->
+                    <div>
+                      <div class="flex items-center mb-1">
+                        <i class="fas fa-university text-blue-500 mr-2"></i>
+                        <label class="text-gray-700 font-medium">Institution</label>
+                      </div>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+                        {{ entry.education || 'Not specified' }}
+                      </div>
+                    </div>
+
+                    <!-- Program -->
+                    <div>
+                      <div class="flex items-center mb-1">
+                        <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+                        <label class="text-gray-700 font-medium">Program</label>
+                      </div>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+                        {{ entry.program || 'Not specified' }}
+                      </div>
+                    </div>
+
+                    <!-- Field of Study -->
+                    <div>
+                      <div class="flex items-center mb-1">
+                        <i class="fas fa-book text-blue-500 mr-2"></i>
+                        <label class="text-gray-700 font-medium">Field of Study</label>
+                      </div>
+                        <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+                          {{ entry.field_of_study || 'Not specified' }}
+                        </div>
+                    </div>
+
+                    <!-- Duration -->
+                    <div class="relative">
+                      <div class="flex items-center mb-1">
+                        <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
+                        <label class="text-gray-700 font-medium">Duration</label>
+                      </div>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
+                        {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ? formatDisplayDate(entry.end_date) : 'Present' }}
+                      </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="relative md:col-span-2">
+                      <div class="flex items-center mb-1">
+                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                        <label class="text-gray-700 font-medium">Description</label>
+                      </div>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700 min-h-[60px]">
+                        {{ entry.description || 'No description provided' }}
+                      </div>
+                    </div>
+
+                    <!-- Achievements -->
+                    <div class="relative md:col-span-2">
+                      <div class="flex items-center mb-1">
+                        <i class="fas fa-trophy text-blue-500 mr-2"></i>
+                        <label class="text-gray-700 font-medium">Achievements</label>
+                      </div>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700 min-h-[60px]">
+                        <span v-if="entry.achievements && entry.achievements.includes(',')">
+                          <ul class="list-disc list-inside mt-1">
+                            <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index" class="text-gray-700">
+                              {{ achievement.trim() }}
+                            </li>
+                          </ul>
+                        </span>
+                        <span v-else>{{ entry.achievements || 'No achievements listed' }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

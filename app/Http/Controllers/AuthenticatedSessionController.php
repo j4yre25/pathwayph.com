@@ -45,9 +45,9 @@ class AuthenticatedSessionController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Laravel\Fortify\Contracts\LoginViewResponse
      */
-    public function create(Request $request)
+    public function create(Request $request): LoginViewResponse
     {
-        return app(LoginViewResponse::class)->toResponse($request);
+        return app(LoginViewResponse::class);
     }
 
     /**
@@ -85,7 +85,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         return $this->loginPipeline($request)->then(function ($request) {
-            return app(LoginResponse::class)->toResponse($request);
+            return app(LoginResponse::class);
         });
     }
 
@@ -124,7 +124,7 @@ class AuthenticatedSessionController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Laravel\Fortify\Contracts\LogoutResponse
      */
-    public function destroy(Request $request)
+    public function destroy(Request $request): LogoutResponse
     {
         $this->guard->logout();
 
@@ -133,6 +133,6 @@ class AuthenticatedSessionController extends Controller
             $request->session()->regenerateToken();
         }
 
-        return app(LogoutResponse::class)->toResponse($request);
+        return app(LogoutResponse::class);
     }
 }

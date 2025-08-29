@@ -277,12 +277,6 @@ console.log(page.props.permissions.canManageInstitution)
                                     :active="route().current('internship-programs.index')">
                                     Manage Internship
                                 </NavLink>
-                                <NavLink
-                                    v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                                    :href="route('institutions.career-guidance')"
-                                    :active="route().current('institutions.career-guidance')">
-                                   Career Guidance
-                                </NavLink>
 
                             </div>
 

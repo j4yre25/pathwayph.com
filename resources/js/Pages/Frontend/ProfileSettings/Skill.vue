@@ -568,7 +568,7 @@ const archiveExperience = (experienceEntry) => {
                   <h2 class="text-lg font-semibold text-blue-700">{{ type }}</h2>
                 </div>
                 <div class="p-6">
-                  <div class="grid grid-cols-1 gap-6">
+                  <div class="grid md:grid-cols-2 gap-6">
                     <div v-for="skill in skillsGroup" :key="skill.graduate_skills_name"
                       class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative border border-gray-200">
                       <div class="border-b border-blue-100 pb-3">
