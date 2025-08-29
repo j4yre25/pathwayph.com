@@ -588,6 +588,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     ->group(function () {
         Route::get('/institutions/career-guidance', [InstitutionCareerGuidanceController::class, 'index'])
             ->name('institutions.career-guidance');
+        Route::get('/institutions/career-counseling', [InstitutionCareerGuidanceController::class, 'seminarRequests'])->name('institutions.career-counseling');
+        Route::post('/institutions/seminar-requests', [InstitutionCareerGuidanceController::class, 'storeSeminarRequest'])->name('institutions.seminar-requests.store');
+        Route::post('/institutions/seminar-requests/{id}/cancel', [InstitutionCareerGuidanceController::class, 'cancelSeminarRequest'])->name('institutions.seminar-requests.cancel');
+        Route::get('/institutions/seminar-requests/{id}', [InstitutionCareerGuidanceController::class, 'showSeminarRequest'])->name('institutions.seminar-requests.show');
     });
 
 
@@ -673,7 +677,7 @@ Route::group(['middleware' => config('fortify.middleware', ['web'])], function (
                 return back()->with('message', 'Verification code sent!');
             })->middleware(['auth', 'throttle:6,1'])->name('verification.resend');
 
-     
+
 
             Route::post('/register/graduate', [CustomRegisteredUserController::class, 'store'])
                 ->middleware(['guest:' . config('fortify.guard')])
@@ -967,10 +971,13 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
+    Route::get('/admin/seminar-requests', [PesoCareerGuidanceController::class, 'seminarRequests'])->name('admin.seminar-requests');
+    Route::post('/admin/seminar-requests/{id}/status', [PesoCareerGuidanceController::class, 'updateSeminarRequestStatus'])->name('admin.seminar-requests.update-status');
+    Route::get('/admin/seminar-requests/{id}', [PesoCareerGuidanceController::class, 'showSeminarRequest'])->name('admin.seminar-requests.show');
 });
 
 
 
-Route::prefix('admin')->middleware(['auth'])->group(function () {});
+Route::prefix('admin')->middleware(['auth'])->group(function () { });
 
 Route::post('/profile/testimonials/request', [ProfileController::class, 'requestTestimonial'])->name('profile.testimonials.request');

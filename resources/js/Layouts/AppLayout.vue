@@ -311,7 +311,6 @@ console.log(page.props.permissions.canManageInstitution)
                                     :href="route('admin.manage_users', { user: page.props.auth.user.id })"
                                     :active="route().current('admin.manage_users')">
                                     Manage Users
-
                                 </NavLink>
 
 
@@ -328,6 +327,8 @@ console.log(page.props.permissions.canManageInstitution)
                                     :active="route().current('categories.index')">
                                     Manage Categories
                                 </NavLink>
+
+                                
 
 
 
@@ -352,11 +353,11 @@ console.log(page.props.permissions.canManageInstitution)
                                     Manage Job Referrals
                                 </NavLink>
 
-                                <!-- <NavLink :href="route('peso.career-guidance')"
+                                <NavLink :href="route('peso.career-guidance')"
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('peso.career-guidance')">
                                     Manage Career Guidance
-                                </NavLink> -->
+                                </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('peso.reports.index', { user: page.props.auth.user.id })"
