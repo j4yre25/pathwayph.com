@@ -205,7 +205,7 @@ function submitReferral() {
             </template>
             <template #body>
                 <p class="mb-6 text-gray-700">
-                    Your company account is still waiting for admin approval.<br>
+                    Your account is still waiting for admin approval.<br>
                     You will be notified once your account is approved.
                 </p>
             </template>

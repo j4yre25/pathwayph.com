@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Fortify\CreateNewUser;
 use App\Models\Institution;
 use App\Models\InstitutionSchoolYear;
 use App\Models\InstitutionProgram;
@@ -38,49 +39,44 @@ class CustomRegisteredUserController extends Controller
         return app(RegisterViewResponse::class);
     }
 
-    public function store(Request $request, CreatesNewUsers $creator)
-    {
-        if (config('fortify.lowercase_usernames') && $request->has(Fortify::username())) {
-            $request->merge([
-                Fortify::username() => Str::lower($request->{Fortify::username()}),
-            ]);
-        }
-
-        $role = $this->determineRole($request);
-        $user = $creator->create(array_merge($request->all(), ['role' => $role]));
-
-
-        // Generate a verification code
-        $verificationCode = rand(100000, 999999);
-
-        // Store the verification code in the database (e.g., in a `verification_code` column)
-        $user->verification_code = $verificationCode;
-        $user->save();
-
-        // // Send the verification code via email
-        // $user->notify(new VerifyEmailWithCode($verificationCode));
-
-         event(new Registered($user));
-
-        // Redirect company users to information section
-        if ($role === 'company' && !session('information_completed', false)) {
-            auth()->login($user); // Make sure the user is logged in
-            return redirect()->route('company.information');
-        }
-
-        // Redirect company users to information section
-        if ($role === 'institution' && !session('information_completed', false)) {
-            auth()->login($user); // Make sure the user is logged in
-            return redirect()->route('institution.information');
-        }
-
-        if ($role === 'graduate' && !session('information_completed', false)) {
-            auth()->login($user); // Make sure the user is logged in
-            return redirect()->route('graduate.information');
-        }
-
-        return redirect()->back()->with('flash.banner', 'Registered Successfully!');
+ public function store(Request $request, CreateNewUser $creator)
+{
+    if (config('fortify.lowercase_usernames') && $request->has(Fortify::username())) {
+        $request->merge([
+            Fortify::username() => Str::lower($request->{Fortify::username()}),
+        ]);
     }
+
+    $role = $this->determineRole($request);
+    $user = $creator->create(array_merge($request->all(), ['role' => $role]));
+
+    // Generate and store verification code
+    $verificationCode = rand(100000, 999999);
+    $user->verification_code = $verificationCode;
+    $user->save();
+    $user->notify(new VerifyEmailWithCode($verificationCode));
+    // dd('Reached after notify');
+    
+    event(new Registered($user));
+
+    
+
+    // Redirect based on role
+    if ($role === 'company' && !session('information_completed', false)) {
+        auth()->login($user);
+        return redirect()->route('company.information');
+    }
+    if ($role === 'institution' && !session('information_completed', false)) {
+        auth()->login($user);
+        return redirect()->route('institution.information');
+    }
+    if ($role === 'graduate' && !session('information_completed', false)) {
+        auth()->login($user);
+        return redirect()->route('graduate.information');
+    }
+
+    return redirect()->route('verification.notice')->with('verification_sent', true);
+}
 
     protected function determineRole(Request $request): string
     {
@@ -202,7 +198,7 @@ class CustomRegisteredUserController extends Controller
 
         $user->email_verified_at = now();
         $user->verification_code = null; // Clear the verification code
-        $user->is_approved = true;
+        $user->is_approved = false;
         $user->save();
 
         return redirect()->route('login')->with('message', 'Email verified successfully! You can now log in.');

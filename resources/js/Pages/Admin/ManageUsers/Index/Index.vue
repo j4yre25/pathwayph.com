@@ -185,7 +185,7 @@ const hasUsers = computed(() => {
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                                            <i class="fas fa-user-tag"></i>
+                                            <i class="fas fa-user-tag"></i>x
                                         </div>
                                         <div class="ml-4">
                                             <div class="text-sm font-medium text-gray-900 capitalize">{{ user.role }}</div>
