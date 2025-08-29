@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Skill;
 use App\Models\Program;
 use App\Models\Job;
+use App\Models\SeminarRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -74,13 +75,32 @@ class PesoCareerGuidanceController extends Controller
             ->take(10)
             ->get();
 
+        // Seminar requests logic
+        $seminarRequests = SeminarRequest::with('institution')->orderByDesc('created_at')->get();
+
         return Inertia::render('Admin/CareerGuidance', [
             'counselingTips' => $counselingTips,
             'inDemandJobs' => $inDemandJobs,
             'topSkills' => $skillsFlat,
             'resources' => $resources,
-            'jobCounts' => $jobCounts, 
-
+            'jobCounts' => $jobCounts,
+            'seminarRequests' => $seminarRequests,
         ]);
+    }
+
+    public function updateSeminarRequestStatus(Request $request, $id)
+    {
+        $data = $request->validate([
+            'status' => 'required|in:approved,disapproved',
+        ]);
+        $seminarRequest = SeminarRequest::findOrFail($id);
+        $seminarRequest->update(['status' => $data['status']]);
+        return back()->with('flash.banner', 'Request status updated.');
+    }
+
+    public function showSeminarRequest($id)
+    {
+        $request = SeminarRequest::with('institution')->findOrFail($id);
+        return response()->json($request);
     }
 }
