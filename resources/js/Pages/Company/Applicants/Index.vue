@@ -31,7 +31,6 @@ const props = defineProps({
     },
 })
 
-// Use jobs directly from props
 const allJobs = ref(props.jobs || []);
 
 // Stats data for UI display
@@ -77,34 +76,19 @@ const searchQuery = ref('')
 // Pagination
 const currentPage = ref(1);
 const itemsPerPage = 10;
+const goToPage = (page) => { currentPage.value = page; };
 
-// Computed filtered jobs based on search query (case insensitive)
-const filteredJobs = computed(() => {
-  if (!searchQuery.value) return allJobs.value;
-  const query = searchQuery.value.toLowerCase();
-  return allJobs.value.filter(job =>
-    (job.job_title || job.title || '').toLowerCase().includes(query) ||
-    (job.location || '').toLowerCase().includes(query) ||
-    (job.job_type || job.type || '').toLowerCase().includes(query) ||
-    (job.description && job.description.toLowerCase().includes(query))
-  );
-});
-
-
-// Total pages
-const totalPages = computed(() => {
-  return Math.ceil(filteredJobs.value.length / itemsPerPage);
-});
-
-// Page navigation
-const goToPage = (page) => {
-  currentPage.value = page;
-};
-
+// Filters
 const filters = ref({ ...props.filters, keywords: '' })
+
+// --- NEW Date filter state ---
+const selectedAppliedDate = ref('');
+const customFromDate = ref('');
+const customToDate = ref('');
 
 const filteredApplicants = computed(() => {
   let apps = props.applicants;
+
   if (filters.value.job_id) {
     apps = apps.filter(a => a.job_id == filters.value.job_id);
   }
@@ -114,12 +98,40 @@ const filteredApplicants = computed(() => {
   if (filters.value.employment_type) {
     apps = apps.filter(a => a.employment_type?.includes(filters.value.employment_type));
   }
-  if (filters.value.date_from) {
-    apps = apps.filter(a => new Date(a.applied_at) >= new Date(filters.value.date_from));
-  }
-  if (filters.value.date_to) {
-    apps = apps.filter(a => new Date(a.applied_at) <= new Date(filters.value.date_to));
-  }
+
+  // --- NEW Applied Date Filter ---
+  const today = new Date();
+  apps = apps.filter(a => {
+    const appliedDate = new Date(a.applied_at);
+    let matches = true;
+
+    if (selectedAppliedDate.value === 'today') {
+      matches = appliedDate.toDateString() === today.toDateString();
+    } else if (selectedAppliedDate.value === 'week') {
+      const weekAgo = new Date();
+      weekAgo.setDate(today.getDate() - 7);
+      matches = appliedDate >= weekAgo;
+    } else if (selectedAppliedDate.value === 'month') {
+      const monthAgo = new Date();
+      monthAgo.setMonth(today.getMonth() - 1);
+      matches = appliedDate >= monthAgo;
+    } else if (selectedAppliedDate.value === '3months') {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(today.getMonth() - 3);
+      matches = appliedDate >= threeMonthsAgo;
+    } else if (selectedAppliedDate.value === 'custom') {
+      if (customFromDate.value && customToDate.value) {
+        const from = new Date(customFromDate.value);
+        const to = new Date(customToDate.value);
+        to.setHours(23, 59, 59, 999);
+        matches = appliedDate >= from && appliedDate <= to;
+      }
+    }
+
+    return matches;
+  });
+
+  // Keywords filter
   if (filters.value.keywords) {
     const kw = filters.value.keywords.toLowerCase();
     apps = apps.filter(a =>
@@ -128,6 +140,7 @@ const filteredApplicants = computed(() => {
       (a.status && a.status.toLowerCase().includes(kw))
     );
   }
+
   // Match % Range filter
   if (filters.value.match_range) {
     if (filters.value.match_range === '70') {
@@ -138,10 +151,12 @@ const filteredApplicants = computed(() => {
       apps = apps.filter(a => (a.match_percentage || 0) < 30);
     }
   }
+
   // Pipeline Stage filter
   if (filters.value.stage) {
     apps = apps.filter(a => a.stage === filters.value.stage);
   }
+
   return apps;
 });
 
@@ -154,7 +169,15 @@ const averageMatchPercent = computed(() => {
 function applyFilters() {
   router.get(window.location.pathname, filters.value, { preserveState: true })
 }
+
+function resetFilters() {
+  filters.value = {};
+  selectedAppliedDate.value = '';
+  customFromDate.value = '';
+  customToDate.value = '';
+}
 </script>
+
 
 <template>
   <AppLayout title="Manage Applicants">
@@ -236,18 +259,18 @@ function applyFilters() {
 
                 <!-- Status -->
                 <div class="flex flex-col">
-                  <label for="statusSelect" class="text-sm font-medium mb-1">Status</label>
+                  <label for="statusSelect" class="text-sm font-medium mb-1">Screening Result</label>
                     <select v-model="filters.screening_label" @change="applyFilters" class="border px-2 py-1 rounded">
                       <option value="">All Statuses</option>
                       <option value="Shortlisted">Shortlisted</option>
-                      <option value="Review Further">Review Further</option>
+                      <option value="Review Further">Under Review</option>
                       <option value="Not Recommended">Not Recommended</option>
                     </select>
                 </div>
 
                   <!-- Match % Range -->
                 <div class="flex flex-col">
-                  <label for="employmentTypeSelect" class="text-sm font-medium mb-1">Match % Range</label>
+                  <label for="employmentTypeSelect" class="text-sm font-medium mb-1">Match Percentage</label>
                   <select v-model="filters.match_range" @change="applyFilters" class="border px-2 py-1 rounded">
                     <option value="">All Match %</option>
                     <option value="70">Higher than 70%</option>
@@ -256,41 +279,56 @@ function applyFilters() {
                   </select>
                 </div>
 
-                <!-- Date From -->
                 <div class="flex flex-col">
-                  <label for="dateFrom" class="text-sm font-medium mb-1">From</label>
-                  <input
-                    id="dateFrom"
-                    type="date"
-                    v-model="filters.date_from"
-                    @change="applyFilters"
-                    class="border px-2 py-1 rounded w-40"
-                  />
-                </div>
-
-                <!-- Date To -->
-                <div class="flex flex-col">
-                  <label for="dateTo" class="text-sm font-medium mb-1">To</label>
-                  <input
-                    id="dateTo"
-                    type="date"
-                    v-model="filters.date_to"
-                    @change="applyFilters"
-                    class="border px-2 py-1 rounded w-40"
-                  />
-                </div>
-
-                <div class="flex flex-col">
-                  <label for="dateTo" class="text-sm font-medium mb-1">Stages</label>
+                  <label for="dateTo" class="text-sm font-medium mb-1">Application Stage</label>
                   <select v-model="filters.stage" @change="applyFilters" class="border px-2 py-1 rounded">
                     <option value="">All Stages</option>
-                    <option value="applied">Applied</option>
-                    <option value="shortlisted">Shortlisted</option>
-                    <option value="interview">Interview</option>
-                    <option value="offer">Offer</option>
-                    <option value="hired">Hired</option>
-                    <option value="rejected">Rejected</option>
+                    <option value="Screening">Screening</option>
+                    <option value="Interview">Interview</option>
+                    <option value="Offer">Offer</option>
+                    <option value="Hired">Hired</option>
+                    <option value="Rejected">Rejected</option>
                   </select>
+                </div>
+                <div>
+                    <label for="openDate" class="block text-sm font-medium text-gray-700 mb-1">
+                        Posted Date
+                    </label>
+                    <div class="relative">
+                        <select 
+                        id="openDate"
+                        v-model="selectedAppliedDate" 
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none 
+                                focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+                        >
+                            <option value="">All Dates</option>
+                            <option value="today">Opened Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="3months">In Last 3 Months</option>
+                            <option value="custom">Custom Range…</option>
+                        </select>
+                    </div>
+                    <!-- Custom Range Fields -->
+                    <div v-if="selectedOpenDate === 'custom'" class="flex gap-2 mt-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600">From</label>
+                            <input 
+                            type="date" 
+                            v-model="customFromDate" 
+                            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600">To</label>
+                            <input 
+                            type="date" 
+                            v-model="customToDate" 
+                            :min="customFromDate || undefined"
+                            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                    </div>
                 </div>
               </div>
 
@@ -305,7 +343,6 @@ function applyFilters() {
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="flex items-center">
           <h3 class="text-lg font-semibold p-4 border-b border-gray-200">List of Applicants</h3>
-            <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
           </div>
         <ListOfApplicants
           :jobs="jobs"

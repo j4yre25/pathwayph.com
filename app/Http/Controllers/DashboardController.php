@@ -36,7 +36,7 @@ class DashboardController extends Controller
         // ✅ Role: Institution
         if ($user->hasRole('institution')) {
 
-            if (!$user->institution) {
+            if (!$user->institution || !$user->has_completed_information) {
                 return redirect()->route('institution.information');
             }
 
@@ -47,7 +47,7 @@ class DashboardController extends Controller
 
         // ✅ Role: Graduate
         if ($user->hasRole('graduate')) {
-            if (!$user->graduate) {
+            if (!$user->graduate || !$user->has_completed_information) {
                 return redirect()->route('graduate.information');
             }
 

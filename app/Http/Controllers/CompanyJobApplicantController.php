@@ -112,7 +112,6 @@ class CompanyJobApplicantController extends Controller
         return Inertia::render('Company/Applicants/Index', [
             'applicants' => $applicants,
             'jobs' => $jobs->map(fn($j) => ['id' => $j->id, 'title' => $j->job_title]),
-            'statuses' => ['shortlisted', 'under_review', 'not_recommended', 'applied', 'interview', 'hired', 'rejected'],
             'employmentTypes' => ['Full-time', 'Part-time', 'Internship', 'Contract', 'Freelance'],
             'filters' => $request->only(['job_id', 'status', 'employment_type', 'date_from', 'date_to', 'stage', 'match_range']),
             'stats' => [

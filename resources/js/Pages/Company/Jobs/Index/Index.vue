@@ -284,9 +284,9 @@ const form = useForm({
                                 >
                                     <option value="">All Dates</option>
                                     <option value="today">Opened Today</option>
-                                    <option value="week">Opened This Week</option>
-                                    <option value="month">Opened This Month</option>
-                                    <option value="3months">Opened in Last 3 Months</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month">This Month</option>
+                                    <option value="3months">In Last 3 Months</option>
                                     <option value="custom">Custom Range…</option>
                                 </select>
                             </div>
