@@ -518,6 +518,16 @@ class DashboardController extends Controller
             ])
             ->toArray();
 
+        $graduates = \App\Models\Graduate::select('id', 'employment_status')->get();
+
+        $employed = $graduates->where('employment_status', 'Employed')->count();
+        $underemployed = $graduates->where('employment_status', 'Underemployed')->count();
+        $unemployed = $graduates->where('employment_status', 'Unemployed')->count();
+
+        $referralsThisMonth = \App\Models\ReferralExport::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+
 
         return [
             'userNotApproved' => !Auth::user()->is_approved,
@@ -531,10 +541,13 @@ class DashboardController extends Controller
                 'registeredEmployers' => $registeredEmployers,
                 'activeJobListings' => $activeJobListings,
                 'registeredJobSeekers' => $registeredJobSeekers,
-                'referralsThisMonth' => 0,
+                'referralsThisMonth' => $referralsThisMonth,
                 'successfulPlacements' => 0,
                 'upcomingCareerGuidance' => 0,
                 'pendingEmployerRegistrations' => 0,
+                'unemployed' => $unemployed,
+                'underemployed' => $underemployed,
+                'employed' => $employed,
             ],
             'recentJobs' => $recentJobs,
             'referralTrendOption' => $referralTrendOption,
@@ -548,4 +561,3 @@ class DashboardController extends Controller
         ];
     }
 }
-

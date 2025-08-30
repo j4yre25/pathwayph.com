@@ -267,19 +267,29 @@ function submitReferral() {
                         <span class="text-gray-500 text-sm">Referrals Issued (This Month)</span>
                         <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.referralsThisMonth }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                    <!-- <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
                         <span class="text-gray-500 text-sm">Successful Placements</span>
                         <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.successfulPlacements }}</span>
-                    </div>
+                    </div> -->
                     <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
                         <span class="text-gray-500 text-sm">Upcoming Career Guidance</span>
                         <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.upcomingCareerGuidance }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Pending Employer Registrations</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.pendingEmployerRegistrations
-                        }}</span>
-                    </div>
+                        <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                            <span class="text-gray-500 text-sm">Unemployed</span>
+                            <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.unemployed
+                            }}</span>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                            <span class="text-gray-500 text-sm">Underemployed</span>
+                            <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.underemployed
+                            }}</span>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                            <span class="text-gray-500 text-sm">Employed</span>
+                            <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.employed
+                            }}</span>
+                        </div>
                 </div>
             </div>
 
@@ -290,9 +300,7 @@ function submitReferral() {
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="mb-4">
                             <h4 class="font-semibold mb-3 text-gray-800">Recent Job Listings By Company</h4>
-                            <input type="text" v-model="searchQuery" @focus="showSuggestions = true"
-                                @input="showSuggestions = true" placeholder="Type to search company..."
-                                class="border rounded px-3 py-2 w-full max-w-xs" />
+                            
                             <ul v-if="showSuggestions && searchQuery"
                                 class="absolute z-10 bg-white border rounded w-full max-w-xs shadow mt-1">
                                 <li v-for="company in filteredCompanies" :key="company.id"
@@ -327,8 +335,7 @@ function submitReferral() {
                     <!-- Top Sectors Table -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <h4 class="font-semibold mb-3 text-gray-800">Top Sectors</h4>
-                        <input type="text" v-model="sectorSearch" placeholder="Search sector..."
-                            class="border rounded px-3 py-2 mb-3 w-full max-w-xs" />
+                        
                         <table class="min-w-full text-sm">
                             <thead>
                                 <tr class="text-gray-600">
@@ -373,9 +380,8 @@ function submitReferral() {
             <!-- In-demand Categories Table -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories</h4>
-                    <input type="text" v-model="categorySearch" placeholder="Search category..."
-                        class="border rounded px-3 py-2 mb-3 w-full max-w-xs" />
+                    <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories According to Sector</h4>
+                    
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-gray-600">
