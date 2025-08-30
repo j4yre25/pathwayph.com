@@ -20,7 +20,7 @@ class Education extends Model
 
     protected $fillable = [
         'user_id',
-        'education',
+        'education', // School or Institution
         'achievements',
         'is_current',
         'degree',

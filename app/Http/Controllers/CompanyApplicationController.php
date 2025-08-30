@@ -78,16 +78,45 @@ class CompanyApplicationController extends Controller
         ]);
     }
 
-    public function updateNote(Request $request, JobApplication $application)
+    public function update(Request $request, JobApplication $application)
     {
-        $request->validate([
-            'notes' => 'nullable|string|max:2000',
+        // Allow partial updates
+        $data = $request->validate([
+            'notes'  => 'sometimes|nullable|string|max:2000',
+            'stage'  => 'sometimes|nullable|string|in:applying,screening,testing,interview,offer,onboarding,hired,rejected',
+            'status' => 'sometimes|nullable|string|in:under_review,offer_sent,offer_accepted,offer_declined,hired,rejected',
         ]);
 
-        $application->notes = $request->input('notes');
-        $application->save();
+        $changed = [];
 
-        return redirect()->back()->with('success', 'Note updated successfully.');
+        if (array_key_exists('notes', $data) && $data['notes'] !== $application->notes) {
+            $application->notes = $data['notes'];
+            $changed[] = 'notes';
+        }
+
+        if (array_key_exists('stage', $data) && $data['stage'] !== $application->stage) {
+            $application->stage = $data['stage'];
+            $changed[] = 'stage';
+        }
+
+        if (array_key_exists('status', $data) && $data['status'] !== $application->status) {
+            $application->status = $data['status'];
+            $changed[] = 'status';
+        }
+
+        if (!empty($changed)) {
+            $application->save();
+
+            // Notify on stage or status changes
+            if (($application->graduate && $application->graduate->user) &&
+                (in_array('stage', $changed) || in_array('status', $changed))) {
+                $application->graduate->user->notify(
+                    new ApplicationStatusUpdated($application, $application->stage ?? $application->status)
+                );
+            }
+        }
+
+        return back()->with('success', 'Application updated: '.implode(', ', $changed));
     }
 
     public function scheduleInterview(Request $request, JobApplication $application)
@@ -114,21 +143,6 @@ class CompanyApplicationController extends Controller
         // (Optional) Integrate with Google/Outlook Calendar here and save event ID
 
         return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
-    }
-
-    public function updateStage(Request $request, JobApplication $application)
-    {
-        $request->validate([
-            'stage' => 'required|string|in:applying,screening,testing,final interview,onboarding'
-        ]);
-        $application->stage = $request->stage;
-        $application->save();
-
-        // ... inside your method after saving the new status:
-        if ($application->graduate && $application->graduate->user) {
-            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->stage));
-        }
-        return back()->with('success', 'Stage updated.');
     }
 
     public function storeOffer(Request $request, JobApplication $application)

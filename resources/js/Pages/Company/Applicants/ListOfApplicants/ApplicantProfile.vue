@@ -127,7 +127,7 @@ function closeOfferModal() {
 
 
 const totalYearsExperience = computed(() => {
-  if (!props.experiences.length) return 'Not Specified';
+  if (!props.experiences.length) return 'No work experience';
   let totalMonths = 0;
   props.experiences.forEach(exp => {
     if (exp.start_date) {
@@ -198,14 +198,14 @@ const goBack = () => {
                           alt="Graduate Picture"
                           class="w-24 h-24 rounded-full object-cover border-4 border-white shadow mb-2" />
                         <div class="text-lg font-semibold text-gray-900">{{ applicant.graduate.first_name }} {{ applicant.graduate.last_name }}</div>
-                        <div class="text-sm text-gray-500 mb-2">{{ applicant.graduate.current_job_title || 'Software Engineer' }}</div>
+                        <div class="text-sm text-gray-500 mb-2">{{ applicant.graduate.current_job_title || ' ' }}</div>
                         <div class="flex items-center text-xs text-gray-500 space-x-2 mb-2">
                           <span>{{ totalYearsExperience }}</span>
                           <span>|</span>
                           <span>{{ applicant.graduate.address || 'Not Specified' }}</span>
                         </div>
                         <div class="flex items-center text-xs text-gray-500 space-x-2">
-                          <span>{{ applicant.graduate.contact_number || '9876543210' }}</span>
+                          <span>{{ applicant.graduate.contact_number || 'Not Specified' }}</span>
                           <span>|</span>
                           <span>{{ applicant.graduate.user?.email || 'Not Specified' }}</span>
                           <button class="ml-1 text-gray-400 hover:text-indigo-500" @click="copyToClipboard(applicant.graduate.user?.email)">
@@ -259,7 +259,7 @@ const goBack = () => {
                       
                       <!-- Notes -->
                       <div class="w-full text-sm text-gray-700">
-                        <div class="font-semibold">Notes</div>
+                        <div class="font-semibold">Remarks</div>
                         <div v-if="!editingNote">
                           <div>{{ note || 'No notes yet.' }}</div>
                           <a href="#" class="text-indigo-600 hover:underline text-xs mt-1 inline-block" @click.prevent="startEditNote">
