@@ -1,3 +1,10 @@
+<script setup>
+import { Link } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles } from 'lucide-vue-next';
+</script>
+
+
 <template>
   <AppLayout>
     <div class="min-h-screen bg-gray-50 py-12 px-4">
@@ -64,8 +71,3 @@
   </AppLayout>
 </template>
 
-<script setup>
-import { Link } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles } from 'lucide-vue-next';
-</script>

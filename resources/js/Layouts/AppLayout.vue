@@ -310,7 +310,7 @@ console.log(page.props.permissions.canManageInstitution)
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('admin.manage_users', { user: page.props.auth.user.id })"
                                     :active="route().current('admin.manage_users')">
-                                    Manage Users
+                                    Users
                                 </NavLink>
 
 
@@ -319,13 +319,13 @@ console.log(page.props.permissions.canManageInstitution)
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
                                     :href="route('sectors', { user: page.props.auth.user.id })"
                                     :active="route().current('sectors')">
-                                    Manage Sectors
+                                    Sectors
                                 </NavLink>
 
                                 <NavLink :href="route('categories.index', { user: page.props.auth.user.id })"
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('categories.index')">
-                                    Manage Categories
+                                    Categories
                                 </NavLink>
 
                                 
@@ -350,13 +350,13 @@ console.log(page.props.permissions.canManageInstitution)
                                 <NavLink :href="route('peso.job-referrals.index')"
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('peso.job-referrals.index')">
-                                    Manage Job Referrals
+                                    Referrals
                                 </NavLink>
 
                                 <NavLink :href="route('peso.career-guidance')"
                                     v-if="page.props.auth.user.role === 'peso'" Categories
                                     :active="route().current('peso.career-guidance')">
-                                    Manage Career Guidance
+                                    Seminars
                                 </NavLink>
 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"

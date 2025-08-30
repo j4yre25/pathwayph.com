@@ -20,11 +20,14 @@ class ManageUsersController extends Controller
             'peso',          // relationship: peso()
         ])
             ->whereIn('role', ['company', 'institution', 'peso'])
+            ->where('has_completed_information', 1)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         // Append full name and organization name using related models
         $users->getCollection()->transform(function ($user) {
+
+            
             switch ($user->role) {
                 case 'company':
                     $user->full_name = $user->hr
@@ -59,8 +62,21 @@ class ManageUsersController extends Controller
             return $user;
         });
 
+        $totalUsers = User::whereIn('role', ['company', 'institution', 'peso'])->count();
+        $approvedCount = User::whereIn('role', ['company', 'institution'])->where('is_approved', 1)->count();
+        $pendingCount = User::whereIn('role', ['company', 'institution', 'peso'])->whereNull('is_approved')->count();
+        $disapprovedCount = User::whereIn('role', ['company', 'institution', 'peso'])->where('is_approved', 0)->count();
+
         return Inertia::render('Admin/ManageUsers/Index/Index', [
-            'all_users' => $users
+            'all_users' => array_merge(
+                $users->toArray(),
+                [
+                    'approved_count' => $approvedCount,
+                    'pending_count' => $pendingCount,
+                    'disapproved_count' => $disapprovedCount,
+                    'total' => $totalUsers,
+                ]
+            ),
         ]);
     }
 
@@ -90,7 +106,7 @@ class ManageUsersController extends Controller
         $users->getCollection()->transform(function ($user) {
             switch ($user->role) {
                 case 'company':
-                      $user->full_name = $user->hr
+                    $user->full_name = $user->hr
                         ? trim("{$user->hr->first_name} " . ($user->hr->middle_name ? "{$user->hr->middle_name} " : "") . "{$user->hr->last_name}")
                         : 'N/A';
                     $user->organization_name = $user->company->company_name ?? '-';
@@ -116,6 +132,7 @@ class ManageUsersController extends Controller
 
         return inertia('Admin/ManageUsers/Index/List', [
             'all_users' => $users,
+
         ]);
     }
 
@@ -188,14 +205,9 @@ class ManageUsersController extends Controller
             $user->hr->save();
         }
 
-        $verificationCode = rand(100000, 999999);
-        $user->verification_code = $verificationCode;
-        $user->save();
-
-        // Send the verification code via email
-        $user->notify(new \App\Notifications\VerifyEmailWithCode($verificationCode));
+        
         $user->notify(new \App\Notifications\AccountApproved());
-        return redirect()->route('admin.manage_users')->with('flash.banner', 'User approved and verification code sent successfully.');
+        return redirect()->route('admin.manage_users')->with('flash.banner', 'User approved successfully.');
     }
 
     public function disapprove(User $user)
