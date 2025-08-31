@@ -138,6 +138,10 @@ function submitApplication() {
             isApplyModalOpen.value = false;
             isSuccessModalOpen.value = true;
             fetchJobs();
+
+              if (selectedJob.value && selectedJob.value.company && selectedJob.value.company.id) {
+                requestReferral(selectedJob.value.company.id, selectedJob.value.id);
+            }
         },
         onError: () => {
             errorMessage.value = 'Failed to apply for the job. Please try again.';
@@ -221,6 +225,19 @@ function formatSalary(salary) {
     return 'Not specified';
 }
 
+function requestReferral(companyId, jobId) {
+    router.post(route('graduate.referral.request'), {
+        company_id: companyId,
+        job_id: jobId,
+    }, {
+        onSuccess: () => {
+            alert('Referral request sent to PESO!');
+        },
+        onError: () => {
+            alert('Could not request referral. Please try again.');
+        }
+    });
+}
 
 // Only fetch jobs when user clicks Search
 onMounted(() => {

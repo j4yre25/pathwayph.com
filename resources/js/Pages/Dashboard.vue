@@ -30,6 +30,15 @@ const filteredCompanies = computed(() =>
     )
 );
 
+const dateFrom = ref('');
+const dateTo = ref('');
+
+function applyDashboardFilter() {
+    Inertia.get(route('dashboard'), {
+        date_from: dateFrom.value,
+        date_to: dateTo.value
+    }, { preserveState: true });
+}
 
 function selectCompany(company) {
     selectedCompany.value = company.id;
@@ -246,7 +255,37 @@ function submitReferral() {
 
         <div v-if="page.props.auth.user.role === 'peso'" class="py-12">
             <!-- Dashboard Header -->
-
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+                <div class="p-4 border-b border-gray-200 flex items-center">
+                    <i class="fas fa-filter text-blue-500 mr-2"></i>
+                    <h3 class="font-medium text-gray-700">Dashboard Filters</h3>
+                </div>
+                <div class="p-4">
+                    <form @submit.prevent="applyDashboardFilter" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="date-from"
+                                class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                                <i class="fas fa-calendar-alt text-gray-400 mr-1"></i> Date From
+                            </label>
+                            <input id="date-from" type="date" v-model="dateFrom"
+                                class="block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                        </div>
+                        <div>
+                            <label for="date-to" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                                <i class="fas fa-calendar-alt text-gray-400 mr-1"></i> Date To
+                            </label>
+                            <input id="date-to" type="date" v-model="dateTo"
+                                class="block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit"
+                                class="px-4 py-2 bg-blue-500 text-white rounded-md text-sm flex items-center hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                <i class="fas fa-search mr-2"></i> Apply Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
             <!-- KPI Cards -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
@@ -267,17 +306,27 @@ function submitReferral() {
                         <span class="text-gray-500 text-sm">Referrals Issued (This Month)</span>
                         <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.referralsThisMonth }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                    <!-- <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
                         <span class="text-gray-500 text-sm">Successful Placements</span>
                         <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.successfulPlacements }}</span>
-                    </div>
+                    </div> -->
                     <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
                         <span class="text-gray-500 text-sm">Upcoming Career Guidance</span>
                         <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.upcomingCareerGuidance }}</span>
                     </div>
                     <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Pending Employer Registrations</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.pendingEmployerRegistrations
+                        <span class="text-gray-500 text-sm">Unemployed</span>
+                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.unemployed
+                        }}</span>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                        <span class="text-gray-500 text-sm">Underemployed</span>
+                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.underemployed
+                        }}</span>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                        <span class="text-gray-500 text-sm">Employed</span>
+                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.employed
                         }}</span>
                     </div>
                 </div>
@@ -290,9 +339,7 @@ function submitReferral() {
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="mb-4">
                             <h4 class="font-semibold mb-3 text-gray-800">Recent Job Listings By Company</h4>
-                            <input type="text" v-model="searchQuery" @focus="showSuggestions = true"
-                                @input="showSuggestions = true" placeholder="Type to search company..."
-                                class="border rounded px-3 py-2 w-full max-w-xs" />
+
                             <ul v-if="showSuggestions && searchQuery"
                                 class="absolute z-10 bg-white border rounded w-full max-w-xs shadow mt-1">
                                 <li v-for="company in filteredCompanies" :key="company.id"
@@ -327,8 +374,7 @@ function submitReferral() {
                     <!-- Top Sectors Table -->
                     <div class="bg-white rounded-lg shadow p-6">
                         <h4 class="font-semibold mb-3 text-gray-800">Top Sectors</h4>
-                        <input type="text" v-model="sectorSearch" placeholder="Search sector..."
-                            class="border rounded px-3 py-2 mb-3 w-full max-w-xs" />
+
                         <table class="min-w-full text-sm">
                             <thead>
                                 <tr class="text-gray-600">
@@ -373,9 +419,8 @@ function submitReferral() {
             <!-- In-demand Categories Table -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="bg-white rounded-lg shadow p-6">
-                    <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories</h4>
-                    <input type="text" v-model="categorySearch" placeholder="Search category..."
-                        class="border rounded px-3 py-2 mb-3 w-full max-w-xs" />
+                    <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories According to Sector</h4>
+
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr class="text-gray-600">
