@@ -541,14 +541,14 @@ const activeTab = ref('overview')
                     <div class="bg-white rounded-xl shadow p-8 mb-10">
                         <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment Rate Over Time (Line Chart)
                         </h3>
-                        <VueECharts v-if="unemploymentOverTime.value.length" :option="unemploymentLineOption"
+                        <VueECharts v-if="Array.isArray(unemploymentOverTime.value) && unemploymentOverTime.value.length" :option="unemploymentLineOption" 
                             style="height: 400px; width: 100%;" />
                         <div v-else class="text-gray-400 text-center py-8">No chart data available.</div>
                     </div>
                     <div class="bg-white rounded-xl shadow p-8 mb-10">
                         <h3 class="text-lg font-semibold mb-6 text-gray-700">Unemployment & Employment Counts (Bar
                             Chart)</h3>
-                        <VueECharts v-if="unemploymentOverTime.value.length" :option="unemploymentBarOption"
+                        <VueECharts v-if="Array.isArray(unemploymentOverTime.value) && unemploymentOverTime.value.length" :option="unemploymentBarOption"
                             style="height: 400px; width: 100%;" />
                         <div v-else class="text-gray-400 text-center py-8">No chart data available.</div>
                     </div>
@@ -585,7 +585,7 @@ const activeTab = ref('overview')
                                     average employment rate.
                                 </span>
                             </div>
-                            <div v-if="unemploymentOverTime.value.length">
+                            <div v-if="Array.isArray(unemploymentOverTime.value) && unemploymentOverTime.value.length" :option="unemploymentLineOption">
                                 <span class="font-semibold">Year with Highest Unemployment:</span>
                                 <span>
                                     {{
@@ -598,7 +598,7 @@ const activeTab = ref('overview')
                                     }}
                                 </span>
                             </div>
-                            <div v-if="unemploymentOverTime.value.length">
+                            <div v-if="Array.isArray(unemploymentOverTime.value) && unemploymentOverTime.value.length" :option="unemploymentLineOption">
                                 <span class="font-semibold">Year with Lowest Unemployment:</span>
                                 <span>
                                     {{
