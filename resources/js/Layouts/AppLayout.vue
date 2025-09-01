@@ -373,7 +373,7 @@ console.log(page.props.permissions.canManageInstitution)
                                     :href="route('peso.reports.index', { user: page.props.auth.user.id })"
                                     :active="route().current('peso.reports.index')"
                                     :disabled="!page.props.auth.user.is_approved">
-                                    Reports Detailed
+                                    Reports (Old)
                                 </NavLink>
 
                                  <NavLink v-if="page.props.auth.user.role === 'peso'"
