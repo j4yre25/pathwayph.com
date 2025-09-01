@@ -491,6 +491,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/career', [InstitutionReportsController::class, 'career'])->name('institutions.reports.career');
     Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
     Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
+    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
+    ->get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])
+    ->name('institutions.reports.graduate.data');
 });
 
 //Internship Routes

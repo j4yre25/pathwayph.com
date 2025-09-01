@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Institution;
 
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 class InstitutionReportsController extends Controller
 {
@@ -40,7 +41,6 @@ class InstitutionReportsController extends Controller
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($g) use ($institution) {
-                // Get the term and school year from institution_school_years
                 $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
                     ->where('id', $g->school_year_id)
                     ->first();
@@ -75,7 +75,7 @@ class InstitutionReportsController extends Controller
         ]);
     }
 
-    public function degree(\Illuminate\Http\Request $request)
+    public function degree(Request $request)
     {
         $user = auth()->user();
         $institution = $user->institution;
@@ -106,9 +106,9 @@ class InstitutionReportsController extends Controller
 
         // Graduates with relations
         $graduates = \App\Models\Graduate::with([
-                'program.degree',
-                'schoolYear',
-            ])
+            'program.degree',
+            'schoolYear',
+        ])
             ->where('institution_id', $institution->id)
             ->orderBy('created_at', 'desc')
             ->get()
@@ -159,10 +159,11 @@ class InstitutionReportsController extends Controller
 
         foreach ($programsForMatch as $instProgram) {
             $program = $instProgram->program;
-            if (!$program) continue;
+            if (!$program)
+                continue;
 
             // Get all jobs mapped to this program
-            $jobsQuery = \App\Models\Job::whereHas('programs', function($q) use ($program) {
+            $jobsQuery = \App\Models\Job::whereHas('programs', function ($q) use ($program) {
                 $q->where('program_id', $program->id);
             })->whereNull('deleted_at');
 
@@ -179,7 +180,7 @@ class InstitutionReportsController extends Controller
                 ->whereNull('deleted_at');
 
             if ($year) {
-                $graduatesQuery->whereHas('schoolYear', function($q) use ($year) {
+                $graduatesQuery->whereHas('schoolYear', function ($q) use ($year) {
                     $q->where('school_year_range', $year);
                 });
             }
@@ -187,7 +188,7 @@ class InstitutionReportsController extends Controller
             $graduatesForMatch = $graduatesQuery->get();
 
             // Count matches
-            $matchedGraduates = $graduatesForMatch->filter(function($grad) use ($jobTitles) {
+            $matchedGraduates = $graduatesForMatch->filter(function ($grad) use ($jobTitles) {
                 return $grad->current_job_title && $jobTitles->contains(strtolower(trim($grad->current_job_title)));
             });
 
@@ -204,7 +205,7 @@ class InstitutionReportsController extends Controller
             ];
         }
 
-        return \Inertia\Inertia::render('Institutions/Reports/DegreeReport', [
+        return Inertia::render('Institutions/Reports/DegreeReport', [
             'degrees' => $degrees,
             'graduates' => $graduates,
             'schoolYears' => $schoolYears,
@@ -261,10 +262,10 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
-                    'gender' => $g->gender, // <-- add this
+                    'gender' => $g->gender,
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term, // <-- updated here
+                    'term' => $instSchoolYear?->term,
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -336,10 +337,10 @@ class InstitutionReportsController extends Controller
                     'first_name' => $g->first_name,
                     'middle_name' => $g->middle_name,
                     'last_name' => $g->last_name,
-                    'gender' => $g->gender, // <-- add this
+                    'gender' => $g->gender,
                     'school_year_id' => $g->schoolYear?->id,
                     'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term, // <-- updated here
+                    'term' => $instSchoolYear?->term,
                     'degree' => $g->program?->degree?->type,
                     'degree_id' => $g->program?->degree?->id,
                     'program' => $g->program?->name,
@@ -374,46 +375,13 @@ class InstitutionReportsController extends Controller
     {
         return Inertia::render('Institutions/Reports/SkillReport');
     }
+
     public function graduate()
     {
         $user = auth()->user();
         $institution = $user->institution;
 
-        // Graduates with relations
-        $graduates = \App\Models\Graduate::with([
-            'program.degree',
-            'schoolYear',
-            'graduateSkills.skill',
-            'careerGoals',
-            'internshipPrograms',
-        ])
-            ->where('institution_id', $institution->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($g) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
-                    ->where('id', $g->school_year_id)
-                    ->first();
-
-                return [
-                    'id' => $g->id,
-                    'first_name' => $g->first_name,
-                    'middle_name' => $g->middle_name,
-                    'last_name' => $g->last_name,
-                    'gender' => $g->gender,
-                    'school_year_id' => $instSchoolYear?->schoolYear?->id,
-                    'school_year_range' => $instSchoolYear?->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term,
-                    'degree' => $g->program?->degree?->type,
-                    'degree_id' => $g->program?->degree?->id,
-                    'program' => $g->program?->name,
-                    'program_id' => $g->program?->id,
-                    'employment_status' => $g->employment_status,
-                    'current_job_title' => $g->current_job_title,
-                ];
-            });
-
-        // All school years for this institution (not just those present in graduates)
+        // School years and terms from InstitutionSchoolYear
         $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
             ->where('institution_id', $institution->id)
             ->get()
@@ -425,10 +393,9 @@ class InstitutionReportsController extends Controller
                 ];
             });
 
-        // Collect all unique terms for the filter
         $terms = $schoolYears->pluck('term')->unique()->filter()->values();
 
-        // Degrees and programs present in graduates
+        // Degrees and programs
         $degrees = \App\Models\InstitutionDegree::with('degree')
             ->where('institution_id', $institution->id)
             ->get()
@@ -438,20 +405,31 @@ class InstitutionReportsController extends Controller
             ])
             ->unique('id')
             ->values();
-        $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique())->get();
 
-        // All institution career opportunities (not just those assigned to graduates)
-        $institutionCareerOpportunities = \App\Models\InstitutionCareerOpportunity::with('careerOpportunity')
+        $programs = \App\Models\InstitutionProgram::with('program')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(fn($ip) => [
+                'id' => $ip->program->id,
+                'name' => $ip->program->name,
+            ])
+            ->unique('id')
+            ->values();
+
+        // Career opportunities from InstitutionCareerOpportunity
+        $careerOpportunities = \App\Models\InstitutionCareerOpportunity::with('careerOpportunity', 'program')
             ->where('institution_id', $institution->id)
             ->get()
             ->map(fn($ico) => [
                 'id' => $ico->careerOpportunity->id,
                 'title' => $ico->careerOpportunity->title,
+                'program_id' => $ico->program_id,
+                'program_name' => $ico->program?->name,
             ])
             ->unique('id')
             ->values();
 
-        // All institution skills (not just those assigned to graduates)
+        // Skills and internship programs as before
         $institutionSkills = \App\Models\InstitutionSkill::with('skill')
             ->where('institution_id', $institution->id)
             ->get()
@@ -462,19 +440,163 @@ class InstitutionReportsController extends Controller
             ->unique('id')
             ->values();
 
-        // All internship programs for this institution
         $internshipPrograms = \App\Models\InternshipProgram::where('institution_id', $institution->id)->get();
 
         return Inertia::render('Institutions/Reports/GraduateReports', [
-            'graduates' => $graduates,
             'schoolYears' => $schoolYears,
             'degrees' => $degrees,
             'programs' => $programs,
-            'careerOpportunities' => $institutionCareerOpportunities,
+            'careerOpportunities' => $careerOpportunities,
             'skills' => $institutionSkills,
             'internshipPrograms' => $internshipPrograms,
-            'terms' => $terms, // <-- add this
+            'terms' => $terms,
         ]);
     }
 
+    public function graduateData(Request $request)
+    {
+        $user = auth()->user();
+        $institution = $user->institution;
+
+        $name = $request->input('name');
+        $gender = $request->input('gender');
+        $degree = $request->input('degree_id');
+        $program = $request->input('program_id');
+        $employmentStatus = $request->input('employment_status');
+        $careerOpportunity = $request->input('career_opportunity');
+        $skill = $request->input('skill');
+        $internshipProgram = $request->input('internship_program_id');
+        $term = $request->input('term');
+        $alignment = $request->input('alignment');
+
+        $graduatesQuery = \App\Models\Graduate::with([
+            'program.degree',
+            'institutionSchoolYear.schoolYear',
+            'graduateSkills.skill',
+            'careerGoals.careerOpportunity',
+            'internshipPrograms',
+        ])->where('institution_id', $institution->id);
+
+        if ($name) {
+            $graduatesQuery->where(function ($q) use ($name) {
+                $q->where('first_name', 'like', "%$name%")
+                    ->orWhere('middle_name', 'like', "%$name%")
+                    ->orWhere('last_name', 'like', "%$name%");
+            });
+        }
+        if ($gender)
+            $graduatesQuery->where('gender', $gender);
+        if ($degree)
+            $graduatesQuery->whereHas('program.degree', fn($q) => $q->where('id', $degree));
+        if ($program)
+            $graduatesQuery->where('program_id', $program);
+        if ($employmentStatus)
+            $graduatesQuery->where('employment_status', $employmentStatus);
+        if ($skill) {
+            $graduatesQuery->whereHas('graduateSkills.skill', fn($q) => $q->where('name', $skill));
+        }
+        if ($internshipProgram) {
+            $graduatesQuery->whereHas('internshipPrograms', fn($q) => $q->where('id', $internshipProgram));
+        }
+
+        // School Year and Term filter logic
+        $schoolYearRange = $request->input('school_year_range');
+        $term = $request->input('term');
+
+        if ($schoolYearRange && $term) {
+            $graduatesQuery->whereHas('institutionSchoolYear', function ($q) use ($schoolYearRange, $term) {
+                $q->whereHas('schoolYear', function ($q2) use ($schoolYearRange) {
+                    $q2->where('school_year_range', $schoolYearRange);
+                })->where('term', $term);
+            });
+        } elseif ($schoolYearRange) {
+            $graduatesQuery->whereHas('institutionSchoolYear', function ($q) use ($schoolYearRange) {
+                $q->whereHas('schoolYear', function ($q2) use ($schoolYearRange) {
+                    $q2->where('school_year_range', $schoolYearRange);
+                });
+            });
+        } elseif ($term) {
+            $graduatesQuery->whereHas('institutionSchoolYear', function ($q) use ($term) {
+                $q->where('term', $term);
+            });
+        }
+
+        // Career Opportunity filter: match current job title to selected career opportunity
+        if ($careerOpportunity) {
+            $graduatesQuery->whereRaw('LOWER(current_job_title) LIKE ?', ['%' . strtolower($careerOpportunity) . '%']);
+        }
+
+        $graduates = $graduatesQuery->get()->map(function ($g) use ($institution) {
+            $instSchoolYear = $g->institutionSchoolYear; // Use InstitutionSchoolYear relationship
+
+            // Alignment logic as before...
+            $programCareerOpportunities = \App\Models\InstitutionCareerOpportunity::with('careerOpportunity')
+                ->where('institution_id', $institution->id)
+                ->where('program_id', $g->program_id)
+                ->get()
+                ->pluck('careerOpportunity.title')
+                ->filter()
+                ->map(fn($t) => strtolower(trim($t)));
+
+            $currentJob = strtolower(trim($g->current_job_title ?? ''));
+            $isAligned = false;
+            if ($currentJob && $programCareerOpportunities->count()) {
+                foreach ($programCareerOpportunities as $co) {
+                    if ($co && str_contains($currentJob, $co)) {
+                        $isAligned = true;
+                        break;
+                    }
+                }
+            }
+            $isEmployedOrUnder = in_array($g->employment_status, ['Employed', 'Underemployed']);
+            $alignmentStatus = ($isEmployedOrUnder && $isAligned) ? 'Aligned' : 'Misaligned';
+
+            return [
+                'id' => $g->id,
+                'first_name' => $g->first_name,
+                'middle_name' => $g->middle_name,
+                'last_name' => $g->last_name,
+                'gender' => $g->gender,
+                'school_year_id' => $instSchoolYear?->schoolYear?->id,
+                'school_year_range' => $instSchoolYear?->schoolYear?->school_year_range,
+                'term' => $instSchoolYear?->term,
+                'degree' => $g->program?->degree?->type,
+                'degree_id' => $g->program?->degree?->id,
+                'program' => $g->program?->name,
+                'program_id' => $g->program?->id,
+                'employment_status' => $g->employment_status,
+                'current_job_title' => $g->current_job_title,
+                'graduateSkills' => $g->graduateSkills,
+                'careerGoals' => $g->careerGoals,
+                'internshipPrograms' => $g->internshipPrograms,
+                'alignment' => $alignmentStatus,
+            ];
+        });
+
+        // Alignment filtering
+        if ($alignment === 'Aligned') {
+            $graduates = $graduates->where('alignment', 'Aligned')->values();
+        } elseif ($alignment === 'Misaligned') {
+            $graduates = $graduates->where('alignment', 'Misaligned')->values();
+        }
+
+        // For charting and summary
+        $employed = $graduates->where('employment_status', 'Employed')->count();
+        $underemployed = $graduates->where('employment_status', 'Underemployed')->count();
+        $unemployed = $graduates->where('employment_status', 'Unemployed')->count();
+
+        // Alignment counts
+        $aligned = $graduates->where('alignment', 'Aligned')->count();
+        $misaligned = $graduates->where('alignment', 'Misaligned')->count();
+
+        return response()->json([
+            'graduates' => $graduates,
+            'employed' => $employed,
+            'underemployed' => $underemployed,
+            'unemployed' => $unemployed,
+            'total' => $graduates->count(),
+            'aligned' => $aligned,
+            'misaligned' => $misaligned,
+        ]);
+    }
 }
