@@ -66,7 +66,7 @@ const filteredOpportunities = computed(() => {
 });
 
 function applyFilter() {
-  router.get(route('careeropportunities.index', { user: userId }), {
+  router.get(route('careeropportunities', { user: userId }), {
     program_id: selectedProgram.value,
     preserveState: true,
     preserveScroll: true,
