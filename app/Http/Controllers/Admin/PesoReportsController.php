@@ -18,6 +18,142 @@ use Inertia\Inertia;
 
 class PesoReportsController extends Controller
 {
+
+    public function index()
+    {
+        return Inertia::render('Admin/Reports/Home');
+    }
+
+
+    public function employmentData(Request $request)
+    {
+        $year = $request->input('year');
+        $institutionId = $request->input('institution_id');
+        $programId = $request->input('program_id');
+        $status = $request->input('status');
+
+        $graduatesQuery = Graduate::with([
+            'schoolYear',
+            'program',
+            'institution',
+            'graduateEducations'
+        ])->select(
+            'id',
+            'first_name',
+            'last_name',
+            'program_id',
+            'employment_status',
+            'school_year_id',
+            'location',
+            'institution_id'
+        );
+
+        if ($year) {
+            $graduatesQuery->whereHas('schoolYear', function ($q) use ($year) {
+                $q->where('school_year_range', $year);
+            });
+        }
+        if ($institutionId) {
+            $graduatesQuery->where('institution_id', $institutionId);
+        }
+        if ($programId) {
+            $graduatesQuery->where('program_id', $programId);
+        }
+        if ($status) {
+            $graduatesQuery->where('employment_status', $status);
+        }
+
+        $graduates = $graduatesQuery->get();
+
+        $summary = [
+            'total_graduates' => $graduates->count(),
+            'employed' => $graduates->where('employment_status', 'Employed')->count(),
+            'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
+            'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
+            'further_studies' => $graduates->where('employment_status', 'Further Studies')->count(),
+        ];
+
+        $statusCounts = [
+            'Employed' => $summary['employed'],
+            'Underemployed' => $summary['underemployed'],
+            'Unemployed' => $summary['unemployed'],
+        ];
+
+        $programs = \App\Models\Program::all(['id', 'name']);
+        $programNames = [];
+        $employedByProgram = [];
+        $unemployedByProgram = [];
+        foreach ($programs as $program) {
+            $programNames[] = $program->name;
+            $employedByProgram[] = $graduates
+                ->where('program_id', $program->id)
+                ->where('employment_status', 'Employed')
+                ->count();
+            $unemployedByProgram[] = $graduates
+                ->where('program_id', $program->id)
+                ->where('employment_status', 'Unemployed')
+                ->count();
+        }
+
+        $sectors = \App\Models\Sector::all();
+        $industryGraduateCounts = [];
+        foreach ($sectors as $sector) {
+            $count = Graduate::where('employment_status', 'Employed')
+                ->whereHas('user', function ($q) {
+                    $q->where('role', 'graduate');
+                })
+                ->whereHas('user', function ($q) use ($sector) {
+                    $q->whereHas('jobApplications.job', function ($q2) use ($sector) {
+                        $q2->where('sector_id', $sector->id);
+                    });
+                })
+                ->count();
+
+            $industryGraduateCounts[] = [
+                'name' => $sector->name,
+                'value' => $count,
+            ];
+        }
+
+        $industryJobRoles = [];
+        $industryApplicants = [];
+        foreach ($sectors as $sector) {
+            $jobs = \App\Models\Job::where('sector_id', $sector->id)->where('is_approved', 1)->get();
+            $jobRoles = $jobs->count();
+            $applicants = \App\Models\JobApplication::whereIn('job_id', $jobs->pluck('id'))->distinct('graduate_id')->count();
+
+            $industryJobRoles[] = $jobRoles;
+            $industryApplicants[] = $applicants;
+        }
+
+        $industryNames = $sectors->pluck('name');
+
+        return response()->json([
+            'graduates' => $graduates,
+            'industryGraduateCounts' => $industryGraduateCounts,
+            'industryNames' => $industryNames,
+            'industryJobRoles' => $industryJobRoles,
+            'industryApplicants' => $industryApplicants,
+            'summary' => $summary,
+            'statusCounts' => $statusCounts,
+            'programNames' => $programNames,
+            'employedByProgram' => $employedByProgram,
+            'unemployedByProgram' => $unemployedByProgram,
+            // Add more analytics data as needed
+        ]);
+    }
+
+    public function employment(Request $request)
+    {
+        $institutions = \App\Models\Institution::all(['id', 'institution_name']);
+        $programs = \App\Models\Program::all(['id', 'name']);
+        return Inertia::render('Admin/Reports/Employment', [
+            'institutions' => $institutions,
+            'programs' => $programs,
+            // No analytics data yet
+        ]);
+    }
+
     public function reports(Request $request)
     {
         // Employment Status Overview
@@ -545,6 +681,15 @@ class PesoReportsController extends Controller
             ],
             'chartLabels' => $chartLabels,
             'chartData' => $chartData,
+            'graduates' => $graduates,
+            'statusCounts' => $statusCounts,
+            'programNames' => $programNames,
+            'employedByProgram' => $employedByProgram,
+            'unemployedByProgram' => $unemployedByProgram,
+            'industryGraduateCounts' => $industryGraduateCounts,
+            'industryNames' => $industryNames,
+            'industryJobRoles' => $industryJobRoles,
+            'industryApplicants' => $industryApplicants,
         ]);
     }
 

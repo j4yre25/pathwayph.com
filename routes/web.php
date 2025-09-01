@@ -982,7 +982,13 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
     Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
+
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
+    Route::get('/home/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'index'])->name('peso.reports.home');
+    Route::get('/peso-reports/employment', [App\Http\Controllers\Admin\PesoReportsController::class, 'employment'])->name('peso.reports.employment');
+    Route::get('/peso-reports/employment/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'employmentData'])->name('peso.reports.employment.data');
+
+
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
     Route::get('/admin/seminar-requests', [PesoCareerGuidanceController::class, 'seminarRequests'])->name('admin.seminar-requests');
     Route::post('/admin/seminar-requests/{id}/status', [PesoCareerGuidanceController::class, 'updateSeminarRequestStatus'])->name('admin.seminar-requests.update-status');
