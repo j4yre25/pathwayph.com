@@ -82,9 +82,12 @@ class InstitutionProfileController extends Controller
             'updated_at' => now(),
         ]);
 
+        $institution->save();
+
+        $user->is_approved = null;
         $user->has_completed_information = true;
         $user->save();
-        $institution->save();
+
 
 
         session(['information_completed' => true]);

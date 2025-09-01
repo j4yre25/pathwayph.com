@@ -198,6 +198,7 @@ class ManageUsersController extends Controller
     public function approve(User $user)
     {
         $user->is_approved = true;
+        $user->save();
 
         // If company, set as main HR
         if ($user->role === 'company' && $user->hr) {
