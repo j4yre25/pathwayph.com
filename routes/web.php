@@ -228,7 +228,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('company/jobs/{job}/auto-invite', [CompanyJobsController::class, 'autoInvite'])->name('company.jobs.auto-invite');
     Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
     Route::post('company/jobs/{job}/approve', [CompanyJobsController::class, 'approve'])->name('company.jobs.approve');
-    Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
+    Route::post('company/jobs/{job}/disapprove', action: [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
 
     Route::get('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchPage'])->name('company.jobs.batch.page');
     Route::post('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchUpload'])->name('company.jobs.batch.upload');
@@ -250,8 +250,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::prefix('/applicants')->group(function () {
         // View details of a specific applicant/application
         Route::get('{application}', [CompanyApplicationController::class, 'show'])->name('applicants.show');
-
-        // Update an applicant's status (e.g., mark as hired)
         Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
 
         Route::post('/company/applications/{application}/offer', [CompanyApplicationController::class, 'storeOffer'])->name('company.applications.offer');
@@ -265,6 +263,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
         Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
     });
+});
+
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'index'])
+        ->name('applications.actions.index');
+    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'perform'])
+        ->name('applications.actions.perform');
+
+    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'index'])->name('applications.actions.index');
+    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'perform'])->name('applications.actions.perform');
+});
+
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/pipeline-stages', [\App\Http\Controllers\PipelineStageController::class,'index'])->name('pipeline.stages.index');
+    Route::put('/pipeline-stages/reorder', [\App\Http\Controllers\PipelineStageController::class,'reorder'])->name('pipeline.stages.reorder');
 });
 
 // Company Reports

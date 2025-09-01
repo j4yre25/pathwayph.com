@@ -10,6 +10,10 @@ use App\Notifications\ApplicationStatusUpdated;
 use App\Models\JobOffer;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use App\Models\JobPipelineStage;
+use App\Models\JobApplicationStageLog;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 
 class CompanyApplicationController extends Controller
 {
@@ -80,43 +84,43 @@ class CompanyApplicationController extends Controller
 
     public function update(Request $request, JobApplication $application)
     {
-        // Allow partial updates
         $data = $request->validate([
-            'notes'  => 'sometimes|nullable|string|max:2000',
-            'stage'  => 'sometimes|nullable|string|in:applying,screening,testing,interview,offer,onboarding,hired,rejected',
-            'status' => 'sometimes|nullable|string|in:under_review,offer_sent,offer_accepted,offer_declined,hired,rejected',
+            'notes' => 'sometimes|nullable|string|max:2000',
+            'job_pipeline_stage_id' => 'sometimes|nullable|exists:job_pipeline_stages,id',
         ]);
 
         $changed = [];
 
-        if (array_key_exists('notes', $data) && $data['notes'] !== $application->notes) {
+        if (array_key_exists('notes',$data) && $data['notes'] !== $application->notes) {
             $application->notes = $data['notes'];
             $changed[] = 'notes';
         }
 
-        if (array_key_exists('stage', $data) && $data['stage'] !== $application->stage) {
-            $application->stage = $data['stage'];
-            $changed[] = 'stage';
-        }
+        if (array_key_exists('job_pipeline_stage_id',$data)
+            && (int)$data['job_pipeline_stage_id'] !== (int)$application->job_pipeline_stage_id) {
 
-        if (array_key_exists('status', $data) && $data['status'] !== $application->status) {
-            $application->status = $data['status'];
-            $changed[] = 'status';
-        }
+            $fromId = $application->job_pipeline_stage_id;
+            $stage = JobPipelineStage::find($data['job_pipeline_stage_id']);
 
-        if (!empty($changed)) {
-            $application->save();
+            if ($stage) {
+                $application->job_pipeline_stage_id = $stage->id;
+                // keep legacy string column aligned
+                $application->stage = $stage->slug;
+                $changed[] = 'stage';
 
-            // Notify on stage or status changes
-            if (($application->graduate && $application->graduate->user) &&
-                (in_array('stage', $changed) || in_array('status', $changed))) {
-                $application->graduate->user->notify(
-                    new ApplicationStatusUpdated($application, $application->stage ?? $application->status)
-                );
+                JobApplicationStageLog::create([
+                    'job_application_id' => $application->id,
+                    'from_stage_id'      => $fromId,
+                    'to_stage_id'        => $stage->id,
+                    'changed_by'         => Auth::id(),
+                    'changed_at'         => Carbon::now(),
+                ]);
             }
         }
 
-        return back()->with('success', 'Application updated: '.implode(', ', $changed));
+        if ($changed) $application->save();
+
+        return back()->with('success', 'Updated: '.implode(', ',$changed));
     }
 
     public function scheduleInterview(Request $request, JobApplication $application)
