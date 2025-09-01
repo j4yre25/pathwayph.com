@@ -43,7 +43,7 @@ class GraduateProfileController extends Controller
 
         // Get the authenticated user
         $user = Auth::user();
-        
+
         return inertia('Frontend/UpdatedGraduateProfile', [
             'graduate' => $graduate,
             'originalInstitution' => [
@@ -144,13 +144,14 @@ class GraduateProfileController extends Controller
             'company_id' => $companyId,
             'other_company_name' => $validated['other_company_name'] ?? null,
             'other_company_sector' => $validated['other_company_sector'] ?? null,
-            'current_job_title' => $validated['current_job_title'] ?? '', 
-            'employment_status' => $validated['employment_status'] ?? '', 
+            'current_job_title' => $validated['current_job_title'] ?? '',
+            'employment_status' => $validated['employment_status'] ?? '',
         ]);
 
+        $user->is_approved = null;
         $user->has_completed_information = true;
         $user->save();
-        
+
         session(['information_completed' => true]);
         return redirect()->route('graduates.profile', ['id' => $graduate->id])->with('information_completed', true);
     }

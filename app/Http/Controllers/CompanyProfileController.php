@@ -15,7 +15,7 @@ class CompanyProfileController extends Controller
     {
         $user = Auth::user();
         $company = $user->companyThroughHR ?? null;
-         // Determine user role
+        // Determine user role
         $userRole = $user->hasRole('company') ? 'company' : 'graduate';
 
         return Inertia::render('Company/CompanyProfile', [
@@ -44,7 +44,7 @@ class CompanyProfileController extends Controller
                 'profile_photo' => $user->profile_photo_path ? Storage::url($user->profile_photo_path) : null,
                 'cover_photo' => $user->cover_photo_path ? Storage::url($user->cover_photo_path) : null,
             ],
-            
+
         ]);
     }
 
@@ -67,14 +67,12 @@ class CompanyProfileController extends Controller
 
 
             return redirect()->back()->with('success', 'Description updated successfully.');
-
         }
 
         return redirect()->back()->with('error', 'Company not found.');
-
     }
 
-   public function edit()
+    public function edit()
     {
         $user = Auth::user()->load('company');
         return Inertia::render('Profile/Partials/UpdateCompanyProfileInformationForm', [
@@ -225,7 +223,7 @@ class CompanyProfileController extends Controller
         ]);
 
         // Create HR (human_resources)
-         \App\Models\HumanResource::create([
+        \App\Models\HumanResource::create([
             'user_id' => $user->id,
             'company_id' => $company->id,
             'first_name' => $validated['first_name'],
@@ -244,6 +242,7 @@ class CompanyProfileController extends Controller
         $company->company_id = "C-{$paddedCompanyId}-{$sectorCode}{$divisionCode}";
         $company->save();
 
+        $user->is_approved = null;
         $user->has_completed_information = true;
         $user->save();
 
