@@ -240,11 +240,11 @@ console.log('approved_count:', props.all_users.approved_count);
                                             title="Disapprove">
                                             <i class="fas fa-times"></i>
                                         </button>
-                                        <Link :href="route('admin.manage_users.edit', { user: user.id })"
+                                        <!-- <Link :href="route('admin.manage_users.edit', { user: user.id })"
                                             class="text-blue-500 hover:text-blue-700 focus:outline-none p-1 hover:bg-blue-50 rounded-full transition-colors"
                                             title="Edit">
                                         <i class="fas fa-edit"></i>
-                                        </Link>
+                                        </Link> -->
                                         <button @click="confirmArchive(user)" v-if="user.is_approved !== false"
                                             class="text-gray-500 hover:text-gray-700 focus:outline-none p-1 hover:bg-gray-100 rounded-full transition-colors"
                                             title="Archive">
