@@ -22,7 +22,7 @@ import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles
             </div>
           </Link>
           <Link
-            :href="route('institutions.reports.degree')"
+            :href="route('peso.reports.referral')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-green-100"
           >
             <div class="flex flex-col items-center">
