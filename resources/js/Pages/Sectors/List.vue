@@ -58,15 +58,22 @@ function applyFilter() {
 
 <template>
     <AppLayout title="Sectors">
-        <Container>
-            <!-- Header with back button -->
-            <div class="flex items-center mb-6">
-                <button @click="goBack" class="mr-4 text-blue-600 hover:text-blue-800 focus:outline-none">
-                    <i class="fas fa-chevron-left text-lg"></i>
-                </button>
-                <h1 class="text-2xl font-semibold text-gray-800">Sectors</h1>
-            </div>
-            
+         <template #header>
+                <div class="flex items-center">
+                    <button @click="goBack" class="font-semibold text-xl text-gray-800 flex items-center">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-list text-blue-600 mr-3"></i>
+                            All Sectors
+                        </h1>
+                        <p class="text-gray-600">View and manage all sectors in the system</p>
+                    </div>
+                </div>
+            </template>
+        
+        <Container> 
             <!-- Stats Summary -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-300">

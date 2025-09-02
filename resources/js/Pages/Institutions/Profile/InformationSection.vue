@@ -170,6 +170,7 @@ function goToProfile() {
                 </select>
                 <InputError :message="form.errors.institution_type" class="text-red-300" />
               </div>
+              </div> <!-- <-- This closes the grid started above (missing end tag fix) -->
             </div>
             <div>
               <InputLabel for="institution_address" class="text-white font-medium">

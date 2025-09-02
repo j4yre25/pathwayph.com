@@ -55,9 +55,6 @@ function goToPage(link) {
       <!-- Header Section with Back Button -->
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center">
-          <a href="javascript:history.back()" class="mr-4 text-gray-500 hover:text-gray-700 transition-colors">
-            <i class="fas fa-chevron-left"></i>
-          </a>
           <i class="fas fa-exchange-alt text-blue-500 text-xl mr-2"></i>
           <h1 class="text-2xl font-bold text-gray-800">Job Referrals Tracking</h1>
         </div>

@@ -250,35 +250,68 @@ function submitReferral() {
 
             <!-- KPI Cards -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Registered Employers</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.registeredEmployers }}</span>
+                <div class="grid grid-cols-7 gap-4">
+                    <!-- Employees Card -->
+                    <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-users text-white"></i>
+                        </div>
+                        <span class="text-blue-700 text-xs font-medium text-center">Registered Employers</span>
+                        <span class="text-blue-900 text-lg font-bold">{{ kpi.registeredEmployers }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Active Job Listings</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.activeJobListings }}</span>
+
+                    <!-- Clients Card -->
+                    <div class="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-briefcase text-white"></i>
+                        </div>
+                        <span class="text-orange-700 text-xs font-medium text-center">Active Job Listings</span>
+                        <span class="text-orange-900 text-lg font-bold">{{ kpi.activeJobListings }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Registered Job Seekers</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.registeredJobSeekers }}</span>
+
+                    <!-- Projects Card -->
+                    <div class="bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-project-diagram text-white"></i>
+                        </div>
+                        <span class="text-cyan-700 text-xs font-medium text-center">Registered Job Seekers</span>
+                        <span class="text-cyan-900 text-lg font-bold">{{ kpi.registeredJobSeekers }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Referrals Issued (This Month)</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.referralsThisMonth }}</span>
+
+                    <!-- Events Card -->
+                    <div class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-calendar-alt text-white"></i>
+                        </div>
+                        <span class="text-red-700 text-xs font-medium text-center">Referrals Issued (This Month)</span>
+                        <span class="text-red-900 text-lg font-bold">{{ kpi.referralsThisMonth }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Successful Placements</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.successfulPlacements }}</span>
+
+                    <!-- Payroll Card -->
+                    <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-money-bill-wave text-white"></i>
+                        </div>
+                        <span class="text-green-700 text-xs font-medium text-center">Successful Placements</span>
+                        <span class="text-green-900 text-lg font-bold">{{ kpi.successfulPlacements }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Upcoming Career Guidance</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.upcomingCareerGuidance }}</span>
+
+                    <!-- Reports Card -->
+                    <div class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-chart-bar text-white"></i>
+                        </div>
+                        <span class="text-purple-700 text-xs font-medium text-center">Upcoming Career Guidance</span>
+                        <span class="text-purple-900 text-lg font-bold">{{ kpi.upcomingCareerGuidance }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Pending Employer Registrations</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.pendingEmployerRegistrations
-                        }}</span>
+
+                    <!-- Pending Card -->
+                    <div class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-clock text-white"></i>
+                        </div>
+                        <span class="text-indigo-700 text-xs font-medium text-center">Pending Employer Registrations</span>
+                        <span class="text-indigo-900 text-lg font-bold">{{ kpi.pendingEmployerRegistrations }}</span>
                     </div>
                 </div>
             </div>

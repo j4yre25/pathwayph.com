@@ -56,7 +56,7 @@ const disapproveUser = (user) => {
 };
 
 const goTo = (url) => {
-    router.get(url); // Use Inertia's router to navigate to the next/previous page
+    router.get(url);
 };
 
 // Function to go back
@@ -82,168 +82,161 @@ const hasUsers = computed(() => {
 
         <Container class="py-6 space-y-6">
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Total Users</h3>
-                            <p class="text-3xl font-bold text-blue-600">{{ stats.total }}</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <!-- Total Users Card -->
+                <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-users text-white text-lg"></i>
                         </div>
-                        <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-users text-blue-600"></i>
-                        </div>
+                        <h3 class="text-blue-700 text-sm font-medium mb-2">Total Users</h3>
+                        <p class="text-2xl font-bold text-blue-900">{{ stats.total }}</p>
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Approved</h3>
-                            <p class="text-3xl font-bold text-green-600">{{ stats.approved }}</p>
+                <!-- Approved Card -->
+                <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-check-circle text-white text-lg"></i>
                         </div>
-                        <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-check-circle text-green-600"></i>
-                        </div>
+                        <h3 class="text-green-700 text-sm font-medium mb-2">Approved</h3>
+                        <p class="text-2xl font-bold text-green-900">{{ stats.approved }}</p>
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Pending</h3>
-                            <p class="text-3xl font-bold text-yellow-600">{{ stats.pending }}</p>
+                <!-- Pending Card -->
+                <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-clock text-white text-lg"></i>
                         </div>
-                        <div class="bg-yellow-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-clock text-yellow-600"></i>
-                        </div>
+                        <h3 class="text-yellow-700 text-sm font-medium mb-2">Pending</h3>
+                        <p class="text-2xl font-bold text-yellow-900">{{ stats.pending }}</p>
                     </div>
                 </div>
                 
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Disapproved</h3>
-                            <p class="text-3xl font-bold text-red-600">{{ stats.disapproved }}</p>
+                <!-- Disapproved Card -->
+                <div class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-times-circle text-white text-lg"></i>
                         </div>
-                        <div class="bg-red-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-times-circle text-red-600"></i>
-                        </div>
+                        <h3 class="text-red-700 text-sm font-medium mb-2">Disapproved</h3>
+                        <p class="text-2xl font-bold text-red-900">{{ stats.disapproved }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
-            <div class="bg-white rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-4 transition-all duration-200 hover:shadow-md">
+            <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-wrap items-center justify-between gap-4 border border-gray-100">
                 <div class="flex items-center space-x-4">
                     <Link v-if="page.props.roles.isPeso" :href="route('admin.manage_users.list')"
-                        :class="[route().current('admin.manage_users.list') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200', 
-                                'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']"
-                    >
-                        <i class="fas fa-list mr-2"></i>
+                        :class="[route().current('admin.manage_users.list') ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200', 
+                                'px-6 py-3 rounded-xl flex items-center space-x-2 font-medium transition-all duration-200 transform hover:scale-105']"
+>
+                        <i class="fas fa-list"></i>
                         <span>List Of Users</span>
                     </Link>
                     <Link v-if="page.props.roles.isPeso" :href="route('admin.manage_users.archivedlist')"
-                        :class="[route().current('admin.manage_users.archivedlist') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200', 
-                                'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']"
-                    >
-                        <i class="fas fa-archive mr-2"></i>
+                        :class="[route().current('admin.manage_users.archivedlist') ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200', 
+                                'px-6 py-3 rounded-xl flex items-center space-x-2 font-medium transition-all duration-200 transform hover:scale-105']">
+                        <i class="fas fa-archive"></i>
                         <span>Archived Users</span>
                     </Link>
                 </div>
                 <Link v-if="page.props.roles.isPeso" :href="route('companies.batch.page')"
-                    :class="[route().current('companies.batch.page') ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600', 
-                            'px-4 py-2 rounded-md text-white font-medium transition-colors flex items-center shadow-sm']"
-                >
+                    :class="[route().current('companies.batch.page') ? 'bg-gradient-to-r from-green-600 to-green-700' : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700', 
+                            'px-6 py-3 rounded-xl text-white font-medium transition-all duration-200 flex items-center shadow-lg transform hover:scale-105']">
                     <i class="fas fa-upload mr-2"></i> Batch Upload Companies
                 </Link>
             </div>
 
             <!-- Table Card -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
-                <div class="p-4 flex items-center justify-between border-b border-gray-200">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                     <div class="flex items-center">
-                        <i class="fas fa-table text-blue-500 mr-2"></i>
-                        <h3 class="text-lg font-semibold text-gray-800">User Management</h3>
-                        <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ all_users.total }} total</span>
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-table text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">User Management</h3>
+                            <span class="text-sm text-gray-500">{{ all_users.total }} total users</span>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto">
-                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
+                    <table class="min-w-full">
+                        <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
                             <tr>
-                                <th class="px-6 py-3 text-left">Role</th>
-                                <th class="px-6 py-3 text-left">Organization</th>
-                                <th class="px-6 py-3 text-left">Name</th>
-                                <th class="px-6 py-3 text-left">Email</th>
-                                <th class="px-6 py-3 text-left">Status</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
+                                <th class="px-6 py-4 text-left">Role</th>
+                                <th class="px-6 py-4 text-left">Organization</th>
+                                <th class="px-6 py-4 text-left">Name</th>
+                                <th class="px-6 py-4 text-left">Email</th>
+                                <th class="px-6 py-4 text-left">Status</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
-                            <tr v-for="user in all_users.data" :key="user.id" class="hover:bg-gray-50 transition-colors duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap">
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            <tr v-for="user in all_users.data" :key="user.id" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                                <td class="px-6 py-5 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                                            <i class="fas fa-user-tag"></i>x
+                                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mr-3 group-hover:shadow-md transition-all duration-200">
+                                            <i class="fas fa-user-tag text-white text-xs"></i>
                                         </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900 capitalize">{{ user.role }}</div>
+                                        <div class="ml-1">
+                                            <div class="text-sm font-semibold text-gray-900 capitalize group-hover:text-blue-700 transition-colors">{{ user.role }}</div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ user.organization_name || '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ user.full_name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ user.email }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600 font-medium">{{ user.organization_name || '-' }}</td>
+                                <td class="px-6 py-5 whitespace-nowrap text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{{ user.full_name }}</td>
+                                <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600">{{ user.email }}</td>
+                                <td class="px-6 py-5 whitespace-nowrap">
                                     <span 
-                                        class="px-2 py-1 text-xs font-medium rounded-full flex items-center w-fit" 
+                                        class="px-3 py-1.5 text-xs font-semibold rounded-full flex items-center w-fit shadow-sm" 
                                         :class="{
-                                            'bg-green-100 text-green-800': user.is_approved === true,
-                                            'bg-red-100 text-red-800': user.is_approved === false,
-                                            'bg-yellow-100 text-yellow-800': user.is_approved === null
-                                        }"
-                                    >
+                                            'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200': user.is_approved === true,
+                                            'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200': user.is_approved === false,
+                                            'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-200': user.is_approved === null
+                                        }">
                                         <i :class="{
-                                            'fas fa-check-circle mr-1': user.is_approved === true,
-                                            'fas fa-times-circle mr-1': user.is_approved === false,
-                                            'fas fa-clock mr-1': user.is_approved === null
+                                            'fas fa-check-circle mr-1.5': user.is_approved === true,
+                                            'fas fa-times-circle mr-1.5': user.is_approved === false,
+                                            'fas fa-clock mr-1.5': user.is_approved === null
                                         }"></i>
                                         {{ user.is_approved === true ? 'Approved' : (user.is_approved === false ? 'Disapproved' : 'Pending') }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end space-x-2">
                                         <button 
                                             @click="approveUser(user)"
                                             v-if="user.is_approved !== false && !user.is_approved"
-                                            class="text-green-500 hover:text-green-700 focus:outline-none p-1 hover:bg-green-50 rounded-full transition-colors"
-                                            title="Approve"
-                                        >
-                                            <i class="fas fa-check"></i>
+                                            class="text-green-600 hover:text-white hover:bg-green-500 focus:outline-none p-2 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                                            title="Approve">
+                                            <i class="fas fa-check text-sm"></i>
                                         </button>
                                         <button 
                                             @click="disapproveUser(user)"
                                             v-if="user.is_approved !== false && !user.is_approved"
-                                            class="text-red-500 hover:text-red-700 focus:outline-none p-1 hover:bg-red-50 rounded-full transition-colors"
-                                            title="Disapprove"
-                                        >
-                                            <i class="fas fa-times"></i>
+                                            class="text-red-600 hover:text-white hover:bg-red-500 focus:outline-none p-2 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                                            title="Disapprove">
+                                            <i class="fas fa-times text-sm"></i>
                                         </button>
                                         <Link 
                                             :href="route('admin.manage_users.edit', { user: user.id })"
-                                            class="text-blue-500 hover:text-blue-700 focus:outline-none p-1 hover:bg-blue-50 rounded-full transition-colors"
-                                            title="Edit"
-                                        >
-                                            <i class="fas fa-edit"></i>
+                                            class="text-blue-600 hover:text-white hover:bg-blue-500 focus:outline-none p-2 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                                            title="Edit">
+                                            <i class="fas fa-edit text-sm"></i>
                                         </Link>
                                         <button 
                                             @click="confirmArchive(user)"
                                             v-if="user.is_approved !== false"
-                                            class="text-gray-500 hover:text-gray-700 focus:outline-none p-1 hover:bg-gray-100 rounded-full transition-colors"
-                                            title="Archive"
-                                        >
-                                            <i class="fas fa-archive"></i>
+                                            class="text-gray-600 hover:text-white hover:bg-gray-500 focus:outline-none p-2 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                                            title="Archive">
+                                            <i class="fas fa-archive text-sm"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -260,47 +253,45 @@ const hasUsers = computed(() => {
                 </div>
                 
                 <!-- Pagination -->
-                <div v-if="all_users.links && all_users.links.length > 3" class="px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                    <div class="flex-1 flex justify-between sm:hidden">
-                        <a 
+                <div v-if="all_users.links && all_users.links.length > 3" class="px-6 py-4 flex items-center justify-center border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                    <nav class="flex items-center space-x-2" aria-label="Pagination">
+                        <!-- Previous Button -->
+                        <button 
                             v-if="all_users.prev_page_url" 
-                            @click.prevent="goTo(all_users.prev_page_url)" 
-                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                        >
-                            <i class="fas fa-chevron-left mr-2"></i> Previous
-                        </a>
-                        <a 
+                            @click="goTo(all_users.prev_page_url)" 
+                            class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </button>
+                        
+                        <!-- Page Numbers -->
+                        <template v-for="(link, index) in all_users.links" :key="index">
+                            <button 
+                                v-if="!link.label.includes('Previous') && !link.label.includes('Next') && link.label !== '...'" 
+                                @click="link.url ? goTo(link.url) : null"
+                                :class="[
+                                    'w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-all duration-200',
+                                    link.active 
+                                        ? 'bg-blue-500 text-white shadow-md' 
+                                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300',
+                                    link.url ? 'cursor-pointer' : 'cursor-not-allowed'
+                                ]">
+                                {{ link.label }}
+                            </button>
+                            <span 
+                                v-else-if="link.label === '...'"
+                                class="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">
+                                ...
+                            </span>
+                        </template>
+                        
+                        <!-- Next Button -->
+                        <button 
                             v-if="all_users.next_page_url" 
-                            @click.prevent="goTo(all_users.next_page_url)" 
-                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                        >
-                            Next <i class="fas fa-chevron-right ml-2"></i>
-                        </a>
-                    </div>
-                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-gray-700">
-                                Showing <span class="font-medium">{{ all_users.from }}</span> to <span class="font-medium">{{ all_users.to }}</span> of <span class="font-medium">{{ all_users.total }}</span> results
-                            </p>
-                        </div>
-                        <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                <a 
-                                    v-for="link in all_users.links" 
-                                    :key="link.url" 
-                                    v-html="link.label"
-                                    @click.prevent="link.url ? goTo(link.url) : null"
-                                    :class="[
-                                        link.url ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed',
-                                        link.active ? 'z-10 bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-gray-300 text-gray-500',
-                                        link.label.includes('Previous') ? 'rounded-l-md' : '',
-                                        link.label.includes('Next') ? 'rounded-r-md' : '',
-                                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
-                                    ]"
-                                ></a>
-                            </nav>
-                        </div>
-                    </div>
+                            @click="goTo(all_users.next_page_url)" 
+                            class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                    </nav>
                 </div>
             </div>
 
@@ -308,22 +299,22 @@ const hasUsers = computed(() => {
             <ConfirmationModal :show="showModal" @close="showModal = false" @confirm="archiveUser">
                 <template #title>
                     <div class="flex items-center">
-                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
-                            <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-800">Confirm Archive</h3>
+                        <h3 class="text-xl font-bold text-gray-800">Confirm Archive</h3>
                     </div>
                 </template>
                 <template #content>
-                    <p class="text-gray-600">Are you sure you want to archive the user
-                    <strong>"{{ userToArchive?.full_name }}"</strong>? This action can be reversed later.</p>
+                    <p class="text-gray-700 text-base leading-relaxed">Are you sure you want to archive the user
+                    <strong class="text-gray-900 font-semibold">"{{ userToArchive?.full_name }}"</strong>? This action can be reversed later.</p>
                 </template>
                 <template #footer>
-                    <div class="flex justify-end space-x-3">
-                        <SecondaryButton @click="showModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm transition-colors duration-200">
+                    <div class="flex justify-end space-x-4">
+                        <SecondaryButton @click="showModal = false" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 text-sm font-medium transition-all duration-200 shadow-sm">
                             <i class="fas fa-times mr-2"></i> Cancel
                         </SecondaryButton>
-                        <DangerButton @click="archiveUser" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm transition-colors duration-200">
+                        <DangerButton @click="archiveUser" class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 text-sm font-medium transition-all duration-200 shadow-lg">
                             <i class="fas fa-archive mr-2"></i> Archive
                         </DangerButton>
                     </div>

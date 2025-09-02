@@ -27,16 +27,25 @@ const viewDetails = (req) => {
     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       
       <!-- Header Section -->
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center">
-          <a href="javascript:history.back()" 
-             class="mr-4 text-gray-500 hover:text-gray-700 transition-colors">
-            <i class="fas fa-chevron-left"></i>
-          </a>
-          <i class="fas fa-compass text-blue-500 text-xl mr-2"></i>
-          <h1 class="text-2xl font-bold text-gray-800">
-            Career Guidance & Counseling
-          </h1>
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <a href="javascript:history.back()" 
+               class="mr-4 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all duration-200">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mr-4 shadow-md">
+                <i class="fas fa-compass text-white text-lg"></i>
+              </div>
+              <div>
+                <h1 class="text-2xl font-bold text-gray-800">
+                  Career Guidance & Counseling
+                </h1>
+                <p class="text-sm text-gray-500">Manage seminar and counseling requests from institutions</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

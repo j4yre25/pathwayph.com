@@ -3,13 +3,13 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Link, router } from '@inertiajs/vue3';
 import Container from '@/Components/Container.vue';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const props = defineProps({
-    sectors: Array,
+    sectors: Object, // Changed to Object to support pagination
     sector: Object
 });
 
@@ -34,11 +34,11 @@ const open = ref(false)
 
 <template>
     <div class="overflow-x-auto">
-        <table class="min-w-full bg-white rounded-lg overflow-hidden">
-            <thead>
-                <tr class="bg-gray-50 text-gray-600 text-sm">
-                    <th class="px-6 py-3 text-left font-medium">Name</th>
-                    <th class="px-6 py-3 text-left font-medium">Actions</th>
+        <table class="min-w-full">
+            <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
+                <tr>
+                    <th class="px-6 py-4 text-left">Name</th>
+                    <th class="px-6 py-4 text-left">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-gray-600 text-sm">
@@ -48,12 +48,14 @@ const open = ref(false)
                         <td class="px-6 py-4">
                             <div class="flex items-center space-x-2">
                                 <Link :href="route('sectors.edit', { sector: sector.id })" 
-                                      class="text-sm px-3 py-1.5 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 flex items-center">
-                                    <i class="fas fa-edit mr-1"></i> Edit
+                                      class="text-blue-600 hover:text-white hover:bg-blue-500 focus:outline-none p-2 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                                      title="Edit">
+                                    <i class="fas fa-edit text-sm"></i>
                                 </Link>
                                 <button @click="confirmArchive(sector)" 
-                                        class="text-sm px-3 py-1.5 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 flex items-center">
-                                    <i class="fas fa-archive mr-1"></i> Archive
+                                        class="text-gray-600 hover:text-white hover:bg-gray-500 focus:outline-none p-2 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                                        title="Archive">
+                                    <i class="fas fa-archive text-sm"></i>
                                 </button>
                             </div>
                         </td>
@@ -70,6 +72,48 @@ const open = ref(false)
                 </tr>
             </tbody>
         </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div v-if="sectors && sectors.links && sectors.links.length > 3" class="px-6 py-4 flex items-center justify-center border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <nav class="flex items-center space-x-2" aria-label="Pagination">
+            <!-- Previous Button -->
+            <button 
+                v-if="sectors.prev_page_url" 
+                @click="goTo(sectors.prev_page_url)" 
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            
+            <!-- Page Numbers -->
+            <template v-for="(link, index) in sectors.links" :key="index">
+                <button 
+                    v-if="!link.label.includes('Previous') && !link.label.includes('Next') && link.label !== '...'" 
+                    @click="link.url ? goTo(link.url) : null"
+                    :class="[
+                        'w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-all duration-200',
+                        link.active 
+                            ? 'bg-blue-500 text-white shadow-md' 
+                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300',
+                        link.url ? 'cursor-pointer' : 'cursor-not-allowed'
+                    ]">
+                    {{ link.label }}
+                </button>
+                <span 
+                    v-else-if="link.label === '...'"
+                    class="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">
+                    ...
+                </span>
+            </template>
+            
+            <!-- Next Button -->
+            <button 
+                v-if="sectors.next_page_url" 
+                @click="goTo(sectors.next_page_url)" 
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+        </nav>
     </div>
 
     <ConfirmationModal @close="open = false" :show="open">
