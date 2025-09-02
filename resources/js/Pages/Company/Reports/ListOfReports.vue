@@ -23,10 +23,10 @@ const reports = [
     { label: "Job Posting Performance", route: "company.reports.performance" },
     { label: "Job Posting Trends", route: "company.reports.trends" },
     { label: "Matching Success Rate", route: "company.reports.matchingSuccess" },
-    { label: "Professional Certification Tracking", route: "company.reports.certificationTracking" },
+    // { label: "Professional Certification Tracking", route: "company.reports.certificationTracking" },
     { label: "Recruitment Efficiency", route: "company.reports.efficiency" },
     { label: "Salary Insights", route: "company.reports.salary" },
-    { label: "School-wise Graduate Employability", route: "company.reports.schoolWise" },
+    // { label: "School-wise Graduate Employability", route: "company.reports.schoolWise" },
     { label: "Skill and Qualification Analysis", route: "company.reports.skills" },
     { label: "Skills and Competency Analysis", route: "company.reports.competency" }
 ];
