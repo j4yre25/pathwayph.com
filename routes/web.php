@@ -279,6 +279,18 @@ Route::middleware(['auth','verified'])->group(function () {
     Route::get('/pipeline-stages', [\App\Http\Controllers\PipelineStageController::class,'index'])->name('pipeline.stages.index');
     Route::put('/pipeline-stages/reorder', [\App\Http\Controllers\PipelineStageController::class,'reorder'])->name('pipeline.stages.reorder');
 });
+Route::middleware(['auth'])->group(function () {
+    Route::post('/request-info/send', [\App\Http\Controllers\RequestMoreInfoController::class,'send'])->name('requestInfo.send');
+    Route::get('/request-info', [\App\Http\Controllers\RequestMoreInfoController::class,'index'])->name('requestInfo.index');
+    Route::post('/request-info/{requestMoreInfo}/complete', [\App\Http\Controllers\RequestMoreInfoController::class,'complete'])->name('requestInfo.complete');
+    Route::post('/request-info/{requestMoreInfo}/read', [\App\Http\Controllers\RequestMoreInfoController::class,'markRead'])->name('requestInfo.read');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/assessment/instructions', [\App\Http\Controllers\AssessmentController::class,'sendInstructions'])->name('assessment.instructions.send');
+    Route::post('/assessment/reschedule',   [\App\Http\Controllers\AssessmentController::class,'reschedule'])->name('assessment.reschedule');
+    Route::post('/assessment/result',       [\App\Http\Controllers\AssessmentController::class,'recordResult'])->name('assessment.result.record');
+});
 
 // Company Reports
 Route::prefix('company')->middleware(['auth'])->group(function () {
