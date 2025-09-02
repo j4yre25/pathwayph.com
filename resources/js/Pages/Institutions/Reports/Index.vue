@@ -47,6 +47,7 @@ import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles
               <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Career Report</span>
             </div>
           </Link>
+          <!-- 
           <Link
             :href="route('institutions.reports.skill')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-pink-100"
@@ -56,6 +57,7 @@ import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles
               <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Skill Report</span>
             </div>
           </Link>
+          -->
           <Link
             :href="route('institutions.reports.graduate')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-cyan-100"

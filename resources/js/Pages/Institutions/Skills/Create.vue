@@ -55,7 +55,7 @@ function submit() {
   <AppLayout title="Add Skills">
     <template #header>
       <div class="flex items-center">
-        <Link :href="route('instiskills.index')" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+        <Link :href="route('instiskills', { user: userId })" class="mr-4 text-gray-600 hover:text-gray-900 transition">
           <i class="fas fa-chevron-left"></i>
         </Link>
         <i class="fas fa-plus-circle text-blue-500 text-xl mr-2"></i>
@@ -122,7 +122,7 @@ function submit() {
 
               <!-- Action Buttons -->
               <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-                <Link :href="route('instiskills.index')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center">
+                <Link :href="route('instiskills', { user: userId })" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center">
                   <i class="fas fa-times mr-2"></i>
                   Cancel
                 </Link>

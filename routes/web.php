@@ -491,6 +491,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/career', [InstitutionReportsController::class, 'career'])->name('institutions.reports.career');
     Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
     Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
+    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
+    ->get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])
+    ->name('institutions.reports.graduate.data');
 });
 
 //Internship Routes
@@ -987,7 +990,8 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/home/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'index'])->name('peso.reports.home');
     Route::get('/peso-reports/employment', [App\Http\Controllers\Admin\PesoReportsController::class, 'employment'])->name('peso.reports.employment');
     Route::get('/peso-reports/employment/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'employmentData'])->name('peso.reports.employment.data');
-
+    Route::get('/peso-reports/referral', [App\Http\Controllers\Admin\PesoReportsController::class, 'referral'])->name('peso.reports.referral');
+    Route::get('/peso-reports/referral/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'referralData'])->name('peso.reports.referral.data');
 
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
     Route::get('/admin/seminar-requests', [PesoCareerGuidanceController::class, 'seminarRequests'])->name('admin.seminar-requests');
@@ -997,6 +1001,6 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
 
 
-Route::prefix('admin')->middleware(['auth'])->group(function () { });
+Route::prefix('admin')->middleware(['auth'])->group(function () {});
 
 Route::post('/profile/testimonials/request', [ProfileController::class, 'requestTestimonial'])->name('profile.testimonials.request');

@@ -84,6 +84,11 @@ class InstitutionProfileController extends Controller
 
         $institution->save();
 
+        $user->is_approved = null;
+        $user->has_completed_information = true;
+        $user->save();
+
+
 
         session(['information_completed' => true]);
         return back()->with('information_saved', true);
