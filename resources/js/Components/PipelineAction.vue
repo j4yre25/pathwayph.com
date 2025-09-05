@@ -9,6 +9,7 @@ const props = defineProps({
   variant:       { type: String, default: 'panel' },
   label:         { type: String, default: 'Stage Actions' },
   transitionsOnly: { type: Boolean, default: false },
+  requireHireConfirm: { type: Boolean, default: true }, // NEW
 })
 
 // ADDED request-more-info & reject to emits; open-modal already present
@@ -18,7 +19,8 @@ const emit = defineEmits([
   'actions-loaded',
   'error',
   'request-more-info',
-  'reject'
+  'reject',
+  'hire' // added
 ])
 
 const loading = ref(false)
@@ -47,6 +49,7 @@ async function load(force = false) {
 }
 
 async function perform(action) {
+  console.debug('Perform clicked', action)
   if (performing.value) return
   if (action.type === 'noop') {
     open.value = false
@@ -63,6 +66,13 @@ async function perform(action) {
   // Intercept reject (confirmation modal upstream)
   if (action.key === 'reject' || action.key === 'reject_withdraw') {
     emit('reject', { action, applicationId: props.applicationId })
+    open.value = false
+    return
+  }
+
+  // Intercept hire action
+  if (action.key === 'hire' && props.requireHireConfirm) {
+    emit('hire', { action, applicationId: props.applicationId })
     open.value = false
     return
   }

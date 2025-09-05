@@ -118,6 +118,12 @@ class CompanyApplicationController extends Controller
             }
         }
 
+        if (in_array('stage', $changed) && method_exists($application,'syncStatusFromStage')) {
+            if ($application->syncStatusFromStage() && !in_array('status',$changed)) {
+                $changed[] = 'status';
+            }
+        }
+
         if ($changed) $application->save();
 
         return back()->with('success', 'Updated: '.implode(', ',$changed));
@@ -188,6 +194,11 @@ class CompanyApplicationController extends Controller
         ]);
 
         $application->status = $request->status;
+
+        if (method_exists($application,'syncStatusFromStage')) {
+            $application->syncStatusFromStage(); // will override if stage dictates
+        }
+
         $application->save();
 
         // If hired, update graduate's info

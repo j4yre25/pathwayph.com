@@ -25,7 +25,25 @@ class PipelineActionExecutor
 
                 $application->forceFill(['stage' => $to])->save();
 
-                // Safe stage log (only if table/columns exist)
+                // Auto-sync status based on new stage
+                if (method_exists($application, 'syncStatusFromStage')) {
+                    if ($application->syncStatusFromStage()) {
+                        $application->save();
+                    }
+                }
+
+                $note = $action['__note'] ?? null;
+
+                // Archive automatically if moving to hired
+                if ($to === 'hired') {
+                    if (Schema::hasColumn('job_applications','archived_at')) {
+                        $application->forceFill(['archived_at'=>now()])->save();
+                    } elseif (Schema::hasColumn('job_applications','is_archived')) {
+                        $application->forceFill(['is_archived'=>1])->save();
+                    }
+                }
+
+                // Stage log with optional note
                 if (Schema::hasTable('job_application_stage_logs')) {
                     try {
                         $cols = Schema::getColumnListing('job_application_stage_logs');
@@ -35,6 +53,7 @@ class PipelineActionExecutor
                             'to_stage'   => $to,
                         ];
                         if (in_array('changed_by', $cols))  $row['changed_by'] = Auth::id();
+                        if ($note && in_array('note',$cols)) $row['note'] = $note;
                         if (in_array('created_at', $cols))  $row['created_at'] = now();
                         DB::table('job_application_stage_logs')->insert($row);
                     } catch (\Throwable $e) {

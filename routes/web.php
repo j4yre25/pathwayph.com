@@ -292,6 +292,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/assessment/result',       [\App\Http\Controllers\AssessmentController::class,'recordResult'])->name('assessment.result.record');
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::post('/interview/invite', [\App\Http\Controllers\InterviewController::class,'sendInvitation'])->name('interview.invite');
+    Route::post('/interview/reschedule', [\App\Http\Controllers\InterviewController::class,'reschedule'])->name('interview.reschedule');
+    Route::post('/interview/feedback', [\App\Http\Controllers\InterviewController::class,'recordFeedback'])->name('interview.feedback');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::post('/offer/send', [\App\Http\Controllers\OfferController::class,'send'])->name('offer.send');
+});
+
 // Company Reports
 Route::prefix('company')->middleware(['auth'])->group(function () {
     Route::get('/company-reports/academic-performance', [CompanyReportsController::class, 'academicPerformance'])->name('company.reports.academicPerformance');

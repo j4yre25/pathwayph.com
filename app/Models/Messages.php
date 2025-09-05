@@ -44,6 +44,12 @@ class Messages extends Model
     public const STATUS_READ      = 'read';
     public const STATUS_COMPLETED = 'completed';
 
+    public const TYPE_INTERVIEW_INVITE      = 'interview_invitation';
+    public const TYPE_INTERVIEW_RESCHEDULE  = 'interview_reschedule';
+    public const TYPE_OFFER_LETTER = 'offer_letter';
+    public const TYPE_EXAM_INSTRUCTIONS = 'exam_instructions';
+    public const TYPE_EXAM_RESCHEDULE   = 'exam_reschedule';
+
     public static function template(string $type): string
     {
         return match ($type) {
@@ -59,6 +65,7 @@ class Messages extends Model
     // Scopes
     public function scopeRequestInfo($q){ return $q->where('message_type','request_info'); }
     public function scopeExamInstructions($q){ return $q->where('message_type','exam_instructions'); }
+    public function scopeOfferLetters($q){ return $q->where('message_type', self::TYPE_OFFER_LETTER); }
 
     public function markCompleted(): bool
     {

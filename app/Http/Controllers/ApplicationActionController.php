@@ -26,7 +26,8 @@ class ApplicationActionController extends Controller
     ) {
         $request->validate([
             'action' => 'required|string',
-            'to' => 'nullable|string'
+            'to' => 'nullable|string',
+            'note' => 'nullable|string|max:1000', 
         ]);
 
         try {
@@ -42,7 +43,17 @@ class ApplicationActionController extends Controller
                 $action['to'] = $request->string('to')->lower();
             }
 
+            if ($request->filled('note')) {
+                $action['__note'] = $request->string('note')->value();
+            }
+
             $msg = $executor->execute($action, $application);
+
+            if (method_exists($application,'syncStatusFromStage')) {
+                if ($application->syncStatusFromStage()) {
+                    $application->save();
+                }
+            }
 
             return response()->json([
                 'message' => $msg,

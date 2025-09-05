@@ -4,16 +4,19 @@ import { router } from '@inertiajs/vue3'
 import Datepicker from 'vue3-datepicker'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import CandidatePipeline from '@/Components/CandidatePipeline.vue'
-import PipelineAction from '@/Components/PipelineAction.vue' // ensure import exists
-import useInterviewScheduler from '@/Composables/useInterviewScheduler'
+import PipelineAction from '@/Components/PipelineAction.vue'
 import useApplicantNote from '@/Composables/useApplicantNote'
-import OfferJobModal from '@/Components/OfferJobModal.vue'
 import { useVisitWebsite } from '@/Composables/useVisitWebsite'
 import RequestMoreInfoModal from '@/Components/RequestMoreInfoModal.vue'
 import axios from 'axios'
 import ExamInstructionsModal from '@/Components/ExamInstructionsModal.vue'
 import ExamResultModal from '@/Components/ExamResultModal.vue'
 import ExamRescheduleModal from '@/Components/ExamRescheduleModal.vue'
+import InterviewScheduleModal from '@/Components/InterviewScheduleModal.vue'
+import InterviewRescheduleModal from '@/Components/InterviewRescheduleModal.vue'
+import InterviewFeedbackModal from '@/Components/InterviewFeedbackModal.vue'
+import HireConfirmModal from '@/Components/HireConfirmModal.vue'
+import OfferSendModal from '@/Components/OfferSendModal.vue'
 
 const props = defineProps({
   applicant: Object,
@@ -33,11 +36,29 @@ const props = defineProps({
 const stageOrder = ['applied','screening','assessment','interview','offer','hired','rejected']
 const currentStage = ref(props.applicant.stage || 'applied')
 
+// Status mapping helper (front-end mirror of backend logic)
+function mapStatusFromStage(stage) {
+  const s = stage?.toLowerCase()
+  if (s === 'applied') return 'applied'
+  if (['screening','assessment','interview'].includes(s)) return 'screening'
+  if (s === 'offer') return 'offered'
+  if (s === 'hired') return 'hired'
+  if (s === 'rejected') return 'rejected'
+  return props.applicant?.status
+}
+
+// Ensure local applicant.status is aligned on mount
+if (props.applicant) {
+  props.applicant.status = mapStatusFromStage(props.applicant.stage)
+}
+
+// Replace onStageChanged to also sync status
 function onStageChanged(newStage) {
   currentStage.value = newStage
-  if (props.applicant) props.applicant.stage = newStage
-  // If you want status to mirror stage:
-  // props.applicant.status = newStage
+  if (props.applicant) {
+    props.applicant.stage = newStage
+    props.applicant.status = mapStatusFromStage(newStage)
+  }
 }
 
 // Map stage slug to readable label
@@ -82,22 +103,6 @@ const activeTab = ref('Resume');
 
 // Fetch tab-specific data on viewApplicantDetails()
 const resume = ref(props.resume);
-
-//For scheduling interview
-const {
-  showScheduleModal,
-  showConfirmationModal,
-  scheduleForm,
-  submitSchedule,
-  incrementHour,
-  decrementHour,
-  incrementMinute,
-  decrementMinute,
-  toggleAMPM
-} = useInterviewScheduler(props.applicant.id, () => {
-  console.log('Interview scheduled successfully!');
-});
-//End of scheduling interview
 
 //For note section
 const {
@@ -184,15 +189,8 @@ async function confirmReject() {
       route('applications.actions.perform', props.applicant.id),
       { action: 'reject' }
     )
-    // Update stage/status locally
-    if (data?.stage) {
-      onStageChanged(data.stage)
-      props.applicant.status = 'rejected'
-    } else {
-      // fallback
-      onStageChanged('rejected')
-      props.applicant.status = 'rejected'
-    }
+    if (data?.stage) onStageChanged(data.stage)
+    else onStageChanged('rejected')
     showRejectModal.value = false
   } catch (e) {
     rejectError.value = e.response?.data?.message || 'Failed to reject.'
@@ -201,30 +199,78 @@ async function confirmReject() {
   }
 }
 
+// Interview stage auxiliary status (not persisted; optional)
+const interviewStageStatus = ref(props.applicant?.status || '')
+
+// After scheduling or rescheduling we can reflect a friendly status locally
+function setInterviewStatus(label) {
+  interviewStageStatus.value = label
+  props.applicant.status = label
+}
+
 const showExamInstructions = ref(false)
 const showExamResult = ref(false)
 const showExamReschedule = ref(false)
+const showInterviewSchedule = ref(false)
+const showInterviewReschedule = ref(false)
+const showInterviewFeedback = ref(false)
+const showOfferSendModal = ref(false)
+const showHireModal = ref(false)
 
 function handlePipelineModal(e) {
-  // e.action holds the action.key from PipelineAction
   console.log('Pipeline modal event:', e)
   if (e.action === 'send_exam_instructions') showExamInstructions.value = true
   if (e.action === 'record_test_results')     showExamResult.value = true
   if (e.action === 'reschedule_test')         showExamReschedule.value = true
+  if (e.action === 'schedule_interview')      showInterviewSchedule.value = true
+  if (e.action === 'reschedule_interview')    showInterviewReschedule.value = true
+  if (e.action === 'record_interview_feedback') showInterviewFeedback.value = true
+  if (e.action === 'send_offer')              showOfferSendModal.value = true
 }
 
-// Optional callbacks after submit/save
-function onExamInstructionsSent() {
-  console.log('Exam instructions sent')
-  // TODO: refresh messages or timeline if needed
+// Exam callbacks
+function onExamInstructionsSent() { /* refresh messages if needed */ }
+function onExamResultSaved() { /* refresh results if needed */ }
+function onExamRescheduleSent() { /* refresh messages if needed */ }
+
+// Interview callbacks
+function onInterviewInvitationSent() {
+  setInterviewStatus('Interview Scheduled')
+  showInterviewSchedule.value = false
+  showConfirmationModal.value = true
 }
-function onExamResultSaved() {
-  console.log('Exam result saved')
-  // TODO: refresh result list or stage logic
+
+function onInterviewRescheduled() {
+  setInterviewStatus('Interview Rescheduled')
+  showInterviewReschedule.value = false
 }
-function onExamRescheduleSent() {
-  console.log('Exam reschedule sent')
-  // TODO: refresh messages
+
+function onInterviewFeedbackSaved(recommendation) {
+  // Optionally react to recommendation
+  if (recommendation === 'move_forward') {
+    // could trigger a stage change request here if desired
+    // router.post(...); or just set a label:
+    setInterviewStatus('Recommended to Move Forward')
+  } else if (recommendation === 'reject') {
+    setInterviewStatus('Interview - Rejection Recommended')
+  } else {
+    setInterviewStatus('Interview - On Hold')
+  }
+  showInterviewFeedback.value = false
+}
+
+function openHire() {
+  showHireModal.value = true
+}
+
+function onHired(stage) {
+  onStageChanged(stage || 'hired')
+  console.debug('Hired confirmed → stage/status synced')
+}
+
+function onOfferSent() {
+  // placeholder for refresh (messages / timeline)
+  console.log('Offer sent')
 }
 </script>
 
@@ -495,7 +541,7 @@ function onExamRescheduleSent() {
                 </span>
               </div>
 
-            <div v-if="applicant.status !== 'rejected'" class="space-y-4">
+            <div v-if="!['rejected','hired'].includes(currentStage)" class="space-y-4">
               <div class="flex items-center justify-between gap-4 flex-wrap">
                 <!-- Pipeline -->
                 <div class="flex-1 min-w-[260px]">
@@ -513,6 +559,7 @@ function onExamRescheduleSent() {
                     @stage-changed="onStageChanged"
                     @request-more-info="openRequestInfo"
                     @reject="openReject"
+                    @hire="openHire"
                     @open-modal="handlePipelineModal"
                   />
                 </div>
@@ -708,6 +755,51 @@ function onExamRescheduleSent() {
             :receiver-id="applicant.graduate.user_id"
             @close="showExamReschedule = false"
             @sent="onExamRescheduleSent"
+          />
+
+          <!-- Interview Schedule Modal -->
+          <InterviewScheduleModal
+            :show="showInterviewSchedule"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            :applicant-name="applicant.graduate.first_name"
+            @close="showInterviewSchedule = false"
+            @sent="onInterviewInvitationSent"
+          />
+
+          <!-- Interview Reschedule Modal -->
+          <InterviewRescheduleModal
+            :show="showInterviewReschedule"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            @close="showInterviewReschedule = false"
+            @sent="onInterviewRescheduled"
+          />
+
+          <!-- Interview Feedback Modal -->
+          <InterviewFeedbackModal
+            :show="showInterviewFeedback"
+            :application-id="applicant.id"
+            @close="showInterviewFeedback = false"
+            @saved="onInterviewFeedbackSaved"
+          />
+
+          <HireConfirmModal
+            :show="showHireModal"
+            :application-id="applicant.id"
+            :applicant-name="applicant.graduate.first_name + ' ' + applicant.graduate.last_name"
+            @close="showHireModal = false"
+            @hired="onHired"
+          />
+
+          <!-- New Send Offer Modal -->
+          <OfferSendModal
+            :show="showOfferSendModal"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            :job-title-default="applicant.job?.job_title || 'Position'"
+            @close="showOfferSendModal = false"
+            @sent="onOfferSent"
           />
         </main>
       </div>

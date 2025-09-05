@@ -1,6 +1,6 @@
 <script setup>
 import axios from 'axios'
-import { ref } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
   show: Boolean,
@@ -19,11 +19,67 @@ const notes = ref('')
 const error = ref(null)
 const sending = ref(false)
 
+const todayDate = computed(() => {
+  const d = new Date()
+  return d.toISOString().slice(0,10)
+})
+const currentTimeHHMM = () => {
+  const d = new Date()
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')
+}
+const minTime = ref(currentTimeHHMM())
+
+// Reset minTime every minute while modal open (optional)
+let intervalId = null
+watch(() => props.show, v => {
+  if (v) {
+    intervalId = setInterval(() => {
+      if (date.value === todayDate.value) {
+        minTime.value = currentTimeHHMM()
+      }
+    }, 60000)
+  } else if (intervalId) {
+    clearInterval(intervalId)
+  }
+})
+
+// Auto-correct past date
+watch(date, (nv) => {
+  if (!nv) return
+  if (nv < todayDate.value) date.value = todayDate.value
+  // If selecting today ensure time min resets
+  if (date.value === todayDate.value && time.value && time.value < minTime.value) {
+    time.value = minTime.value
+  }
+})
+
+// Auto-correct time if now > chosen
+watch(time, (nv) => {
+  if (!nv) return
+  if (date.value === todayDate.value && nv < minTime.value) {
+    time.value = minTime.value
+  }
+})
+
+function validateDateTime() {
+  if (!date.value || !time.value) return 'Exam type, date and time are required.'
+  const chosen = new Date(`${date.value}T${time.value}:00`)
+  if (chosen.getTime() < Date.now() - 1000 * 30) {
+    return 'Selected date/time is in the past.'
+  }
+  return null
+}
+
 async function submit() {
   if (sending.value) return
   error.value = null
-  if (!examType.value || !date.value || !time.value) {
-    error.value = 'Exam type, date and time are required.'
+  if (!examType.value) {
+    error.value = 'Exam type is required.'
+    return
+  }
+  const dtErr = validateDateTime()
+  if (dtErr) {
+    error.value = dtErr
     return
   }
   sending.value = true
@@ -48,6 +104,7 @@ async function submit() {
   }
 }
 </script>
+
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
     <div class="bg-white rounded-lg shadow w-full max-w-md p-5">
@@ -60,11 +117,16 @@ async function submit() {
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="font-medium text-xs">Date</label>
-            <input type="date" v-model="date" class="mt-1 w-full border rounded px-2 py-1 text-sm">
+            <input type="date" v-model="date" :min="todayDate" class="mt-1 w-full border rounded px-2 py-1 text-sm">
           </div>
-            <div>
+          <div>
             <label class="font-medium text-xs">Time</label>
-            <input type="time" v-model="time" class="mt-1 w-full border rounded px-2 py-1 text-sm">
+            <input
+              type="time"
+              v-model="time"
+              :min="date === todayDate ? minTime : null"
+              class="mt-1 w-full border rounded px-2 py-1 text-sm"
+            >
           </div>
         </div>
         <div>
