@@ -452,6 +452,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/admin/manage-users/batch-upload', [ManageUsersController::class, 'batchUpload'])->name('companies.batch.upload');
     Route::get('/institutions/{institution}/download-verification', [ManageUsersController::class, 'downloadVerification'])
     ->name('institutions.downloadVerification');
+    Route::get('/companies/{company}/download-verification', [ManageUsersController::class, 'downloadCompanyVerification'])
+    ->name('companies.downloadVerification');
 });
 
 // Sectors

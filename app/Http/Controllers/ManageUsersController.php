@@ -430,6 +430,30 @@ class ManageUsersController extends Controller
             abort(404, 'Verification file not found.');
         }
 
-        return response()->download(storage_path('app/' . $institution->verification_file_path));
+        // Use public disk if file is in storage/app/public/verification-documents
+        $filePath = 'public/verification-documents/' . basename($institution->verification_file_path);
+
+        if (!\Storage::disk('public')->exists('verification-documents/' . basename($institution->verification_file_path))) {
+            abort(404, 'Verification file not found.');
+        }
+
+        return \Storage::disk('public')->download('verification-documents/' . basename($institution->verification_file_path));
     }
+
+    public function downloadCompanyVerification($companyId)
+{
+    $company = \App\Models\Company::findOrFail($companyId);
+
+    if (!$company->verification_file_path) {
+        abort(404, 'Verification file not found.');
+    }
+
+    $filePath = $company->verification_file_path; // e.g. verification-documents/filename.pdf
+
+    if (!\Storage::disk('public')->exists($filePath)) {
+        abort(404, 'Verification file not found.');
+    }
+
+    return \Storage::disk('public')->download($filePath);
+}
 }
