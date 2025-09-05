@@ -28,6 +28,18 @@ const stats = computed(() => {
     return { total, approved, pending, disapproved };
 });
 
+function getVerificationFileUrl(institutionId) {
+    return route('institutions.downloadVerification', institutionId);
+}
+
+function isImage(filePath) {
+    return /\.(jpg|jpeg|png|gif)$/i.test(filePath);
+}
+
+function isPDF(filePath) {
+    return /\.pdf$/i.test(filePath);
+}
+
 const archiveUser = () => {
     if (userToArchive.value) {
         router.delete(route('admin.manage_users.delete', { user: userToArchive.value.id }), {
@@ -38,6 +50,15 @@ const archiveUser = () => {
         });
     }
 };
+
+
+const showVerificationModal = ref(false);
+const userToVerify = ref(null);
+
+function openVerificationModal(user) {
+    userToVerify.value = user;
+    showVerificationModal.value = true;
+}
 
 const confirmArchive = (user) => {
     console.log('Archive modal should open for:', user);
@@ -143,22 +164,19 @@ console.log('approved_count:', props.all_users.approved_count);
             <div
                 class="bg-white rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-4 transition-all duration-200 hover:shadow-md">
                 <div class="flex items-center space-x-4">
-                    <Link v-if="page.props.roles.isPeso" :href="route('admin.manage_users.list')"
-                        :class="[route().current('admin.manage_users.list') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200',
-                            'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']">
+                    <Link v-if="page.props.roles.isPeso" :href="route('admin.manage_users.list')" :class="[route().current('admin.manage_users.list') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200',
+                        'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']">
                     <i class="fas fa-list mr-2"></i>
                     <span>List Of Users</span>
                     </Link>
-                    <Link v-if="page.props.roles.isPeso" :href="route('admin.manage_users.archivedlist')"
-                        :class="[route().current('admin.manage_users.archivedlist') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200',
-                            'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']">
+                    <Link v-if="page.props.roles.isPeso" :href="route('admin.manage_users.archivedlist')" :class="[route().current('admin.manage_users.archivedlist') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200',
+                        'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']">
                     <i class="fas fa-archive mr-2"></i>
                     <span>Archived Users</span>
                     </Link>
                 </div>
-                <Link v-if="page.props.roles.isPeso" :href="route('companies.batch.page')"
-                    :class="[route().current('companies.batch.page') ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600',
-                        'px-4 py-2 rounded-md text-white font-medium transition-colors flex items-center shadow-sm']">
+                <Link v-if="page.props.roles.isPeso" :href="route('companies.batch.page')" :class="[route().current('companies.batch.page') ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600',
+                    'px-4 py-2 rounded-md text-white font-medium transition-colors flex items-center shadow-sm']">
                 <i class="fas fa-upload mr-2"></i> Batch Upload Companies
                 </Link>
             </div>
@@ -222,8 +240,8 @@ console.log('approved_count:', props.all_users.approved_count);
                                             'fas fa-clock mr-1': user.is_approved === null
                                         }"></i>
                                         {{ user.is_approved === true ? 'Approved' : (user.is_approved === false ?
-                                        'Disapproved'
-                                        : 'Pending') }}
+                                            'Disapproved'
+                                            : 'Pending') }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -240,11 +258,11 @@ console.log('approved_count:', props.all_users.approved_count);
                                             title="Disapprove">
                                             <i class="fas fa-times"></i>
                                         </button>
-                                        <!-- <Link :href="route('admin.manage_users.edit', { user: user.id })"
+                                        <button @click="openVerificationModal(user)"
                                             class="text-blue-500 hover:text-blue-700 focus:outline-none p-1 hover:bg-blue-50 rounded-full transition-colors"
-                                            title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                        </Link> -->
+                                            title="Open Verification">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
                                         <button @click="confirmArchive(user)" v-if="user.is_approved !== false"
                                             class="text-gray-500 hover:text-gray-700 focus:outline-none p-1 hover:bg-gray-100 rounded-full transition-colors"
                                             title="Archive">
@@ -282,7 +300,7 @@ console.log('approved_count:', props.all_users.approved_count);
                             <p class="text-sm text-gray-700">
                                 Showing <span class="font-medium">{{ all_users.from }}</span> to <span
                                     class="font-medium">{{
-                                    all_users.to }}</span> of <span class="font-medium">{{ all_users.total }}</span>
+                                        all_users.to }}</span> of <span class="font-medium">{{ all_users.total }}</span>
                                 results
                             </p>
                         </div>
@@ -331,6 +349,50 @@ console.log('approved_count:', props.all_users.approved_count);
                     </div>
                 </template>
             </ConfirmationModal>
+
+
+            <ConfirmationModal :show="showVerificationModal" @close="showVerificationModal = false">
+                <template #title>
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                            <i class="fas fa-eye text-blue-500"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800">User Verification</h3>
+                    </div>
+                </template>
+                <template #content>
+                    <p class="text-gray-600">
+                        Check verification details for <strong>{{ userToVerify?.full_name }}</strong>.
+                    </p>
+                    <!-- Preview Section -->
+                    <div v-if="userToVerify?.institution?.verification_file_path" class="mt-4">
+                        <template v-if="isImage(userToVerify.institution.verification_file_path)">
+                            <img :src="getVerificationFileUrl(userToVerify.institution.id)"
+                                alt="Verification File Preview" class="max-w-full h-auto rounded border" />
+                        </template>
+                        <template v-else-if="isPDF(userToVerify.institution.verification_file_path)">
+                            <iframe :src="getVerificationFileUrl(userToVerify.institution.id)"
+                                class="w-full h-64 border rounded"></iframe>
+                        </template>
+                        <template v-else>
+                            <a :href="getVerificationFileUrl(userToVerify.institution.id)" target="_blank"
+                                class="text-blue-600 underline">Preview File</a>
+                        </template>
+                    </div>
+                </template>
+                <template #footer>
+                    <div class="flex justify-end space-x-3">
+                        <SecondaryButton @click="showVerificationModal = false">Close</SecondaryButton>
+                        <a v-if="userToVerify?.institution?.verification_file_path"
+                            :href="getVerificationFileUrl(userToVerify.institution.id)"
+                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm transition-colors duration-200"
+                            target="_blank" download>
+                            <i class="fas fa-download mr-2"></i> Download Verification File
+                        </a>
+                    </div>
+                </template>
+            </ConfirmationModal>
+
         </Container>
     </AppLayout>
 </template>

@@ -27,7 +27,7 @@ class ManageUsersController extends Controller
         // Append full name and organization name using related models
         $users->getCollection()->transform(function ($user) {
 
-            
+
             switch ($user->role) {
                 case 'company':
                     $user->full_name = $user->hr
@@ -206,7 +206,7 @@ class ManageUsersController extends Controller
             $user->hr->save();
         }
 
-        
+
         $user->notify(new \App\Notifications\AccountApproved());
         return redirect()->route('admin.manage_users')->with('flash.banner', 'User approved successfully.');
     }
@@ -419,5 +419,17 @@ class ManageUsersController extends Controller
     {
         $name = preg_replace('/\s+/', '', strtolower($companyName));
         return $name . '@2024!';
+    }
+
+
+    public function downloadVerification($institutionId)
+    {
+        $institution = \App\Models\Institution::findOrFail($institutionId);
+
+        if (!$institution->verification_file_path) {
+            abort(404, 'Verification file not found.');
+        }
+
+        return response()->download(storage_path('app/' . $institution->verification_file_path));
     }
 }
