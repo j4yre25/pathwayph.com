@@ -569,8 +569,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/graduates/manage', [ManageGraduatesApprovalController::class, 'index'])->name('graduates.manage');
     Route::get('/graduates/list', [ManageGraduatesApprovalController::class, 'list'])->name('graduates.list');
-    Route::put('/graduates/approve/{user}', [ManageGraduatesApprovalController::class, 'approve'])->name('graduates.approve');
-    Route::put('/graduates/disapprove/{user}', [ManageGraduatesApprovalController::class, 'disapprove'])->name('graduates.disapprove');
+    Route::post('/graduates/approve/{user}', [ManageGraduatesApprovalController::class, 'approve'])->name('graduates.approve');
+    Route::post('/graduates/disapprove/{user}', [ManageGraduatesApprovalController::class, 'disapprove'])->name('graduates.disapprove');
 });
 
 // Career Opportunities Routes
@@ -598,7 +598,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::delete('/archive/{id}', [SkillController::class, 'archive'])->name('instiskills.archive');
     Route::get('/{user}/archivedlist', [SkillController::class, 'archivedlist'])->name('instiskills.archivedlist');
     Route::post('/restore/{id}', [SkillController::class, 'restore'])->name('instiskills.restore');
+
 });
+
+
 
 //Career Guidance
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
@@ -1006,6 +1009,6 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
 
 
-Route::prefix('admin')->middleware(['auth'])->group(function () {});
+Route::prefix('admin')->middleware(['auth'])->group(function () { });
 
 Route::post('/profile/testimonials/request', [ProfileController::class, 'requestTestimonial'])->name('profile.testimonials.request');

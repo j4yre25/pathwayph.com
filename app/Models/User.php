@@ -47,7 +47,8 @@ class User extends Authenticatable
         'contact_number',
         'profile_picture',
         'archived_at',
-        'last_login_at'
+        'last_login_at',
+        'has_completed_information'
 
     ];
 

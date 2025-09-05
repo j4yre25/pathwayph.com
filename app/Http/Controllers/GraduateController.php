@@ -521,6 +521,7 @@ class GraduateController extends Controller
                 'password' => Hash::make($password),
                 'role' => 'graduate',
                 'is_approved' => true,
+                'has_completed_information' => true, // <-- Add this line
             ]);
 
             DB::table('graduates')->insert([
@@ -552,7 +553,7 @@ class GraduateController extends Controller
 
     public function downloadTemplate()
     {
-        return response()->download(public_path('templates/graduate_template.csv'));
+        return response()->download(public_path(path: 'templates/graduate_template.csv'));
     }
 
     public function archivedList()
