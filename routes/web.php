@@ -265,19 +265,19 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     });
 });
 
-Route::middleware(['auth','verified'])->group(function () {
-    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'index'])
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class, 'index'])
         ->name('applications.actions.index');
-    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'perform'])
+    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class, 'perform'])
         ->name('applications.actions.perform');
 
-    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'index'])->name('applications.actions.index');
-    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'perform'])->name('applications.actions.perform');
+    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class, 'index'])->name('applications.actions.index');
+    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class, 'perform'])->name('applications.actions.perform');
 });
 
-Route::middleware(['auth','verified'])->group(function () {
-    Route::get('/pipeline-stages', [\App\Http\Controllers\PipelineStageController::class,'index'])->name('pipeline.stages.index');
-    Route::put('/pipeline-stages/reorder', [\App\Http\Controllers\PipelineStageController::class,'reorder'])->name('pipeline.stages.reorder');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/pipeline-stages', [\App\Http\Controllers\PipelineStageController::class, 'index'])->name('pipeline.stages.index');
+    Route::put('/pipeline-stages/reorder', [\App\Http\Controllers\PipelineStageController::class, 'reorder'])->name('pipeline.stages.reorder');
 });
 
 // Company Reports
@@ -492,8 +492,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
     Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
     Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
-    ->get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])
-    ->name('institutions.reports.graduate.data');
+        ->get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])
+        ->name('institutions.reports.graduate.data');
 });
 
 //Internship Routes
@@ -567,8 +567,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->group(function () {
     Route::get('/graduates/manage', [ManageGraduatesApprovalController::class, 'index'])->name('graduates.manage');
     Route::get('/graduates/list', [ManageGraduatesApprovalController::class, 'list'])->name('graduates.list');
-    Route::put('/graduates/approve/{user}', [ManageGraduatesApprovalController::class, 'approve'])->name('graduates.approve');
-    Route::put('/graduates/disapprove/{user}', [ManageGraduatesApprovalController::class, 'disapprove'])->name('graduates.disapprove');
+    Route::post('/graduates/approve/{user}', [ManageGraduatesApprovalController::class, 'approve'])->name('graduates.approve');
+    Route::post('/graduates/disapprove/{user}', [ManageGraduatesApprovalController::class, 'disapprove'])->name('graduates.disapprove');
 });
 
 // Career Opportunities Routes
@@ -596,7 +596,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::delete('/archive/{id}', [SkillController::class, 'archive'])->name('instiskills.archive');
     Route::get('/{user}/archivedlist', [SkillController::class, 'archivedlist'])->name('instiskills.archivedlist');
     Route::post('/restore/{id}', [SkillController::class, 'restore'])->name('instiskills.restore');
+
 });
+
+
 
 //Career Guidance
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
@@ -1001,6 +1004,6 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
 
 
-Route::prefix('admin')->middleware(['auth'])->group(function () {});
+Route::prefix('admin')->middleware(['auth'])->group(function () { });
 
 Route::post('/profile/testimonials/request', [ProfileController::class, 'requestTestimonial'])->name('profile.testimonials.request');

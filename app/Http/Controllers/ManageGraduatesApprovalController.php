@@ -23,10 +23,21 @@ class ManageGraduatesApprovalController extends Controller
             ->join('users', 'graduates.user_id', '=', 'users.id')
             ->where('users.role', 'graduate')
             ->where('graduates.institution_id', $institutionId)
-            ->where('users.is_approved', false)
+            ->where(function($q) {
+                $q->where('users.is_approved', false)
+                  ->orWhereNull('users.is_approved');
+            })
             ->orderBy('users.created_at', 'desc')
-            ->select('users.*', 'graduates.*')
-            ->get();
+            ->select('users.id as user_id', 'users.email', 'users.is_approved', 'graduates.first_name', 'graduates.middle_name', 'graduates.last_name')
+            ->get()
+            ->map(function($g) {
+                return [
+                    'id' => $g->user_id, // This is always the user's id
+                    'email' => $g->email,
+                    'name' => trim("{$g->first_name} {$g->middle_name} {$g->last_name}"),
+                    'status' => $g->is_approved === null ? 'pending' : ($g->is_approved ? 'approved' : 'disapproved'),
+                ];
+            });
 
         // Get distinct programs for filtering options (ONLY programs for this institution)
         $programs = DB::table('graduates')
@@ -62,15 +73,8 @@ class ManageGraduatesApprovalController extends Controller
         }
 
         $user->is_approved = true;
-        // Generate and save verification code
-        $verificationCode = rand(100000, 999999);
-        $user->verification_code = $verificationCode;
         $user->save();
-
-        // Send the verification code via email
-        $user->notify(new \App\Notifications\VerifyEmailWithCode($verificationCode));
-
-        return redirect()->back()->with('flash.banner', 'Graduate approved and verification code sent successfully.');
+        return redirect()->back()->with('flash.banner', 'Graduate approved successfully.');
     }
 
     public function disapprove(User $user)
