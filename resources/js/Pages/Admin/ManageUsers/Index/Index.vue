@@ -28,8 +28,8 @@ const stats = computed(() => {
     return { total, approved, pending, disapproved };
 });
 
-function getVerificationFileUrl(institutionId) {
-    return route('institutions.downloadVerification', institutionId);
+function getVerificationFileUrl(institution) {
+    return `/storage/${institution.verification_file_path}`;
 }
 
 function isImage(filePath) {
@@ -367,15 +367,30 @@ console.log('approved_count:', props.all_users.approved_count);
                     <!-- Preview Section -->
                     <div v-if="userToVerify?.institution?.verification_file_path" class="mt-4">
                         <template v-if="isImage(userToVerify.institution.verification_file_path)">
-                            <img :src="getVerificationFileUrl(userToVerify.institution.id)"
-                                alt="Verification File Preview" class="max-w-full h-auto rounded border" />
+                            <img :src="getVerificationFileUrl(userToVerify.institution)" alt="Verification File Preview"
+                                class="max-w-full h-auto rounded border" />
                         </template>
                         <template v-else-if="isPDF(userToVerify.institution.verification_file_path)">
-                            <iframe :src="getVerificationFileUrl(userToVerify.institution.id)"
+                            <iframe :src="getVerificationFileUrl(userToVerify.institution)"
                                 class="w-full h-64 border rounded"></iframe>
                         </template>
                         <template v-else>
-                            <a :href="getVerificationFileUrl(userToVerify.institution.id)" target="_blank"
+                            <a :href="getVerificationFileUrl(userToVerify.institution)" target="_blank"
+                                class="text-blue-600 underline">Preview File</a>
+                        </template>
+                    </div>
+
+                    <div v-if="userToVerify?.company?.verification_file_path" class="mt-4">
+                        <template v-if="isImage(userToVerify.company.verification_file_path)">
+                            <img :src="`/storage/${userToVerify.company.verification_file_path}`"
+                                alt="Verification File Preview" class="max-w-full h-auto rounded border" />
+                        </template>
+                        <template v-else-if="isPDF(userToVerify.company.verification_file_path)">
+                            <iframe :src="`/storage/${userToVerify.company.verification_file_path}`"
+                                class="w-full h-64 border rounded"></iframe>
+                        </template>
+                        <template v-else>
+                            <a :href="`/storage/${userToVerify.company.verification_file_path}`" target="_blank"
                                 class="text-blue-600 underline">Preview File</a>
                         </template>
                     </div>
@@ -384,7 +399,14 @@ console.log('approved_count:', props.all_users.approved_count);
                     <div class="flex justify-end space-x-3">
                         <SecondaryButton @click="showVerificationModal = false">Close</SecondaryButton>
                         <a v-if="userToVerify?.institution?.verification_file_path"
-                            :href="getVerificationFileUrl(userToVerify.institution.id)"
+                            :href="route('institutions.downloadVerification', userToVerify.institution.id)"
+                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm transition-colors duration-200"
+                            target="_blank" download>
+                            <i class="fas fa-download mr-2"></i> Download Verification File
+                        </a>
+
+                        <a v-if="userToVerify?.company?.verification_file_path"
+                            :href="route('companies.downloadVerification', userToVerify.company.id)"
                             class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm transition-colors duration-200"
                             target="_blank" download>
                             <i class="fas fa-download mr-2"></i> Download Verification File
