@@ -274,4 +274,20 @@ class ManageJobReferralsController extends Controller
         }
         return Storage::download($path);
     }
+
+    public function markSuccess(JobInvitation $referral)
+    {
+        $referral->status = 'success';
+        $referral->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function decline(JobInvitation $referral)
+    {
+        $referral->status = 'rejected';
+        $referral->save();
+
+        return response()->json(['success' => true]);
+    }
 }
