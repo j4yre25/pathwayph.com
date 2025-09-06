@@ -4,11 +4,19 @@ import { router } from '@inertiajs/vue3'
 import Datepicker from 'vue3-datepicker'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import CandidatePipeline from '@/Components/CandidatePipeline.vue'
-import PipelineAction from '@/Components/PipelineAction.vue' // ensure import exists
-import useInterviewScheduler from '@/Composables/useInterviewScheduler'
+import PipelineAction from '@/Components/PipelineAction.vue'
 import useApplicantNote from '@/Composables/useApplicantNote'
-import OfferJobModal from '@/Components/OfferJobModal.vue'
 import { useVisitWebsite } from '@/Composables/useVisitWebsite'
+import RequestMoreInfoModal from '@/Components/RequestMoreInfoModal.vue'
+import axios from 'axios'
+import ExamInstructionsModal from '@/Components/ExamInstructionsModal.vue'
+import ExamResultModal from '@/Components/ExamResultModal.vue'
+import ExamRescheduleModal from '@/Components/ExamRescheduleModal.vue'
+import InterviewScheduleModal from '@/Components/InterviewScheduleModal.vue'
+import InterviewRescheduleModal from '@/Components/InterviewRescheduleModal.vue'
+import InterviewFeedbackModal from '@/Components/InterviewFeedbackModal.vue'
+import HireConfirmModal from '@/Components/HireConfirmModal.vue'
+import OfferSendModal from '@/Components/OfferSendModal.vue'
 
 const props = defineProps({
   applicant: Object,
@@ -28,11 +36,29 @@ const props = defineProps({
 const stageOrder = ['applied','screening','assessment','interview','offer','hired','rejected']
 const currentStage = ref(props.applicant.stage || 'applied')
 
+// Status mapping helper (front-end mirror of backend logic)
+function mapStatusFromStage(stage) {
+  const s = stage?.toLowerCase()
+  if (s === 'applied') return 'applied'
+  if (['screening','assessment','interview'].includes(s)) return 'screening'
+  if (s === 'offer') return 'offered'
+  if (s === 'hired') return 'hired'
+  if (s === 'rejected') return 'rejected'
+  return props.applicant?.status
+}
+
+// Ensure local applicant.status is aligned on mount
+if (props.applicant) {
+  props.applicant.status = mapStatusFromStage(props.applicant.stage)
+}
+
+// Replace onStageChanged to also sync status
 function onStageChanged(newStage) {
   currentStage.value = newStage
-  if (props.applicant) props.applicant.stage = newStage
-  // If you want status to mirror stage:
-  // props.applicant.status = newStage
+  if (props.applicant) {
+    props.applicant.stage = newStage
+    props.applicant.status = mapStatusFromStage(newStage)
+  }
 }
 
 // Map stage slug to readable label
@@ -77,22 +103,6 @@ const activeTab = ref('Resume');
 
 // Fetch tab-specific data on viewApplicantDetails()
 const resume = ref(props.resume);
-
-//For scheduling interview
-const {
-  showScheduleModal,
-  showConfirmationModal,
-  scheduleForm,
-  submitSchedule,
-  incrementHour,
-  decrementHour,
-  incrementMinute,
-  decrementMinute,
-  toggleAMPM
-} = useInterviewScheduler(props.applicant.id, () => {
-  console.log('Interview scheduled successfully!');
-});
-//End of scheduling interview
 
 //For note section
 const {
@@ -149,6 +159,119 @@ const goBack = () => {
     window.history.back();
 };
 
+const showRequestInfoModal = ref(false)
+
+function openRequestInfo() {
+  showRequestInfoModal.value = true
+}
+
+function handleRequestInfoSent() {
+  showRequestInfoModal.value = false
+  // Optionally refresh messages / badge here
+}
+
+// Reject applicant modal
+const showRejectModal = ref(false)
+const rejecting = ref(false)
+const rejectError = ref(null)
+
+function openReject() {
+  rejectError.value = null
+  showRejectModal.value = true
+}
+
+async function confirmReject() {
+  if (rejecting.value) return
+  rejecting.value = true
+  rejectError.value = null
+  try {
+    const { data } = await axios.post(
+      route('applications.actions.perform', props.applicant.id),
+      { action: 'reject' }
+    )
+    if (data?.stage) onStageChanged(data.stage)
+    else onStageChanged('rejected')
+    showRejectModal.value = false
+  } catch (e) {
+    rejectError.value = e.response?.data?.message || 'Failed to reject.'
+  } finally {
+    rejecting.value = false
+  }
+}
+
+// Interview stage auxiliary status (not persisted; optional)
+const interviewStageStatus = ref(props.applicant?.status || '')
+
+// After scheduling or rescheduling we can reflect a friendly status locally
+function setInterviewStatus(label) {
+  interviewStageStatus.value = label
+  props.applicant.status = label
+}
+
+const showExamInstructions = ref(false)
+const showExamResult = ref(false)
+const showExamReschedule = ref(false)
+const showInterviewSchedule = ref(false)
+const showInterviewReschedule = ref(false)
+const showInterviewFeedback = ref(false)
+const showOfferSendModal = ref(false)
+const showHireModal = ref(false)
+
+function handlePipelineModal(e) {
+  console.log('Pipeline modal event:', e)
+  if (e.action === 'send_exam_instructions') showExamInstructions.value = true
+  if (e.action === 'record_test_results')     showExamResult.value = true
+  if (e.action === 'reschedule_test')         showExamReschedule.value = true
+  if (e.action === 'schedule_interview')      showInterviewSchedule.value = true
+  if (e.action === 'reschedule_interview')    showInterviewReschedule.value = true
+  if (e.action === 'record_interview_feedback') showInterviewFeedback.value = true
+  if (e.action === 'send_offer')              showOfferSendModal.value = true
+}
+
+// Exam callbacks
+function onExamInstructionsSent() { /* refresh messages if needed */ }
+function onExamResultSaved() { /* refresh results if needed */ }
+function onExamRescheduleSent() { /* refresh messages if needed */ }
+
+// Interview callbacks
+function onInterviewInvitationSent() {
+  setInterviewStatus('Interview Scheduled')
+  showInterviewSchedule.value = false
+  showConfirmationModal.value = true
+}
+
+function onInterviewRescheduled() {
+  setInterviewStatus('Interview Rescheduled')
+  showInterviewReschedule.value = false
+}
+
+function onInterviewFeedbackSaved(recommendation) {
+  // Optionally react to recommendation
+  if (recommendation === 'move_forward') {
+    // could trigger a stage change request here if desired
+    // router.post(...); or just set a label:
+    setInterviewStatus('Recommended to Move Forward')
+  } else if (recommendation === 'reject') {
+    setInterviewStatus('Interview - Rejection Recommended')
+  } else {
+    setInterviewStatus('Interview - On Hold')
+  }
+  showInterviewFeedback.value = false
+}
+
+function openHire() {
+  showHireModal.value = true
+}
+
+function onHired(stage) {
+  onStageChanged(stage || 'hired')
+  console.debug('Hired confirmed → stage/status synced')
+}
+
+function onOfferSent() {
+  // placeholder for refresh (messages / timeline)
+  console.log('Offer sent')
+}
 </script>
 
 <template>
@@ -316,25 +439,24 @@ const goBack = () => {
         </aside>
 
         <!-- Main Content -->
-        <!-- Added pt-8 for extra top padding so About Me is never covered -->
         <main class="md:w-2/3 w-full space-y-8 pt-8">
           <!-- Action Buttons -->
-          <div class="w-full flex flex-wrap gap-4 mb-6">
-            <div>
-              <button
-                  class="bg-black text-white px-6 py-2 rounded-full font-semibold flex items-center gap-2"
-                  @click="showScheduleModal = true"
-                >
-                  Schedule Interview <span class="text-xl leading-none">+</span>
-                </button>
+          <!-- <div class="w-full flex flex-wrap gap-4 mb-6"> -->
+            <!-- <div> -->
+              <!-- <button
+                class="bg-black text-white px-6 py-2 rounded-full font-semibold flex items-center gap-2"
+                @click="showScheduleModal = true"
+              >
+                Schedule Interview <span class="text-xl leading-none">+</span>
+              </button> -->
 
-                <div v-if="showScheduleModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-                  <div class="bg-white rounded-xl shadow-lg w-96 p-6 relative">
-                    <div class="text-lg font-semibold mb-4 text-center tracking-wide" style="letter-spacing: 0.05em;">
-                      Schedule Interview Date
-                    </div>
+              <!-- <div v-if="showScheduleModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+                <div class="bg-white rounded-xl shadow-lg w-96 p-6 relative">
+                  <div class="text-lg font-semibold mb-4 text-center tracking-wide" style="letter-spacing: 0.05em;">
+                    Schedule Interview Date
+                  </div> -->
                     <!-- Calendar Date Picker -->
-                    <div class="flex flex-col items-center mb-4">
+                    <!-- <div class="flex flex-col items-center mb-4">
                       <label class="mb-2 text-sm font-medium text-gray-700">Interview Date</label>
                       <Datepicker
                         v-model="scheduleForm.date"
@@ -350,9 +472,9 @@ const goBack = () => {
 
                     <div class="flex flex-col items-center mb-4">
                       <label class="mb-2 text-sm font-medium text-gray-700">Schedule at</label>
-                      <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-2"> -->
                         <!-- Hour -->
-                        <div class="flex flex-col items-center">
+                        <!-- <div class="flex flex-col items-center">
                           <button @click="incrementHour" class="text-lg font-bold text-gray-500 hover:text-black">&#9650;</button>
                           <input
                             type="number"
@@ -364,9 +486,9 @@ const goBack = () => {
                           />
                           <button @click="decrementHour" class="text-lg font-bold text-gray-500 hover:text-black">&#9660;</button>
                         </div>
-                        <span class="text-2xl font-bold">:</span>
+                        <span class="text-2xl font-bold">:</span> -->
                         <!-- Minute -->
-                        <div class="flex flex-col items-center">
+                        <!-- <div class="flex flex-col items-center">
                           <button @click="incrementMinute" class="text-lg font-bold text-gray-500 hover:text-black">&#9650;</button>
                           <input
                             type="number"
@@ -377,9 +499,9 @@ const goBack = () => {
                             style="appearance: textfield;"
                           />
                           <button @click="decrementMinute" class="text-lg font-bold text-gray-500 hover:text-black">&#9660;</button>
-                        </div>
+                        </div> -->
                         <!-- AM/PM -->
-                        <div class="flex flex-col items-center ml-2">
+                        <!-- <div class="flex flex-col items-center ml-2">
                           <button @click="toggleAMPM" class="text-lg font-bold text-gray-500 hover:text-black">&#9650;</button>
                           <div class="w-12 text-center text-2xl font-bold select-none">{{ scheduleForm.ampm }}</div>
                           <button @click="toggleAMPM" class="text-lg font-bold text-gray-500 hover:text-black">&#9660;</button>
@@ -400,26 +522,26 @@ const goBack = () => {
                 Offer Job <span class="text-xl leading-none">+</span>
               </button>
               <OfferJobModal :show="showOfferModal" :application-id="applicant.id" @close="closeOfferModal" />
-          </div>
-          <!-- Hiring Process -->
-          <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div class="flex items-start justify-between mb-4 gap-4 flex-wrap">
-              <h4 class="text-base font-semibold text-gray-800">Hiring Process</h4>
-              <span
-                class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
-                :class="{
-                  'bg-indigo-100 text-indigo-700': currentStage === 'screening' || currentStage === 'assessment' || currentStage === 'interview',
-                  'bg-yellow-100 text-yellow-800': currentStage === 'offer',
-                  'bg-green-100 text-green-800': currentStage === 'hired',
-                  'bg-red-100 text-red-800': currentStage === 'rejected',
-                  'bg-gray-100 text-gray-700': currentStage === 'applied'
-                }"
-              >
-                Stage: {{ displayStage }}
-              </span>
-            </div>
+          </div> -->
+            <!-- Hiring Process -->
+            <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <div class="flex items-start justify-between mb-4 gap-4 flex-wrap">
+                <h4 class="text-base font-semibold text-gray-800">Hiring Process</h4>
+                <span
+                  class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
+                  :class="{
+                    'bg-indigo-100 text-indigo-700': currentStage === 'screening' || currentStage === 'assessment' || currentStage === 'interview',
+                    'bg-yellow-100 text-yellow-800': currentStage === 'offer',
+                    'bg-green-100 text-green-800': currentStage === 'hired',
+                    'bg-red-100 text-red-800': currentStage === 'rejected',
+                    'bg-gray-100 text-gray-700': currentStage === 'applied'
+                  }"
+                >
+                  Stage: {{ displayStage }}
+                </span>
+              </div>
 
-            <div v-if="applicant.status !== 'rejected'" class="space-y-4">
+            <div v-if="!['rejected','hired'].includes(currentStage)" class="space-y-4">
               <div class="flex items-center justify-between gap-4 flex-wrap">
                 <!-- Pipeline -->
                 <div class="flex-1 min-w-[260px]">
@@ -435,6 +557,10 @@ const goBack = () => {
                     label="Stage Actions"
                     :transitions-only="false"
                     @stage-changed="onStageChanged"
+                    @request-more-info="openRequestInfo"
+                    @reject="openReject"
+                    @hire="openHire"
+                    @open-modal="handlePipelineModal"
                   />
                 </div>
               </div>
@@ -558,6 +684,122 @@ const goBack = () => {
               </button>
             </div>
           </div>
+
+          <RequestMoreInfoModal
+            :show="showRequestInfoModal"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            @close="showRequestInfoModal = false"
+            @request-sent="handleRequestInfoSent"
+          />
+
+          <!-- Reject Applicant Modal -->
+          <div
+            v-if="showRejectModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          >
+            <div class="bg-white w-full max-w-md mx-4 rounded-lg shadow-lg p-6 relative">
+              <h3 class="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle text-red-500"></i>
+                Confirm Rejection
+              </h3>
+              <p class="text-sm text-gray-600 mb-4 leading-relaxed">
+                You are about to reject
+                <strong>{{ applicant.graduate.first_name }} {{ applicant.graduate.last_name }}</strong>.
+                This will move the application to the Rejected stage. 
+              </p>
+              <div v-if="rejectError" class="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded">
+                {{ rejectError }}
+              </div>
+              <div class="flex justify-end gap-3">
+                <button
+                  class="px-4 py-2 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+                  :disabled="rejecting"
+                  @click="showRejectModal = false"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="px-4 py-2 text-sm rounded bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60"
+                  :disabled="rejecting"
+                  @click="confirmReject"
+                >
+                  {{ rejecting ? 'Rejecting...' : 'Confirm Reject' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exam Instructions Modal -->
+           <ExamInstructionsModal
+            :show="showExamInstructions"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            @close="showExamInstructions = false"
+            @sent="onExamInstructionsSent"
+          />
+
+          <!-- Exam Result Modal -->
+          <ExamResultModal
+            :show="showExamResult"
+            :application-id="applicant.id"
+            @close="showExamResult = false"
+            @saved="onExamResultSaved"
+          />
+
+          <!-- Exam Reschedule Modal -->
+          <ExamRescheduleModal
+            :show="showExamReschedule"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            @close="showExamReschedule = false"
+            @sent="onExamRescheduleSent"
+          />
+
+          <!-- Interview Schedule Modal -->
+          <InterviewScheduleModal
+            :show="showInterviewSchedule"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            :applicant-name="applicant.graduate.first_name"
+            @close="showInterviewSchedule = false"
+            @sent="onInterviewInvitationSent"
+          />
+
+          <!-- Interview Reschedule Modal -->
+          <InterviewRescheduleModal
+            :show="showInterviewReschedule"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            @close="showInterviewReschedule = false"
+            @sent="onInterviewRescheduled"
+          />
+
+          <!-- Interview Feedback Modal -->
+          <InterviewFeedbackModal
+            :show="showInterviewFeedback"
+            :application-id="applicant.id"
+            @close="showInterviewFeedback = false"
+            @saved="onInterviewFeedbackSaved"
+          />
+
+          <HireConfirmModal
+            :show="showHireModal"
+            :application-id="applicant.id"
+            :applicant-name="applicant.graduate.first_name + ' ' + applicant.graduate.last_name"
+            @close="showHireModal = false"
+            @hired="onHired"
+          />
+
+          <!-- New Send Offer Modal -->
+          <OfferSendModal
+            :show="showOfferSendModal"
+            :application-id="applicant.id"
+            :receiver-id="applicant.graduate.user_id"
+            :job-title-default="applicant.job?.job_title || 'Position'"
+            @close="showOfferSendModal = false"
+            @sent="onOfferSent"
+          />
         </main>
       </div>
     </div>
