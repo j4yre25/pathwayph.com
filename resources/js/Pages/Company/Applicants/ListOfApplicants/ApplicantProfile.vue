@@ -17,6 +17,7 @@ import InterviewRescheduleModal from '@/Components/InterviewRescheduleModal.vue'
 import InterviewFeedbackModal from '@/Components/InterviewFeedbackModal.vue'
 import HireConfirmModal from '@/Components/HireConfirmModal.vue'
 import OfferSendModal from '@/Components/OfferSendModal.vue'
+import RejectConfirmModal from '@/Components/RejectConfirmModal.vue'
 
 const props = defineProps({
   applicant: Object,
@@ -78,19 +79,6 @@ const displayStage = computed(() => stageLabels[currentStage.value] || currentSt
 
 const showHireConfirmation = ref(false);
 
-function hireApplicant() {
-  router.put(
-    route('company.applications.updateStatus', props.applicant.id),
-    { status: 'hired' },
-    {
-      onSuccess: () => {
-        props.applicant.status = 'hired';
-        currentStage.value = 'hired'
-        showHireConfirmation.value = true; 
-      }
-    }
-  );
-}
 
 // Copy to clipboard function
 function copyToClipboard(text) {
@@ -98,8 +86,6 @@ function copyToClipboard(text) {
   navigator.clipboard.writeText(text);
 }
 //End of copy to clipboard function
-
-const activeTab = ref('Resume');
 
 // Fetch tab-specific data on viewApplicantDetails()
 const resume = ref(props.resume);
@@ -129,12 +115,6 @@ function formatDate(dateStr) {
   });
 }
 
-const showOfferModal = ref(false);
-
-function closeOfferModal() {
-  showOfferModal.value = false;
-}
-
 
 const totalYearsExperience = computed(() => {
   if (!props.experiences.length) return 'No work experience';
@@ -150,10 +130,6 @@ const totalYearsExperience = computed(() => {
   const years = Math.floor(totalMonths / 12);
   return years > 0 ? `${years} Year${years > 1 ? 's' : ''}` : '< 1 Year';
 });
-
-onMounted(() => {
-  console.log('Applicant data:', props.applicant)
-})
 
 const goBack = () => {
     window.history.back();
@@ -172,31 +148,16 @@ function handleRequestInfoSent() {
 
 // Reject applicant modal
 const showRejectModal = ref(false)
-const rejecting = ref(false)
-const rejectError = ref(null)
+const rejectActionKey = ref('reject')
 
-function openReject() {
-  rejectError.value = null
+function openReject(payload) {
+  rejectActionKey.value = payload?.actionKey || 'reject'
   showRejectModal.value = true
 }
 
-async function confirmReject() {
-  if (rejecting.value) return
-  rejecting.value = true
-  rejectError.value = null
-  try {
-    const { data } = await axios.post(
-      route('applications.actions.perform', props.applicant.id),
-      { action: 'reject' }
-    )
-    if (data?.stage) onStageChanged(data.stage)
-    else onStageChanged('rejected')
-    showRejectModal.value = false
-  } catch (e) {
-    rejectError.value = e.response?.data?.message || 'Failed to reject.'
-  } finally {
-    rejecting.value = false
-  }
+function onRejected(stage) {
+  onStageChanged(stage || 'rejected')
+  showRejectModal.value = false
 }
 
 // Interview stage auxiliary status (not persisted; optional)
@@ -346,7 +307,7 @@ function onOfferSent() {
               </div>
               <div>
                 <div class="font-semibold">Highest Education</div>
-                <div>{{ education[0]?.education || 'Not Specified' }}</div>
+                <div>{{ education || 'Not Specified' }}</div>
               </div>
             </div>
             <hr class="my-2 w-full border-gray-200" />
@@ -693,43 +654,7 @@ function onOfferSent() {
             @request-sent="handleRequestInfoSent"
           />
 
-          <!-- Reject Applicant Modal -->
-          <div
-            v-if="showRejectModal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
-          >
-            <div class="bg-white w-full max-w-md mx-4 rounded-lg shadow-lg p-6 relative">
-              <h3 class="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                <i class="fas fa-exclamation-triangle text-red-500"></i>
-                Confirm Rejection
-              </h3>
-              <p class="text-sm text-gray-600 mb-4 leading-relaxed">
-                You are about to reject
-                <strong>{{ applicant.graduate.first_name }} {{ applicant.graduate.last_name }}</strong>.
-                This will move the application to the Rejected stage. 
-              </p>
-              <div v-if="rejectError" class="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded">
-                {{ rejectError }}
-              </div>
-              <div class="flex justify-end gap-3">
-                <button
-                  class="px-4 py-2 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
-                  :disabled="rejecting"
-                  @click="showRejectModal = false"
-                >
-                  Cancel
-                </button>
-                <button
-                  class="px-4 py-2 text-sm rounded bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60"
-                  :disabled="rejecting"
-                  @click="confirmReject"
-                >
-                  {{ rejecting ? 'Rejecting...' : 'Confirm Reject' }}
-                </button>
-              </div>
-            </div>
-          </div>
-
+          
           <!-- Exam Instructions Modal -->
            <ExamInstructionsModal
             :show="showExamInstructions"
@@ -789,6 +714,15 @@ function onOfferSent() {
             :applicant-name="applicant.graduate.first_name + ' ' + applicant.graduate.last_name"
             @close="showHireModal = false"
             @hired="onHired"
+          />
+
+          <RejectConfirmModal
+            :show="showRejectModal"
+            :application-id="applicant.id"
+            :applicant-name="applicant.graduate.first_name + ' ' + applicant.graduate.last_name"
+            :action-key="rejectActionKey"
+            @close="showRejectModal = false"
+            @rejected="onRejected"
           />
 
           <!-- New Send Offer Modal -->

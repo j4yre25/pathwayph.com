@@ -66,7 +66,7 @@ class CompanyApplicationController extends Controller
                 ];
             }) ?? [],
             'experiences' => $graduate?->experience ?? [],
-            'education' => $graduate?->education ?? [],
+            'education' => $graduate?->program, ' ', $graduate?->field_of_study ?? [],
             'projects' => $graduate?->projects ?? [],
             'achievements' => $graduate?->achievements ?? [],
             'certifications' => $graduate?->certifications ?? [],
