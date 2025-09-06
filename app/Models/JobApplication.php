@@ -149,4 +149,24 @@ class JobApplication extends Model
     public function stageLogs() {
         return $this->hasMany(JobApplicationStageLog::class, 'job_application_id');
     }
+
+    public function syncStatusFromStage(): bool
+    {
+        $stage = strtolower((string)$this->stage);
+        $map = [
+            'applied'    => 'applied',
+            'screening'  => 'screening',
+            'assessment' => 'screening',
+            'interview'  => 'screening',
+            'offer'      => 'offered',
+            'hired'      => 'hired',
+            'rejected'   => 'rejected',
+        ];
+        $new = $map[$stage] ?? $this->status;
+        if ($this->status !== $new) {
+            $this->status = $new;
+            return true;
+        }
+        return false;
+    }
 }

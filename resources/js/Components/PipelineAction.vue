@@ -6,12 +6,22 @@ import axios from 'axios'
 const props = defineProps({
   applicationId: { type: Number, required: true },
   currentStage:  { type: String, required: true },
-  variant:       { type: String, default: 'panel' },   // panel | button
+  variant:       { type: String, default: 'panel' },
   label:         { type: String, default: 'Stage Actions' },
   transitionsOnly: { type: Boolean, default: false },
+  requireHireConfirm: { type: Boolean, default: true }, // NEW
 })
 
-const emit = defineEmits(['open-modal','stage-changed','actions-loaded','error'])
+// ADDED request-more-info & reject to emits; open-modal already present
+const emit = defineEmits([
+  'open-modal',
+  'stage-changed',
+  'actions-loaded',
+  'error',
+  'request-more-info',
+  'reject',
+  'hire' // added
+])
 
 const loading = ref(false)
 const performing = ref(false)
@@ -39,13 +49,48 @@ async function load(force = false) {
 }
 
 async function perform(action) {
+  console.debug('Perform clicked', action)
   if (performing.value) return
   if (action.type === 'noop') {
     open.value = false
     return
   }
 
-  if (['transition','action'].includes(action.type)) {
+  // Intercept custom simple action -> opens its own modal (Request More Info)
+  if (action.key === 'request_more_info') {
+    emit('request-more-info', { action, applicationId: props.applicationId })
+    open.value = false
+    return
+  }
+
+  // Intercept reject (confirmation modal upstream)
+  if (action.key === 'reject' || action.key === 'reject_withdraw') {
+    emit('reject', { action, applicationId: props.applicationId })
+    open.value = false
+    return
+  }
+
+  // Intercept hire action
+  if (action.key === 'hire' && props.requireHireConfirm) {
+    emit('hire', { action, applicationId: props.applicationId })
+    open.value = false
+    return
+  }
+
+  // NEW: Generic handling for any pipeline action of type "modal"
+  // (e.g. schedule_interview, record_test_results, reschedule_test, send_exam_instructions, etc.)
+  if (action.type === 'modal') {
+    emit('open-modal', {
+      action: action.key,
+      modal: action.modal || null,
+      applicationId: props.applicationId
+    })
+    open.value = false
+    return
+  }
+
+  // Standard server actions (transition / action)
+  if (['transition','action','dynamic_transition'].includes(action.type)) {
     performing.value = true
     try {
       const { data } = await axios.post(
@@ -55,19 +100,12 @@ async function perform(action) {
       if (data?.stage) emit('stage-changed', data.stage)
       if (data?.actions) actions.value = data.actions
     } catch (e) {
-      error.value = e.response?.data?.error || 'Action failed'
-      console.error('Action perform error', e.response?.data || e)
+      console.error(e)
       emit('error', e)
     } finally {
       performing.value = false
       open.value = false
     }
-  } else if (action.type === 'modal') {
-    emit('open-modal', action)
-    open.value = false
-  } else if (action.type === 'view') {
-    router.get(route('applicants.show', props.applicationId))
-    open.value = false
   }
 }
 
@@ -88,7 +126,7 @@ function onClickOutside(e) {
 
 const visibleActions = computed(() => {
   if (props.transitionsOnly) {
-    return actions.value.filter(a => a.type === 'transition')
+    return actions.value.filter(a => a.type === 'transition' || a.type === 'dynamic_transition')
   }
   return actions.value
 })
@@ -101,7 +139,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('mousedown', onClickOutside)
 })
 
-// Reload when stage changes
 watch(() => props.currentStage, () => {
   if (props.variant === 'panel') load(true)
   else if (open.value) load(true)
