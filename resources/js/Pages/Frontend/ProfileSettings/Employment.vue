@@ -65,25 +65,50 @@ const employmentForm = useForm({
 });
 
 const isAddLocationModalOpen = ref(false);
+const isEditModalOpen = ref(false);
+const isSuccessModalOpen = ref(false);
+const isErrorModalOpen = ref(false);
+const successMessage = ref('');
+const errorMessage = ref('');
+
+
+// Temporary form data for editing
+const tempEmploymentPreferences = ref({
+  jobTypes: [],
+  salaryExpectations: {
+    min: null,
+    max: null,
+    frequency: 'monthly'
+  },
+  preferredLocations: [],
+  workEnvironment: [],
+  additionalNotes: ''
+});
 
 // Employment Preferences Handlers
 const saveEmploymentPreferences = () => {
-  employmentForm.job_types = [...employmentPreferences.value.jobTypes]; // array
-  employmentForm.employment_min_salary = employmentPreferences.value.salaryExpectations.min;
-  employmentForm.employment_max_salary = employmentPreferences.value.salaryExpectations.max;
-  employmentForm.salary_type = employmentPreferences.value.salaryExpectations.frequency;
-  employmentForm.preferred_locations = [...employmentPreferences.value.preferredLocations]; // array
-  employmentForm.work_environment = [...employmentPreferences.value.workEnvironment];
-  employmentForm.additional_notes = employmentPreferences.value.additionalNotes;
+  employmentForm.job_types = [...tempEmploymentPreferences.value.jobTypes]; // array
+  employmentForm.employment_min_salary = tempEmploymentPreferences.value.salaryExpectations.min;
+  employmentForm.employment_max_salary = tempEmploymentPreferences.value.salaryExpectations.max;
+  employmentForm.salary_type = tempEmploymentPreferences.value.salaryExpectations.frequency;
+  employmentForm.preferred_locations = [...tempEmploymentPreferences.value.preferredLocations]; // array
+  employmentForm.work_environment = [...tempEmploymentPreferences.value.workEnvironment];
+  employmentForm.additional_notes = tempEmploymentPreferences.value.additionalNotes;
 
   employmentForm.post(route('employment.preferences.updateEmploymentPreferences'), {
     onSuccess: () => {
+      // Update main data with temp data
+      employmentPreferences.value = JSON.parse(JSON.stringify(tempEmploymentPreferences.value));
+      successMessage.value = "Employment preferences saved successfully!";
+      isSuccessModalOpen.value = true;
+      closeEditModal();
       emit('close-all-modals');
       router.reload({ only: ['employmentReference'] });
     },
     onError: (errors) => {
       console.error('Error saving employment preferences:', errors);
-      alert('An error occurred while saving the employment preferences. Please try again.');
+      errorMessage.value = "An error occurred while saving the employment preferences. Please try again.";
+      isErrorModalOpen.value = true;
     },
   });
 };
@@ -134,10 +159,64 @@ const resetEmploymentPreferences = () => {
   console.log('Employment preferences reset.');
 };
 
+// Modal handlers
+const openEditModal = () => {
+  // Copy current data to temp for editing
+  tempEmploymentPreferences.value = JSON.parse(JSON.stringify(employmentPreferences.value));
+  isEditModalOpen.value = true;
+};
+
+const closeEditModal = () => {
+  isEditModalOpen.value = false;
+};
+
+const closeSuccessModal = () => {
+  isSuccessModalOpen.value = false;
+};
+
+const closeErrorModal = () => {
+  isErrorModalOpen.value = false;
+};
+
 const closeAddLocationModal = () => {
   isAddLocationModalOpen.value = false;
   newLocation.value = '';
   console.log('Add location modal closed.');
+};
+
+// Job type toggle for temp data
+const toggleJobTypeTemp = (type) => {
+  const idx = tempEmploymentPreferences.value.jobTypes.indexOf(type);
+  if (idx === -1) {
+    tempEmploymentPreferences.value.jobTypes.push(type);
+  } else {
+    tempEmploymentPreferences.value.jobTypes.splice(idx, 1);
+  }
+};
+
+// Add preferred location to temp data
+const addPreferredLocationToTemp = () => {
+  if (!newLocation.value.trim()) {
+    errorMessage.value = "Please enter a valid location.";
+    isErrorModalOpen.value = true;
+    return;
+  }
+
+  if (!tempEmploymentPreferences.value.preferredLocations.includes(newLocation.value.trim())) {
+    tempEmploymentPreferences.value.preferredLocations.push(newLocation.value.trim());
+    closeAddLocationModal();
+  } else {
+    errorMessage.value = "This location is already in your preferences.";
+    isErrorModalOpen.value = true;
+  }
+};
+
+// Remove preferred location from temp data
+const removePreferredLocationFromTemp = (location) => {
+  const index = tempEmploymentPreferences.value.preferredLocations.indexOf(location);
+  if (index > -1) {
+    tempEmploymentPreferences.value.preferredLocations.splice(index, 1);
+  }
 };
 
 // Function to initialize data on component mount
@@ -174,12 +253,34 @@ watch(
   },
   { immediate: true }
 );
+
+
 </script>
 
 <template>
   <div v-if="activeSection === 'employment'">
     <div class="w-full">
-      <p class="text-gray-600 mb-6">Set your job preferences and requirements</p>
+      <!-- Employment Preferences Header -->
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-lg mb-4">
+        <div class="flex items-center">
+          <div class="bg-blue-100 p-2 rounded-full mr-3">
+            <i class="fas fa-briefcase text-blue-600"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-blue-800">Employment Preferences</h3>
+            <p class="text-sm text-gray-600">Set your job preferences and requirements</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="openEditModal" 
+                  class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
+            <i class="fas fa-edit mr-1"></i>Edit
+          </button>
+        </div>
+      </div>
+
+      <!-- Employment Preferences Content -->
+      <div class="transition-all duration-300">
 
       <!-- Success Modal -->
       <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
@@ -223,11 +324,15 @@ watch(
         </div>
       </Modal>
 
-      <!-- Saved Preferences Container -->
-      <div
-        v-if="employmentPreferences.jobTypes.length || employmentPreferences.salaryExpectations.range || employmentPreferences.preferredLocations.length || employmentPreferences.workEnvironment.length || employmentPreferences.additionalNotes"
-        class="mb-6 p-5 border border-blue-100 rounded-lg bg-white shadow-md hover:shadow-lg transition-all duration-300">
-        <h2 class="text-lg font-semibold mb-4 text-blue-800 border-b border-blue-100 pb-2">Saved Employment Preferences</h2>
+      <!-- Display Employment Preferences -->
+      <div v-if="employmentPreferences.jobTypes.length || employmentPreferences.salaryExpectations.min || employmentPreferences.preferredLocations.length || employmentPreferences.workEnvironment.length || employmentPreferences.additionalNotes" 
+           class="mb-6 p-5 border border-blue-100 rounded-lg bg-white shadow-md hover:shadow-lg transition-all duration-300">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-blue-800 border-b border-blue-100 pb-2">Employment Preferences</h2>
+          <PrimaryButton @click="openEditModal" class="flex items-center">
+             <i class="fas fa-edit mr-2"></i> Edit Preferences
+           </PrimaryButton>
+        </div>
         <div class="space-y-4">
           <div class="bg-blue-50 p-3 rounded-md">
             <p class="flex items-start">
@@ -315,106 +420,160 @@ watch(
           </div>
         </div>
       </div>
+
+      <!-- Empty State -->
+      <div v-else class="mb-6 p-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-center">
+        <div class="mb-4">
+          <i class="fas fa-briefcase text-4xl text-gray-400"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No Employment Preferences Set</h3>
+        <p class="text-gray-600 mb-4">Set your employment preferences to help employers find you.</p>
+        <PrimaryButton @click="openEditModal" class="flex items-center mx-auto">
+           <i class="fas fa-plus mr-2"></i> Set Employment Preferences
+         </PrimaryButton>
+      </div>
       
-      <!-- Form Fields -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <!-- Job Types -->
-        <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-4 text-gray-800">Job Types</h2>
-          <div class="flex flex-wrap gap-2">
-            <button v-for="type in ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship']" :key="type"
-              :class="employmentPreferences.jobTypes.includes(type) ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
-              class="px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors duration-200" @click="toggleJobType(type)">
-              {{ type }}
-            </button>
+      <!-- Success Modal -->
+      <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+        <div class="p-6">
+          <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-green-100 rounded-full">
+            <i class="fas fa-check text-green-600 text-xl"></i>
+          </div>
+          <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Success!</h3>
+          <p class="text-center text-gray-600 mb-6">{{ successMessage }}</p>
+          <div class="flex justify-center">
+            <PrimaryButton @click="closeSuccessModal" class="bg-green-600 hover:bg-green-700 focus:bg-green-700 active:bg-green-800 focus:ring-green-500">
+               Close
+             </PrimaryButton>
           </div>
         </div>
-        
-        <!-- Salary Expectations -->
-        <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-4 text-gray-800">Salary Expectations</h2>
-          <div class="flex flex-wrap items-center gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Minimum</label>
-              <input type="number" v-model="employmentPreferences.salaryExpectations.min" placeholder="Min"
-                class="border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-500 w-32" min="0" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Maximum</label>
-              <input type="number" v-model="employmentPreferences.salaryExpectations.max" placeholder="Max"
-                class="border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-500 w-32" min="0" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select v-model="employmentPreferences.salaryExpectations.frequency"
-                class="border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-500">
-                <option value="monthly">Monthly</option>
-                <option value="hourly">Hourly</option>
-              </select>
-            </div>
+      </Modal>
+
+      <!-- Error Modal -->
+      <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+        <div class="p-6">
+          <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+            <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+          </div>
+          <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h3>
+          <p class="text-center text-gray-600 mb-6">{{ errorMessage }}</p>
+          <div class="flex justify-center">
+            <DangerButton @click="closeErrorModal">
+               Close
+             </DangerButton>
           </div>
         </div>
-      </div>
-      
-      <!-- Preferred Locations -->
-      <div class="mb-6">
-        <h2 class="text-lg font-semibold mb-4 text-gray-800">Preferred Locations</h2>
-        <div class="flex flex-wrap gap-2 mb-2">
-          <span v-for="location in employmentPreferences.preferredLocations" :key="location"
-            class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full border border-indigo-100 flex items-center">
-            {{ location }}
-            <button @click="removePreferredLocation(location)" class="ml-2 text-red-500 hover:text-red-700">
-              &times; <!-- This is the "X" character -->
+      </Modal>
+
+      <!-- Edit Employment Preferences Modal -->
+      <Modal :show="isEditModalOpen" @close="closeEditModal" max-width="4xl">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Edit Employment Preferences</h2>
+            <button @click="closeEditModal" class="text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times text-xl"></i>
             </button>
-          </span>
-          <button class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors duration-200"
-            @click="isAddLocationModalOpen = true">
-            + Add Location
-          </button>
+          </div>
+
+          <div class="space-y-6">
+            <!-- Job Types -->
+            <div>
+              <h3 class="text-lg font-semibold mb-3 text-gray-800">Job Types</h3>
+              <div class="flex flex-wrap gap-2">
+                <button v-for="type in ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship']" :key="type"
+                  :class="tempEmploymentPreferences.jobTypes.includes(type) ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'"
+                  class="px-4 py-2 rounded-full hover:bg-blue-700 transition-colors duration-200" @click="toggleJobTypeTemp(type)">
+                  {{ type }}
+                </button>
+              </div>
+            </div>
+            
+            <!-- Salary Expectations -->
+            <div>
+              <h3 class="text-lg font-semibold mb-3 text-gray-800">Salary Expectations</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Minimum</label>
+                  <input type="number" v-model="tempEmploymentPreferences.salaryExpectations.min" placeholder="Min"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-blue-600 focus:border-blue-500" min="0" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Maximum</label>
+                  <input type="number" v-model="tempEmploymentPreferences.salaryExpectations.max" placeholder="Max"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-blue-600 focus:border-blue-500" min="0" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select v-model="tempEmploymentPreferences.salaryExpectations.frequency"
+                    class="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-blue-600 focus:border-blue-500">
+                    <option value="monthly">Monthly</option>
+                    <option value="hourly">Hourly</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Preferred Locations -->
+            <div>
+              <h3 class="text-lg font-semibold mb-3 text-gray-800">Preferred Locations</h3>
+              <div class="flex flex-wrap gap-2 mb-2">
+                <span v-for="location in tempEmploymentPreferences.preferredLocations" :key="location"
+                  class="bg-blue-50 text-blue-700 px-4 py-2 rounded-full border border-blue-100 flex items-center">
+                  {{ location }}
+                  <button @click="removePreferredLocationFromTemp(location)" class="ml-2 text-red-500 hover:text-red-700">
+                    &times;
+                  </button>
+                </span>
+                <PrimaryButton class="rounded-full"
+                   @click="isAddLocationModalOpen = true">
+                   + Add Location
+                 </PrimaryButton>
+              </div>
+            </div>
+            
+            <!-- Work Environment -->
+            <div>
+              <h3 class="text-lg font-semibold mb-3 text-gray-800">Work Environment</h3>
+              <div class="flex flex-wrap gap-8">
+                <label class="flex items-center">
+                  <input type="checkbox" value="Remote" v-model="tempEmploymentPreferences.workEnvironment"
+                    class="form-checkbox text-blue-600 focus:ring-blue-600" />
+                  <span class="ml-2 text-gray-700">Remote</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="checkbox" value="Hybrid" v-model="tempEmploymentPreferences.workEnvironment"
+                    class="form-checkbox text-blue-600 focus:ring-blue-600" />
+                  <span class="ml-2 text-gray-700">Hybrid</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="checkbox" value="On-site" v-model="tempEmploymentPreferences.workEnvironment"
+                    class="form-checkbox text-blue-600 focus:ring-blue-600" />
+                  <span class="ml-2 text-gray-700">On-site</span>
+                </label>
+              </div>
+            </div>
+            
+            <!-- Additional Notes -->
+            <div>
+              <h3 class="text-lg font-semibold mb-3 text-gray-800">Additional Notes</h3>
+              <textarea v-model="tempEmploymentPreferences.additionalNotes"
+                class="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-blue-600 focus:border-blue-500" rows="4"
+                placeholder="Any other preferences or requirements..."></textarea>
+            </div>
+          </div>
+
+          <!-- Modal Action Buttons -->
+          <div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
+            <SecondaryButton @click="closeEditModal">
+               Cancel
+             </SecondaryButton>
+            <PrimaryButton @click="saveEmploymentPreferences" class="flex items-center">
+               <i class="fas fa-save mr-2"></i> Save Preferences
+             </PrimaryButton>
+          </div>
         </div>
-      </div>
-      
-      <!-- Work Environment -->
-      <div class="mb-6">
-        <h2 class="text-lg font-semibold mb-4 text-gray-800">Work Environment</h2>
-        <div class="flex flex-wrap gap-8">
-          <label class="flex items-center">
-            <input type="checkbox" value="Remote" v-model="employmentPreferences.workEnvironment"
-              class="form-checkbox text-indigo-600 focus:ring-indigo-600" />
-            <span class="ml-2 text-gray-700">Remote</span>
-          </label>
-          <label class="flex items-center">
-            <input type="checkbox" value="Hybrid" v-model="employmentPreferences.workEnvironment"
-              class="form-checkbox text-indigo-600 focus:ring-indigo-600" />
-            <span class="ml-2 text-gray-700">Hybrid</span>
-          </label>
-          <label class="flex items-center">
-            <input type="checkbox" value="On-site" v-model="employmentPreferences.workEnvironment"
-              class="form-checkbox text-indigo-600 focus:ring-indigo-600" />
-            <span class="ml-2 text-gray-700">On-site</span>
-          </label>
-        </div>
-      </div>
-      
-      <!-- Additional Notes -->
-      <div class="mb-8">
-        <h2 class="text-lg font-semibold mb-4 text-gray-800">Additional Notes</h2>
-        <textarea v-model="employmentPreferences.additionalNotes"
-          class="border border-gray-300 rounded w-full px-4 py-2 focus:ring-2 focus:ring-indigo-600 focus:border-indigo-500" rows="4"
-          placeholder="Any other preferences or requirements..."></textarea>
-      </div>
-      
-      <!-- Action Buttons -->
-      <div class="flex space-x-4 mt-8">
-        <button class="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center hover:bg-indigo-700 transition-colors duration-200 shadow-sm"
-          @click="saveEmploymentPreferences">
-          <i class="fas fa-save mr-2"></i> Save Preferences
-        </button>
-        <button class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg flex items-center hover:bg-gray-300 transition-colors duration-200"
-          @click="resetEmploymentPreferences">
-          <i class="fas fa-undo mr-2"></i> Reset
-        </button>
-      </div>
+      </Modal>
+      </div> <!-- End Collapsible Content -->
     </div>
     
     <!-- Add Location Modal -->
@@ -427,7 +586,7 @@ watch(
           </button>
         </div>
         <p class="text-gray-600 mb-4">Add a preferred location for employment</p>
-        <form @submit.prevent="addPreferredLocation">
+        <form @submit.prevent="addPreferredLocationToTemp">
           <div class="mb-4">
             <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
             <input type="text" v-model="newLocation"
@@ -435,10 +594,51 @@ watch(
               placeholder="e.g. New York, NY" required />
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200">Add</button>
+            <PrimaryButton type="submit">Add</PrimaryButton>
           </div>
         </form>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Glow effect animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input focus effects with glow */
+input:focus, textarea:focus, select:focus {
+  animation: pulse 1.5s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:not(:disabled) {
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form element transitions */
+form div {
+  animation: fadeIn 0.3s ease-out;
+}
+</style>

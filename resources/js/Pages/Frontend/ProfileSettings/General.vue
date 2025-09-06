@@ -149,10 +149,10 @@ watch(() => profile.value.fullName, (newFullName) => {
 
 
 const saveProfile = () => {
-  // if (!validateForm()) {
-  //   showErrorModal('Please correct the errors in the form.');
-  //   return;
-  // }
+  if (!validateForm()) {
+    showErrorModal('Please correct the errors in the form.');
+    return;
+  }
 
   // Format birthdate
   if (profile.value.graduate_birthdate) {
@@ -197,14 +197,16 @@ const saveProfile = () => {
   console.log('Submitting form:', settingsForm);
 
   if (!settingsForm.graduate_picture) {
-  delete settingsForm.graduate_picture;
-}
+    delete settingsForm.graduate_picture;
+  }
 
   // Submit form
   settingsForm.post(route('profile.updateProfile'), {
     forceFormData: true,
     onSuccess: (response) => {
-      emit('close-all-modals');      profile.value.first_name = settingsForm.first_name;
+      emit('close-all-modals');
+      
+      profile.value.first_name = settingsForm.first_name;
       profile.value.middle_name = settingsForm.middle_name;
       profile.value.last_name = settingsForm.last_name;
       profile.value.graduate_professional_title = settingsForm.graduate_professional_title;
@@ -368,6 +370,64 @@ onMounted(() => {
 }); 
 </script>
 
+<style scoped>
+/* Glow effect animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input focus effects with glow */
+input:focus, textarea:focus, select:focus {
+  animation: pulse 1.5s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:not(:disabled) {
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form element transitions */
+form div {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dp-custom-input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border-width: 1px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.dp-custom-input:focus {
+  outline: none;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  --tw-ring-color: rgb(37 99 235 / 0.6);
+  animation: pulse 1.5s ease-in-out;
+}
+</style>
+
 <template>
   <div v-if="activeSection === 'general'" class="flex flex-col">
     <Modal :show="isSuccessModalOpen" @close="isSuccessModalOpen = false">
@@ -400,10 +460,10 @@ onMounted(() => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h3>
         <p class="text-center text-gray-600">{{ errorMessage }}</p>
         <div class="mt-6 flex justify-center">
-          <button type="button" class="bg-red-500 hover:bg-red-600 transition-colors text-white px-4 py-2 rounded-md"
-            @click="isErrorModalOpen = false">
-            Close
-          </button>
+          <DangerButton type="button"
+             @click="isErrorModalOpen = false">
+             Close
+           </DangerButton>
         </div>
       </div>
     </Modal>
@@ -419,10 +479,10 @@ onMounted(() => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">No Changes Detected</h3>
         <p class="text-center text-gray-600">No changes were made to your profile.</p>
         <div class="mt-6 flex justify-center">
-          <button type="button" class="bg-blue-500 hover:bg-blue-600 transition-colors text-white px-4 py-2 rounded-md"
-            @click="isNoChangesModalOpen = false">
-            Close
-          </button>
+          <PrimaryButton type="button"
+             @click="isNoChangesModalOpen = false">
+             Close
+           </PrimaryButton>
         </div>
       </div>
     </Modal>
@@ -439,14 +499,14 @@ onMounted(() => {
                 class="rounded-full w-48 h-48 object-cover border border-gray-200 shadow-sm" />
               <div class="absolute bottom-0 right-0">
                 <label for="file-input"
-                  class="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
+                  class="bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
                   <i class="fas fa-camera"></i>
                 </label>
               </div>
             </div>
             <input type="file" id="file-input" class="hidden" accept="image/*" @change="onFileChange" />
             <label for="file-input"
-              class="text-indigo-600 hover:text-indigo-800 transition-colors font-medium cursor-pointer">
+              class="text-blue-600 hover:text-blue-800 transition-colors font-medium cursor-pointer">
               Choose an image
             </label>
           </div>
@@ -464,7 +524,7 @@ onMounted(() => {
               <div class="relative">
                 <i class="fab fa-linkedin absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="url" id="linkedin-url"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.linkedin_url }"
                   v-model="profile.linkedin_url" placeholder="https://linkedin.com/in/yourprofile" />
               </div>
@@ -479,7 +539,7 @@ onMounted(() => {
               <div class="relative">
                 <i class="fab fa-github absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="url" id="github-url"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.github_url }"
                   v-model="profile.github_url" placeholder="https://github.com/yourusername" />
               </div>
@@ -494,7 +554,7 @@ onMounted(() => {
               <div class="relative">
                 <i class="fas fa-globe absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="url" id="personal-website"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.personal_website }"
                   v-model="profile.personal_website" placeholder="https://yourwebsite.com" />
               </div>
@@ -510,7 +570,7 @@ onMounted(() => {
               <div class="relative">
                 <i class="fas fa-share-alt absolute left-3 top-3 text-gray-400"></i>
                 <textarea id="other-social-links"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   rows="2" v-model="profile.other_social_links"
                   placeholder="Add other professional networks (one per line)"></textarea>
               </div>
@@ -534,7 +594,7 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="full-name"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.first_name || settingsForm.errors.last_name }"
                     v-model="profile.fullName" placeholder="Enter your full name" />
                 </div>
@@ -552,7 +612,7 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="graduate_professional-title"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     v-model="profile.graduate_professional_title" placeholder="Enter your professional title" />
                 </div>
               </div>
@@ -563,14 +623,12 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-venus-mars absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <select id="gender"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all appearance-none bg-white"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all appearance-none bg-white"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.gender }"
                     v-model="profile.graduate_gender">
                     <option value="" disabled selected>Select gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 </div>
                 <div v-if="settingsForm.errors.gender" class="text-red-500 text-sm mt-1">
@@ -584,7 +642,7 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="ethnicity"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     v-model="profile.graduate_ethnicity" placeholder="Enter your ethnicity" />
                 </div>
               </div>
@@ -596,7 +654,7 @@ onMounted(() => {
                   <i class="fas fa-calendar-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"></i>
                   <Datepicker v-model="profile.graduate_birthdate" :format="datepickerConfig.format"
                     :enable-time-picker="datepickerConfig.enableTime"
-                    input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     placeholder="Select your birthdate" />
                 </div>
               </div>
@@ -607,109 +665,103 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="location"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     v-model="profile.graduate_location" placeholder="City, Country" />
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Education Information Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 class="text-xl font-semibold mb-2">Education Information</h2>
-            <p class="text-gray-600 mb-4">Your academic background</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              <!-- School Graduated From -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
-                <div class="relative">
-                  <i class="fas fa-university absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_school_graduated_from || 'Not specified' }}
-                  </div>
+            <!-- Education Information Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+                <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white">
+                <div>
+                  <h3 class="text-lg font-semibold text-black">Education Information</h3>
+                  <p class="text-sm text-gray-600 mt-1">Your academic background and credentials</p>
                 </div>
-              </div>
-
-              <!-- Year Graduated -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
-                <div class="relative">
-                  <i class="fas fa-calendar-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_year_graduated || 'Not specified' }}
-                  </div>
                 </div>
-              </div>
-
-              <!-- Program Completed -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
-                <div class="relative">
-                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_program_completed || 'Not specified' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Degree Completed -->
-              <div class="relative">
-                <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
-                <div class="relative">
-                  <i class="fas fa-graduation-cap absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <div class="w-full border border-gray-300 rounded-md p-2 pl-10 bg-gray-50 text-gray-700">
-                    {{ degreeCompleted }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Additional Education Entries -->
-            <div class="mt-6">
-              <h3 class="text-lg font-medium mb-4">Additional Education</h3>
-              <div v-if="props.educationEntries && props.educationEntries.length > 0" class="grid grid-cols-1 gap-6">
-                <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-6 rounded-lg shadow relative">
+                <div class="p-4 transition-all duration-300">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+                  <!-- School Graduated From -->
                   <div>
-                    <div class="border-b pb-2">
-                      <h4 class="text-xl font-bold">{{ entry.education || 'Unknown Institution' }}</h4>
-                      <p class="text-gray-600">
-                        {{ entry.program || 'Unknown Program' }} in {{ entry.field_of_study || 'Unknown Field' }}
-                      </p>
-                    </div>
-                    <div class="flex items-center text-gray-600 mt-2">
-                      <i class="far fa-calendar-alt mr-2"></i>
-                      <span>
-                        {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ?
-                          formatDisplayDate(entry.end_date) : 'present' }}
-                      </span>
-                    </div>
-                    <p class="mt-2">
-                      <strong>
-                        <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                      </strong>
-                      {{ entry.description || 'No description provided' }}
-                    </p>
-                    <p class="mt-2">
-                      <strong>
-                        <i class="fas fa-trophy text-gray-500 mr-2"></i> Achievements:
-                      </strong>
-                      <span v-if="entry.achievements && entry.achievements.includes(',')">
-                        <ul class="list-disc list-inside">
-                          <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index">
-                            {{ achievement.trim() }}
-                          </li>
-                        </ul>
-                      </span>
-                      <span v-else>
-                        {{ entry.achievements || 'None' }}
-                      </span>
-                    </p>
+                  <label class="block text-black font-medium mb-1">School Graduated From</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ profile.graduate_school_graduated_from || 'Not specified' }}
+                  </div>
+                  </div>
+
+                  <!-- Year Graduated -->
+                  <div>
+                  <label class="block text-black font-medium mb-1">Year Graduated</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ profile.graduate_year_graduated || 'Not specified' }}
+                  </div>
+                  </div>
+
+                  <!-- Program Completed -->
+                  <div>
+                  <label class="block text-black font-medium mb-1">Program Completed</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ profile.graduate_program_completed || 'Not specified' }}
+                  </div>
+                  </div>
+
+                  <!-- Degree Completed -->
+                  <div>
+                  <label class="block text-black font-medium mb-1">Degree Completed</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ degreeCompleted }}
+                  </div>
                   </div>
                 </div>
-              </div>
-              <!-- If no education entries exist -->
-              <div v-else class="bg-white p-6 rounded-lg shadow">
-                <p class="text-gray-600">No additional education entries found.</p>
+                </div>
+                
+                <!-- Other Education Entries - Only show if entries exist -->
+                <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
+                <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white rounded-t-lg">
+                  <div>
+                  <h3 class="text-lg font-semibold text-black">Additional Education</h3>
+                  <p class="text-sm text-gray-600 mt-1">Other schools, programs, or certifications</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 gap-6 p-4">
+                    <div v-for="entry in props.educationEntries" :key="entry.id">
+                  <div class="absolute top-4 right-4 flex space-x-2">
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <!-- Institution -->
+                    <div>
+                    <label class="text-black font-medium mb-1">School Graduated From</label>
+                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                      {{ entry.education || 'Not specified' }}
+                    </div>
+                    </div>
+
+                     <!-- Duration -->
+                    <div class="relative">
+                      <label class="text-black font-medium mb-1">Year Graduated</label>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                        {{ entry.start_date ? new Date(entry.start_date).getFullYear() : '' }} - {{ entry.end_date ? new Date(entry.end_date).getFullYear() : 'Present' }}
+                      </div>
+                    </div>
+
+                    <!-- Program -->
+                    <div>
+                    <label class="text-black font-medium mb-1">Program Completed</label>
+                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                      {{ entry.program || 'Not specified' }}
+                    </div>
+                    </div>
+
+                    <!-- Field of Study -->
+                    <div>
+                    <label class="text-black font-medium mb-1">Degree Completed</label>
+                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                      {{ entry.field_of_study || 'Not specified' }}
+                    </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -726,7 +778,7 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="email" id="email-address"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.email }" v-model="profile.email"
                     placeholder="Enter your email address" />
                 </div>
@@ -742,7 +794,7 @@ onMounted(() => {
                 <div class="relative">
                   <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="phone"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.contact_number }"
                     v-model="profile.graduate_phone" placeholder="Enter your phone number" />
                 </div>
@@ -761,7 +813,7 @@ onMounted(() => {
               <div class="relative">
                 <i class="fas fa-user-circle absolute left-3 top-3 text-gray-400"></i>
                 <textarea id="about-me"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   rows="4" v-model="profile.graduate_about_me" placeholder="Tell us about yourself"
                   maxlength="1000"></textarea>
                 <div class="text-xs text-gray-500 mt-1 text-right">
@@ -775,7 +827,7 @@ onMounted(() => {
           <!-- Form Actions -->
           <div class="flex justify-end mt-6">
             <button type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white py-2 px-6 rounded-md shadow-sm flex items-center"
+              class="bg-blue-600 hover:bg-blue-700 transition-colors text-white py-2 px-6 rounded-md shadow-sm flex items-center"
               :disabled="settingsForm.processing">
               <span v-if="settingsForm.processing" class="mr-2">
                 <i class="fas fa-spinner fa-spin"></i>

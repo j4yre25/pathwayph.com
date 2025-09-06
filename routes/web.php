@@ -378,6 +378,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
     Route::get('/admin/profile', [PesoProfileController::class, 'profile'])->name('peso.profile');
+    // PESO Profile Settings
+    Route::get('/admin/profile/settings', [PesoProfileController::class, 'settings'])->name('peso.profile.settings');
+    Route::put('/admin/profile/settings', [PesoProfileController::class, 'update'])->name('peso.profile.update');
 });
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {

@@ -45,8 +45,7 @@ const isDuplicateModalOpen = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 const showArchivedCertifications = ref(false);
-const certificationsExpanded = ref(true); // State for Certifications collapsible section
-const archivedCertificationsExpanded = ref(true); // State for Archived Certifications collapsible section
+// Removed expand functionality - sections are now always visible
 
 // Form
 const form = useForm({
@@ -245,9 +244,8 @@ const removeCertification = (entry) => {
     <div class="w-full mb-6">
       <!-- Active Certifications Card -->
       <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-        <!-- Card Header with Collapsible Toggle -->
-        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 text-white cursor-pointer"
-             @click="certificationsExpanded = !certificationsExpanded">
+        <!-- Card Header -->
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 text-white">
           <div class="flex items-center">
             <div class="bg-white/20 p-2 rounded-full mr-3">
               <i class="fas fa-certificate"></i>
@@ -256,23 +254,20 @@ const removeCertification = (entry) => {
           </div>
           <div class="flex space-x-2">
             <PrimaryButton class="bg-blue-700 text-white px-4 py-2 rounded flex items-center hover:bg-blue-800"
-              @click.stop="openAddCertificationModal">
+              @click="openAddCertificationModal">
               <i class="fas fa-plus mr-2"></i> Add Certification
             </PrimaryButton>
             <button
               class="bg-blue-700/80 hover:bg-blue-800 text-white px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
-              @click.stop="toggleArchivedCertifications">
+              @click="toggleArchivedCertifications">
               <i class="fas" :class="showArchivedCertifications ? 'fa-eye-slash' : 'fa-eye'"></i>
               <span class="ml-2">{{ showArchivedCertifications ? 'Hide Archived' : 'Show Archived' }}</span>
-            </button>
-            <button class="text-white p-2" @click.stop="certificationsExpanded = !certificationsExpanded">
-              <i class="fas" :class="certificationsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
             </button>
           </div>
         </div>
         
         <!-- Card Body -->
-        <div v-show="certificationsExpanded" class="p-6 transition-all duration-300">
+        <div class="p-6 transition-all duration-300">
           <p class="text-gray-600 mb-6">Showcase your certifications</p>
           
           <!-- Certification Entries -->
@@ -316,10 +311,10 @@ const removeCertification = (entry) => {
                 </div>
               </div>
               <div class="absolute top-6 right-4 flex space-x-4">
-                <button class="text-gray-600 hover:text-blue-600" @click="openUpdateCertificationModal(entry)">
-                  <i class="fas fa-pen"></i>
+                <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150" @click="openUpdateCertificationModal(entry)">
+                  <i class="fas fa-edit"></i>
                 </button>
-                <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry)">
+                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="removeCertification(entry)">
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
@@ -341,21 +336,17 @@ const removeCertification = (entry) => {
       <div v-if="showArchivedCertifications" class="mb-6">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
           <!-- Card Header -->
-          <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white border-b border-gray-200 cursor-pointer"
-               @click="archivedCertificationsExpanded = !archivedCertificationsExpanded">
+          <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white border-b border-gray-200">
             <div class="flex items-center">
               <div class="bg-gray-100 p-2 rounded-full mr-3">
                 <i class="fas fa-archive text-gray-600"></i>
               </div>
               <h3 class="text-lg font-semibold text-gray-800">Archived Certifications</h3>
             </div>
-            <button class="text-gray-600 p-2">
-              <i class="fas" :class="archivedCertificationsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-            </button>
           </div>
           
           <!-- Card Body -->
-          <div v-show="archivedCertificationsExpanded" class="p-6 transition-all duration-300">
+          <div class="p-6 transition-all duration-300">
             <div v-if="filteredArchivedCertificationsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div v-for="entry in filteredArchivedCertificationsEntries" :key="entry?.id"
                 class="bg-gray-50 p-6 rounded-lg shadow-sm relative border border-gray-200">
@@ -396,12 +387,12 @@ const removeCertification = (entry) => {
                   </div>
                 </div>
                 <div class="absolute top-6 right-4 flex space-x-4">
-                  <button class="text-green-600 hover:text-green-800" @click="unarchiveCertification(entry)">
-                    <i class="fas fa-box-open"></i>
-                  </button>
-                  <button class="text-red-600 hover:text-red-800" @click="removeCertification(entry)">
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  <button class="inline-flex items-center px-2 py-1 bg-green-100 border border-green-300 rounded-md font-semibold text-xs text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150" @click="unarchiveCertification(entry)">
+                  <i class="fas fa-undo"></i>
+                </button>
+                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="removeCertification(entry)">
+                  <i class="fas fa-trash"></i>
+                </button>
                 </div>
                 <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
                   Archived
@@ -480,8 +471,8 @@ const removeCertification = (entry) => {
               <input type="file" id="certification-file" @change="handleFileUpload"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Add
-              Certification</button>
+            <PrimaryButton type="submit" class="w-full">Add
+               Certification</PrimaryButton>
           </form>
         </div>
       </div>
@@ -550,12 +541,59 @@ const removeCertification = (entry) => {
               <input type="file" id="certification-file-update" @change="handleFileUpload"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Update
-              Certification
-            </button>
+            <PrimaryButton type="submit" class="w-full">Update
+               Certification
+             </PrimaryButton>
           </form>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Glow effects for form elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  animation: pulse 1.5s infinite;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.modal-content {
+  animation: fadeIn 0.4s ease-out;
+}
+</style>

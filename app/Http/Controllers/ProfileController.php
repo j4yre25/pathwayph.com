@@ -2336,7 +2336,7 @@ if (!$file->getRealPath()) {
             $experience = new \App\Models\Experience();
             $experience->graduate_id = $graduate->id;
             $experience->title = $profile['experience_title'];
-            $experience->company = $profile['experience_company'] ?? null;
+            $experience->company_name = $profile['experience_company'] ?? null;
             
             // Parse start date
             if (!empty($profile['experience_start_date'])) {

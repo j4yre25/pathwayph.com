@@ -70,20 +70,20 @@ const togglePasswordVisibility = () => {
   <div class="min-h-screen gradient-bg flex items-center justify-center p-4 overflow-hidden relative">
     <!-- Floating Background Elements -->
     <div class="absolute inset-0">
-      <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-20 animate-float"></div>
-      <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-30 animate-float-reverse"></div>
-      <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-15 animate-morph"></div>
-      <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-10 animate-pulse-glow"></div>
+      <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-10 animate-float"></div>
+      <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-15 animate-float-reverse"></div>
+      <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-8 animate-morph"></div>
+      <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-5 animate-pulse-glow"></div>
     </div>
     
     <div class="w-full max-w-md relative z-10">
       <!-- Logo Section -->
       <div class="text-center mb-8">
         <div class="w-16 h-16 gradient-card rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
-          <span class="text-white font-bold text-2xl neon-text">P</span>
+          <span class="text-white font-bold text-2xl enhanced-text">P</span>
         </div>
-        <h2 class="text-4xl font-bold text-white mb-3 neon-text">Welcome Back</h2>
-        <p class="text-white/80 text-lg">Sign in to your <span class="text-cyan-300 neon-text">Pathway</span> account</p>
+        <h2 class="text-4xl font-bold text-white mb-3 enhanced-text">Welcome Back</h2>
+        <p class="text-white/80 text-lg">Sign in to your <span class="text-blue-200 enhanced-text">Pathway</span> account</p>
       </div>
 
       <!-- Glass Card -->
@@ -95,12 +95,12 @@ const togglePasswordVisibility = () => {
                 id="email" 
                 v-model="form.email" 
                 type="email" 
-                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 text-white placeholder-white/60" 
+                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
                 placeholder="Enter your email"
                 required 
                 autofocus
                 aria-autocomplete="username" />
-              <InputError class="mt-2 text-pink-300" :message="form.errors.email" />
+              <InputError class="mt-2 text-red-300" :message="form.errors.email" />
             </div>
 
             <div class="relative">
@@ -110,32 +110,32 @@ const togglePasswordVisibility = () => {
                   id="password" 
                   v-model="form.password" 
                   :type="showPassword ? 'text' : 'password'"
-                  class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400 text-white placeholder-white/60" 
+                  class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
                   placeholder="Enter your password"
                   required 
                   autocomplete="current-password"/>
                 <button type="button"
-                  class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:neon-text focus:outline-none transition-all duration-200"
+                  class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
                   @click="togglePasswordVisibility">
                   <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
                 </button>
               </div>
-              <InputError class="mt-2 text-pink-300" :message="form.errors.password" />
+              <InputError class="mt-2 text-red-300" :message="form.errors.password" />
             </div>
 
             <!-- <div class="flex items-center justify-between">
               <label class="flex items-center cursor-pointer">
-                <Checkbox v-model:checked="form.remember" name="remember" class="rounded border-white/30 text-cyan-400 focus:ring-cyan-400" />
+                <Checkbox v-model:checked="form.remember" name="remember" class="rounded border-white/30 text-blue-400 focus:ring-blue-400" />
                 <span class="ml-3 text-base text-white/80 hover:text-white transition-colors">Remember me</span>
               </label>
-              <Link href="route('password.request')" class="text-base text-cyan-300 hover:text-cyan-100 hover:neon-text transition-all duration-200">
+              <Link href="route('password.request')" class="text-base text-blue-300 hover:text-blue-200 hover:enhanced-text transition-all duration-200">
                 Forgot password?
               </Link>
             </div> -->
 
             <div class="pt-4">
               <button type="submit"
-                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
                 :disabled="form.processing">
                 <span v-if="form.processing">Processing...</span>
                 <span v-else>Sign In</span>
@@ -146,7 +146,7 @@ const togglePasswordVisibility = () => {
           <div class="mt-8 text-center">
             <p class="text-base text-white/80">
               Don't have an account?
-              <Link href="/register" class="text-pink-300 hover:text-pink-100 hover:neon-text font-semibold transition-all duration-200 ml-2">
+              <Link href="/register" class="text-blue-300 hover:text-blue-200 hover:enhanced-text font-semibold transition-all duration-200 ml-2">
                 Sign Up
               </Link>
             </p>
@@ -169,21 +169,21 @@ const togglePasswordVisibility = () => {
 </template>
 
 <style scoped>
-/* Modern gradient backgrounds */
+/* Modern blue gradient backgrounds */
 .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
 }
 
 .gradient-card {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
 }
 
 .gradient-feature {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
 }
 
 .gradient-cta {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
 }
 
 /* Floating animations */
@@ -216,10 +216,10 @@ const togglePasswordVisibility = () => {
 /* Pulse glow effect */
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        box-shadow: 0 0 20px rgba(30, 64, 175, 0.3);
     }
     50% {
-        box-shadow: 0 0 40px rgba(79, 172, 254, 0.6);
+        box-shadow: 0 0 40px rgba(30, 64, 175, 0.5);
     }
 }
 
@@ -241,14 +241,14 @@ const togglePasswordVisibility = () => {
     animation: morph 8s ease-in-out infinite;
 }
 
-/* Colorful hover effects */
-.hover-rainbow:hover {
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+/* Blue hover effects */
+.hover-blue:hover {
+    background: linear-gradient(45deg, #1e40af, #2563eb, #3b82f6, #60a5fa);
     background-size: 400% 400%;
-    animation: rainbow 2s ease infinite;
+    animation: blue-shift 2s ease infinite;
 }
 
-@keyframes rainbow {
+@keyframes blue-shift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
@@ -262,9 +262,9 @@ const togglePasswordVisibility = () => {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Neon glow text */
-.neon-text {
-    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+/* Subtle text enhancement */
+.enhanced-text {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Smooth transitions */
