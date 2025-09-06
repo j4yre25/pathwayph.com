@@ -8,6 +8,7 @@ use App\Models\Job;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Notification;
+use App\Models\ReferralExport;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -53,9 +54,8 @@ class ManageJobReferralsController extends Controller
 
         // Calculate success rate
         $totalReferrals = $referrals->total();
-        $successfulReferrals = $query->clone()->where('status', 'hired')->count();
+        $successfulReferrals = $query->clone()->where('status', 'success')->count(); // <-- use 'success' status
         $successRate = $totalReferrals > 0 ? round(($successfulReferrals / $totalReferrals) * 100, 2) : 0;
-
         // Prepare data for Vue
         $referralData = $referrals->getCollection()->map(function ($ref) {
             $matchScore = 0;
@@ -279,6 +279,12 @@ class ManageJobReferralsController extends Controller
     {
         $referral->status = 'success';
         $referral->save();
+
+        // Create ReferralExport if not exists
+        ReferralExport::firstOrCreate([
+            'graduate_id' => $referral->graduate_id,
+            'job_invitation_id' => $referral->id,
+        ]);
 
         return response()->json(['success' => true]);
     }

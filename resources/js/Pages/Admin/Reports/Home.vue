@@ -1,8 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles } from 'lucide-vue-next';
-
+import { Users, BarChart2, Briefcase, Share2 } from 'lucide-vue-next';
 </script>
 
 
@@ -17,7 +16,7 @@ import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-blue-100"
           >
             <div class="flex flex-col items-center">
-              <component :is="Calendar" class="w-8 h-8 mb-2" />
+              <component :is="Briefcase" class="w-8 h-8 mb-2" />
               <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Employment Reports</span>
             </div>
           </Link>
@@ -26,17 +25,8 @@ import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-green-100"
           >
             <div class="flex flex-col items-center">
-              <component :is="BookMarked" class="w-8 h-8 mb-2" />
+              <component :is="Share2" class="w-8 h-8 mb-2" />
               <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Referral Reports</span>
-            </div>
-          </Link>
-          <!-- <Link
-            :href="route('institutions.reports.programs')"
-            class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-yellow-100"
-          >
-            <div class="flex flex-col items-center">
-              <component :is="ClipboardList" class="w-8 h-8 mb-2" />
-              <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Program Report</span>
             </div>
           </Link>
           <Link
@@ -53,8 +43,8 @@ import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-pink-100"
           >
             <div class="flex flex-col items-center">
-              <component :is="Sparkles" class="w-8 h-8 mb-2" />
-              <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Skill Report</span>
+              <component :is="Users" class="w-8 h-8 mb-2" />
+              <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Diversity and Demographics Report</span>
             </div>
           </Link>
           <Link
@@ -62,10 +52,10 @@ import { Calendar, GraduationCap, BookMarked, ClipboardList, Briefcase, Sparkles
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-cyan-100"
           >
             <div class="flex flex-col items-center">
-              <component :is="GraduationCap" class="w-8 h-8 mb-2" />
-              <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Graduate Report</span>
+              <component :is="BarChart2" class="w-8 h-8 mb-2" />
+              <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Job Market Reports</span>
             </div>
-          </Link> -->
+          </Link>
         </div>
       </div>
     </div>
