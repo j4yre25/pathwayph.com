@@ -70,23 +70,24 @@ const hasCategories = computed(() => categoriesWithSectorNames.value.length > 0)
 
 <template>
     <AppLayout title="Categories">
-        <Container>
-            <!-- Header with back button -->
+        <template #header>
             <div class="flex items-center">
-                <button @click="goBack" class="mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors duration-200">
+                <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-                        <i class="fas fa-tags text-blue-600 mr-3"></i>
-                        Categories List
-                    </h1>
-                    <p class="text-gray-600 mt-1">View and manage all categories</p>
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-list text-blue-500 text-xl mr-2"></i>
+                        List of Categories
+                    </h2>
+                    <p class="text-gray-600">View and manage all categories</p>
                 </div>
             </div>
-            
+        </template>
+
+        <Container class="py-6 space-y-6">
             <!-- Stats Summary -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-300">
                     <h3 class="text-gray-600 text-sm font-medium mb-2">Total Categories</h3>
                     <p class="text-3xl font-bold text-blue-600">

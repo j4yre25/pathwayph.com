@@ -573,6 +573,12 @@ console.log(page.props.permissions.canManageInstitution)
                       Profile
                     </DropdownLink>
 
+                    <DropdownLink
+                      v-if="page.props.auth.user.role === 'peso' && page.props.auth.user.is_approved"
+                      :disabled="!page.props.auth.user.is_approved" :href="route('peso.profile.settings')">
+                      Profile Settings
+                    </DropdownLink>
+
                     <DropdownLink v-if="page.props.auth.user.role === 'institution'"
                       :href="route('institution.profile')">
                       Profile

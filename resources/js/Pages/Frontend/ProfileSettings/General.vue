@@ -524,7 +524,7 @@ form div {
               <div class="relative">
                 <i class="fab fa-linkedin absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="url" id="linkedin-url"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.linkedin_url }"
                   v-model="profile.linkedin_url" placeholder="https://linkedin.com/in/yourprofile" />
               </div>
@@ -539,7 +539,7 @@ form div {
               <div class="relative">
                 <i class="fab fa-github absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="url" id="github-url"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.github_url }"
                   v-model="profile.github_url" placeholder="https://github.com/yourusername" />
               </div>
@@ -554,7 +554,7 @@ form div {
               <div class="relative">
                 <i class="fas fa-globe absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="url" id="personal-website"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.personal_website }"
                   v-model="profile.personal_website" placeholder="https://yourwebsite.com" />
               </div>
@@ -570,7 +570,7 @@ form div {
               <div class="relative">
                 <i class="fas fa-share-alt absolute left-3 top-3 text-gray-400"></i>
                 <textarea id="other-social-links"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   rows="2" v-model="profile.other_social_links"
                   placeholder="Add other professional networks (one per line)"></textarea>
               </div>
@@ -594,7 +594,7 @@ form div {
                 <div class="relative">
                   <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="full-name"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.first_name || settingsForm.errors.last_name }"
                     v-model="profile.fullName" placeholder="Enter your full name" />
                 </div>
@@ -612,7 +612,7 @@ form div {
                 <div class="relative">
                   <i class="fas fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="graduate_professional-title"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     v-model="profile.graduate_professional_title" placeholder="Enter your professional title" />
                 </div>
               </div>
@@ -623,7 +623,7 @@ form div {
                 <div class="relative">
                   <i class="fas fa-venus-mars absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <select id="gender"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all appearance-none bg-white"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all appearance-none bg-white"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.gender }"
                     v-model="profile.graduate_gender">
                     <option value="" disabled selected>Select gender</option>
@@ -642,7 +642,7 @@ form div {
                 <div class="relative">
                   <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="ethnicity"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     v-model="profile.graduate_ethnicity" placeholder="Enter your ethnicity" />
                 </div>
               </div>
@@ -654,7 +654,7 @@ form div {
                   <i class="fas fa-calendar-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"></i>
                   <Datepicker v-model="profile.graduate_birthdate" :format="datepickerConfig.format"
                     :enable-time-picker="datepickerConfig.enableTime"
-                    input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    input-class-name="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     placeholder="Select your birthdate" />
                 </div>
               </div>
@@ -665,148 +665,100 @@ form div {
                 <div class="relative">
                   <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="location"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     v-model="profile.graduate_location" placeholder="City, Country" />
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Education Information Section -->
-          <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-            <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
-              <div class="flex items-center">
-                <div class="bg-blue-100 p-2 rounded-full mr-3">
-                  <i class="fas fa-university text-blue-600"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-blue-800">Education Information</h3>
-              </div>
-            </div>
-            <div class="p-4 transition-all duration-300">
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
-                <!-- School Graduated From -->
+            <!-- Education Information Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+                <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white">
                 <div>
-                  <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
-                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_school_graduated_from || 'Not specified' }}
-                  </div>
+                  <h3 class="text-lg font-semibold text-black">Education Information</h3>
+                  <p class="text-sm text-gray-600 mt-1">Your academic background and credentials</p>
                 </div>
+                </div>
+                <div class="p-4 transition-all duration-300">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+                  <!-- School Graduated From -->
+                  <div>
+                  <label class="block text-black font-medium mb-1">School Graduated From</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ profile.graduate_school_graduated_from || 'Not specified' }}
+                  </div>
+                  </div>
 
-                <!-- Year Graduated -->
-                <div>
-                  <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
-                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_year_graduated || 'Not specified' }}
+                  <!-- Year Graduated -->
+                  <div>
+                  <label class="block text-black font-medium mb-1">Year Graduated</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ profile.graduate_year_graduated || 'Not specified' }}
                   </div>
-                </div>
+                  </div>
 
-                <!-- Program Completed -->
-                <div>
-                  <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
-                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                    {{ profile.graduate_program_completed || 'Not specified' }}
+                  <!-- Program Completed -->
+                  <div>
+                  <label class="block text-black font-medium mb-1">Program Completed</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ profile.graduate_program_completed || 'Not specified' }}
                   </div>
-                </div>
+                  </div>
 
-                <!-- Degree Completed -->
-                <div>
-                  <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
-                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                    {{ degreeCompleted }}
+                  <!-- Degree Completed -->
+                  <div>
+                  <label class="block text-black font-medium mb-1">Degree Completed</label>
+                  <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                  {{ degreeCompleted }}
+                  </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            
-            <!-- Other Education Entries - Only show if entries exist -->
-            <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
-              <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 rounded-t-lg">
-                <div class="flex items-center">
-                  <div class="bg-blue-100 p-2 rounded-full mr-3">
-                    <i class="fas fa-graduation-cap text-blue-600"></i>
-                  </div>
-                  <h3 class="text-lg font-semibold text-blue-800">Additional Education</h3>
                 </div>
-              </div>
-              <div class="grid grid-cols-1 gap-6 p-4">
-                <div v-for="entry in props.educationEntries" :key="entry.id" class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 relative">
+                
+                <!-- Other Education Entries - Only show if entries exist -->
+                <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
+                <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white rounded-t-lg">
+                  <div>
+                  <h3 class="text-lg font-semibold text-black">Additional Education</h3>
+                  <p class="text-sm text-gray-600 mt-1">Other schools, programs, or certifications</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 gap-6 p-4">
+                    <div v-for="entry in props.educationEntries" :key="entry.id">
                   <div class="absolute top-4 right-4 flex space-x-2">
-                    <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150">
-                      <i class="fas fa-edit"></i>
-                    </button>
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <!-- Institution -->
                     <div>
-                      <div class="flex items-center mb-1">
-                        <i class="fas fa-university text-blue-500 mr-2"></i>
-                        <label class="text-gray-700 font-medium">Institution</label>
-                      </div>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                        {{ entry.education || 'Not specified' }}
+                    <label class="text-black font-medium mb-1">School Graduated From</label>
+                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                      {{ entry.education || 'Not specified' }}
+                    </div>
+                    </div>
+
+                     <!-- Duration -->
+                    <div class="relative">
+                      <label class="text-black font-medium mb-1">Year Graduated</label>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                        {{ entry.start_date ? new Date(entry.start_date).getFullYear() : '' }} - {{ entry.end_date ? new Date(entry.end_date).getFullYear() : 'Present' }}
                       </div>
                     </div>
 
                     <!-- Program -->
                     <div>
-                      <div class="flex items-center mb-1">
-                        <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
-                        <label class="text-gray-700 font-medium">Program</label>
-                      </div>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                        {{ entry.program || 'Not specified' }}
-                      </div>
+                    <label class="text-black font-medium mb-1">Program Completed</label>
+                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                      {{ entry.program || 'Not specified' }}
+                    </div>
                     </div>
 
                     <!-- Field of Study -->
                     <div>
-                      <div class="flex items-center mb-1">
-                        <i class="fas fa-book text-blue-500 mr-2"></i>
-                        <label class="text-gray-700 font-medium">Field of Study</label>
-                      </div>
-                        <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                          {{ entry.field_of_study || 'Not specified' }}
-                        </div>
+                    <label class="text-black font-medium mb-1">Degree Completed</label>
+                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                      {{ entry.field_of_study || 'Not specified' }}
                     </div>
-
-                    <!-- Duration -->
-                    <div class="relative">
-                      <div class="flex items-center mb-1">
-                        <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
-                        <label class="text-gray-700 font-medium">Duration</label>
-                      </div>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-                        {{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ? formatDisplayDate(entry.end_date) : 'Present' }}
-                      </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="relative md:col-span-2">
-                      <div class="flex items-center mb-1">
-                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                        <label class="text-gray-700 font-medium">Description</label>
-                      </div>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700 min-h-[60px]">
-                        {{ entry.description || 'No description provided' }}
-                      </div>
-                    </div>
-
-                    <!-- Achievements -->
-                    <div class="relative md:col-span-2">
-                      <div class="flex items-center mb-1">
-                        <i class="fas fa-trophy text-blue-500 mr-2"></i>
-                        <label class="text-gray-700 font-medium">Achievements</label>
-                      </div>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700 min-h-[60px]">
-                        <span v-if="entry.achievements && entry.achievements.includes(',')">
-                          <ul class="list-disc list-inside mt-1">
-                            <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index" class="text-gray-700">
-                              {{ achievement.trim() }}
-                            </li>
-                          </ul>
-                        </span>
-                        <span v-else>{{ entry.achievements || 'No achievements listed' }}</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -826,7 +778,7 @@ form div {
                 <div class="relative">
                   <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="email" id="email-address"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.email }" v-model="profile.email"
                     placeholder="Enter your email address" />
                 </div>
@@ -842,7 +794,7 @@ form div {
                 <div class="relative">
                   <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="phone"
-                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.contact_number }"
                     v-model="profile.graduate_phone" placeholder="Enter your phone number" />
                 </div>
@@ -861,7 +813,7 @@ form div {
               <div class="relative">
                 <i class="fas fa-user-circle absolute left-3 top-3 text-gray-400"></i>
                 <textarea id="about-me"
-                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-indigo-600 transition-all"
+                  class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   rows="4" v-model="profile.graduate_about_me" placeholder="Tell us about yourself"
                   maxlength="1000"></textarea>
                 <div class="text-xs text-gray-500 mt-1 text-right">
@@ -875,7 +827,7 @@ form div {
           <!-- Form Actions -->
           <div class="flex justify-end mt-6">
             <button type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white py-2 px-6 rounded-md shadow-sm flex items-center"
+              class="bg-blue-600 hover:bg-blue-700 transition-colors text-white py-2 px-6 rounded-md shadow-sm flex items-center"
               :disabled="settingsForm.processing">
               <span v-if="settingsForm.processing" class="mr-2">
                 <i class="fas fa-spinner fa-spin"></i>

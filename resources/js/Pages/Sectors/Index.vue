@@ -97,28 +97,28 @@ const createSector = () => {
             </div>
 
             <!-- Action Buttons -->
-            <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 flex flex-wrap items-center justify-between gap-4 border border-gray-100">
+            <div
+                class="bg-white rounded-2xl shadow-lg p-6 flex flex-wrap items-center justify-between gap-4 border border-gray-100 mb-8">
                 <div class="flex items-center space-x-4">
-                    <Link :href="route('sectors.create', { user: page.props.auth.user.id })" 
-                            :class="[route().current('sectors.create') ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200', 
-                                    'px-6 py-3 rounded-xl flex items-center space-x-2 font-medium transition-all duration-200 transform hover:scale-105']">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>Add Sectors</span>
-                    </Link>
                     <Link :href="route('sectors.list', { user: page.props.auth.user.id })" 
-                            :class="[route().current('sectors.list') ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200', 
-                                    'px-6 py-3 rounded-xl flex items-center space-x-2 font-medium transition-all duration-200 transform hover:scale-105']">
-                        <i class="fas fa-list"></i>
-                        <span>All Sectors</span>
+                        :class="[route().current('sectors.list') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200',
+                            'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']">
+                        <i class="fas fa-list mr-2"></i>
+                        <span>List of Sectors</span>
                     </Link>
                     <Link v-if="page.props.roles.isPeso" 
-                            :href="route('sectors.archivedlist', { user: page.props.auth.user.id })" 
-                            :class="[route().current('sectors.archivedlist') ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200', 
-                                    'px-6 py-3 rounded-xl flex items-center space-x-2 font-medium transition-all duration-200 transform hover:scale-105']">
-                        <i class="fas fa-archive"></i>
+                        :href="route('sectors.archivedlist', { user: page.props.auth.user.id })" 
+                        :class="[route().current('sectors.archivedlist') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200',
+                            'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']">
+                        <i class="fas fa-archive mr-2"></i>
                         <span>Archived Sectors</span>
                     </Link>
                 </div>
+                <Link :href="route('sectors.create', { user: page.props.auth.user.id })" 
+                    :class="[route().current('sectors.create') ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600',
+                        'px-4 py-2 rounded-md text-white font-medium transition-colors flex items-center shadow-sm']">
+                    <i class="fas fa-plus mr-2"></i> Add Sectors
+                </Link>
             </div>
 
             <!-- Sectors List -->
@@ -127,20 +127,15 @@ const createSector = () => {
                     <div class="flex items-center">
                         <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
                             <i class="fas fa-building text-white"></i>
-                        </div>
+                    </div>
                         <div>
                             <h3 class="text-xl font-bold text-gray-800">My Sectors</h3>
                             <p class="text-sm text-gray-500">View and manage your sector assignments</p>
                         </div>
                     </div>
                 </div>
-
-                <div>
                     <MySectors :sectors="sectors" />
-                </div>
             </div> 
-
-            
         </Container>
     </AppLayout>
 </template>

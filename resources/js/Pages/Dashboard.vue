@@ -40,6 +40,12 @@ function applyDashboardFilter() {
     }, { preserveState: true });
 }
 
+function resetDashboardFilter() {
+    dateFrom.value = '';
+    dateTo.value = '';
+    Inertia.get(route('dashboard'), {}, { preserveState: true });
+}
+
 function selectCompany(company) {
     selectedCompany.value = company.id;
     searchQuery.value = company.company_name;
@@ -254,42 +260,10 @@ function submitReferral() {
         </div>
 
         <div v-if="page.props.auth.user.role === 'peso'" class="py-12">
-            <!-- Dashboard Header -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-                <div class="p-4 border-b border-gray-200 flex items-center">
-                    <i class="fas fa-filter text-blue-500 mr-2"></i>
-                    <h3 class="font-medium text-gray-700">Dashboard Filters</h3>
-                </div>
-                <div class="p-4">
-                    <form @submit.prevent="applyDashboardFilter" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label for="date-from"
-                                class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                <i class="fas fa-calendar-alt text-gray-400 mr-1"></i> Date From
-                            </label>
-                            <input id="date-from" type="date" v-model="dateFrom"
-                                class="block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-                        </div>
-                        <div>
-                            <label for="date-to" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                <i class="fas fa-calendar-alt text-gray-400 mr-1"></i> Date To
-                            </label>
-                            <input id="date-to" type="date" v-model="dateTo"
-                                class="block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" />
-                        </div>
-                        <div class="flex items-end">
-                            <button type="submit"
-                                class="px-4 py-2 bg-blue-500 text-white rounded-md text-sm flex items-center hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                                <i class="fas fa-search mr-2"></i> Apply Filter
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
 
             <!-- KPI Cards -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-                <div class="grid grid-cols-7 gap-4">
+            <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-9 mb-9">
+                <div class="grid grid-cols-8 gap-4">
                     <!-- Employees Card -->
                     <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2">
@@ -326,15 +300,6 @@ function submitReferral() {
                         <span class="text-red-900 text-lg font-bold">{{ kpi.referralsThisMonth }}</span>
                     </div>
 
-                    <!-- Payroll Card -->
-                    <!-- <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
-                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
-                            <i class="fas fa-money-bill-wave text-white"></i>
-                        </div>
-                        <span class="text-green-700 text-xs font-medium text-center">Successful Placements</span>
-                        <span class="text-green-900 text-lg font-bold">{{ kpi.successfulPlacements }}</span>
-                    </div> -->
-
                     <!-- Reports Card -->
                     <div class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2">
@@ -343,25 +308,74 @@ function submitReferral() {
                         <span class="text-purple-700 text-xs font-medium text-center">Upcoming Career Guidance</span>
                         <span class="text-purple-900 text-lg font-bold">{{ kpi.upcomingCareerGuidance }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Unemployed</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.unemployed
-                        }}</span>
+
+                    <!-- Unemployed Card -->
+                    <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-user-times text-white"></i>
+                        </div>
+                        <span class="text-yellow-700 text-xs font-medium text-center">Unemployed</span>
+                        <span class="text-yellow-900 text-lg font-bold">{{ kpi.unemployed }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Underemployed</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.underemployed
-                        }}</span>
+
+                    <!-- Underemployed Card -->
+                    <div class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-user-clock text-white"></i>
+                        </div>
+                        <span class="text-indigo-700 text-xs font-medium text-center">Underemployed</span>
+                        <span class="text-indigo-900 text-lg font-bold">{{ kpi.underemployed }}</span>
                     </div>
-                    <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                        <span class="text-gray-500 text-sm">Employed</span>
-                        <span class="text-3xl font-bold text-gray-900 mt-2">{{ kpi.employed
-                        }}</span>
+
+                    <!-- Employed Card -->
+                    <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-user-check text-white"></i>
+                        </div>
+                        <span class="text-green-700 text-xs font-medium text-center">Employed</span>
+                        <span class="text-green-900 text-lg font-bold">{{ kpi.employed }}</span>
                     </div>
                 </div>
             </div>
 
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+            <!-- Dashboard Filters -->
+            <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-9 mb-10">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="border-b border-gray-200 flex items-center justify-between pb-4">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-filter text-white text-sm"></i>
+                            </div>
+                            <h3 class="font-semibold text-gray-800">Dashboard Filters</h3>
+                        </div>
+                        <button type="button" @click="resetDashboardFilter"
+                            class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
+                            <i class="fas fa-undo mr-2"></i> Reset Filters
+                        </button>
+                    </div>
+                    <div class="pt-6">
+                        <form @submit.prevent="applyDashboardFilter" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="date-from"
+                                    class="flex text-sm font-semibold text-gray-700 mb-2 items-center">
+                                    <i class="fas fa-calendar-alt text-blue-500 mr-2"></i> Date From
+                                </label>
+                                <input id="date-from" type="date" v-model="dateFrom" @change="applyDashboardFilter"
+                                    class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all" />
+                            </div>
+                            <div>
+                                <label for="date-to" class="flex text-sm font-semibold text-gray-700 mb-2 items-center">
+                                    <i class="fas fa-calendar-alt text-blue-500 mr-2"></i> Date To
+                                </label>
+                                <input id="date-to" type="date" v-model="dateTo" @change="applyDashboardFilter"
+                                    class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all" />
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                     <!-- Recent Job Listings By Company -->
@@ -424,7 +438,7 @@ function submitReferral() {
             </div>
 
             <!-- Referral Activity & Top Employers -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+            <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="bg-white rounded-lg shadow p-6">
                         <h4 class="font-semibold mb-3 text-gray-800">Referrals This Month vs Last Month By PESO</h4>
@@ -446,7 +460,7 @@ function submitReferral() {
             </div>
 
             <!-- In-demand Categories Table -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+            <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="bg-white rounded-lg shadow p-6">
                     <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories According to Sector</h4>
 

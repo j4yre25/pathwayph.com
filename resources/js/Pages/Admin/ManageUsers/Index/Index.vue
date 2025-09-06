@@ -21,9 +21,9 @@ const userToArchive = ref(null);
 // Stats for cards
 const stats = computed(() => {
     const total = props.all_users.total || 0;
-    const approved = props.all_users.approved_count
-    const pending = props.pending_count || 0;
-    const disapproved = props.disapproved_count || 0;
+    const approved = props.all_users.approved_count || 0;
+    const pending = props.all_users.pending_count || 0;
+    const disapproved = props.all_users.disapproved_count || 0;
 
     return { total, approved, pending, disapproved };
 });
@@ -85,6 +85,7 @@ console.log('approved_count:', props.all_users.approved_count);
 
         <Container class="py-6 space-y-6">
             <!-- Stats Cards -->
+            
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <!-- Total Users Card -->
                 <div

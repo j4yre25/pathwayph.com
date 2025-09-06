@@ -112,6 +112,14 @@ const goBack = () => {
                 <div class="p-4 border-b border-gray-200 flex items-center">
                     <i class="fas fa-filter text-blue-500 mr-2"></i>
                     <h3 class="font-medium text-gray-700">Filter Users</h3>
+                    <div class="ml-auto">
+                        <button
+                            type="button"
+                            @click="filters.role = 'all'; filters.date_from = ''; filters.date_to = ''; filters.status = 'all';"
+                            class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
+                            <i class="fas fa-undo mr-2"></i> Reset Filter
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="p-6">
