@@ -10,6 +10,10 @@ use App\Notifications\ApplicationStatusUpdated;
 use App\Models\JobOffer;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use App\Models\JobPipelineStage;
+use App\Models\JobApplicationStageLog;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 
 class CompanyApplicationController extends Controller
 {
@@ -78,16 +82,45 @@ class CompanyApplicationController extends Controller
         ]);
     }
 
-    public function updateNote(Request $request, JobApplication $application)
+    public function update(Request $request, JobApplication $application)
     {
-        $request->validate([
-            'notes' => 'nullable|string|max:2000',
+        $data = $request->validate([
+            'notes' => 'sometimes|nullable|string|max:2000',
+            'job_pipeline_stage_id' => 'sometimes|nullable|exists:job_pipeline_stages,id',
         ]);
 
-        $application->notes = $request->input('notes');
-        $application->save();
+        $changed = [];
 
-        return redirect()->back()->with('success', 'Note updated successfully.');
+        if (array_key_exists('notes',$data) && $data['notes'] !== $application->notes) {
+            $application->notes = $data['notes'];
+            $changed[] = 'notes';
+        }
+
+        if (array_key_exists('job_pipeline_stage_id',$data)
+            && (int)$data['job_pipeline_stage_id'] !== (int)$application->job_pipeline_stage_id) {
+
+            $fromId = $application->job_pipeline_stage_id;
+            $stage = JobPipelineStage::find($data['job_pipeline_stage_id']);
+
+            if ($stage) {
+                $application->job_pipeline_stage_id = $stage->id;
+                // keep legacy string column aligned
+                $application->stage = $stage->slug;
+                $changed[] = 'stage';
+
+                JobApplicationStageLog::create([
+                    'job_application_id' => $application->id,
+                    'from_stage_id'      => $fromId,
+                    'to_stage_id'        => $stage->id,
+                    'changed_by'         => Auth::id(),
+                    'changed_at'         => Carbon::now(),
+                ]);
+            }
+        }
+
+        if ($changed) $application->save();
+
+        return back()->with('success', 'Updated: '.implode(', ',$changed));
     }
 
     public function scheduleInterview(Request $request, JobApplication $application)
@@ -114,21 +147,6 @@ class CompanyApplicationController extends Controller
         // (Optional) Integrate with Google/Outlook Calendar here and save event ID
 
         return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
-    }
-
-    public function updateStage(Request $request, JobApplication $application)
-    {
-        $request->validate([
-            'stage' => 'required|string|in:applying,screening,testing,final interview,onboarding'
-        ]);
-        $application->stage = $request->stage;
-        $application->save();
-
-        // ... inside your method after saving the new status:
-        if ($application->graduate && $application->graduate->user) {
-            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->stage));
-        }
-        return back()->with('success', 'Stage updated.');
     }
 
     public function storeOffer(Request $request, JobApplication $application)

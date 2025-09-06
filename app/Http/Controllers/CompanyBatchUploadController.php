@@ -112,6 +112,7 @@ class CompanyBatchUploadController extends Controller
                 'password' => Hash::make($password),
                 'role' => 'company',
                 'is_approved' => true,
+                'has_completed_information' => true,
             ]);
 
             $company = Company::create([

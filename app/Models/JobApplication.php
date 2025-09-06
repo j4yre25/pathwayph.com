@@ -4,10 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\ApplicantNotifier;
+use App\Support\StageLogger;
 
 class JobApplication extends Model
 {
     use HasFactory;
+
+    protected $previousStage = null; // non-persisted holder
 
     /**
      * The attributes that are mass assignable.
@@ -29,22 +33,42 @@ class JobApplication extends Model
 
     protected static function booted()
     {
-         static::created(function ($application) {
-        // Log initial stage on creation
-            \App\Models\JobApplicationStage::create([
-                'job_application_id' => $application->id,
-                'stage' => $application->stage,
-                'changed_at' => now(),
-            ]);
+        static::created(function ($application) {
+            try {
+                if (class_exists(StageLogger::class)) {
+                    StageLogger::log($application, null, $application->stage);
+                }
+                ApplicantNotifier::stageChanged($application, null, $application->stage);
+            } catch (\Throwable $e) {
+                \Log::warning('JobApplication created side-effect failed', [
+                    'id'=>$application->id,'err'=>$e->getMessage()
+                ]);
+            }
+        });
+
+        static::updating(function ($application) {
+            if ($application->isDirty('stage')) {
+                // Store original stage in a non-attribute property
+                $application->previousStage = $application->getOriginal('stage');
+            }
         });
 
         static::updated(function ($application) {
-            if ($application->isDirty('stage')) {
-                \App\Models\JobApplicationStage::create([
-                    'job_application_id' => $application->id,
-                    'stage' => $application->stage,
-                    'changed_at' => now(),
-                ]);
+            if ($application->wasChanged('stage')) {
+                $from = $application->previousStage;
+                $to   = $application->stage;
+                try {
+                    if (class_exists(StageLogger::class)) {
+                        StageLogger::log($application, $from, $to);
+                    }
+                    ApplicantNotifier::stageChanged($application, $from, $to);
+                } catch (\Throwable $e) {
+                    \Log::warning('JobApplication updated side-effect failed', [
+                        'id'=>$application->id,'err'=>$e->getMessage()
+                    ]);
+                }
+                // Clear holder
+                $application->previousStage = null;
             }
         });
     }
@@ -119,4 +143,10 @@ class JobApplication extends Model
         return $this->hasOne(JobOffer::class);
     }
     
+    public function pipelineStage() {
+    return $this->belongsTo(JobPipelineStage::class,'job_pipeline_stage_id');
+    }
+    public function stageLogs() {
+        return $this->hasMany(JobApplicationStageLog::class, 'job_application_id');
+    }
 }

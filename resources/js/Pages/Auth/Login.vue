@@ -123,7 +123,7 @@ const togglePasswordVisibility = () => {
               <InputError class="mt-2 text-red-300" :message="form.errors.password" />
             </div>
 
-            <div class="flex items-center justify-between">
+            <!-- <div class="flex items-center justify-between">
               <label class="flex items-center cursor-pointer">
                 <Checkbox v-model:checked="form.remember" name="remember" class="rounded border-white/30 text-blue-400 focus:ring-blue-400" />
                 <span class="ml-3 text-base text-white/80 hover:text-white transition-colors">Remember me</span>
@@ -131,7 +131,7 @@ const togglePasswordVisibility = () => {
               <Link href="route('password.request')" class="text-base text-blue-300 hover:text-blue-200 hover:enhanced-text transition-all duration-200">
                 Forgot password?
               </Link>
-            </div>
+            </div> -->
 
             <div class="pt-4">
               <button type="submit"

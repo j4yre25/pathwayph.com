@@ -36,7 +36,7 @@ class DashboardController extends Controller
         // ✅ Role: Institution
         if ($user->hasRole('institution')) {
 
-            if (!$user->institution) {
+            if (!$user->institution || !$user->has_completed_information) {
                 return redirect()->route('institution.information');
             }
 
@@ -47,7 +47,7 @@ class DashboardController extends Controller
 
         // ✅ Role: Graduate
         if ($user->hasRole('graduate')) {
-            if (!$user->graduate) {
+            if (!$user->graduate || !$user->has_completed_information) {
                 return redirect()->route('graduate.information');
             }
 
@@ -355,19 +355,67 @@ class DashboardController extends Controller
         ];
     }
 
+    private function filterByDate($query, $year, $dateFrom, $dateTo)
+    {
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+        if ($year && !$dateFrom && !$dateTo) {
+            $query->whereYear('created_at', $year);
+        }
+        return $query;
+    }
+
     private function getAdminDashboardData(Request $request)
 
     {
-        // KPIs
-        $registeredEmployers = \App\Models\User::where('role', 'company')
-            ->whereHas('company')
-            ->count();
 
-        $registeredJobSeekers = \App\Models\User::where('role', 'graduate')
-            ->whereHas('graduate')
-            ->count();
+        $year = $request->input('year', now()->year);
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
 
-        $activeJobListings = \App\Models\Job::where('status', 'open')->count();
+        $registeredEmployers = $this->filterByDate(
+            \App\Models\User::where('role', 'company')->whereHas('company'),
+            $year,
+            $dateFrom,
+            $dateTo
+        )->count();
+
+        $registeredJobSeekers = $this->filterByDate(
+            \App\Models\User::where('role', 'graduate')->whereHas('graduate'),
+            $year,
+            $dateFrom,
+            $dateTo
+        )->count();
+
+        $activeJobListings = $this->filterByDate(
+            \App\Models\Job::where('status', 'open'),
+            $year,
+            $dateFrom,
+            $dateTo
+        )->count();
+
+        $graduates = $this->filterByDate(
+            \App\Models\Graduate::select('id', 'employment_status'),
+            $year,
+            $dateFrom,
+            $dateTo
+        )->get();
+
+        $employed = $graduates->where('employment_status', 'Employed')->count();
+        $underemployed = $graduates->where('employment_status', 'Underemployed')->count();
+        $unemployed = $graduates->where('employment_status', 'Unemployed')->count();
+
+        $referralsThisMonth = $this->filterByDate(
+            \App\Models\ReferralExport::whereMonth('created_at', now()->month),
+            $year,
+            $dateFrom,
+            $dateTo
+        )->count();
+
 
         $companies = \App\Models\Company::select('id', 'company_name')->get();
 
@@ -380,8 +428,10 @@ class DashboardController extends Controller
             $recentJobsQuery->where('company_id', $companyId);
         }
 
-        $recentJobs = $recentJobsQuery
+        // Apply date filter here
+        $recentJobsQuery = $this->filterByDate($recentJobsQuery, $year, $dateFrom, $dateTo);
 
+        $recentJobs = $recentJobsQuery
             ->orderBy('created_at', 'desc')
             ->take(3)
             ->get()
@@ -519,6 +569,8 @@ class DashboardController extends Controller
             ->toArray();
 
 
+
+
         return [
             'userNotApproved' => !Auth::user()->is_approved,
             'companies' => $companies,
@@ -531,10 +583,13 @@ class DashboardController extends Controller
                 'registeredEmployers' => $registeredEmployers,
                 'activeJobListings' => $activeJobListings,
                 'registeredJobSeekers' => $registeredJobSeekers,
-                'referralsThisMonth' => 0,
+                'referralsThisMonth' => $referralsThisMonth,
                 'successfulPlacements' => 0,
                 'upcomingCareerGuidance' => 0,
                 'pendingEmployerRegistrations' => 0,
+                'unemployed' => $unemployed,
+                'underemployed' => $underemployed,
+                'employed' => $employed,
             ],
             'recentJobs' => $recentJobs,
             'referralTrendOption' => $referralTrendOption,
@@ -548,4 +603,3 @@ class DashboardController extends Controller
         ];
     }
 }
-

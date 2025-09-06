@@ -228,7 +228,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('company/jobs/{job}/auto-invite', [CompanyJobsController::class, 'autoInvite'])->name('company.jobs.auto-invite');
     Route::post('company/jobs/edit/{job}', [CompanyJobsController::class, 'restore'])->name('company.jobs.restore');
     Route::post('company/jobs/{job}/approve', [CompanyJobsController::class, 'approve'])->name('company.jobs.approve');
-    Route::post('company/jobs/{job}/disapprove', [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
+    Route::post('company/jobs/{job}/disapprove', action: [CompanyJobsController::class, 'disapprove'])->name('company.jobs.disapprove');
 
     Route::get('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchPage'])->name('company.jobs.batch.page');
     Route::post('/company/post-jobs/batch-upload', [CompanyJobsController::class, 'batchUpload'])->name('company.jobs.batch.upload');
@@ -250,8 +250,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::prefix('/applicants')->group(function () {
         // View details of a specific applicant/application
         Route::get('{application}', [CompanyApplicationController::class, 'show'])->name('applicants.show');
-
-        // Update an applicant's status (e.g., mark as hired)
         Route::put('{application}', [CompanyApplicationController::class, 'update'])->name('applicants.update');
 
         Route::post('/company/applications/{application}/offer', [CompanyApplicationController::class, 'storeOffer'])->name('company.applications.offer');
@@ -265,6 +263,21 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('portfolio/{user}', [CompanyApplicationController::class, 'viewPortfolio'])->name('applicants.portfolio');
         Route::put('/applicants/{application}/note', [CompanyApplicationController::class, 'updateNote'])->name('applicants.note.update');
     });
+});
+
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'index'])
+        ->name('applications.actions.index');
+    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'perform'])
+        ->name('applications.actions.perform');
+
+    Route::get('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'index'])->name('applications.actions.index');
+    Route::post('/applications/{application}/actions', [\App\Http\Controllers\ApplicationActionController::class,'perform'])->name('applications.actions.perform');
+});
+
+Route::middleware(['auth','verified'])->group(function () {
+    Route::get('/pipeline-stages', [\App\Http\Controllers\PipelineStageController::class,'index'])->name('pipeline.stages.index');
+    Route::put('/pipeline-stages/reorder', [\App\Http\Controllers\PipelineStageController::class,'reorder'])->name('pipeline.stages.reorder');
 });
 
 // Company Reports
@@ -478,6 +491,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/career', [InstitutionReportsController::class, 'career'])->name('institutions.reports.career');
     Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
     Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
+    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
+    ->get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])
+    ->name('institutions.reports.graduate.data');
 });
 
 //Internship Routes
@@ -969,7 +985,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
     Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
+
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
+    Route::get('/home/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'index'])->name('peso.reports.home');
+    Route::get('/peso-reports/employment', [App\Http\Controllers\Admin\PesoReportsController::class, 'employment'])->name('peso.reports.employment');
+    Route::get('/peso-reports/employment/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'employmentData'])->name('peso.reports.employment.data');
+    Route::get('/peso-reports/referral', [App\Http\Controllers\Admin\PesoReportsController::class, 'referral'])->name('peso.reports.referral');
+    Route::get('/peso-reports/referral/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'referralData'])->name('peso.reports.referral.data');
+
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
     Route::get('/admin/seminar-requests', [PesoCareerGuidanceController::class, 'seminarRequests'])->name('admin.seminar-requests');
     Route::post('/admin/seminar-requests/{id}/status', [PesoCareerGuidanceController::class, 'updateSeminarRequestStatus'])->name('admin.seminar-requests.update-status');
@@ -978,6 +1001,6 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
 
 
-Route::prefix('admin')->middleware(['auth'])->group(function () { });
+Route::prefix('admin')->middleware(['auth'])->group(function () {});
 
 Route::post('/profile/testimonials/request', [ProfileController::class, 'requestTestimonial'])->name('profile.testimonials.request');
