@@ -706,8 +706,7 @@ function onOfferSent() {
               <p class="text-sm text-gray-600 mb-4 leading-relaxed">
                 You are about to reject
                 <strong>{{ applicant.graduate.first_name }} {{ applicant.graduate.last_name }}</strong>.
-                This will move the application to the Rejected stage. This action can be reversed only
-                by moving the candidate to another stage manually.
+                This will move the application to the Rejected stage. 
               </p>
               <div v-if="rejectError" class="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded">
                 {{ rejectError }}
