@@ -247,37 +247,9 @@ console.log(page.props.permissions.canManageInstitution)
 
                 <NavLink
                   v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('school-years', { user: page.props.auth.user.id })"
-                  :active="route().current('school-years')">
-                  Manage School Year
-                </NavLink>
-
-                <NavLink
-                  v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('degrees', { user: page.props.auth.user.id })"
-                  :active="route().current('degrees')">
-                  Manage Degrees
-                </NavLink>
-
-                <NavLink
-                  v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('programs', { user: page.props.auth.user.id })"
-                  :active="route().current('programs')">
-                  Manage Programs
-                </NavLink>
-
-                <NavLink
-                  v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('careeropportunities', { user: page.props.auth.user.id })"
-                  :active="route().current('careeropportunities')">
-                  Manage Career Opportunities
-                </NavLink>
-
-                <NavLink
-                  v-if="page.props.permissions.canManageInstitution && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('instiskills', { user: page.props.auth.user.id })"
-                  :active="route().current('instiskills')">
-                  Manage Skills
+                  :href="route('institutions.entries', { user: page.props.auth.user.id })"
+                  :active="route().current('institutions.entries')">
+                  Manage Entries
                 </NavLink>
 
                 <!-- Manage Approval Link -->

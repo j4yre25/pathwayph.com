@@ -25,6 +25,7 @@ use App\Http\Controllers\CareerOpportunityController;
 use App\Http\Controllers\ManageGraduatesApprovalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
+use App\Http\Controllers\InstitutionEntriesController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\GraduateProfileController;
 use App\Http\Controllers\GraduateJobsController;
@@ -654,6 +655,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/graduates/archived', [GraduateController::class, 'archivedList'])->name('graduates.archived');
     Route::put('/graduates/restore/{graduate}', [GraduateController::class, 'restore'])->name('graduates.restore');
 });
+
+//Institution Entries
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->get(
+    '/institutions/entries',[InstitutionEntriesController::class, 'index'])->name('institutions.entries');
 
 
 Route::group(['middleware' => config('fortify.middleware', ['web'])], function () {
