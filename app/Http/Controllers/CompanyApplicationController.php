@@ -41,6 +41,7 @@ class CompanyApplicationController extends Controller
                 'graduate.careerGoals',
                 'graduate.resume',
                 'job',                 // Job applied for
+                'graduate.referralExports', // <-- Added relation
             ]);
 
         $graduate = $application->graduate;
@@ -130,6 +131,21 @@ class CompanyApplicationController extends Controller
             ];
         }
 
+        $referralCertificates = $graduate?->referralExports?->map(function ($r) {
+            $path = $r->certificate_path;
+            // If already a full URL leave it, else build storage URL
+            $url = str_starts_with($path, 'http')
+                ? $path
+                : (\Storage::exists($path) ? \Storage::url($path) : null);
+            return [
+                'id' => $r->id,
+                'file_name' => basename($path),
+                'file_url' => $url,
+                'raw_path' => $path,
+                'uploaded_at' => $r->created_at,
+            ];
+        })?->values() ?? [];
+
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,
             'graduate' => $graduate,
@@ -185,6 +201,7 @@ class CompanyApplicationController extends Controller
                 'file_name' => $resume->file_name,
             ] : null,
             'job' => $application->job,
+            'referralCertificates' => $referralCertificates, // <-- Added referralCertificates
         ]);
     }
 

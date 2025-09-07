@@ -31,6 +31,7 @@ const props = defineProps({
   employmentPreferences: { type: Object, default: null },
   careerGoals: { type: Object, default: null },
   resume: { type: Object, default: null },
+  referralCertificates: { type: Array, default: () => [] }, // NEW
 })
 
 // Canonical stage order
@@ -314,6 +315,9 @@ const groupedSkills = computed(() => {
       )
     }))
 })
+
+// referralCerts computed
+const referralCerts = computed(() => props.referralCertificates || [])
 </script>
 
 <template>
@@ -513,7 +517,13 @@ const groupedSkills = computed(() => {
           <!-- Hiring Process -->
           <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
               <div class="flex items-start justify-between mb-4 gap-4 flex-wrap">
-                <h4 class="text-base font-semibold text-gray-800">Hiring Process</h4>
+                <h4 class="text-base font-semibold text-gray-800">
+                  Applied for
+                  <span class="text-indigo-600">
+                    {{ applicant.job?.job_title || 'Position' }}
+                  </span>
+                  | Hiring Process
+                </h4>
                 <span
                   class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
                   :class="{
@@ -986,15 +996,47 @@ const groupedSkills = computed(() => {
                 <div v-else class="text-xs text-gray-500 italic">No cover letter provided.</div>
               </div>
 
-              <!-- Referral / Certification Placeholder -->
+              <!-- Referral Certificates -->
               <div class="mb-6">
-                <div class="font-semibold text-sm text-gray-800 mb-2">Referral Certification</div>
-                <div v-if="referralDoc && referralDoc.file_url" class="bg-gray-50 p-4 rounded border">
-                  <a :href="referralDoc.file_url" target="_blank" class="text-indigo-600 text-sm hover:underline">
-                    View Document
-                  </a>
+                <div class="font-semibold text-sm text-gray-800 mb-2">Referral Certificates</div>
+
+                <div v-if="referralCerts.length" class="space-y-3">
+                  <div
+                    v-for="rc in referralCerts"
+                    :key="rc.id"
+                    class="border rounded p-3 bg-gray-50 flex items-start justify-between gap-4"
+                  >
+                    <div class="space-y-1">
+                      <div class="text-sm font-medium text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-file-certificate text-indigo-500"></i>
+                        {{ rc.file_name }}
+                      </div>
+                      <div class="text-[11px] text-gray-500">
+                        Uploaded: {{ rc.uploaded_at ? formatShortDate(rc.uploaded_at) : 'N/A' }}
+                      </div>
+                      <div v-if="rc.file_url" class="flex gap-3 text-xs mt-1">
+                        <a
+                          :href="rc.file_url"
+                          target="_blank"
+                          class="text-indigo-600 hover:underline font-medium"
+                        >View</a>
+                        <a
+                          :href="rc.file_url"
+                          download
+                          class="text-indigo-600 hover:underline font-medium"
+                        >Download</a>
+                      </div>
+                      <div v-else class="text-xs text-red-500">File missing ({{ rc.raw_path }})</div>
+                    </div>
+                    <div v-if="rc.file_url && rc.file_name.endsWith('.pdf')" class="hidden md:block w-20 h-24 border rounded overflow-hidden bg-white">
+                      <iframe :src="rc.file_url" class="w-full h-full"></iframe>
+                    </div>
+                  </div>
                 </div>
-                <div v-else class="text-xs text-gray-500 italic">No referral certification uploaded.</div>
+
+                <div v-else class="text-xs text-gray-500 italic">
+                  No referral certificates uploaded.
+                </div>
               </div>
 
               <!-- Testimonials / Alumni Stories -->
@@ -1044,44 +1086,6 @@ const groupedSkills = computed(() => {
               <div v-else class="text-sm text-gray-500 italic">No career profile data.</div>
             </div>
           </section>
-          <!-- Resume Preview -->
-          <!-- <section class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div class="flex flex-col md:flex-row gap-8">
-              <div class="flex-1">
-                <div class="flex items-center justify-between mb-4">
-                  <div class="text-gray-400 text-sm">Resume</div>
-                  <div class="flex gap-4">
-                    <a v-if="resume && resume.file_url" :href="resume.file_url" download target="_blank" title="Download">
-                      <i class="fas fa-download text-gray-500 cursor-pointer"></i>
-                    </a>
-                  </div>
-                </div>
-                <div v-if="resume && resume.file_url" class="bg-gray-50 rounded-lg p-6">
-                  <div class="flex items-center gap-3 mb-4">
-                    <i v-if="resume.file_type && resume.file_type.includes('pdf')" class="fas fa-file-pdf text-3xl text-red-500"></i>
-                    <i v-else-if="resume.file_type && resume.file_type.includes('word')" class="fas fa-file-word text-3xl text-blue-500"></i>
-                    <i v-else class="fas fa-file-alt text-3xl text-gray-500"></i>
-                    <span class="font-semibold">{{ resume.file_name }}</span>
-                  </div> -->
-                  <!-- PDF Preview -->
-                  <!-- <div v-if="resume.file_type && resume.file_type.includes('pdf')" class="border rounded mt-4 overflow-hidden">
-                   <iframe :src="resume.file_url || ''" width="100%" height="400px"></iframe>
-                  </div> -->
-                  <!-- For non-PDF files, just show info and download -->
-                  <!-- <div v-else class="text-gray-600 text-base">
-                    <a :href="resume.file_url" download target="_blank" class="text-indigo-600 hover:underline font-semibold">
-                      Download Resume
-                    </a>
-                  </div>
-                </div>
-                <div v-else class="bg-gray-50 rounded-lg p-6 text-gray-600">
-                  No resume uploaded.
-                </div>
-              </div>
-            </div>
-          </section> -->
-
-
 
           <!-- Confirmation Modal -->
           <div v-if="showConfirmationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
