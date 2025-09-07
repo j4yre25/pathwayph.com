@@ -34,6 +34,7 @@ function fetchAnalyticsData() {
         }
     }).then(res => {
         analyticsData.value = res.data
+        console.log('Referral Data:', response.data);
     }).finally(() => {
         loading.value = false
     })
@@ -206,7 +207,7 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-10">
                 <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-200">
                     <h3 class="text-gray-600 text-sm font-medium mb-2">Total Referrals</h3>
-                    <p class="text-3xl font-bold text-blue-600">{{ analyticsData.funnelData?.[0]?.count ?? 0 }}</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ analyticsData.totalReferrals ?? 0 }}</p>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
                     <h3 class="text-gray-600 text-sm font-medium mb-2">Screened</h3>

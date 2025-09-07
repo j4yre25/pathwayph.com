@@ -74,19 +74,23 @@ function goToPage(link) {
 
 <template>
   <AppLayout title="Manage Job Referrals">
-    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      <!-- Header Section with Back Button -->
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center">
-          <a href="javascript:history.back()" class="mr-4 text-gray-500 hover:text-gray-700 transition-colors">
-            <i class="fas fa-chevron-left"></i>
-          </a>
-          <i class="fas fa-exchange-alt text-blue-500 text-xl mr-2"></i>
-          <h1 class="text-2xl font-bold text-gray-800">Job Referrals Tracking</h1>
-        </div>
+    <template #header>
+      <div class="flex items-center">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight flex items-center">
+          <i class="fas fa-exchange-alt text-blue-500 mr-2"></i> Job Referrals Tracking
+        </h2>
       </div>
-      <p class="text-sm text-gray-500 mb-6">Monitor and manage job referrals across the platform.</p>
+    </template>
 
+<<<<<<< HEAD
+    <div class="py-8 max-w-7xl mx-auto">
+      <!-- Stats Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-users text-white text-lg"></i>
+=======
       <!-- Stats Cards -->
       <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div
@@ -98,9 +102,18 @@ function goToPage(link) {
             </div>
             <div class="rounded-full bg-blue-100 p-3">
               <i class="fas fa-users text-blue-500 text-xl"></i>
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
             </div>
+            <h3 class="text-blue-700 text-sm font-medium mb-2">Total Referrals</h3>
+            <p class="text-2xl font-bold text-blue-900">{{ totalReferrals }}</p>
           </div>
         </div>
+<<<<<<< HEAD
+        <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-check-circle text-white text-lg"></i>
+=======
         <div
           class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md p-6">
           <div class="flex items-center justify-between">
@@ -110,9 +123,18 @@ function goToPage(link) {
             </div>
             <div class="rounded-full bg-green-100 p-3">
               <i class="fas fa-check-circle text-green-500 text-xl"></i>
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
             </div>
+            <h3 class="text-green-700 text-sm font-medium mb-2">Successful Referrals</h3>
+            <p class="text-2xl font-bold text-green-900">{{ successfulReferrals }}</p>
           </div>
         </div>
+<<<<<<< HEAD
+        <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-chart-line text-white text-lg"></i>
+=======
         <div
           class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md p-6">
           <div class="flex items-center justify-between">
@@ -122,12 +144,62 @@ function goToPage(link) {
             </div>
             <div class="rounded-full bg-yellow-100 p-3">
               <i class="fas fa-chart-line text-yellow-500 text-xl"></i>
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
             </div>
+            <h3 class="text-yellow-700 text-sm font-medium mb-2">Success Rate</h3>
+            <p class="text-2xl font-bold text-yellow-900">{{ successRate }}%</p>
           </div>
         </div>
       </div>
 
       <!-- Filter Section -->
+<<<<<<< HEAD
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+        <div class="p-4 border-b border-gray-200 flex items-center">
+          <i class="fas fa-filter text-blue-500 mr-2"></i>
+          <h3 class="font-medium text-gray-700">Filter Referrals</h3>
+          <div class="ml-auto">
+            <button type="button" @click="filters.status = ''; filters.company = ''; filters.candidate = ''; filters.search = ''"
+              class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
+              <i class="fas fa-undo mr-2"></i> Reset Filter
+            </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select v-model="filters.status"
+                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all appearance-none">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="hired">Hired</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
+              <input v-model="filters.company" type="text" placeholder="Company name"
+                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Candidate</label>
+              <input v-model="filters.candidate" type="text" placeholder="Candidate name"
+                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input v-model="filters.search" @keyup.enter="onSearch" type="text" placeholder="Search..."
+                  class="block w-full pl-10 border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+=======
       <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 flex flex-wrap items-end gap-4 mb-6">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -163,13 +235,25 @@ function goToPage(link) {
           class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring focus:ring-blue-300 transition">
           <i class="fas fa-filter mr-2"></i> Apply Filters
         </button>
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
       </div>
 
-      <!-- Table Section -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <!-- Referrals Table Section -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+              <i class="fas fa-exchange-alt text-white text-sm"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-800">My Referrals</h3>
+              <p class="text-sm text-gray-500 mt-1">Monitor and manage job referrals across the platform.</p>
+            </div>
+          </div>
+        </div>
         <div class="overflow-x-auto">
           <table class="min-w-full text-sm text-left text-gray-700">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-600 font-medium">
+            <thead class="bg-blue-50 text-xs uppercase tracking-wider text-gray-600 font-medium">
               <tr>
                 <th class="px-6 py-4 font-semibold">Candidate</th>
                 <th class="px-6 py-4 font-semibold">Job Title</th>
@@ -187,21 +271,41 @@ function goToPage(link) {
                 <td class="px-6 py-4">{{ ref.job_title }}</td>
                 <td class="px-6 py-4">{{ ref.company }}</td>
                 <td class="px-6 py-4">
+<<<<<<< HEAD
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    :class="{
+                      'bg-green-100 text-green-800': ref.status === 'hired',
+                      'bg-yellow-100 text-yellow-800': ref.status === 'pending',
+                      'bg-red-100 text-red-800': ref.status === 'rejected'
+                    }">
+=======
                   <span class="px-2 py-1 text-xs font-medium rounded-full" :class="{
                     'bg-green-100 text-green-800': ref.status === 'success',
                     'bg-yellow-100 text-yellow-800': ref.status === 'pending',
                     'bg-red-100 text-red-800': ref.status === 'rejected'
                   }">
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
                     {{ ref.status.charAt(0).toUpperCase() + ref.status.slice(1) }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-gray-600">{{ ref.referred_at }}</td>
                 <td class="px-6 py-4">
+<<<<<<< HEAD
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    :class="{
+                      'bg-green-100 text-green-800': ref.match_score >= 60,
+                      'bg-yellow-100 text-yellow-800': ref.match_score >= 30 && ref.match_score < 60,
+                      'bg-red-100 text-red-800': ref.match_score < 30
+                    }">
+=======
                   <span class="px-2 py-1 text-xs font-medium rounded-full" :class="{
                     'bg-green-100 text-green-800': ref.match_score >= 60,
                     'bg-yellow-100 text-yellow-800': ref.match_score >= 30 && ref.match_score < 60,
                     'bg-red-100 text-red-800': ref.match_score < 30
                   }">
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
                     {{ ref.match_score }}
                   </span>
                 </td>
@@ -214,6 +318,12 @@ function goToPage(link) {
                   </div>
                 </td>
                 <td class="py-3 px-4 border-b">
+<<<<<<< HEAD
+                  <button v-if="ref.status === 'pending' || ref.status === 'hired'" @click="generateCertificate(ref.id)"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-semibold text-xs shadow transition">
+                    Generate Certificate
+                  </button>
+=======
                   <div class="flex flex-col gap-2 items-start">
                     <button v-if="ref.status === 'pending' || ref.status === 'success'"
                       @click="generateCertificate(ref.id)"
@@ -225,10 +335,11 @@ function goToPage(link) {
                       Decline
                     </button>
                   </div>
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
                 </td>
               </tr>
               <tr v-if="referrals.length === 0">
-                <td colspan="8" class="px-6 py-8 text-center">
+                <td colspan="9" class="px-6 py-8 text-center">
                   <div class="flex flex-col items-center justify-center text-gray-500">
                     <svg class="w-12 h-12 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -249,6 +360,20 @@ function goToPage(link) {
         <nav aria-label="Page navigation">
           <ul class="inline-flex items-center -space-x-px rounded-md shadow-sm">
             <li v-for="(link, i) in pagination.links" :key="i">
+<<<<<<< HEAD
+              <button
+                :disabled="!link.url"
+                @click="goToPage(link)"
+                :class="[
+                  'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
+                  link.active
+                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                  link.label.includes('Previous') ? 'rounded-l-md' : '',
+                  link.label.includes('Next') ? 'rounded-r-md' : '',
+                  !link.url ? 'opacity-50 cursor-not-allowed' : ''
+                ]">
+=======
               <button :disabled="!link.url" @click="goToPage(link)" :class="[
                 'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
                 link.active
@@ -258,6 +383,7 @@ function goToPage(link) {
                 link.label.includes('Next') ? 'rounded-r-md' : '',
                 !link.url ? 'opacity-50 cursor-not-allowed' : ''
               ]">
+>>>>>>> 50359cfe731b2a5e59856430f4cbbd9bf68e32c3
                 <span v-html="link.label"></span>
               </button>
             </li>

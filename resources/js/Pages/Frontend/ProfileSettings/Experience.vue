@@ -79,8 +79,7 @@ const formatDisplayDate = (date) => {
 const stillInRole = ref(false);
 const isDeleteConfirmationModalOpen = ref(false);
 const itemToDelete = ref(null);
-const experienceExpanded = ref(true); // State for Experience collapsible section
-const archivedExperienceExpanded = ref(true); // State for Archived Experience collapsible section
+
 const showArchivedExperience = ref(false); // State for showing/hiding archived experience
 
 
@@ -330,9 +329,8 @@ onMounted(() => {
     <div class="w-full mb-6">
       <!-- Work Experience Card -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
-        <!-- Card Header with Collapsible Toggle -->
-        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-100 to-white cursor-pointer"
-             @click="experienceExpanded = !experienceExpanded">
+        <!-- Card Header -->
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-100 to-white">
           <div class="flex items-center">
             <div class="bg-blue-200 p-2 rounded-full mr-3">
               <i class="fas fa-briefcase text-blue-600"></i>
@@ -341,29 +339,26 @@ onMounted(() => {
           </div>
           <div class="flex space-x-2">
             <PrimaryButton class="bg-blue-600 text-white px-3 py-1 rounded-lg flex items-center hover:bg-blue-700 text-sm"
-              @click.stop="openAddExperienceModal">
+              @click="openAddExperienceModal">
               <i class="fas fa-plus mr-1"></i> Add Experience
             </PrimaryButton>
             <button
               class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer text-sm"
-              @click.stop="toggleArchivedExperience">
+              @click="toggleArchivedExperience">
               <i class="fas" :class="showArchivedExperience ? 'fa-eye-slash' : 'fa-eye'"></i>
               <span class="ml-1">{{ showArchivedExperience ? 'Hide Archived' : 'Show Archived' }}</span>
-            </button>
-            <button class="text-gray-600 p-2" @click.stop="experienceExpanded = !experienceExpanded">
-              <i class="fas" :class="experienceExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
             </button>
           </div>
         </div>
         
         <!-- Card Body -->
-        <div v-show="experienceExpanded" class="p-6 transition-all duration-300">
+        <div class="p-6 transition-all duration-300">
           <p class="text-gray-600 mb-6">Showcase your professional experience</p>
 
           <!-- Experience Entries -->
           <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div v-for="experienceEntry in experienceEntries" :key="experienceEntry.id"
-            class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative">
+            class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative group border border-gray-200">
             <div>
               <div class="border-b border-blue-100 pb-3">
                 <h2 class="text-xl font-bold text-blue-900">{{ experienceEntry.title }}</h2>
@@ -397,16 +392,16 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-            <div class="absolute top-2 right-2 flex space-x-2">
-              <button class="text-gray-600 hover:text-blue-600" @click="openUpdateExperienceModal(experienceEntry)">
-                <i class="fas fa-pen"></i>
-              </button>
-              <button class="text-amber-600 hover:text-amber-800" @click="archiveExperience(experienceEntry)">
-                <i class="fas fa-archive"></i>
-              </button>
-              <button class="text-red-600 hover:text-red-800" @click="deleteExperience(experienceEntry.id)">
-                <i class="fas fa-trash"></i>
-              </button>
+            <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200" @click="openUpdateExperienceModal(experienceEntry)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200" @click="archiveExperience(experienceEntry)">
+                  <i class="fas fa-archive"></i>
+                </button>
+                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="deleteExperience(experienceEntry.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
             </div>
           </div>
           </div>
@@ -421,24 +416,20 @@ onMounted(() => {
       <!-- Archived Experience Card -->
       <div v-if="showArchivedExperience" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
         <!-- Card Header -->
-        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white cursor-pointer"
-             @click="archivedExperienceExpanded = !archivedExperienceExpanded">
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white">
           <div class="flex items-center">
             <div class="bg-gray-300 p-2 rounded-full mr-3">
               <i class="fas fa-archive text-gray-600"></i>
             </div>
             <h3 class="text-lg font-semibold text-gray-700">Archived Experience</h3>
           </div>
-          <button class="text-gray-600 p-2">
-            <i class="fas" :class="archivedExperienceExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-          </button>
         </div>
         
         <!-- Card Body -->
-        <div v-show="archivedExperienceExpanded" class="p-6 transition-all duration-300">
+        <div class="p-6 transition-all duration-300">
           <div v-if="archivedExperienceEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="experienceEntry in archivedExperienceEntries" :key="experienceEntry.id"
-              class="bg-gray-50 p-4 rounded-lg shadow-md space-y-3 relative border border-gray-200">
+              class="bg-gray-50 p-6 rounded-lg shadow-md space-y-3 relative border border-gray-200 hover:shadow-lg transition-all duration-300 group opacity-85">
               <div class="opacity-75">
               <div class="border-b pb-2">
                 <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
@@ -470,15 +461,15 @@ onMounted(() => {
                 {{ experienceEntry.description || 'No description provided' }}
               </p>
             </div>
-            <div class="absolute top-2 right-2 flex space-x-2">
-              <button class="text-green-600 hover:text-green-800" @click="unarchiveExperience(experienceEntry)">
-                <i class="fas fa-box-open"></i>
-              </button>
-              <button class="text-red-600 hover:text-red-800" @click="deleteExperience(experienceEntry.id)">
-                <i class="fas fa-trash"></i>
-              </button>
+            <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200" @click="unarchiveExperience(experienceEntry)">
+                  <i class="fas fa-undo"></i>
+                </button>
+                <button class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="deleteExperience(experienceEntry.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
             </div>
-            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
+            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-md font-medium">
               Archived
             </div>
           </div>
@@ -498,9 +489,9 @@ onMounted(() => {
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Add Experience</h2>
-          <button class="text-gray-500 hover:text-gray-700" @click="closeAddExperienceModal">
-            <i class="fas fa-times"></i>
-          </button>
+          <SecondaryButton @click="closeAddExperienceModal">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </SecondaryButton>
         </div>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="addExperience">
@@ -588,9 +579,9 @@ onMounted(() => {
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Update Experience</h2>
-          <button class="text-gray-500 hover:text-gray-700" @click="closeUpdateExperienceModal">
-            <i class="fas fa-times"></i>
-          </button>
+          <SecondaryButton @click="closeUpdateExperienceModal">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </SecondaryButton>
         </div>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="updateExperience">
@@ -674,3 +665,50 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Glow effects for form elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  animation: pulse 1.5s infinite;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.modal-content {
+  animation: fadeIn 0.4s ease-out;
+}
+</style>

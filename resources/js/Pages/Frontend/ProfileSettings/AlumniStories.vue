@@ -273,9 +273,9 @@ onMounted(() => {
       </div>
       <p class="mb-6 text-gray-600 text-sm">{{ successMessage }}</p>
       <div class="flex justify-end">
-        <button @click="closeSuccessModal" class="px-5 py-2 bg-green-500 rounded-md text-sm text-white hover:bg-green-600 transition-colors duration-200 shadow-sm btn-hover-effect">
+        <PrimaryButton @click="closeSuccessModal" class="bg-green-600 hover:bg-green-700 focus:bg-green-700 active:bg-green-800 focus:ring-green-500">
           OK
-        </button>
+        </PrimaryButton>
       </div>
     </div>
   </Modal>
@@ -291,9 +291,9 @@ onMounted(() => {
       </div>
       <p class="mb-6 text-gray-600 text-sm">{{ errorMessage }}</p>
       <div class="flex justify-end">
-        <button @click="closeErrorModal" class="px-5 py-2 bg-red-500 rounded-md text-sm text-white hover:bg-red-600 transition-colors duration-200 shadow-sm btn-hover-effect">
+        <DangerButton @click="closeErrorModal">
           OK
-        </button>
+        </DangerButton>
       </div>
     </div>
   </Modal>
@@ -395,12 +395,12 @@ onMounted(() => {
         
         <!-- Actions -->
         <div class="flex justify-end space-x-3">
-          <button type="button" @click="closeAddStoryModal" class="px-5 py-2.5 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200 shadow-sm">
+          <SecondaryButton type="button" @click="closeAddStoryModal">
             Cancel
-          </button>
-          <button type="submit" :disabled="storyForm.processing" class="px-5 py-2.5 bg-indigo-600 rounded-md text-sm text-white hover:bg-indigo-700 transition-colors duration-200 flex items-center shadow-sm btn-hover-effect">
-            <i class="fas fa-save mr-2"></i> Save Story
-          </button>
+          </SecondaryButton>
+          <PrimaryButton type="submit" :disabled="storyForm.processing">
+             <i class="fas fa-save mr-2"></i> Save Story
+           </PrimaryButton>
         </div>
       </form>
     </div>
@@ -503,12 +503,12 @@ onMounted(() => {
         
         <!-- Actions -->
         <div class="flex justify-end space-x-3">
-          <button type="button" @click="closeUpdateStoryModal" class="px-5 py-2.5 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200 shadow-sm">
+          <SecondaryButton type="button" @click="closeUpdateStoryModal">
             Cancel
-          </button>
-          <button type="submit" :disabled="storyForm.processing" class="px-5 py-2.5 bg-indigo-600 rounded-md text-sm text-white hover:bg-indigo-700 transition-colors duration-200 flex items-center shadow-sm btn-hover-effect">
-            <i class="fas fa-save mr-2"></i> Update Story
-          </button>
+          </SecondaryButton>
+          <PrimaryButton type="submit" :disabled="storyForm.processing">
+             <i class="fas fa-save mr-2"></i> Update Story
+           </PrimaryButton>
         </div>
       </form>
     </div>
@@ -527,12 +527,12 @@ onMounted(() => {
       <p class="mb-6 text-gray-600 text-sm">Are you sure you want to delete this story? This action will archive the story and can be reversed later.</p>
       
       <div class="flex justify-end space-x-3">
-        <button type="button" @click="closeDeleteModal" class="px-5 py-2.5 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200 shadow-sm">
-          Cancel
-        </button>
-        <button @click="confirmDelete" :disabled="storyForm.processing" class="px-5 py-2.5 bg-red-500 rounded-md text-sm text-white hover:bg-red-600 transition-colors duration-200 flex items-center shadow-sm btn-hover-effect">
-          <i class="fas fa-trash-alt mr-2"></i> Delete Story
-        </button>
+        <SecondaryButton type="button" @click="closeDeleteModal">
+           Cancel
+         </SecondaryButton>
+        <DangerButton @click="confirmDelete" :disabled="storyForm.processing">
+           <i class="fas fa-trash-alt mr-2"></i> Delete Story
+         </DangerButton>
       </div>
     </div>
   </Modal>
@@ -547,9 +547,9 @@ onMounted(() => {
         <p class="text-gray-600 text-sm">Share your journey and inspire others with your success story</p>
       </div>
       <div>
-        <button @click="isAddStoryModalOpen = true" class="text-sm px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-200 flex items-center shadow-sm btn-hover-effect">
-          <i class="fas fa-plus-circle mr-2"></i>  Add Your Story
-        </button>
+        <PrimaryButton @click="isAddStoryModalOpen = true" class="text-sm flex items-center">
+           <i class="fas fa-plus-circle mr-2"></i>  Add Your Story
+         </PrimaryButton>
       </div>
     </div>
 
@@ -561,9 +561,6 @@ onMounted(() => {
         </div>
         <h3 class="text-xl font-medium text-gray-800 mb-3">No Alumni Stories Yet</h3>
         <p class="text-gray-600 text-sm mb-6 max-w-md mx-auto">Share your journey and inspire others by adding your first alumni story. Your experiences can help guide future graduates.</p>
-        <button @click="isAddStoryModalOpen = true" class="text-sm px-5 py-2.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-200 flex items-center shadow-sm btn-hover-effect">
-          <i class="fas fa-plus-circle mr-2"></i> Add Your Story
-        </button>
       </div>
     </div>
 
@@ -712,5 +709,44 @@ onMounted(() => {
 .btn-hover-effect:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Glow effects for form elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  animation: pulse 1.5s infinite;
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.modal-content {
+  animation: fadeIn 0.4s ease-out;
 }
 </style>

@@ -106,61 +106,134 @@ function requestReferral(companyId, jobId) {
 
 <template>
     <AppLayout title="Company Profile">
-        <!-- Cover Photo Section -->
-        <div class="relative bg-gray-800 h-48">
-            <img :src="company.cover_photo_path || '/images/default-cover.jpg'" alt="Cover Photo"
-                class="absolute inset-0 w-full h-full object-cover" />
-            <div class="absolute inset-0 bg-black bg-opacity-30"></div>
-        </div>
+        <!-- White Gradient Background -->
+        <div class="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100">
+            <!-- Subtle Background Elements -->
+            <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full opacity-20"></div>
+                <div class="absolute top-1/2 -left-20 w-60 h-60 bg-purple-100 rounded-full opacity-20"></div>
+                <div class="absolute bottom-20 right-1/4 w-40 h-40 bg-pink-100 rounded-full opacity-20"></div>
+            </div>
 
-        <!-- Company Header -->
-        <div class="relative -mt-16 max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-                <div class="p-6 flex items-center space-x-6">
-                    <!-- Logo and Featured Badge -->
-                    <div class="relative">
-                        <img :src="company.profile_photo_path || '/images/default-logo.png'" alt="Company Logo"
-                            class="w-24 h-24 rounded-full object-cover border-4 border-white" />
-                        <span v-if="company.is_featured"
-                            class="absolute top-0 left-0 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-tr-lg rounded-bl-lg">
-                            Featured
-                        </span>
-                    </div>
+            <!-- Modern Gradient Header -->
+            <div class="relative bg-gradient-to-r from-blue-600 via-purple-600 to-pink-500 h-64">
+                <!-- Abstract Background Shapes -->
+                <div class="absolute inset-0 overflow-hidden">
+                    <div class="absolute top-0 left-1/4 w-96 h-96 bg-white opacity-10 rounded-full transform -translate-y-1/2"></div>
+                    <div class="absolute top-1/2 right-0 w-80 h-80 bg-white opacity-5 rounded-full transform translate-x-1/2"></div>
+                    <div class="absolute bottom-0 left-0 w-64 h-64 bg-white opacity-10 rounded-full transform translate-y-1/2 -translate-x-1/2"></div>
+                </div>
 
-                    <!-- Company Info -->
-                    <div class="flex-1">
-                        <h3 class="text-3xl font-bold text-gray-800">{{ company.company_name }}</h3>
+                <!-- Navigation Breadcrumb -->
+                <div class="relative z-10 pt-6 px-4 sm:px-6 lg:px-8">
+                    <nav class="flex items-center space-x-2 text-white/80 text-sm">
+                        <a href="#" class="hover:text-white transition-colors">Home</a>
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-white">Company Profile</span>
+                    </nav>
+                </div>
 
-                        <p class="text-gray-600 flex items-center space-x-2">
-                            <i class="fas fa-map-marker-alt text-indigo-500"></i>
-                            <span>{{ company.address || 'Location not available' }}</span>
-                            <a v-if="company.map_link" :href="company.map_link" target="_blank"
-                                class="text-indigo-500 hover:underline text-sm">
-                                View on Map
-                            </a>
-                        </p>
-                        <div class="mt-2 flex space-x-4">
-                            <a v-for="(link, key) in company.social_links || {}" :key="key" :href="link" target="_blank"
-                                class="text-gray-500 hover:text-indigo-500">
-                                <i :class="`fab fa-${key}`"></i>
+                <!-- Star Icon -->
+                <div class="absolute top-6 right-6 text-white/60">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="relative -mt-32 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <!-- Company Avatar and Info -->
+                    <div class="px-8 py-8">
+                        <div class="flex flex-col items-center text-center">
+                            <!-- Company Logo -->
+                            <div class="relative mb-6">
+                                <img :src="company.profile_photo_path || '/images/default-logo.png'" alt="Company Logo"
+                                    class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" />
+                                <span v-if="company.is_featured"
+                                    class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                                    Featured
+                                </span>
+                            </div>
+
+                            <!-- Company Name and Info -->
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ company.company_name }}</h1>
+                            <p class="text-gray-600 mb-6 flex items-center justify-center space-x-2">
+                                <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span>{{ company.address || 'Location not available' }}</span>
+                                <a v-if="company.map_link" :href="company.map_link" target="_blank"
+                                    class="text-blue-500 hover:underline text-sm">
+                                    View on Map
+                                </a>
+                            </p>
+
+                            <!-- Stats -->
+                            <div class="flex items-center justify-center space-x-8 mb-6">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-gray-900">{{ company.job_post_count || 0 }}</div>
+                                    <div class="text-sm text-gray-500">Jobs Posted</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-gray-900">{{ company.employees_count || 0 }}</div>
+                                    <div class="text-sm text-gray-500">Employees</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-gray-900">{{ company.years_active || 0 }}</div>
+                                    <div class="text-sm text-gray-500">Years Active</div>
+                                </div>
+                            </div>
+
+                            <!-- Social Links -->
+                            <div class="flex items-center justify-center space-x-4 mb-6">
+                                <a v-for="(link, key) in company.social_links || {}" :key="key" :href="link" target="_blank"
+                                    class="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
+                                    <i :class="`fab fa-${key}`"></i>
+                                </a>
+                            </div>
+
+                            <!-- Action Button -->
+                            <a v-if="canEdit" :href="route('profile.show', { id: company.id, edit: 'company' })"
+                                class="bg-blue-500 text-white px-8 py-3 rounded-full font-medium hover:bg-blue-600 transition-colors shadow-lg">
+                                Edit Profile
                             </a>
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
-                    <div class="flex space-x-4">
-                        <a v-if="canEdit" :href="route('profile.show', { id: company.id, edit: 'company' })"
-                            class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 inline-block">
-                            Edit Profile
-                        </a>
+                    <!-- Tab Navigation -->
+                    <div class="border-t border-gray-200">
+                        <nav class="flex justify-center space-x-8 px-8">
+                            <button class="flex items-center space-x-2 py-4 border-b-2 border-blue-500 text-blue-600 font-medium">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path>
+                                </svg>
+                                <span>About</span>
+                            </button>
+                            <button class="flex items-center space-x-2 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                                    <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"></path>
+                                </svg>
+                                <span>Jobs</span>
+                            </button>
+                            <button class="flex items-center space-x-2 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span>Gallery</span>
+                            </button>
+                        </nav>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Main Content -->
-        <div class="py-12 bg-gray-100">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <!-- Main Content -->
+            <div class="py-12">
+                <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
 
                 <!-- Overview Section -->
@@ -296,6 +369,7 @@ function requestReferral(companyId, jobId) {
                 </div>
             </div> -->
 
+                </div>
             </div>
         </div>
     </AppLayout>

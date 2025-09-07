@@ -11,6 +11,7 @@ use App\Models\Skill;
 use App\Models\Sector;
 use App\Models\Location;
 use App\Models\JobInvitation;
+use App\Models\ReferralExport;
 use App\Models\Salary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,146 +26,146 @@ class PesoReportsController extends Controller
     }
 
 
-   public function employmentData(Request $request)
-{
-    $year = $request->input('year');
-    $institutionId = $request->input('institution_id');
-    $programId = $request->input('program_id');
-    $status = $request->input('status');
+    public function employmentData(Request $request)
+    {
+        $year = $request->input('year');
+        $institutionId = $request->input('institution_id');
+        $programId = $request->input('program_id');
+        $status = $request->input('status');
 
-    $graduatesQuery = Graduate::with([
-        'schoolYear',
-        'program',
-        'institution',
-        'graduateEducations'
-    ])->select(
-        'id',
-        'first_name',
-        'last_name',
-        'program_id',
-        'employment_status',
-        'school_year_id',
-        'location',
-        'institution_id'
-    );
+        $graduatesQuery = Graduate::with([
+            'schoolYear',
+            'program',
+            'institution',
+            'graduateEducations'
+        ])->select(
+            'id',
+            'first_name',
+            'last_name',
+            'program_id',
+            'employment_status',
+            'school_year_id',
+            'location',
+            'institution_id'
+        );
 
-    if ($year) {
-        $graduatesQuery->whereHas('schoolYear', function ($q) use ($year) {
-            $q->where('school_year_range', $year);
-        });
-    }
-    if ($institutionId) {
-        $graduatesQuery->where('institution_id', $institutionId);
-    }
-    if ($programId) {
-        $graduatesQuery->where('program_id', $programId);
-    }
-    if ($status) {
-        $graduatesQuery->where('employment_status', $status);
-    }
+        if ($year) {
+            $graduatesQuery->whereHas('schoolYear', function ($q) use ($year) {
+                $q->where('school_year_range', $year);
+            });
+        }
+        if ($institutionId) {
+            $graduatesQuery->where('institution_id', $institutionId);
+        }
+        if ($programId) {
+            $graduatesQuery->where('program_id', $programId);
+        }
+        if ($status) {
+            $graduatesQuery->where('employment_status', $status);
+        }
 
-    $graduates = $graduatesQuery->get();
+        $graduates = $graduatesQuery->get();
 
-    $summary = [
-        'total_graduates' => $graduates->count(),
-        'employed' => $graduates->where('employment_status', 'Employed')->count(),
-        'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
-        'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
-        'further_studies' => $graduates->where('employment_status', 'Further Studies')->count(),
-    ];
-
-    $statusCounts = [
-        'Employed' => $summary['employed'],
-        'Underemployed' => $summary['underemployed'],
-        'Unemployed' => $summary['unemployed'],
-    ];
-
-    $programs = \App\Models\Program::all(['id', 'name']);
-    $programNames = [];
-    $employedByProgram = [];
-    $unemployedByProgram = [];
-    foreach ($programs as $program) {
-        $programNames[] = $program->name;
-        $employedByProgram[] = $graduates
-            ->where('program_id', $program->id)
-            ->where('employment_status', 'Employed')
-            ->count();
-        $unemployedByProgram[] = $graduates
-            ->where('program_id', $program->id)
-            ->where('employment_status', 'Unemployed')
-            ->count();
-    }
-
-    $sectors = \App\Models\Sector::all();
-    $industryGraduateCounts = [];
-    foreach ($sectors as $sector) {
-        $count = Graduate::where('employment_status', 'Employed')
-            ->whereHas('user', function ($q) {
-                $q->where('role', 'graduate');
-            })
-            ->whereHas('user', function ($q) use ($sector) {
-                $q->whereHas('jobApplications.job', function ($q2) use ($sector) {
-                    $q2->where('sector_id', $sector->id);
-                });
-            })
-            ->count();
-
-        $industryGraduateCounts[] = [
-            'name' => $sector->name,
-            'value' => $count,
+        $summary = [
+            'total_graduates' => $graduates->count(),
+            'employed' => $graduates->where('employment_status', 'Employed')->count(),
+            'underemployed' => $graduates->where('employment_status', 'Underemployed')->count(),
+            'unemployed' => $graduates->where('employment_status', 'Unemployed')->count(),
+            'further_studies' => $graduates->where('employment_status', 'Further Studies')->count(),
         ];
-    }
 
-    $industryJobRoles = [];
-    $industryApplicants = [];
-    foreach ($sectors as $sector) {
-        $jobs = \App\Models\Job::where('sector_id', $sector->id)->where('is_approved', 1)->get();
-        $jobRoles = $jobs->count();
-        $applicants = \App\Models\JobApplication::whereIn('job_id', $jobs->pluck('id'))->distinct('graduate_id')->count();
-
-        $industryJobRoles[] = $jobRoles;
-        $industryApplicants[] = $applicants;
-    }
-
-    $industryNames = $sectors->pluck('name');
-
-    // --- Unemployment Rate Over Time (for Unemployment Rate tab) ---
-    $schoolYears = $graduates->pluck('schoolYear')->filter()->unique('id')->sortBy('year')->values();
-
-    $unemploymentOverTime = [];
-    foreach ($schoolYears as $schoolYear) {
-        $yearLabel = $schoolYear->school_year_range ?? $schoolYear->year ?? 'Unknown';
-        $graduatesInYear = $graduates->where('schoolYear.id', $schoolYear->id);
-        $total = $graduatesInYear->count();
-        $unemployed = $graduatesInYear->where('employment_status', 'Unemployed')->count();
-        $employed = $graduatesInYear->where('employment_status', 'Employed')->count();
-        $unemploymentRate = $total ? round(($unemployed / $total) * 100, 2) : 0;
-        $employmentRate = $total ? round(($employed / $total) * 100, 2) : 0;
-        $unemploymentOverTime[] = [
-            'year' => $yearLabel,
-            'unemployment_rate' => $unemploymentRate,
-            'employment_rate' => $employmentRate,
-            'unemployed' => $unemployed,
-            'employed' => $employed,
-            'total' => $total,
+        $statusCounts = [
+            'Employed' => $summary['employed'],
+            'Underemployed' => $summary['underemployed'],
+            'Unemployed' => $summary['unemployed'],
         ];
-    }
 
-    return response()->json([
-        'graduates' => $graduates,
-        'industryGraduateCounts' => $industryGraduateCounts,
-        'industryNames' => $industryNames,
-        'industryJobRoles' => $industryJobRoles,
-        'industryApplicants' => $industryApplicants,
-        'summary' => $summary,
-        'statusCounts' => $statusCounts,
-        'programNames' => $programNames,
-        'employedByProgram' => $employedByProgram,
-        'unemployedByProgram' => $unemployedByProgram,
-        'unemploymentOverTime' => $unemploymentOverTime, // <-- Added for Unemployment Rate tab
-        // Add more analytics data as needed
-    ]);
-}
+        $programs = \App\Models\Program::all(['id', 'name']);
+        $programNames = [];
+        $employedByProgram = [];
+        $unemployedByProgram = [];
+        foreach ($programs as $program) {
+            $programNames[] = $program->name;
+            $employedByProgram[] = $graduates
+                ->where('program_id', $program->id)
+                ->where('employment_status', 'Employed')
+                ->count();
+            $unemployedByProgram[] = $graduates
+                ->where('program_id', $program->id)
+                ->where('employment_status', 'Unemployed')
+                ->count();
+        }
+
+        $sectors = \App\Models\Sector::all();
+        $industryGraduateCounts = [];
+        foreach ($sectors as $sector) {
+            $count = Graduate::where('employment_status', 'Employed')
+                ->whereHas('user', function ($q) {
+                    $q->where('role', 'graduate');
+                })
+                ->whereHas('user', function ($q) use ($sector) {
+                    $q->whereHas('jobApplications.job', function ($q2) use ($sector) {
+                        $q2->where('sector_id', $sector->id);
+                    });
+                })
+                ->count();
+
+            $industryGraduateCounts[] = [
+                'name' => $sector->name,
+                'value' => $count,
+            ];
+        }
+
+        $industryJobRoles = [];
+        $industryApplicants = [];
+        foreach ($sectors as $sector) {
+            $jobs = \App\Models\Job::where('sector_id', $sector->id)->where('is_approved', 1)->get();
+            $jobRoles = $jobs->count();
+            $applicants = \App\Models\JobApplication::whereIn('job_id', $jobs->pluck('id'))->distinct('graduate_id')->count();
+
+            $industryJobRoles[] = $jobRoles;
+            $industryApplicants[] = $applicants;
+        }
+
+        $industryNames = $sectors->pluck('name');
+
+        // --- Unemployment Rate Over Time (for Unemployment Rate tab) ---
+        $schoolYears = $graduates->pluck('schoolYear')->filter()->unique('id')->sortBy('year')->values();
+
+        $unemploymentOverTime = [];
+        foreach ($schoolYears as $schoolYear) {
+            $yearLabel = $schoolYear->school_year_range ?? $schoolYear->year ?? 'Unknown';
+            $graduatesInYear = $graduates->where('schoolYear.id', $schoolYear->id);
+            $total = $graduatesInYear->count();
+            $unemployed = $graduatesInYear->where('employment_status', 'Unemployed')->count();
+            $employed = $graduatesInYear->where('employment_status', 'Employed')->count();
+            $unemploymentRate = $total ? round(($unemployed / $total) * 100, 2) : 0;
+            $employmentRate = $total ? round(($employed / $total) * 100, 2) : 0;
+            $unemploymentOverTime[] = [
+                'year' => $yearLabel,
+                'unemployment_rate' => $unemploymentRate,
+                'employment_rate' => $employmentRate,
+                'unemployed' => $unemployed,
+                'employed' => $employed,
+                'total' => $total,
+            ];
+        }
+
+        return response()->json([
+            'graduates' => $graduates,
+            'industryGraduateCounts' => $industryGraduateCounts,
+            'industryNames' => $industryNames,
+            'industryJobRoles' => $industryJobRoles,
+            'industryApplicants' => $industryApplicants,
+            'summary' => $summary,
+            'statusCounts' => $statusCounts,
+            'programNames' => $programNames,
+            'employedByProgram' => $employedByProgram,
+            'unemployedByProgram' => $unemployedByProgram,
+            'unemploymentOverTime' => $unemploymentOverTime, // <-- Added for Unemployment Rate tab
+            // Add more analytics data as needed
+        ]);
+    }
 
     public function employment(Request $request)
     {
@@ -194,153 +195,178 @@ class PesoReportsController extends Controller
 
 
     public function referralData(Request $request)
-{
-    // Filters
-    $companyId = $request->input('company_id');
-    $role = $request->input('role');
-    $source = $request->input('source');
-    $timeline = $request->input('timeline'); // e.g. '2024-01', '2024', etc.
+    {
+        // --- Use the same filtering logic as ManageJobReferralsController ---
+        $query = \App\Models\JobInvitation::query();
 
-    $referralsQuery = \App\Models\JobInvitation::with(['graduate', 'job.company', 'referrer']);
-
-    if ($companyId) {
-        $referralsQuery->whereHas('job.company', function ($q) use ($companyId) {
-            $q->where('id', $companyId);
-        });
-    }
-    if ($role) {
-        $referralsQuery->whereHas('job', function ($q) use ($role) {
-            $q->where('job_title', $role);
-        });
-    }
-    if ($source) {
-        $referralsQuery->where('referral_source', $source);
-    }
-    if ($timeline) {
-        $referralsQuery->whereYear('created_at', substr($timeline, 0, 4));
-        if (strlen($timeline) > 4) {
-            $referralsQuery->whereMonth('created_at', substr($timeline, 5, 2));
+        if ($request->company_id) {
+            $query->whereHas('job.company', function ($q) use ($request) {
+                $q->where('id', $request->company_id);
+            });
         }
-    }
-
-    $referrals = $referralsQuery->get();
-
-    // Funnel Chart Data: Stages
-    $totalReferred = $referrals->count();
-    $screened = $referrals->where('status', 'screened')->count();
-    $interviewed = $referrals->where('status', 'interviewed')->count();
-    $hired = $referrals->where('status', 'hired')->count();
-    $funnelData = [
-        ['stage' => 'Referred', 'count' => $totalReferred],
-        ['stage' => 'Screened', 'count' => $screened],
-        ['stage' => 'Interviewed', 'count' => $interviewed],
-        ['stage' => 'Hired', 'count' => $hired],
-    ];
-
-    // Bar Chart: Success rates of referrals vs other sources
-    $referralSuccess = $referrals->where('status', 'hired')->count();
-    $otherSourcesSuccess = \App\Models\JobApplication::where('source', '!=', 'referral')->where('status', 'hired')->count();
-    $barSuccessData = [
-        ['source' => 'Referral', 'success' => $referralSuccess],
-        ['source' => 'Other', 'success' => $otherSourcesSuccess],
-    ];
-
-    // Pie Chart & Treemap: Source of referrals
-    $sourceCounts = $referrals->groupBy('referral_source')->map->count();
-    $pieSourceData = $sourceCounts->map(function ($count, $src) {
-        return ['name' => $src, 'value' => $count];
-    })->values()->toArray();
-    $treemapSourceData = $pieSourceData;
-
-    // Line & Area Chart: Referral trends over time
-    $monthlyReferrals = $referrals->groupBy(function ($ref) {
-        return $ref->created_at->format('Y-m');
-    })->map->count();
-    $lineTrendData = [];
-    foreach ($monthlyReferrals as $month => $count) {
-        $lineTrendData[] = ['month' => $month, 'count' => $count];
-    }
-    $areaTrendData = $lineTrendData;
-
-    // Network Graph & Bubble Chart: Referral network analysis
-    $networkNodes = [];
-    $networkLinks = [];
-    $referrerCounts = [];
-    foreach ($referrals as $ref) {
-        $referrer = $ref->referrer ? $ref->referrer->name : 'Unknown';
-        $candidate = $ref->graduate ? $ref->graduate->first_name . ' ' . $ref->graduate->last_name : 'Unknown';
-        $networkNodes[$referrer] = true;
-        $networkNodes[$candidate] = true;
-        $networkLinks[] = ['source' => $referrer, 'target' => $candidate];
-        $referrerCounts[$referrer] = ($referrerCounts[$referrer] ?? 0) + ($ref->status === 'hired' ? 1 : 0);
-    }
-    $bubbleData = [];
-    foreach ($referrerCounts as $referrer => $count) {
-        $bubbleData[] = ['name' => $referrer, 'value' => $count];
-    }
-
-    // Clustered Bar & Stacked Column: Referral performance by role
-    $roleStats = [];
-    $roles = $referrals->groupBy(fn($ref) => $ref->job ? $ref->job->job_title : 'Unknown');
-    foreach ($roles as $roleName => $refs) {
-        $roleStats[] = [
-            'role' => $roleName,
-            'referred' => $refs->count(),
-            'hired' => $refs->where('status', 'hired')->count(),
-            'screened' => $refs->where('status', 'screened')->count(),
-            'interviewed' => $refs->where('status', 'interviewed')->count(),
-        ];
-    }
-
-    // Scatter Plot & Histogram: Referral bonuses and outcomes
-    $bonuses = $referrals->pluck('referral_bonus')->filter();
-    $bonusSuccess = [];
-    foreach ($referrals as $ref) {
-        if ($ref->referral_bonus) {
-            $bonusSuccess[] = [
-                'bonus' => $ref->referral_bonus,
-                'hired' => $ref->status === 'hired' ? 1 : 0,
-                'retained' => $ref->graduate && $ref->graduate->is_retained ? 1 : 0,
-            ];
+        if ($request->role) {
+            $query->whereHas('job', function ($q) use ($request) {
+                $q->where('job_title', $request->role);
+            });
         }
-    }
-    $histogramData = $bonuses->toArray();
+        if ($request->timeline) {
+            $year = substr($request->timeline, 0, 4);
+            $month = substr($request->timeline, 5, 2);
+            $query->whereYear('created_at', $year)->whereMonth('created_at', $month);
+        }
 
-    // Word Cloud & Stacked Column: Reason for referral success
-    $feedbacks = $referrals->pluck('referral_feedback')->filter();
-    $wordCloudData = [];
-    foreach ($feedbacks as $feedback) {
-        foreach (explode(' ', strtolower($feedback)) as $word) {
-            if (strlen($word) > 2) {
-                $wordCloudData[$word] = ($wordCloudData[$word] ?? 0) + 1;
+        // --- Calculate KPIs based on JobInvitation ---
+        $totalReferrals = $query->count();
+        $successfulReferrals = $query->clone()->where('status', 'success')->count();
+        $successRate = $totalReferrals > 0 ? round(($successfulReferrals / $totalReferrals) * 100, 2) : 0;
+
+        // --- Keep your ReferralExport analytics for charts ---
+        $referralsQuery = ReferralExport::with([
+            'graduate' => function ($q) {
+                $q->with('user');
+            },
+            'jobInvitation.job.company',
+        ]);
+        if ($request->company_id) {
+            $referralsQuery->whereHas('jobInvitation.job.company', function ($q) use ($request) {
+                $q->where('id', $request->company_id);
+            });
+        }
+        if ($request->role) {
+            $referralsQuery->whereHas('jobInvitation.job', function ($q) use ($request) {
+                $q->where('job_title', $request->role);
+            });
+        }
+        if ($request->timeline) {
+            $referralsQuery->whereYear('created_at', substr($request->timeline, 0, 4));
+            if (strlen($request->timeline) > 4) {
+                $referralsQuery->whereMonth('created_at', substr($request->timeline, 5, 2));
             }
         }
-    }
-    $stackedFeedback = [];
-    foreach ($feedbacks as $feedback) {
-        $stackedFeedback[] = [
-            'feedback' => $feedback,
-            'count' => 1,
-        ];
-    }
+        $referrals = $referralsQuery->get();
 
-    return response()->json([
-        'funnelData' => $funnelData,
-        'barSuccessData' => $barSuccessData,
-        'pieSourceData' => $pieSourceData,
-        'treemapSourceData' => $treemapSourceData,
-        'lineTrendData' => $lineTrendData,
-        'areaTrendData' => $areaTrendData,
-        'networkNodes' => array_keys($networkNodes),
-        'networkLinks' => $networkLinks,
-        'bubbleData' => $bubbleData,
-        'roleStats' => $roleStats,
-        'bonusSuccess' => $bonusSuccess,
-        'histogramData' => $histogramData,
-        'wordCloudData' => $wordCloudData,
-        'stackedFeedback' => $stackedFeedback,
-    ]);
-}
+
+
+        // Funnel Chart Data: Stages
+        $totalReferred = $referrals->count();
+        $screened = $referrals->where('jobInvitation.status', 'screened')->count();
+        $interviewed = $referrals->where('jobInvitation.status', 'interviewed')->count();
+        $hired = $referrals->where('jobInvitation.status', 'hired')->count();
+        $funnelData = [
+            ['stage' => 'Referred', 'count' => $totalReferred],
+            ['stage' => 'Screened', 'count' => $screened],
+            ['stage' => 'Interviewed', 'count' => $interviewed],
+            ['stage' => 'Hired', 'count' => $hired],
+        ];
+
+        // Bar Chart: Success rates of referrals vs other sources
+        $referralSuccess = $referrals->where('status', 'hired')->count();
+        // $otherSourcesSuccess = \App\Models\JobApplication::where('source', '!=', 'referral')->where('status', 'hired')->count();
+        $barSuccessData = [
+            ['source' => 'Referral', 'success' => $referralSuccess],
+            // ['source' => 'Other', 'success' => $otherSourcesSuccess],
+        ];
+
+        // Pie Chart & Treemap: Source of referrals
+        $sourceCounts = $referrals->groupBy('referral_source')->map->count();
+        $pieSourceData = $sourceCounts->map(function ($count, $src) {
+            return ['name' => $src, 'value' => $count];
+        })->values()->toArray();
+        $treemapSourceData = $pieSourceData;
+
+        // Line & Area Chart: Referral trends over time
+        $monthlyReferrals = $referrals->groupBy(function ($ref) {
+            return $ref->created_at->format('Y-m');
+        })->map->count();
+        $lineTrendData = [];
+        foreach ($monthlyReferrals as $month => $count) {
+            $lineTrendData[] = ['month' => $month, 'count' => $count];
+        }
+        $areaTrendData = $lineTrendData;
+
+        // Network Graph & Bubble Chart: Referral network analysis
+        $networkNodes = [];
+        $networkLinks = [];
+        $referrerCounts = [];
+        foreach ($referrals as $ref) {
+            $referrer = $ref->referrer ? $ref->referrer->name : 'Unknown';
+            $candidate = $ref->graduate ? $ref->graduate->first_name . ' ' . $ref->graduate->last_name : 'Unknown';
+            $networkNodes[$referrer] = true;
+            $networkNodes[$candidate] = true;
+            $networkLinks[] = ['source' => $referrer, 'target' => $candidate];
+            $referrerCounts[$referrer] = ($referrerCounts[$referrer] ?? 0) + ($ref->status === 'hired' ? 1 : 0);
+        }
+        $bubbleData = [];
+        foreach ($referrerCounts as $referrer => $count) {
+            $bubbleData[] = ['name' => $referrer, 'value' => $count];
+        }
+
+        // Clustered Bar & Stacked Column: Referral performance by role
+        $roleStats = [];
+        $roles = $referrals->groupBy(fn($ref) => $ref->job ? $ref->job->job_title : 'Unknown');
+        foreach ($roles as $roleName => $refs) {
+            $roleStats[] = [
+                'role' => $roleName,
+                'referred' => $refs->count(),
+                'hired' => $refs->where('status', 'hired')->count(),
+                'screened' => $refs->where('status', 'screened')->count(),
+                'interviewed' => $refs->where('status', 'interviewed')->count(),
+            ];
+        }
+
+        // Scatter Plot & Histogram: Referral bonuses and outcomes
+        $bonuses = $referrals->pluck('referral_bonus')->filter();
+        $bonusSuccess = [];
+        foreach ($referrals as $ref) {
+            if ($ref->referral_bonus) {
+                $bonusSuccess[] = [
+                    'bonus' => $ref->referral_bonus,
+                    'hired' => $ref->status === 'hired' ? 1 : 0,
+                    'retained' => $ref->graduate && $ref->graduate->is_retained ? 1 : 0,
+                ];
+            }
+        }
+        $histogramData = $bonuses->toArray();
+
+        // Word Cloud & Stacked Column: Reason for referral success
+        $feedbacks = $referrals->pluck('referral_feedback')->filter();
+        $wordCloudData = [];
+        foreach ($feedbacks as $feedback) {
+            foreach (explode(' ', strtolower($feedback)) as $word) {
+                if (strlen($word) > 2) {
+                    $wordCloudData[$word] = ($wordCloudData[$word] ?? 0) + 1;
+                }
+            }
+        }
+        $stackedFeedback = [];
+        foreach ($feedbacks as $feedback) {
+            $stackedFeedback[] = [
+                'feedback' => $feedback,
+                'count' => 1,
+            ];
+        }
+         try {
+        return response()->json([
+            'totalReferrals' => $totalReferrals,
+            'successfulReferrals' => $successfulReferrals,
+            'successRate' => $successRate,
+            'funnelData' => $funnelData,
+            'barSuccessData' => $barSuccessData,
+            'pieSourceData' => $pieSourceData,
+            'treemapSourceData' => $treemapSourceData,
+            'lineTrendData' => $lineTrendData,
+            'areaTrendData' => $areaTrendData,
+            'bubbleData' => $bubbleData,
+            'roleStats' => $roleStats,
+            'bonusSuccess' => $bonusSuccess,
+            'histogramData' => $histogramData,
+            'wordCloudData' => $wordCloudData,
+            'stackedFeedback' => $stackedFeedback,
+        ]);
+        } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+    }
+    }
 
     public function reports(Request $request)
     {
