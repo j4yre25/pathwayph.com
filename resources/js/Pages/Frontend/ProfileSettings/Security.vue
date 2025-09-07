@@ -322,36 +322,39 @@ const showErrorModal = (message) => {
             </div>
           </div>
           
-          <div class="mt-3 p-3 bg-gray-50 rounded-md border border-gray-100 transition-all duration-300" :class="{'bg-blue-50 border-blue-100': settingsForm.password}">
+            <div 
+            v-if="settingsForm.password"
+            class="mt-3 p-3 bg-gray-50 rounded-md border border-gray-100 transition-all duration-300"
+            :class="{'bg-blue-50 border-blue-100': settingsForm.password}">
             <p class="text-xs text-gray-500 mb-2 font-medium">Password Requirements:</p>
             <ul class="text-xs text-gray-500 space-y-1 pl-1">
               <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': minLengthMet}">
-                <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                   :class="[minLengthMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
-                At least 8 characters
+              <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                 :class="[minLengthMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
+              At least 8 characters
               </li>
               <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasUpperCaseMet}">
-                <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                   :class="[hasUpperCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
-                Include uppercase letter (A-Z)
+              <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                 :class="[hasUpperCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
+              Include uppercase letter (A-Z)
               </li>
               <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasLowerCaseMet}">
-                <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                   :class="[hasLowerCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
-                Include lowercase letter (a-z)
+              <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                 :class="[hasLowerCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
+              Include lowercase letter (a-z)
               </li>
               <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasNumberMet}">
-                <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                   :class="[hasNumberMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
-                Include number (0-9)
+              <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                 :class="[hasNumberMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
+              Include number (0-9)
               </li>
               <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasSpecialCharMet}">
-                <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                   :class="[hasSpecialCharMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
-                Include special character (!@#$%^&*)
+              <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                 :class="[hasSpecialCharMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-gray-300']"></i> 
+              Include special character (!@#$%^&*)
               </li>
             </ul>
-          </div>
+            </div>
         </div>
         <div class="mb-6">
           <label class="block text-gray-700 text-sm font-medium mb-2" for="confirm-password">Confirm New Password</label>

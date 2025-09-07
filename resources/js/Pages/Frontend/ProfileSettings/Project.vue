@@ -4,6 +4,8 @@ import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import Datepicker from 'vue3-datepicker';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import { parseISO, isValid } from 'date-fns';
 
 // Lazy-load components
@@ -62,20 +64,13 @@ const successMessage = ref('');
 const errorMessage = ref('');
 const noProjectUrl = ref(false);
 const showArchivedProjects = ref(false);
-const isProjectsExpanded = ref(true);
-const isArchivedProjectsExpanded = ref(true);
+
 
 const toggleArchivedProjects = () => {
   showArchivedProjects.value = !showArchivedProjects.value;
 };
 
-const toggleProjectsExpanded = () => {
-  isProjectsExpanded.value = !isProjectsExpanded.value;
-};
 
-const toggleArchivedProjectsExpanded = () => {
-  isArchivedProjectsExpanded.value = !isArchivedProjectsExpanded.value;
-};
 
 // Form
 const form = useForm({
@@ -337,10 +332,9 @@ watch(
       <h2 class="text-xl font-bold text-center mb-4">Success</h2>
       <p class="text-center mb-6">{{ successMessage }}</p>
       <div class="flex justify-center">
-        <button @click="closeSuccessModal"
-          class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">
+        <SecondaryButton @click="closeSuccessModal">
           Close
-        </button>
+        </SecondaryButton>
       </div>
     </div>
   </Modal>
@@ -354,10 +348,9 @@ watch(
       <h2 class="text-xl font-bold text-center mb-4">Error</h2>
       <p class="text-center mb-6">{{ errorMessage }}</p>
       <div class="flex justify-center">
-        <button @click="closeErrorModal"
-          class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">
+        <SecondaryButton @click="closeErrorModal">
           Close
-        </button>
+        </SecondaryButton>
       </div>
     </div>
   </Modal>
@@ -371,58 +364,43 @@ watch(
       <h2 class="text-xl font-bold text-center mb-4">Duplicate Entry</h2>
       <p class="text-center mb-6">A project with similar details already exists.</p>
       <div class="flex justify-center">
-        <button @click="closeDuplicateModal"
-          class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">
+        <SecondaryButton @click="closeDuplicateModal">
           Close
-        </button>
+        </SecondaryButton>
       </div>
     </div>
   </Modal>
 
   <div v-if="activeSection === 'projects'" class="w-full">
     <!-- Main Content Grid Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
       <!-- Left Column -->
       <div class="space-y-6">
-        <!-- Quick Navigation -->
-        <div v-if="filteredProjectsEntries.length > 0 || filteredArchivedProjectsEntries.length > 0" class="bg-white p-4 rounded-lg shadow-sm border border-blue-100">
-          <h3 class="text-lg font-medium mb-3">Jump to:</h3>
-          <div class="flex flex-wrap gap-3">
-            <a href="#active-projects" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors duration-200 flex items-center">
-              <i class="fas fa-project-diagram mr-2"></i> Active Projects
-            </a>
-            <a v-if="showArchivedProjects && filteredArchivedProjectsEntries.length > 0" href="#archived-projects" class="bg-gray-50 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors duration-200 flex items-center">
-              <i class="fas fa-archive mr-2"></i> Archived Projects
-            </a>
-          </div>
-        </div>
         
         <!-- Active Projects Card -->
-        <div id="active-projects" class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300">
-          <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-600 to-blue-100 border-b border-blue-200">
+        <div id="active-projects" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
+          <!-- Card Header -->
+          <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-100 to-white">
             <div class="flex items-center">
-              <div class="bg-white p-2 rounded-full mr-3 shadow-sm">
+              <div class="bg-blue-200 p-2 rounded-full mr-3">
                 <i class="fas fa-project-diagram text-blue-600"></i>
               </div>
-              <h3 class="text-lg font-semibold text-white">Projects</h3>
+              <h3 class="text-lg font-semibold text-blue-700">Projects</h3>
             </div>
             <div class="flex space-x-2">
-              <PrimaryButton class="bg-white text-blue-600 px-4 py-2 rounded flex items-center hover:bg-blue-50 border border-white"
+              <PrimaryButton class="bg-blue-600 text-white px-3 py-1 rounded-lg flex items-center hover:bg-blue-700 text-sm"
                 @click="openAddProjectModal">
-                <i class="fas fa-plus mr-2"></i> Add Project
+                <i class="fas fa-plus mr-1"></i> Add Project
               </PrimaryButton>
               <button
-                class="bg-white hover:bg-blue-50 text-blue-600 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer border border-white"
+                class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer text-sm"
                 @click="toggleArchivedProjects">
                 <i class="fas" :class="showArchivedProjects ? 'fa-eye-slash' : 'fa-eye'"></i>
-                <span class="ml-2">{{ showArchivedProjects ? 'Hide Archived' : 'Show Archived' }}</span>
-              </button>
-              <button @click="toggleProjectsExpanded" class="text-white hover:text-blue-100 focus:outline-none">
-                <i class="fas" :class="isProjectsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                <span class="ml-1">{{ showArchivedProjects ? 'Hide Archived' : 'Show Archived' }}</span>
               </button>
             </div>
           </div>
-          <div v-show="isProjectsExpanded" class="p-4 transition-all duration-300">
+          <div class="p-4 transition-all duration-300">
             <p class="text-gray-600 mb-6">Showcase your personal and professional projects</p>
 
             <!-- Project Entries -->
@@ -440,26 +418,33 @@ watch(
               </div>
 
               <!-- If no projects exist -->
-              <div v-else class="bg-white p-8 rounded-lg shadow">
-                <p class="text-gray-600">No project entries added yet.</p>
+              <div v-else class="bg-white p-8 rounded-lg shadow-md border border-gray-200 text-center">
+                <div class="flex flex-col items-center justify-center py-4">
+                  <div class="bg-blue-100 text-blue-600 p-3 rounded-full mb-3">
+                    <i class="fas fa-project-diagram text-2xl"></i>
+                  </div>
+                  <h3 class="text-xl font-semibold text-gray-900 mb-2">No project entries added yet</h3>
+                  <p class="text-gray-600 mb-4">Add your projects to showcase your work</p>
+                  <PrimaryButton @click="openAddProjectModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Project
+                  </PrimaryButton>
+                </div>
               </div>
             </div>
 
             <!-- Archived Projects -->
             <div v-if="showArchivedProjects" class="mt-8">
               <div id="archived-projects" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
-                <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-500 to-gray-100 border-b border-gray-300">
+                <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-100 to-white">
                   <div class="flex items-center">
-                    <div class="bg-white p-2 rounded-full mr-3 shadow-sm">
+                    <div class="bg-gray-200 p-2 rounded-full mr-3">
                       <i class="fas fa-archive text-gray-600"></i>
                     </div>
-                    <h2 class="text-lg font-semibold text-white">Archived Projects</h2>
+                    <h2 class="text-lg font-semibold text-gray-700">Archived Projects</h2>
                   </div>
-                  <button @click="toggleArchivedProjectsExpanded" class="text-white hover:text-gray-200 focus:outline-none">
-                    <i class="fas" :class="isArchivedProjectsExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                  </button>
                 </div>
-                <div v-show="isArchivedProjectsExpanded" class="p-4 transition-all duration-300">
+                <div class="p-4 transition-all duration-300">
                   <div v-if="filteredArchivedProjectsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <ProjectEntryCard 
                       v-for="entry in filteredArchivedProjectsEntries" 
@@ -471,8 +456,14 @@ watch(
                     />
                   </div>
                   <!-- If no archived project entries exist -->
-                  <div v-else class="bg-white p-8 rounded-lg shadow">
-                    <p class="text-gray-600">No archived project entries found.</p>
+                  <div v-else class="bg-white p-8 rounded-lg shadow-md border border-gray-200 text-center">
+                    <div class="flex flex-col items-center justify-center py-4">
+                      <div class="bg-blue-100 text-blue-600 p-3 rounded-full mb-3">
+                        <i class="fas fa-archive text-2xl"></i>
+                      </div>
+                      <h3 class="text-xl font-semibold text-gray-900 mb-2">No archived projects found</h3>
+                      <p class="text-gray-600 mb-4">Archived projects will appear here when you archive them</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -486,9 +477,9 @@ watch(
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Add Project</h2>
-          <button class="text-gray-500 hover:text-gray-700" @click="closeAddProjectModal">
-            <i class="fas fa-times"></i>
-          </button>
+          <SecondaryButton @click="closeAddProjectModal">
+            <i class="fas fa-times mr-1"></i> Cancel
+          </SecondaryButton>
         </div>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="addProject">
@@ -548,8 +539,7 @@ watch(
               <input type="file" id="project-file" @change="handleFileUpload"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Add
-              Project</button>
+            <PrimaryButton type="submit" class="w-full justify-center">Add Project</PrimaryButton>
           </form>
         </div>
       </div>
@@ -560,9 +550,9 @@ watch(
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Update Project</h2>
-          <button class="text-gray-500 hover:text-gray-700" @click="closeUpdateProjectModal">
-            <i class="fas fa-times"></i>
-          </button>
+          <SecondaryButton @click="closeUpdateProjectModal">
+            <i class="fas fa-times mr-1"></i> Cancel
+          </SecondaryButton>
         </div>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="updateProject">
@@ -623,9 +613,7 @@ watch(
               <input type="file" id="project-file" @change="handleFileUpload"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">Update
-              Project
-            </button>
+            <PrimaryButton type="submit" class="w-full justify-center">Update Project</PrimaryButton>
           </form>
         </div>
       </div>
@@ -633,3 +621,50 @@ watch(
   </div>
 </div>
 </template>
+
+<style scoped>
+/* Glow effects for form elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  animation: pulse 1.5s infinite;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.modal-content {
+  animation: fadeIn 0.4s ease-out;
+}
+</style>

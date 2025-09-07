@@ -98,27 +98,27 @@ function goToProfile() {
     <div class="relative min-h-screen gradient-bg overflow-hidden">
       <!-- Floating Background Elements -->
       <div
-        class="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-20 animate-float">
+        class="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full opacity-10 animate-float">
       </div>
       <div
-        class="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full opacity-30 animate-float-reverse">
+        class="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-blue-500 to-blue-700 rounded-full opacity-15 animate-float-reverse">
       </div>
       <div
-        class="absolute bottom-32 left-1/4 w-40 h-40 bg-gradient-to-r from-green-400 to-teal-400 rounded-full opacity-15 animate-float">
+        class="absolute bottom-32 left-1/4 w-40 h-40 bg-gradient-to-r from-blue-300 to-blue-500 rounded-full opacity-8 animate-float">
       </div>
       <div
-        class="absolute top-1/3 right-1/3 w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full opacity-25 animate-float-reverse">
+        class="absolute top-1/3 right-1/3 w-20 h-20 bg-gradient-to-r from-blue-600 to-blue-800 rounded-full opacity-12 animate-float-reverse">
       </div>
 
       <!-- Morphing Background Shapes -->
-      <div class="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-purple-600/10 to-pink-600/10 animate-morph">
+      <div class="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-600/5 to-blue-800/5 animate-morph">
       </div>
-      <div class="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl from-cyan-600/10 to-blue-600/10 animate-morph"
+      <div class="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl from-blue-500/5 to-blue-700/5 animate-morph"
         style="animation-delay: 2s;"></div>
 
       <div class="relative z-10 max-w-4xl mx-auto py-12 px-6">
         <div class="text-center mb-12">
-          <h1 class="text-5xl font-bold text-white mb-4 neon-text">Complete Your Institution Profile</h1>
+          <h1 class="text-5xl font-bold text-white mb-4 enhanced-text">Complete Your Institution Profile</h1>
           <p class="text-xl text-white/80">Join our network of educational institutions</p>
         </div>
 
@@ -128,8 +128,8 @@ function goToProfile() {
             <div v-for="step in totalSteps" :key="step" class="flex items-center">
               <div @click="goToStep(step)" :class="[
                 'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
-                currentStep === step ? 'gradient-feature text-white scale-110 animate-pulse-glow' :
-                  currentStep > step ? 'bg-green-500 text-white' : 'glass border-white/30 text-white/60'
+                currentStep === step ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white scale-110 animate-pulse-glow' :
+                  currentStep > step ? 'bg-emerald-500 text-white' : 'glass border-white/30 text-white/60'
               ]">
                 <svg v-if="currentStep > step" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd"
@@ -305,7 +305,7 @@ function goToProfile() {
 
         <Modal v-model="showModal">
           <template #header>
-            <h2 class="text-2xl font-bold text-green-600">Profile Saved!</h2>
+            <h2 class="text-2xl font-bold text-teal-600">Profile Saved!</h2>
           </template>
           <template #body>
             <p class="mb-6 text-gray-700">
@@ -330,19 +330,23 @@ function goToProfile() {
 }
 
 .gradient-bg {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #2563eb 50%, #3b82f6 75%, #60a5fa 100%);
 }
 
 .gradient-feature {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
 }
 
 .gradient-cta {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
 }
 
-.neon-text {
-  text-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+.hover-blue:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+}
+
+.enhanced-text {
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
 }
 
 .float {
@@ -391,12 +395,28 @@ function goToProfile() {
 
 @keyframes pulse-glow {
   from {
-    box-shadow: 0 0 20px rgba(79, 172, 254, 0.4);
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.4);
   }
 
   to {
-    box-shadow: 0 0 30px rgba(79, 172, 254, 0.8);
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.8);
   }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite alternate;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 8s ease-in-out infinite;
+}
+
+.animate-morph {
+  animation: morph 8s ease-in-out infinite;
 }
 
 @keyframes morph {

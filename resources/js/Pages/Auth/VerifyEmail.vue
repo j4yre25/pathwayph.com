@@ -43,20 +43,20 @@ const resendCode = () => {
     <div class="min-h-screen gradient-bg flex items-center justify-center p-4 overflow-hidden relative">
         <!-- Floating Background Elements -->
         <div class="absolute inset-0">
-            <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-20 animate-float"></div>
-            <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-30 animate-float-reverse"></div>
-            <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-15 animate-morph"></div>
-            <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-10 animate-pulse-glow"></div>
+            <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-10 animate-float"></div>
+            <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-15 animate-float-reverse"></div>
+            <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-8 animate-morph"></div>
+            <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-5 animate-pulse-glow"></div>
         </div>
         
         <div class="w-full max-w-md relative z-10">
             <!-- Logo Section -->
             <div class="text-center mb-8">
                 <div class="w-16 h-16 gradient-card rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
-                    <span class="text-white font-bold text-2xl neon-text">P</span>
+                    <span class="text-white font-bold text-2xl enhanced-text">P</span>
                 </div>
-                <h2 class="text-4xl font-bold text-white mb-3 neon-text">Verify Your Email</h2>
-                <p class="text-white/80 text-lg">Enter the verification code sent to your <span class="text-cyan-300 neon-text">email</span></p>
+                <h2 class="text-4xl font-bold text-white mb-3 enhanced-text">Verify Your Email</h2>
+                <p class="text-white/80 text-lg">Enter the verification code sent to your <span class="text-blue-300 enhanced-text">email</span></p>
             </div>
 
             <!-- Glass Card -->
@@ -73,12 +73,12 @@ const resendCode = () => {
                             id="email" 
                             v-model="form.email" 
                             type="email" 
-                            class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 text-white placeholder-white/60" 
+                            class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
                             placeholder="Your email address"
                             required 
                             autofocus
                             readonly />
-                        <InputError class="mt-2 text-pink-300" :message="form.errors.email" />
+                        <InputError class="mt-2 text-red-300" :message="form.errors.email" />
                     </div>
 
                     <!-- Verification Code Field -->
@@ -88,17 +88,17 @@ const resendCode = () => {
                             id="verification_code" 
                             v-model="form.verification_code" 
                             type="text" 
-                            class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-purple-400 focus:ring-2 focus:ring-purple-400 text-white placeholder-white/60 text-center tracking-widest" 
+                            class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60 text-center tracking-widest" 
                             placeholder="Enter 6-digit code"
                             required 
                             maxlength="6" />
-                        <InputError class="mt-2 text-pink-300" :message="form.errors.verification_code" />
+                        <InputError class="mt-2 text-red-300" :message="form.errors.verification_code" />
                     </div>
 
                     <!-- Submit Button -->
                     <div class="pt-4">
                         <button type="submit"
-                            class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                            class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
                             :disabled="form.processing">
                             <span v-if="form.processing">Verifying...</span>
                             <span v-else>Verify Email</span>
@@ -110,14 +110,14 @@ const resendCode = () => {
                 <div class="mt-8 space-y-4">
                     <div class="text-center">
                         <button type="button" @click="(event) => { event.preventDefault(); resendCode(); }"
-                            class="text-cyan-300 hover:text-cyan-100 hover:neon-text font-semibold transition-all duration-200">
+                            class="text-blue-300 hover:text-blue-200 hover:enhanced-text font-semibold transition-all duration-200">
                             Resend Verification Code
                         </button>
                     </div>
                     
                     <div class="flex justify-center text-sm">
                         <Link :href="route('logout')" method="post" as="button"
-                            class="text-pink-300 hover:text-pink-100 hover:neon-text transition-all duration-200">
+                            class="text-blue-300 hover:text-blue-200 hover:enhanced-text transition-all duration-200">
                             Log Out
                         </Link>
                     </div>
@@ -133,12 +133,12 @@ const resendCode = () => {
                 <div class="w-16 h-16 gradient-card rounded-full flex items-center justify-center mx-auto mb-4">
                     <span class="text-2xl">...</span>
                 </div>
-                <h2 class="text-2xl font-bold text-white neon-text mb-4">Waiting for Approval</h2>
+                <h2 class="text-2xl font-bold text-white enhanced-text mb-4">Waiting for Approval</h2>
                 <p class="text-white/80 mb-6 leading-relaxed">
                     Your account must be approved by your institution or PESO before you can resend the verification code. Please wait for approval.
                 </p>
                 <button @click="showApprovalModal = false"
-                    class="px-6 py-3 gradient-cta text-white font-semibold rounded-xl hover-rainbow transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400">
+                    class="px-6 py-3 gradient-cta text-white font-semibold rounded-xl hover-blue transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400">
                     OK
                 </button>
             </div>
@@ -149,19 +149,19 @@ const resendCode = () => {
 <style scoped>
 /* Modern gradient backgrounds */
 .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #2563eb 50%, #3b82f6 75%, #60a5fa 100%);
 }
 
 .gradient-card {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
 }
 
 .gradient-feature {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
 }
 
 .gradient-cta {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
 }
 
 /* Floating animations */
@@ -194,10 +194,10 @@ const resendCode = () => {
 /* Pulse glow effect */
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
     }
     50% {
-        box-shadow: 0 0 40px rgba(79, 172, 254, 0.6);
+        box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
     }
 }
 
@@ -216,17 +216,17 @@ const resendCode = () => {
 }
 
 .animate-morph {
-    animation: morph 8s ease-in-out infinite;
+    animation: morph 8s ease-in-out infinite; 
 }
 
-/* Colorful hover effects */
-.hover-rainbow:hover {
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+/* Blue hover effects */
+.hover-blue:hover {
+    background: linear-gradient(45deg, #1e40af, #2563eb, #3b82f6, #60a5fa, #93c5fd, #dbeafe);
     background-size: 400% 400%;
-    animation: rainbow 2s ease infinite;
+    animation: blue-shift 2s ease infinite;
 }
 
-@keyframes rainbow {
+@keyframes blue-shift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
@@ -240,9 +240,9 @@ const resendCode = () => {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Neon glow text */
-.neon-text {
-    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+/* Enhanced text */
+.enhanced-text {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
 /* Smooth transitions */

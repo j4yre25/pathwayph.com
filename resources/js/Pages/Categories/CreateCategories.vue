@@ -45,95 +45,83 @@ const createCategory = () => {
 
 
 <template>
-    <AppLayout title="Add Category">
+    <AppLayout>
         <template #header>
             <div class="flex items-center">
-                <button @click="goBack" class="mr-3 p-1 rounded-full hover:bg-gray-200 transition-colors duration-200">
-                    <i class="fas fa-chevron-left text-gray-600"></i>
+                <button 
+                    @click="goBack" 
+                    class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
+                    <i class="fas fa-chevron-left"></i>
                 </button>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight flex items-center">
-                    <i class="fas fa-plus-circle text-blue-500 mr-2"></i> Add New Category
-                </h2>
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-tags text-blue-600 mr-3"></i>
+                        Create New Category
+                    </h1>
+                    <p class="text-sm text-gray-500">Add a new category for job listings</p>
+                </div>
             </div>
         </template>
 
-        <Container class="py-8">
-            <!-- Header -->
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-tags text-blue-600 mr-3"></i>
-                    Create Category
-                </h1>
-                <p class="text-gray-600 mt-1">Add a new category for job listings</p>
-            </div>
-
-            <!-- Form Section -->
+        <Container class="py-6 space-y-6">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
-                <div class="p-6">
+                <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                     <FormSection @submitted="createCategory()">
                         <template #title>
                             <div class="flex items-center">
-                                <i class="fas fa-plus-circle text-blue-500 mr-2"></i>
-                                <span>Add a New Category</span>
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-tags text-white"></i>
+                                </div>
+                                <span class="text-xl font-bold text-gray-800">Add a New Category</span>
                             </div>
                         </template>
 
                         <template #description>
-                            <p class="text-gray-600">
-                                Fill in the details below to add a new category. Categories help organize job listings by type.
-                            </p>
+                            <p class="text-gray-600">Fill in the details below to add a new category for job listings.</p>
                         </template>
 
                         <template #form>
-                            <div class="col-span-6 sm:col-span-4">
-                                <InputLabel for="sector" value="Sector" />
-                                <div class="relative">
+                            <div class="space-y-6">
+                                <div>
+                                    <InputLabel for="sector" value="Sector" class="text-gray-700 font-semibold" />
                                     <select id="sector" v-model="form.sector_id"
-                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm appearance-none pr-10">
+                                        class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">
                                         <option value="" disabled>Select a sector</option>
                                         <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id">
                                             {{ sector.name }}
                                         </option>
                                     </select>
-                                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none mt-1">
-                                        <i class="fas fa-chevron-down text-gray-400"></i>
-                                    </div>
+                                    <InputError :message="form.errors.sector_id" class="mt-2" />
                                 </div>
-                                <InputError :message="form.errors.sector_id" class="mt-2" />
-                            </div>
 
-                            <div class="col-span-6 sm:col-span-4">
-                                <InputLabel for="name" value="Category Name" />
-                                <TextInput id="name" v-model="form.name" type="text" class="mt-1 block w-full" placeholder="Enter category name" />
-                                <InputError :message="form.errors.name" class="mt-2" />
-                            </div>
+                                <div>
+                                    <InputLabel for="name" value="Category Name" class="text-gray-700 font-semibold" />
+                                    <TextInput id="name" v-model="form.name" type="text" class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200" placeholder="Enter category name" />
+                                    <InputError :message="form.errors.name" class="mt-2" />
+                                </div>
 
-                            <div class="col-span-6 sm:col-span-4">
-                                <InputLabel for="division_code" value="Division Code" />
-                                <div class="relative">
+                                <div>
+                                    <InputLabel for="division_code" value="Division Code" class="text-gray-700 font-semibold" />
                                     <select id="division_code" v-model="form.division_code"
-                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm appearance-none pr-10">
+                                        class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">
                                         <option value="" disabled>Select a division code</option>
                                         <option v-for="n in 100" :key="n" :value="n">
                                             {{ n }}
                                         </option>
                                     </select>
-                                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none mt-1">
-                                        <i class="fas fa-chevron-down text-gray-400"></i>
-                                    </div>
+                                    <InputError :message="form.errors.division_code" class="mt-2" />
                                 </div>
-                                <InputError :message="form.errors.division_code" class="mt-2" />
                             </div>
                         </template>
-                        
                         <template #actions>
-                            <div class="flex items-center justify-end space-x-3">
-                                <Link :href="route('categories.index')" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-colors duration-200">
-                                    <i class="fas fa-times mr-2"></i> Cancel
-                                </Link>
-                                <PrimaryButton type="submit" :class="{ 'opacity-25': form.processing }"
-                                    :disabled="form.processing" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-colors duration-200">
-                                    <i class="fas fa-plus-circle mr-2"></i> Add Category
+                            <div class="flex items-center justify-end space-x-4">
+                                <button @click="goBack" type="button" class="mr-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all duration-200 border border-gray-300">
+                                    <i class="fas fa-times mr-2"></i>
+                                    Cancel
+                                </button>
+                                <PrimaryButton type="submit" :class="{ 'opacity-25': form.processing }" :disabled="form.processing" class="mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors duration-200">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    {{ form.processing ? 'Creating...' : 'Add Category' }}
                                 </PrimaryButton>
                             </div>
                         </template>

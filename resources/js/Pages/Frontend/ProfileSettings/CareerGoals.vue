@@ -26,10 +26,20 @@ const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // State
 const newIndustry = ref('');
 const isAddIndustryModalOpen = ref(false);
+const isEditModalOpen = ref(false);
 const isSuccessModalOpen = ref(false);
 const isErrorModalOpen = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
+
+
+// Temporary form data for editing
+const tempCareerGoals = ref({
+  short_term_goals: '',
+  long_term_goals: '',
+  industries_of_interest: [],
+  career_path: '',
+});
 
 // Main career goals state (snake_case)
 const careerGoals = ref({
@@ -57,29 +67,57 @@ watch(
 
 // Save handler
 const saveCareerGoals = () => {
-  if (!careerGoals.value.short_term_goals || !careerGoals.value.long_term_goals) {
+  if (!tempCareerGoals.value.short_term_goals || !tempCareerGoals.value.long_term_goals) {
     errorMessage.value = "Please fill in both short-term and long-term goals.";
     isErrorModalOpen.value = true;
     return;
   }
 
   const form = useForm({
-    short_term_goals: careerGoals.value.short_term_goals,
-    long_term_goals: careerGoals.value.long_term_goals,
-    industries_of_interest: careerGoals.value.industries_of_interest.join(','),
-    career_path: careerGoals.value.career_path,
+    short_term_goals: tempCareerGoals.value.short_term_goals,
+    long_term_goals: tempCareerGoals.value.long_term_goals,
+    industries_of_interest: tempCareerGoals.value.industries_of_interest.join(','),
+    career_path: tempCareerGoals.value.career_path,
   });
 
   form.post(route('career.goals.save'), {
     onSuccess: () => {
+      // Update main data with temp data
+      careerGoals.value = { ...tempCareerGoals.value };
       successMessage.value = "Career goals saved successfully!";
       isSuccessModalOpen.value = true;
+      closeEditModal();
     },
     onError: (errors) => {
       errorMessage.value = "An error occurred while saving the career goals. Please try again.";
       isErrorModalOpen.value = true;
     }
   });
+};
+
+// Add industry to temp data
+const addIndustryToTemp = () => {
+  const industry = newIndustry.value.trim();
+  if (!industry) {
+    errorMessage.value = "Please enter a valid industry name.";
+    isErrorModalOpen.value = true;
+    return;
+  }
+  if (tempCareerGoals.value.industries_of_interest.includes(industry)) {
+    errorMessage.value = "This industry is already in your preferences.";
+    isErrorModalOpen.value = true;
+    return;
+  }
+  tempCareerGoals.value.industries_of_interest.push(industry);
+  closeAddIndustryModal();
+};
+
+// Remove industry from temp data
+const removeIndustryFromTemp = (industry) => {
+  const index = tempCareerGoals.value.industries_of_interest.indexOf(industry);
+  if (index > -1) {
+    tempCareerGoals.value.industries_of_interest.splice(index, 1);
+  }
 };
 
 // Add Industry Handler
@@ -126,6 +164,19 @@ const resetCareerGoals = () => {
 };
 
 // Modal handlers
+const openEditModal = () => {
+  // Copy current data to temp for editing
+  tempCareerGoals.value = {
+    short_term_goals: careerGoals.value.short_term_goals,
+    long_term_goals: careerGoals.value.long_term_goals,
+    industries_of_interest: [...careerGoals.value.industries_of_interest],
+    career_path: careerGoals.value.career_path,
+  };
+  isEditModalOpen.value = true;
+};
+const closeEditModal = () => {
+  isEditModalOpen.value = false;
+};
 const openAddIndustryModal = () => {
   isAddIndustryModalOpen.value = true;
   newIndustry.value = '';
@@ -140,6 +191,8 @@ const closeSuccessModal = () => {
 const closeErrorModal = () => {
   isErrorModalOpen.value = false;
 };
+
+
 </script>
 
 <template>
@@ -185,14 +238,34 @@ const closeErrorModal = () => {
     </Modal>
 
     <div class="w-full">
-      <p class="text-gray-600 mb-6">Define your short and long-term career aspirations</p>
+      <!-- Career Goals Header -->
+      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-lg mb-4">
+        <div class="flex items-center">
+          <div class="bg-blue-100 p-2 rounded-full mr-3">
+            <i class="fas fa-bullseye text-blue-600"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-blue-800">Career Goals</h3>
+            <p class="text-sm text-gray-600">Define your short and long-term career aspirations</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="openEditModal" 
+                  class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">
+            <i class="fas fa-edit mr-1"></i>Edit
+          </button>
+        </div>
+      </div>
+
+      <!-- Career Goals Content -->
+      <div class="transition-all duration-300">
       
-      <!-- Saved Career Goals Container -->
-      <div v-if="careerGoals.short_term_goals || careerGoals.long_term_goals"
+      <!-- Career Goals Display -->
+      <div v-if="careerGoals.short_term_goals || careerGoals.long_term_goals || careerGoals.industries_of_interest.length || careerGoals.career_path"
         class="mb-6 p-5 border border-blue-100 rounded-lg bg-white shadow-md hover:shadow-lg transition-all duration-300">
-        <h2 class="text-lg font-semibold mb-4 text-blue-800 border-b border-blue-100 pb-2">Saved Career Goals</h2>
+        <h2 class="text-lg font-semibold mb-4 text-blue-800 border-b border-blue-100 pb-2">Your Career Goals</h2>
         <div class="space-y-4">
-          <div class="bg-blue-50 p-3 rounded-md">
+          <div v-if="careerGoals.short_term_goals" class="bg-blue-50 p-3 rounded-md">
             <p class="flex items-start">
               <span class="bg-blue-100 text-blue-800 p-1 rounded mr-2 inline-block">
                 <i class="fas fa-flag"></i>
@@ -203,7 +276,7 @@ const closeErrorModal = () => {
               </span>
             </p>
           </div>
-          <div class="bg-blue-50 p-3 rounded-md">
+          <div v-if="careerGoals.long_term_goals" class="bg-blue-50 p-3 rounded-md">
             <p class="flex items-start">
               <span class="bg-blue-100 text-blue-800 p-1 rounded mr-2 inline-block">
                 <i class="fas fa-road"></i>
@@ -214,97 +287,136 @@ const closeErrorModal = () => {
               </span>
             </p>
           </div>
-          <div class="bg-blue-50 p-3 rounded-md">
+          <div v-if="careerGoals.industries_of_interest.length" class="bg-blue-50 p-3 rounded-md">
             <p class="flex items-start">
               <span class="bg-blue-100 text-blue-800 p-1 rounded mr-2 inline-block">
                 <i class="fas fa-industry"></i>
               </span>
               <span>
                 <strong class="text-blue-800">Industries of Interest:</strong><br>
-                <span v-if="careerGoals.industries_of_interest.length" class="text-gray-700">
+                <span class="text-gray-700">
                   <span v-for="(industry, index) in careerGoals.industries_of_interest" :key="index" 
                     class="inline-block bg-white px-2 py-1 rounded-full border border-blue-200 text-sm mr-1 mb-1">
                     {{ industry }}
                   </span>
                 </span>
-                <span v-else class="text-gray-500 italic">No industries specified</span>
               </span>
             </p>
           </div>
-          <div class="bg-blue-50 p-3 rounded-md">
+          <div v-if="careerGoals.career_path" class="bg-blue-50 p-3 rounded-md">
             <p class="flex items-start">
               <span class="bg-blue-100 text-blue-800 p-1 rounded mr-2 inline-block">
                 <i class="fas fa-map-signs"></i>
               </span>
               <span>
                 <strong class="text-blue-800">Career Path:</strong><br>
-                <span class="text-gray-700">{{ careerGoals.career_path || 'Not specified' }}</span>
+                <span class="text-gray-700">{{ careerGoals.career_path }}</span>
               </span>
             </p>
           </div>
         </div>
       </div>
       
-      <!-- Form Fields -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <!-- Short-term Goals -->
-        <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-2 text-gray-800">Short-term Goals (1-2 years)</h2>
-          <textarea 
-            class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-500" 
-            rows="3"
-            v-model="careerGoals.short_term_goals" 
-            placeholder="Enter your short-term career goals..."></textarea>
+      <!-- Empty State -->
+      <div v-else class="text-center py-12 bg-gray-50 rounded-lg">
+        <div class="mb-4">
+          <i class="fas fa-bullseye text-4xl text-gray-400"></i>
         </div>
-
-        <!-- Long-term Goals -->
-        <div class="mb-6">
-          <h2 class="text-lg font-semibold mb-2 text-gray-800">Long-term Goals (3-5 years)</h2>
-          <textarea 
-            class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-500" 
-            rows="3"
-            v-model="careerGoals.long_term_goals" 
-            placeholder="Enter your long-term career goals..."></textarea>
-        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No Career Goals Set</h3>
+        <p class="text-gray-500 mb-4">Define your career aspirations to help guide your professional journey.</p>
+        <button @click="openEditModal" 
+                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+          <i class="fas fa-plus mr-2"></i>Set Career Goals
+        </button>
       </div>
+      </div> <!-- End Career Goals Content -->
+    </div>
 
-      <!-- Industries of Interest -->
-      <div class="mb-6">
-        <h2 class="text-lg font-semibold mb-2 text-gray-800">Industries of Interest</h2>
-        <div class="flex flex-wrap gap-2 mb-2">
-          <span v-for="industry in careerGoals.industries_of_interest" :key="industry"
-            class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full border border-indigo-100">
-            {{ industry }}
-          </span>
-          <button 
-            class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors duration-200"
-            @click="openAddIndustryModal">
-            + Add Industry
+    <!-- Edit Career Goals Modal -->
+    <div v-if="isEditModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold text-gray-800">Edit Career Goals</h2>
+          <button class="text-gray-500 hover:text-gray-700" @click="closeEditModal">
+            <i class="fas fa-times text-xl"></i>
           </button>
         </div>
-      </div>
+        
+        <div class="space-y-6">
+          <!-- Short-term Goals -->
+          <div>
+            <label for="edit_short_term_goals" class="block text-sm font-medium text-gray-700 mb-2">
+              Short-term Goals (1-2 years) *
+            </label>
+            <textarea
+              id="edit_short_term_goals"
+              v-model="tempCareerGoals.short_term_goals"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Describe your career goals for the next 1-2 years..."
+            ></textarea>
+          </div>
 
-      <!-- Career Path -->
-      <div class="mb-6">
-        <h2 class="text-lg font-semibold mb-2 text-gray-800">Career Path</h2>
-        <input 
-          type="text"
-          class="w-full border border-gray-300 rounded-md p-3 outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-500"
-          v-model="careerGoals.career_path" 
-          placeholder="Enter your career path" />
-      </div>
+          <!-- Long-term Goals -->
+          <div>
+            <label for="edit_long_term_goals" class="block text-sm font-medium text-gray-700 mb-2">
+              Long-term Goals (5+ years) *
+            </label>
+            <textarea
+              id="edit_long_term_goals"
+              v-model="tempCareerGoals.long_term_goals"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Describe your long-term career aspirations..."
+            ></textarea>
+          </div>
 
-      <div class="flex space-x-4 mt-8">
-        <button 
-          class="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center hover:bg-indigo-700 transition-colors duration-200 shadow-sm" 
-          @click="saveCareerGoals">
-          <i class="fas fa-save mr-2"></i> Save Goals
-        </button>
-        <button 
-          class="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg flex items-center hover:bg-gray-300 transition-colors duration-200"
-          @click="resetCareerGoals">
-          <i class="fas fa-undo mr-2"></i> Reset
-        </button>
+          <!-- Industries of Interest -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Industries of Interest
+            </label>
+            <div class="flex flex-wrap gap-2 mb-3" v-if="tempCareerGoals.industries_of_interest.length > 0">
+              <span v-for="(industry, index) in tempCareerGoals.industries_of_interest" :key="index" 
+                    class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                {{ industry }}
+                <button @click="removeIndustryFromTemp(industry)" class="ml-2 text-blue-600 hover:text-blue-800">
+                  ×
+                </button>
+              </span>
+            </div>
+            <button @click="openAddIndustryModal" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+              Add Industry
+            </button>
+          </div>
+
+          <!-- Career Path -->
+          <div>
+            <label for="edit_career_path" class="block text-sm font-medium text-gray-700 mb-2">
+              Preferred Career Path
+            </label>
+            <textarea
+              id="edit_career_path"
+              v-model="tempCareerGoals.career_path"
+              rows="2"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Describe your preferred career progression path..."
+            ></textarea>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex justify-end space-x-4 pt-4 border-t">
+            <button @click="closeEditModal" 
+                    class="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+              Cancel
+            </button>
+            <button @click="saveCareerGoals" 
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+              Save Career Goals
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -318,7 +430,7 @@ const closeErrorModal = () => {
           </button>
         </div>
         <p class="text-gray-600 mb-4">Add a preferred industry of interest to your profile.</p>
-        <form @submit.prevent="addPreferredIndustry">
+        <form @submit.prevent="addIndustryToTemp">
           <div class="mb-4">
             <label class="block text-gray-700 font-medium mb-2">Industry <span class="text-red-500">*</span></label>
             <input 
@@ -340,3 +452,44 @@ const closeErrorModal = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Glow effect animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input focus effects with glow */
+input:focus, textarea:focus, select:focus {
+  animation: pulse 1.5s ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* Button hover effects */
+button:not(:disabled) {
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form element transitions */
+form div {
+  animation: fadeIn 0.3s ease-out;
+}
+</style>

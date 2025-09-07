@@ -59,8 +59,7 @@ const goBack = () => {
             <div class="flex items-center">
                 <button 
                     @click="goBack"
-                    class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none"
-                >
+                    class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <h2 class="font-semibold text-xl text-gray-800 flex items-center">
@@ -72,66 +71,94 @@ const goBack = () => {
         <Container class="py-6 space-y-6">
             <!-- Stats Card -->
             <div class="grid grid-cols-1 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-gray-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Total Archived Users</h3>
-                            <p class="text-3xl font-bold text-gray-600">{{ stats.total }}</p>
+                <div class="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mb-3">
+                             <i class="fas fa-archive  text-white text-lg2"></i>
                         </div>
-                        <div class="bg-gray-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-archive text-gray-600"></i>
-                        </div>
+                            <h3 class="text-orange-700 text-sm font-medium mb-2">Total Archived Users</h3>
+                            <p class="text-2xl font-bold text-orange-900">{{ stats.total }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Table Card -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
-                <div class="p-4 flex items-center justify-between border-b border-gray-200">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                     <div class="flex items-center">
-                        <i class="fas fa-table text-blue-500 mr-2"></i>
-                        <h3 class="text-lg font-semibold text-gray-800">Archived Users</h3>
-                        <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ all_users.total }} total</span>
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-table text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">Archived Users</h3>
+                                <p class="text-sm text-gray-600">Manage archived user accounts</p>
+                                <span class="text-sm font-semibold text-gray-700">{{ all_users.total }} total</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="overflow-x-auto">
                     <table class="min-w-full table-auto">
-                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
+                        <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
                             <tr>
-                                <th class="px-6 py-3 text-left">User Level</th>
-                                <th class="px-6 py-3 text-left">Name</th>
-                                <th class="px-6 py-3 text-left">Date Creation</th>
-                                <th class="px-6 py-3 text-left">Status</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">
+                                        User Level
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">
+                                        Name
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">
+                                        Date Creation
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">
+                                        Status
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center justify-end">
+                                        Actions
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
-                            <tr v-for="user in all_users.data" :key="user.id" class="hover:bg-gray-50 transition-colors duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap">
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            <tr v-for="user in all_users.data" :key="user.id" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                                <td class="px-6 py-5 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 shadow-sm group-hover:shadow-md transition-shadow">
                                             <i class="fas fa-user-tag"></i>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900 capitalize">{{ user.role }}</div>
+                                            <div class="text-sm font-semibold text-gray-900 capitalize">{{ user.role }}</div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ user.full_name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ new Date(user.created_at).toLocaleDateString() }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 flex items-center w-fit">
-                                        <i class="fas fa-archive mr-1"></i> Archived
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <div class="text-sm font-semibold text-gray-900">{{ user.full_name }}</div>
+                                </td>
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <div class="text-sm text-gray-700 font-medium">{{ new Date(user.created_at).toLocaleDateString() }}</div>
+                                </td>
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 shadow-sm">
+                                        <i class="fas fa-archive mr-1.5"></i> Archived
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end space-x-2">
                                         <button 
                                             @click="confirmRestore(user)"
-                                            class="text-blue-500 hover:text-blue-700 focus:outline-none p-1 hover:bg-blue-50 rounded-full transition-colors"
-                                            title="Restore"
-                                        >
+                                            class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-full hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            title="Restore">
                                             <i class="fas fa-undo"></i>
                                         </button>
                                     </div>
@@ -149,45 +176,47 @@ const goBack = () => {
                 </div>
                 
                 <!-- Pagination -->
-                <div v-if="all_users.links && all_users.links.length > 3" class="px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                    <div class="flex-1 flex justify-between sm:hidden">
-                        <a 
-                            v-if="all_users.prev_page_url" 
-                            @click.prevent="goTo(all_users.prev_page_url)" 
-                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                        >
-                            <i class="fas fa-chevron-left mr-2"></i> Previous
-                        </a>
-                        <a 
-                            v-if="all_users.next_page_url" 
-                            @click.prevent="goTo(all_users.next_page_url)" 
-                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-                        >
-                            Next <i class="fas fa-chevron-right ml-2"></i>
-                        </a>
-                    </div>
-                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-gray-700">
-                                Showing <span class="font-medium">{{ all_users.from || 0 }}</span> to <span class="font-medium">{{ all_users.to || 0 }}</span> of <span class="font-medium">{{ all_users.total }}</span> results
-                            </p>
+                <div v-if="all_users.links && all_users.links.length > 3" class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-700 font-medium">
+                                Showing <span class="font-bold text-blue-600">{{ all_users.from || 0 }}</span> to <span class="font-bold text-blue-600">{{ all_users.to || 0 }}</span> of <span class="font-bold text-blue-600">{{ all_users.total }}</span> results
+                            </span>
                         </div>
-                        <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                <a 
-                                    v-for="link in all_users.links" 
-                                    :key="link.url" 
-                                    v-html="link.label"
-                                    @click.prevent="link.url ? goTo(link.url) : null"
+                        <div class="flex items-center space-x-1">
+                            <!-- Previous Button -->
+                            <button 
+                                v-if="all_users.prev_page_url" 
+                                @click="goTo(all_users.prev_page_url)" 
+                                class="w-10 h-10 rounded-full bg-white border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md"
+                                title="Previous Page">
+                                <i class="fas fa-chevron-left text-sm"></i>
+                            </button>
+                            
+                            <!-- Page Numbers -->
+                            <template v-for="link in all_users.links" :key="link.url">
+                                <button 
+                                    v-if="!link.label.includes('Previous') && !link.label.includes('Next')"
+                                    @click="link.url ? goTo(link.url) : null"
                                     :class="[
-                                        link.url ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed',
-                                        link.active ? 'z-10 bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-gray-300 text-gray-500',
-                                        link.label.includes('Previous') ? 'rounded-l-md' : '',
-                                        link.label.includes('Next') ? 'rounded-r-md' : '',
-                                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                                        'w-10 h-10 rounded-full text-sm font-semibold transition-all duration-200 flex items-center justify-center shadow-sm',
+                                        link.active 
+                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md hover:shadow-lg' 
+                                            : 'bg-white border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 hover:shadow-md',
+                                        link.url ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
                                     ]"
-                                ></a>
-                            </nav>
+                                    v-html="link.label">
+                                </button>
+                            </template>
+                            
+                            <!-- Next Button -->
+                            <button 
+                                v-if="all_users.next_page_url" 
+                                @click="goTo(all_users.next_page_url)" 
+                                class="w-10 h-10 rounded-full bg-white border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md"
+                                title="Next Page">
+                                <i class="fas fa-chevron-right text-sm"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -197,7 +226,7 @@ const goBack = () => {
             <ConfirmationModal :show="showModal" @close="showModal = false" @confirm="restoreUser">
                 <template #title>
                     <div class="flex items-center">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mr-4 shadow-lg">
                             <i class="fas fa-question-circle text-blue-500"></i>
                         </div>
                         <h3 class="text-lg font-semibold text-gray-800">Confirm Restore</h3>
@@ -208,17 +237,15 @@ const goBack = () => {
                     <strong>"{{ userToRestore?.full_name }}"</strong>? This will make the user visible again.</p>
                 </template>
                 <template #footer>
-                    <div class="flex justify-end space-x-3">
+                    <div class="flex justify-end space-x-4">
                         <button 
                             @click="showModal = false"
-                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm transition-colors duration-200 flex items-center"
-                        >
+                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm transition-colors duration-200 flex items-center">
                             <i class="fas fa-times mr-2"></i> Cancel
                         </button>
                         <button 
                             @click="restoreUser"
-                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm transition-colors duration-200 flex items-center"
-                        >
+                            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm transition-colors duration-200 flex items-center">
                             <i class="fas fa-undo mr-2"></i> Restore
                         </button>
                     </div>

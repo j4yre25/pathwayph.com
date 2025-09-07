@@ -245,16 +245,16 @@ const removeAchievement = (id) => {
                         <p class="mt-2 text-gray-600">Showcase your awards, recognitions, publications, and patents</p>
                     </div>
                     <div class="flex space-x-4">
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center hover:bg-blue-700 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            @click="openAddAchievementModal">
-                            <i class="fas fa-plus mr-2"></i>
-                            Add Achievement
-                        </button>
-                    <button class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer" 
-                        @click="showArchivedAchievements = !showArchivedAchievements">
-                        <i class="fas" :class="showArchivedAchievements ? 'fa-eye-slash' : 'fa-eye'"></i>
-                        <span class="ml-2">{{ showArchivedAchievements ? 'Hide Archived' : 'Show Archived' }}</span>
-                    </button>
+                        <PrimaryButton class="flex items-center"
+                             @click="openAddAchievementModal">
+                             <i class="fas fa-plus mr-2"></i>
+                             Add Achievement
+                         </PrimaryButton>
+                    <SecondaryButton class="flex items-center cursor-pointer" 
+                         @click="showArchivedAchievements = !showArchivedAchievements">
+                         <i class="fas" :class="showArchivedAchievements ? 'fa-eye-slash' : 'fa-eye'"></i>
+                         <span class="ml-2">{{ showArchivedAchievements ? 'Hide' : 'Show' }} Archived</span>
+                     </SecondaryButton>
                 </div>
             </div>
 
@@ -293,10 +293,10 @@ const removeAchievement = (id) => {
                                 class="max-w-full h-auto rounded-lg shadow" />
                         </div>
                         <div class="flex justify-end space-x-2 mt-3">
-                            <button @click="openUpdateAchievementModal(achievement)" class="text-gray-600 hover:text-blue-600">
-                                <i class="fas fa-pen"></i>
+                            <button @click="openUpdateAchievementModal(achievement)" class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150">
+                                <i class="fas fa-edit"></i>
                             </button>
-                            <button @click="removeAchievement(achievement)" class="text-red-600 hover:text-red-800">
+                            <button @click="removeAchievement(achievement)" class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -352,11 +352,11 @@ const removeAchievement = (id) => {
                                 </div>
                             </div>
                             <div class="absolute top-2 right-2 flex space-x-2">
-                                <button class="text-green-600 hover:text-green-800"
+                                <button class="inline-flex items-center px-2 py-1 bg-green-100 border border-green-300 rounded-md font-semibold text-xs text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150"
                                     @click="unarchiveAchievement(achievement)">
-                                    <i class="fas fa-box-open"></i>
+                                    <i class="fas fa-undo"></i>
                                 </button>
-                                <button class="text-red-600 hover:text-red-800"
+                                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
                                     @click="deleteAchievement(achievement.id)">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -549,3 +549,50 @@ const removeAchievement = (id) => {
             </div>
         </div>
 </template>
+
+<style scoped>
+/* Glow effects for form elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  animation: pulse 1.5s infinite;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.modal-content {
+  animation: fadeIn 0.4s ease-out;
+}
+</style>

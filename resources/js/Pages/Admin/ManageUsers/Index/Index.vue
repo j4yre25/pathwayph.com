@@ -21,9 +21,9 @@ const userToArchive = ref(null);
 // Stats for cards
 const stats = computed(() => {
     const total = props.all_users.total || 0;
-    const approved = props.all_users.approved_count
-    const pending = props.pending_count || 0;
-    const disapproved = props.disapproved_count || 0;
+    const approved = props.all_users.approved_count || 0;
+    const pending = props.all_users.pending_count || 0;
+    const disapproved = props.all_users.disapproved_count || 0;
 
     return { total, approved, pending, disapproved };
 });
@@ -77,7 +77,7 @@ const disapproveUser = (user) => {
 };
 
 const goTo = (url) => {
-    router.get(url); // Use Inertia's router to navigate to the next/previous page
+    router.get(url);
 };
 
 // Function to go back
@@ -106,63 +106,60 @@ console.log('approved_count:', props.all_users.approved_count);
 
         <Container class="py-6 space-y-6">
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <!-- Total Users Card -->
                 <div
-                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Total Users</h3>
-                            <p class="text-3xl font-bold text-blue-600">{{ stats.total }}</p>
+                    class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-users text-white text-lg"></i>
                         </div>
-                        <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-users text-blue-600"></i>
-                        </div>
+                        <h3 class="text-blue-700 text-sm font-medium mb-2">Total Users</h3>
+                        <p class="text-2xl font-bold text-blue-900">{{ stats.total }}</p>
                     </div>
                 </div>
 
+                <!-- Approved Card -->
                 <div
-                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Approved</h3>
-                            <p class="text-3xl font-bold text-green-600">{{ stats.approved }}</p>
+                    class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-check-circle text-white text-lg"></i>
                         </div>
-                        <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-check-circle text-green-600"></i>
-                        </div>
+                        <h3 class="text-green-700 text-sm font-medium mb-2">Approved</h3>
+                        <p class="text-2xl font-bold text-green-900">{{ stats.approved }}</p>
                     </div>
                 </div>
 
+                <!-- Pending Card -->
                 <div
-                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Pending</h3>
-                            <p class="text-3xl font-bold text-yellow-600">{{ stats.pending }}</p>
+                    class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-clock text-white text-lg"></i>
                         </div>
-                        <div class="bg-yellow-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-clock text-yellow-600"></i>
-                        </div>
+                        <h3 class="text-yellow-700 text-sm font-medium mb-2">Pending</h3>
+                        <p class="text-2xl font-bold text-yellow-900">{{ stats.pending }}</p>
                     </div>
                 </div>
 
+                <!-- Disapproved Card -->
                 <div
-                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 relative overflow-hidden transition-all duration-200 hover:shadow-md">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">Disapproved</h3>
-                            <p class="text-3xl font-bold text-red-600">{{ stats.disapproved }}</p>
+                    class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-times-circle text-white text-lg"></i>
                         </div>
-                        <div class="bg-red-100 rounded-full p-3 flex items-center justify-center">
-                            <i class="fas fa-times-circle text-red-600"></i>
-                        </div>
+                        <h3 class="text-red-700 text-sm font-medium mb-2">Disapproved</h3>
+                        <p class="text-2xl font-bold text-red-900">{{ stats.disapproved }}</p>
                     </div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
             <div
-                class="bg-white rounded-lg shadow-sm p-4 flex flex-wrap items-center justify-between gap-4 transition-all duration-200 hover:shadow-md">
+                class="bg-white rounded-2xl shadow-lg p-6 flex flex-wrap items-center justify-between gap-4 border border-gray-100">
                 <div class="flex items-center space-x-4">
                     <Link v-if="page.props.roles.isPeso" :href="route('admin.manage_users.list')" :class="[route().current('admin.manage_users.list') ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 hover:bg-gray-50 border-gray-200',
                         'px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border']">
@@ -183,68 +180,72 @@ console.log('approved_count:', props.all_users.approved_count);
 
             <!-- Table Card -->
             <div
-                class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
-                <div class="p-4 flex items-center justify-between border-b border-gray-200">
+                class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                     <div class="flex items-center">
-                        <i class="fas fa-table text-blue-500 mr-2"></i>
-                        <h3 class="text-lg font-semibold text-gray-800">User Management</h3>
-                        <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{
-                            all_users.total }} total</span>
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-table text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">User Management</h3>
+                            <span class="text-sm text-gray-500">{{
+                            all_users.total }} total users</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto">
-                        <thead class="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
+                    <table class="min-w-full">
+                        <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
                             <tr>
-                                <th class="px-6 py-3 text-left">Role</th>
-                                <th class="px-6 py-3 text-left">Organization</th>
-                                <th class="px-6 py-3 text-left">Name</th>
-                                <th class="px-6 py-3 text-left">Email</th>
-                                <th class="px-6 py-3 text-left">Status</th>
-                                <th class="px-6 py-3 text-right">Actions</th>
+                                <th class="px-6 py-4 text-left">Role</th>
+                                <th class="px-6 py-4 text-left">Organization</th>
+                                <th class="px-6 py-4 text-left">Name</th>
+                                <th class="px-6 py-4 text-left">Email</th>
+                                <th class="px-6 py-4 text-left">Status</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
+                        <tbody class="divide-y divide-gray-100 bg-white">
                             <tr v-for="user in all_users.data" :key="user.id"
-                                class="hover:bg-gray-50 transition-colors duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                                <td class="px-6 py-5 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div
-                                            class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                                            <i class="fas fa-user-tag"></i>x
+                                            class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mr-3 group-hover:shadow-md transition-all duration-200">
+                                            <i class="fas fa-user-tag text-white text-xs"></i>
                                         </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900 capitalize">{{ user.role }}
+                                        <div class="ml-1">
+                                            <div class="text-sm font-semibold text-gray-900 capitalize group-hover:text-blue-700 transition-colors">{{ user.role }}
                                             </div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ user.organization_name
+                                <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600 font-medium">{{ user.organization_name
                                     || '-'
                                     }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{
+                                <td class="px-6 py-5 whitespace-nowrap text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{{
                                     user.full_name }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ user.email }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full flex items-center w-fit"
+                                <td class="px-6 py-5 whitespace-nowrap text-sm text-gray-600">{{ user.email }}</td>
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full flex items-center w-fit shadow-sm"
                                         :class="{
                                             'bg-green-100 text-green-800': user.is_approved === true,
                                             'bg-red-100 text-red-800': user.is_approved === false,
                                             'bg-yellow-100 text-yellow-800': user.is_approved === null
                                         }">
                                         <i :class="{
-                                            'fas fa-check-circle mr-1': user.is_approved === true,
-                                            'fas fa-times-circle mr-1': user.is_approved === false,
-                                            'fas fa-clock mr-1': user.is_approved === null
+                                            'fas fa-check-circle mr-1.5': user.is_approved === true,
+                                            'fas fa-times-circle mr-1.5': user.is_approved === false,
+                                            'fas fa-clock mr-1.5': user.is_approved === null
                                         }"></i>
                                         {{ user.is_approved === true ? 'Approved' : (user.is_approved === false ?
                                             'Disapproved'
                                             : 'Pending') }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end space-x-2">
                                         <button @click="approveUser(user)"
                                             v-if="user.is_approved !== false && !user.is_approved"
@@ -325,10 +326,10 @@ console.log('approved_count:', props.all_users.approved_count);
             <ConfirmationModal :show="showModal" @close="showModal = false" @confirm="archiveUser">
                 <template #title>
                     <div class="flex items-center">
-                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
-                            <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mr-4 shadow-lg">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-800">Confirm Archive</h3>
+                        <h3 class="text-xl font-bold text-gray-800">Confirm Archive</h3>
                     </div>
                 </template>
                 <template #content>
@@ -337,13 +338,13 @@ console.log('approved_count:', props.all_users.approved_count);
                     </p>
                 </template>
                 <template #footer>
-                    <div class="flex justify-end space-x-3">
+                    <div class="flex justify-end space-x-4">
                         <SecondaryButton @click="showModal = false"
-                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm transition-colors duration-200">
+                            class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 text-sm font-medium transition-all duration-200 shadow-sm">
                             <i class="fas fa-times mr-2"></i> Cancel
                         </SecondaryButton>
                         <DangerButton @click="archiveUser"
-                            class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm transition-colors duration-200">
+                            class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 text-sm font-medium transition-all duration-200 shadow-lg">
                             <i class="fas fa-archive mr-2"></i> Archive
                         </DangerButton>
                     </div>

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SkillsChart from '@/Components/SkillsChart.vue';
+
 import ApexCharts from 'vue3-apexcharts';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -94,12 +94,7 @@ const saveSkill = () => {
   });
 };
 
-const skillForm = useForm({
-  graduate_skills_name: skillName.value,
-  graduate_skills_proficiency_type: skillProficiencyType.value,
-  graduate_skills_type: skillType.value,
-  graduate_skills_years_experience: yearsExperience.value,
-});
+// skillForm is already defined in saveSkill function, so we don't need to redefine it here
 
 // Update Skill Handler
 const openEditSkillModal = (skill) => {
@@ -438,8 +433,22 @@ const closeUpdateExperienceModal = () => {
 };
 
 const deleteExperience = (experienceId) => {
-  itemToDelete.value = { id: experienceId, type: 'experience' };
-  // You can implement a confirmation modal here if needed
+  if (!experienceId) {
+    alert('Experience ID not found.');
+    return;
+  }
+  if (!confirm('Are you sure you want to permanently delete this experience? This action cannot be undone.')) {
+    return;
+  }
+  router.delete(route('profile.experience.remove', { id: experienceId }), {
+    preserveScroll: true,
+    onSuccess: () => {
+      emit('refresh-skills');
+    },
+    onError: (errors) => {
+      alert('Failed to delete experience.');
+    }
+  });
 };
 
 const formatDate = (date) => {
@@ -470,46 +479,85 @@ const toggleArchivedExperience = () => {
 };
 
 const unarchiveExperience = (experienceEntry) => {
-  // Implement unarchive logic here
+  if (!experienceEntry.id) {
+    alert('Experience ID not found.');
+    return;
+  }
+  if (!confirm(`Unarchive experience: ${experienceEntry.title}?`)) {
+    return;
+  }
+  router.put(route('profile.experience.unarchive', { id: experienceEntry.id }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      emit('refresh-skills');
+    },
+    onError: (errors) => {
+      alert('Failed to unarchive experience.');
+    }
+  });
 };
 
 const archiveExperience = (experienceEntry) => {
-  // Implement archive logic here
+  if (!experienceEntry.id) {
+    alert('Experience ID not found.');
+    return;
+  }
+  if (!confirm(`Are you sure you want to archive the experience: ${experienceEntry.title}?`)) {
+    return;
+  }
+  router.put(route('profile.experience.archive', { id: experienceEntry.id }), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      emit('refresh-skills');
+    },
+    onError: (errors) => {
+      alert('Failed to archive experience.');
+    }
+  });
 };
 
 </script>
 
 <template>
-  <div v-if="activeSection === 'skills' || activeSection === 'skills-experience'" class="flex flex-col">
-    <!-- -------------------- SKILLS SECTION -------------------- -->
-    <div class="w-full mb-12">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-semibold text-gray-900">Skills</h1>
-        <div class="flex space-x-4">
-          <PrimaryButton class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center transition-colors duration-200"
-            @click="openAddSkillModal">
-            <i class="fas fa-plus mr-2"></i>
-            Add Skill
-          </PrimaryButton>
-          <button class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" @click="toggleArchivedSkills">
-            <i class="fas" :class="showArchivedSkills ? 'fa-eye-slash' : 'fa-eye'"></i>
-            <span class="ml-2">{{ showArchivedSkills ? 'Hide Archived' : 'Show Archived' }}</span>
-          </button>
+  <div v-if="activeSection === 'skills' || activeSection === 'skills-experience'" class="flex flex-col lg:flex-row">
+    <div class="w-full mb-6">
+      <!-- Skills Card -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
+        <!-- Card Header -->
+        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-100 to-white">
+          <div class="flex items-center">
+            <div class="bg-blue-200 p-2 rounded-full mr-3">
+              <i class="fas fa-cogs text-blue-600"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-blue-700">Skills</h3>
+          </div>
+          <div class="flex space-x-2">
+            <PrimaryButton class="bg-blue-600 text-white px-3 py-1 rounded-lg flex items-center hover:bg-blue-700 text-sm"
+              @click="openAddSkillModal">
+              <i class="fas fa-plus mr-1"></i> Add Skill
+            </PrimaryButton>
+            <button
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer text-sm"
+              @click="toggleArchivedSkills">
+              <i class="fas" :class="showArchivedSkills ? 'fa-eye-slash' : 'fa-eye'"></i>
+              <span class="ml-1">{{ showArchivedSkills ? 'Hide Archived' : 'Show Archived' }}</span>
+            </button>
+          </div>
         </div>
-      </div>
-      <p class="mt-2 text-blue-600">Showcase your professional expertise and competencies</p>
+        
+        <!-- Card Body -->
+        <div class="p-6 transition-all duration-300">
+          <p class="text-gray-600 mb-6">Showcase your professional expertise and competencies</p>
 
-      <!-- Active Skills Entries -->
-      <div>
-        <h2 class="text-lg font-medium mb-4">Active Skills</h2>
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <div class="xl:col-span-2 space-y-6">
+          <!-- Skills Entries -->
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div class="xl:col-span-2 space-y-6">
             <div v-if="Object.keys(groupedSkills).length > 0" class="space-y-8">
               <div v-for="(skillsGroup, type) in groupedSkills" :key="type"
-                class="bg-white rounded-xl shadow-sm border border-blue-50 overflow-hidden">
-                <div class="p-6 border-b border-blue-100 flex items-center">
-                  <div class="bg-blue-100 text-blue-700 p-2 rounded-full mr-3">
-                    <i class="fas" :class="{
+                class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 flex items-center bg-gradient-to-r from-blue-50 to-white">
+                  <div class="bg-blue-200 p-2 rounded-full mr-3">
+                    <i class="fas text-blue-600" :class="{
                       'fa-laptop-code': type === 'Technical Skills',
                       'fa-comments': type === 'Soft Skills',
                       'fa-language': type === 'Language Skills',
@@ -517,37 +565,29 @@ const archiveExperience = (experienceEntry) => {
                       'fa-cogs': true
                     }"></i>
                   </div>
-                  <h2 class="text-lg font-semibold text-blue-800">{{ type }}</h2>
+                  <h2 class="text-lg font-semibold text-blue-700">{{ type }}</h2>
                 </div>
                 <div class="p-6">
-                  <div class="grid md:grid-cols-2 gap-4">
+                  <div class="grid md:grid-cols-2 gap-6">
                     <div v-for="skill in skillsGroup" :key="skill.graduate_skills_name"
-                      class="bg-white rounded-lg p-4 transition-all duration-200 hover:shadow-md border border-blue-100 relative group">
-                      <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                          <h3 class="text-lg font-medium text-blue-800">{{ skill.graduate_skills_name }}</h3>
-                          <div class="flex items-center mt-2">
-                            <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mr-2">
-                              {{ skill.graduate_skills_proficiency_type }}
-                            </span>
-                            <span class="text-gray-600 text-sm">
-                              {{ skill.graduate_skills_years_experience }} year(s)
-                            </span>
-                          </div>
-                        </div>
-                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <button class="text-blue-600 hover:text-blue-800 bg-blue-50 p-1.5 rounded-full" @click="editSkill(skill)">
-                            <i class="fas fa-pen"></i>
-                          </button>
-                          <button class="text-amber-600 hover:text-amber-800 bg-amber-50 p-1.5 rounded-full" @click="archiveSkill(skill)">
-                            <i class="fas fa-archive"></i>
-                          </button>
+                      class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative border border-gray-200">
+                      <div class="border-b border-blue-100 pb-3">
+                        <h3 class="text-xl font-bold text-blue-900">{{ skill.graduate_skills_name }}</h3>
+                        <div class="flex items-center mt-1">
+                          <span class="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mr-2">
+                            {{ skill.graduate_skills_proficiency_type }}
+                          </span>
+                          <span class="text-gray-600 text-sm">
+                            {{ skill.graduate_skills_years_experience }} year(s)
+                          </span>
                         </div>
                       </div>
                       
                       <!-- Proficiency Rating Stars -->
-                      <div class="mt-3 flex items-center">
-                        <div class="flex">
+                      <div class="flex items-center mt-2">
+                        <i class="fas fa-star-half-alt text-blue-600 mr-2"></i>
+                        <span class="font-medium text-blue-900">Proficiency:</span>
+                        <div class="flex ml-2">
                           <template v-for="n in 5" :key="n">
                             <i class="fas fa-star text-sm mr-0.5" :class="{
                               'text-blue-500': (skill.graduate_skills_proficiency_type === 'Beginner' && n <= 1) || 
@@ -578,20 +618,29 @@ const archiveExperience = (experienceEntry) => {
                       </div>
                       
                       <!-- Experience Indicator -->
-                      <div class="mt-3 text-xs text-gray-500">
-                        <div class="flex justify-between items-center">
-                          <span>Experience</span>
-                          <span class="font-medium">{{ skill.graduate_skills_years_experience }} year(s)</span>
+                      <div class="mt-3 flex items-center">
+                        <i class="fas fa-history text-blue-600 mr-2"></i>
+                        <span class="font-medium text-blue-900">Experience:</span>
+                        <span class="ml-2">{{ skill.graduate_skills_years_experience }} year(s)</span>
+                      </div>
+                      <div class="flex space-x-1 mt-1">
+                        <div v-for="n in 5" :key="n"
+                          class="flex-1 h-1.5 rounded transition-all duration-200"
+                          :class="{
+                            'bg-blue-500': n <= skill.graduate_skills_years_experience,
+                            'bg-gray-200': n > skill.graduate_skills_years_experience
+                          }">
                         </div>
-                        <div class="flex space-x-1 mt-1">
-                          <div v-for="n in 5" :key="n"
-                            class="flex-1 h-1.5 rounded transition-all duration-200"
-                            :class="{
-                              'bg-blue-500': n <= skill.graduate_skills_years_experience,
-                              'bg-gray-200': n > skill.graduate_skills_years_experience
-                            }">
-                          </div>
-                        </div>
+                      </div>
+                      
+                      <!-- Action Buttons -->
+                      <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200" @click="editSkill(skill)">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200" @click="archiveSkill(skill)">
+                          <i class="fas fa-archive"></i>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -600,27 +649,22 @@ const archiveExperience = (experienceEntry) => {
             </div>
 
             <!-- No Skills Message -->
-            <div v-else class="bg-white p-8 rounded-lg shadow border border-blue-50 text-center">
+            <div v-else class="bg-white p-8 rounded-lg shadow-md border border-gray-200 text-center">
               <div class="flex flex-col items-center justify-center py-4">
-                <div class="bg-blue-50 text-blue-500 p-3 rounded-full mb-3">
+                <div class="bg-blue-100 text-blue-600 p-3 rounded-full mb-3">
                   <i class="fas fa-code text-2xl"></i>
                 </div>
-                <h3 class="text-lg font-medium text-blue-800 mb-2">No skills added yet</h3>
-                <p class="text-blue-600">Add your skills to showcase your expertise</p>
-                <button @click="openAddSkillModal" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center transition duration-200 ease-in-out">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">No skills added yet</h3>
+                <p class="text-gray-600 mb-4">Add your skills to showcase your expertise</p>
+                <PrimaryButton @click="openAddSkillModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors duration-200">
                   <i class="fas fa-plus mr-2"></i>
                   Add Skill
-                </button>
+                </PrimaryButton>
               </div>
             </div>
           </div>
 
-          <!-- Skills Chart -->
-          <div class="xl:col-span-1">
-            <div class="bg-white rounded-xl shadow-sm border border-blue-50 p-6 sticky top-4">
-              <SkillsChart :skills="skills" />
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -672,27 +716,27 @@ const archiveExperience = (experienceEntry) => {
               </div>
             </div>
             <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button class="text-blue-600 hover:text-blue-800 bg-blue-100 p-1.5 rounded-full" @click="unarchiveSkill(skill)">
+              <button class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200" @click="unarchiveSkill(skill)">
                 <i class="fas fa-box-open"></i>
               </button>
-              <button class="text-red-600 hover:text-red-800 bg-red-50 p-1.5 rounded-full" @click="removeSkill(skill)">
+              <button class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="removeSkill(skill)">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
-            <div class="absolute top-2 left-2 bg-blue-200 text-blue-800 text-xs px-3 py-1 rounded-full shadow-sm font-medium">
+            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full shadow-sm font-medium">
               <i class="fas fa-archive mr-1"></i> Archived
             </div>
           </div>
         </div>
 
         <!-- If no archived skills exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow border border-blue-50 text-center">
+        <div v-else class="bg-white p-8 rounded-lg shadow-md border border-gray-200 text-center">
           <div class="flex flex-col items-center justify-center py-4">
-            <div class="bg-blue-50 text-blue-500 p-3 rounded-full mb-3">
+            <div class="bg-blue-100 text-blue-600 p-3 rounded-full mb-3">
               <i class="fas fa-archive text-2xl"></i>
             </div>
-            <h3 class="text-lg font-medium text-blue-800 mb-2">No archived skills found</h3>
-            <p class="text-blue-600">Archived skills will appear here when you archive them</p>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No archived skills found</h3>
+            <p class="text-gray-600 mb-4">Archived skills will appear here when you archive them</p>
           </div>
         </div>
       </div>
@@ -841,106 +885,6 @@ const archiveExperience = (experienceEntry) => {
             Update Skill
           </button>
         </form>
-      </div>
-    </div>
-
-    <!-- -------------------- EXPERIENCE SECTION -------------------- -->
-    <div class="w-full mb-12 mt-12">
-      <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center">
-          <div class="bg-blue-100 text-blue-700 p-2 rounded-full mr-3">
-            <i class="fas fa-briefcase"></i>
-          </div>
-          <h1 class="text-2xl font-semibold text-blue-800">Work Experience</h1>
-        </div>
-        <div class="flex space-x-4">
-          <PrimaryButton class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center"
-            @click="openAddExperienceModal">
-            <i class="fas fa-plus mr-2"></i>
-            Add Experience
-          </PrimaryButton>
-          <button class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer" @click="toggleArchivedExperience">
-            <i class="fas" :class="showArchivedExperience ? 'fa-eye-slash' : 'fa-eye'"></i>
-            <span class="ml-2">{{ showArchivedExperience ? 'Hide Archived' : 'Show Archived' }}</span>
-          </button>
-        </div>
-      </div>
-      <p class="text-gray-600 mb-6">Showcase your professional experience and career journey</p>
-
-      <!-- Experience Entries -->
-      <div>
-        <h2 class="text-lg font-medium mb-4">Active Experience</h2>
-        <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div v-for="experienceEntry in experienceEntries" :key="experienceEntry.id"
-            class="bg-white rounded-lg shadow-md p-6 space-y-4 relative border border-blue-50 hover:shadow-lg transition-all duration-300 group">
-            <div>
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
-                <p class="text-gray-600">{{ experienceEntry.company ? experienceEntry.company.name : experienceEntry.not_company }}</p>
-              </div>
-              <div class="mt-4 space-y-3">
-                <div class="flex items-center text-gray-600">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3">
-                    <i class="fas fa-map-marker-alt text-blue-500"></i>
-                  </div>
-                  <span>{{ experienceEntry.address }}</span>
-                </div>
-                <div class="flex items-center text-gray-600">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3">
-                    <i class="far fa-calendar-alt text-blue-500"></i>
-                  </div>
-                  <span>
-                    {{ formatDate(experienceEntry.start_date) }} - {{ experienceEntry.is_current ? 'Present' :
-                      formatDate(experienceEntry.end_date) }}
-                  </span>
-                </div>
-                <div class="flex items-center text-gray-600">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3">
-                    <i class="fas fa-briefcase text-blue-500"></i>
-                  </div>
-                  <span><strong>Employment Type:</strong> {{ experienceEntry.employment_type }}</span>
-                </div>
-                <div class="flex items-start text-gray-600 mt-1">
-                  <div class="bg-blue-50 p-1.5 rounded-full mr-3 mt-0.5">
-                    <i class="fas fa-info-circle text-blue-500"></i>
-                  </div>
-                  <div>
-                    <strong>Description:</strong>
-                    <p class="mt-1">{{ experienceEntry.description || 'No description provided' }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button class="text-blue-600 hover:text-blue-800 bg-blue-50 p-1.5 rounded-full" @click="openUpdateExperienceModal(experienceEntry)">
-                <i class="fas fa-pen"></i>
-              </button>
-              <button class="text-amber-600 hover:text-amber-800 bg-amber-50 p-1.5 rounded-full" @click="archiveExperience(experienceEntry)">
-                <i class="fas fa-archive"></i>
-              </button>
-              <button class="text-red-600 hover:text-red-800 bg-red-50 p-1.5 rounded-full" @click="deleteExperience(experienceEntry.id)">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- If no experience entries exist -->
-        <div v-else class="bg-white p-8 rounded-lg shadow border border-blue-50 text-center">
-          <div class="flex flex-col items-center justify-center py-6">
-            <div class="bg-blue-50 text-blue-500 p-4 rounded-full mb-4">
-              <i class="fas fa-briefcase text-3xl"></i>
-            </div>
-            <h3 class="text-lg font-medium text-blue-800 mb-2">No experience entries added yet</h3>
-            <p class="text-gray-600 max-w-md mx-auto mb-4">
-              You haven't added any work experience yet. Add an internship, part-time job, or volunteer work to enhance your portfolio!
-            </p>
-            <button @click="openAddExperienceModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center transition duration-200 ease-in-out">
-              <i class="fas fa-plus mr-2"></i>
-              Add Experience
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Archived Experience Entries -->
@@ -1331,6 +1275,7 @@ const archiveExperience = (experienceEntry) => {
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <style scoped>
@@ -1351,5 +1296,50 @@ const archiveExperience = (experienceEntry) => {
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
+}
+
+/* Glow effects for form elements */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  animation: pulse 1.5s infinite;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.modal-content {
+  animation: fadeIn 0.4s ease-out;
 }
 </style>
