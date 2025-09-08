@@ -289,7 +289,15 @@ class GraduateController extends Controller
 
     public function destroy(Graduate $graduate)
     {
+        // Soft-delete the graduate
         $graduate->delete();
+
+        // Soft-delete the related user
+        $user = User::find($graduate->user_id);
+        if ($user) {
+            $user->delete();
+        }
+
         return redirect()->back()->with('flash.banner', 'Graduate archived successfully.');
     }
 
@@ -556,31 +564,61 @@ class GraduateController extends Controller
         return response()->download(public_path(path: 'templates/graduate_template.csv'));
     }
 
-    public function archivedList()
+    public function archivedList(Request $request)
     {
         $institutionId = Auth::user()->institution->id;
 
-        $graduates = DB::table('graduates')
+        $query = DB::table('graduates')
             ->join('users', 'graduates.user_id', '=', 'users.id')
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
-            ->join('school_years', 'graduates.school_year_id', '=', 'school_years.id')
             ->where('users.role', 'graduate')
             ->where('graduates.institution_id', $institutionId)
-            ->where('users.is_approved', true)
             ->whereNotNull('graduates.deleted_at')
+            ->whereNotNull('users.deleted_at');
+
+        $filters = $request->only(['program', 'date_from', 'date_to', 'status']);
+
+        if (!empty($filters['program']) && $filters['program'] !== 'all') {
+            $query->where('programs.name', '=', $filters['program']);
+        }
+
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateFrom = $filters['date_from'] . ' 00:00:00';
+            $dateTo = $filters['date_to'] . ' 23:59:59';
+            $query->whereBetween('users.created_at', [$dateFrom, $dateTo]);
+        }
+
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            if ($filters['status'] === 'inactive') {
+                $query->whereNotNull('users.deleted_at');
+            } else {
+                $query->whereNull('users.deleted_at');
+            }
+        }
+
+        $graduates = $query->orderBy('users.created_at', 'desc')
             ->select(
                 'graduates.id',
                 'graduates.first_name',
-                'graduates.last_name',
                 'graduates.middle_name',
+                'graduates.last_name',
                 'programs.name as graduate_program_completed',
-                'graduates.created_at'
+                'graduates.created_at',
+                DB::raw("IF(users.deleted_at IS NULL, 'Active', 'Inactive') as status")
             )
-            ->orderBy('graduates.deleted_at', 'desc')
-            ->get();
+            ->paginate(20)
+            ->withQueryString();
+
+        $programs = DB::table('graduates')
+            ->join('programs', 'graduates.program_id', '=', 'programs.id')
+            ->where('graduates.institution_id', $institutionId)
+            ->distinct()
+            ->pluck('programs.name');
 
         return Inertia::render('Graduates/ArchivedList', [
             'graduates' => $graduates,
+            'programs' => $programs,
+            'filters' => $filters,
         ]);
     }
 
@@ -588,6 +626,11 @@ class GraduateController extends Controller
     {
         $graduate = Graduate::withTrashed()->findOrFail($id);
         $graduate->restore();
+
+       $user = User::withTrashed()->find($graduate->user_id);
+        if ($user) {
+            $user->restore();
+        }
         return redirect()->back()->with('flash.banner', 'Graduate restored successfully.');
     }
 

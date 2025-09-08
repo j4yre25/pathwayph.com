@@ -1,9 +1,9 @@
 <script setup>
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { ref, computed } from 'vue';
 import { EyeIcon } from 'lucide-vue-next';
 import { Link } from '@inertiajs/vue3';
 import '@fortawesome/fontawesome-free/css/all.css';
@@ -25,6 +25,8 @@ const filters = ref({
     date_to: '',
     status: 'all',
 });
+
+const showDateErrorModal = ref(false);
 
 // Stats for the dashboard cards
 const stats = computed(() => {
@@ -76,6 +78,18 @@ const stats = computed(() => {
 const applyFilters = () => {
     const activeFilters = {};
 
+    // Date validation
+    if (filters.value.date_from && filters.value.date_to) {
+        const from = new Date(filters.value.date_from);
+        const to = new Date(filters.value.date_to);
+
+        // If Date From is after Date To, show modal and stop
+        if (from > to) {
+            showDateErrorModal.value = true;
+            return;
+        }
+    }
+
     if (filters.value.program !== 'all') {
         activeFilters.program = filters.value.program;
     }
@@ -89,8 +103,11 @@ const applyFilters = () => {
         activeFilters.status = filters.value.status;
     }
 
-    console.log('Active Filters:', activeFilters);
     router.get(route('graduates.list'), activeFilters, { preserveState: true });
+};
+
+const closeDateErrorModal = () => {
+    showDateErrorModal.value = false;
 };
 
 const filteredGraduates = computed(() => {
@@ -123,9 +140,6 @@ const formatDate = (dateString) => {
   return `${day}/${month}/${year}`;
 };
 
-const goBack = () => {
-    window.history.back();
-};
 </script>
 
 <template>
@@ -133,7 +147,7 @@ const goBack = () => {
         <template #header>
             <div>
                 <div class="flex items-center">
-                    <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+                    <button @click="$inertia.get(route('graduates.index'))" class="mr-4 text-gray-600 hover:text-gray-900 transition">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <i class="fas fa-user-graduate text-blue-500 text-xl mr-2"></i>
@@ -291,5 +305,22 @@ const goBack = () => {
               </nav>
             </div>
         </Container>
+
+        <!-- Date Error Modal -->
+        <div v-if="showDateErrorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+                <h3 class="text-lg font-semibold text-red-600 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    Invalid Date Range
+                </h3>
+                <p class="mb-4 text-gray-700">
+                    Please ensure your 'Date To' is on or after your 'Date From'.
+                </p>
+                <button @click="closeDateErrorModal"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
+                    OK
+                </button>
+            </div>
+        </div>
     </AppLayout>
 </template>

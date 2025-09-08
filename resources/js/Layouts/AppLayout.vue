@@ -238,11 +238,11 @@ console.log(page.props.permissions.canManageInstitution)
                   Graduate
                 </NavLink>
 
+                <!-- Manage Approval Link -->
                 <NavLink
                   v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('institutions.reports.index')"
-                  :active="route().current('institutions.reports.index')">
-                  Reports
+                  :href="route('graduates.manage')" :active="route().current('graduates.manage')">
+                  Approval
                 </NavLink>
 
                 <NavLink
@@ -252,25 +252,27 @@ console.log(page.props.permissions.canManageInstitution)
                   Manage Entries
                 </NavLink>
 
-                <!-- Manage Approval Link -->
-                <NavLink
-                  v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('graduates.manage')" :active="route().current('graduates.manage')">
-                  Manage Approval
-                </NavLink>
-
-                <NavLink
-                  v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
-                  :href="route('internship-programs.index')"
-                  :active="route().current('internship-programs.index')">
-                  Manage Internship
-                </NavLink>
                 <NavLink
                   v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
                   :href="route('institutions.career-guidance')"
                   :active="route().current('institutions.career-guidance')">
                  Career Guidance
                 </NavLink>
+
+                <NavLink
+                  v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
+                  :href="route('internship-programs.index')"
+                  :active="route().current('internship-programs.index')">
+                  Internships
+                </NavLink>
+
+                <NavLink
+                  v-if="page.props.permissions.canManageApprovalGraduate && page.props.auth.user.is_approved && page.props.auth.user.role === 'institution'"
+                  :href="route('institutions.reports.index')"
+                  :active="route().current('institutions.reports.index')">
+                  Reports
+                </NavLink>
+                
 
               </div>
 
