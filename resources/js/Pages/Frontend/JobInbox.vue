@@ -70,7 +70,7 @@ const goToNotification = (notification) => {
                             ]">
                                 Applications
                             </button>
-                            <button @click="setActiveSection('notifications')" :class="[
+                            <!-- <button @click="setActiveSection('notifications')" :class="[
                                 activeSection === 'notifications'
                                     ? 'border-indigo-500 text-indigo-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
@@ -81,7 +81,7 @@ const goToNotification = (notification) => {
                                     class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                                     {{ notifications.length }}
                                 </span>
-                            </button>
+                            </button> -->
                         </nav>
                     </div>
 
@@ -213,7 +213,7 @@ const goToNotification = (notification) => {
                             </div>
 
                             <!-- Notifications Section -->
-                            <div v-if="activeSection === 'notifications'" class="space-y-4 max-h-[60vh] overflow-auto">
+                            <!-- <div v-if="activeSection === 'notifications'" class="space-y-4 max-h-[60vh] overflow-auto">
                                 <div v-if="notificationsLoading" class="flex justify-center items-center py-8">
                                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                                 </div>
@@ -230,16 +230,16 @@ const goToNotification = (notification) => {
                                             : 'border-yellow-300 bg-yellow-50 text-gray-700'
                                         ]"
                                         @click="goToNotification(notification)">
-                                        <p class="text-sm text-gray-700">
+                                        <p class="text-sm text-gray-700"> -->
                                             <!-- Application Status Updated Notification -->
-                                            <span v-if="notification.type.includes('ApplicationStatusUpdated')">
+                                            <!-- <span v-if="notification.type.includes('ApplicationStatusUpdated')">
                                                 Your application for
                                                 <b>{{ notification.data.job_title }}</b>
                                                 has been updated to:
                                                 <b>{{ notification.data.status }}</b>.
-                                            </span>
+                                            </span> -->
                                             <!-- Interview Scheduled Notification -->
-                                            <span v-else-if="notification.type.includes('InterviewScheduledNotification')">
+                                            <!-- <span v-else-if="notification.type.includes('InterviewScheduledNotification')">
                                                 Interview scheduled
                                                 <span v-if="notification.data.job_title">
                                                     for <b>{{ notification.data.job_title }}</b>
@@ -251,9 +251,9 @@ const goToNotification = (notification) => {
                                                     year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
                                                 }) }}</b>
                                                 <span v-if="notification.data.location"> ({{ notification.data.location }})</span>.
-                                            </span>
+                                            </span> -->
                                             <!-- Fallback for other notifications -->
-                                            <span v-else>
+                                            <!-- <span v-else>
                                                 <span class="font-bold">{{ notification.data?.title }}</span>
                                                 <span v-if="notification.data?.company"> at {{ notification.data?.company }}</span>
                                             </span>
@@ -267,7 +267,7 @@ const goToNotification = (notification) => {
                                             View Application</PrimaryButton>
                                     </div>
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
                     </div>
 

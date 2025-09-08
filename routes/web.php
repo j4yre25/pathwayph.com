@@ -109,13 +109,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/careerofficer/register', [CareerOfficerRegisterController::class, 'register'])->name('careerofficer.submit');
 });
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->post('/notifications/mark-as-read', function () {
-    $user = Auth::user();
-    if ($user) {
-        $user->unreadNotifications->markAsRead();
-    }
-    return response()->json(['success' => true]);
-})->name('notifications.markAsRead');
+Route::middleware(['auth'])->group(function () {
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAll'])
+        ->name('notifications.markAll');
+    Route::post('/notifications/{notification}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markOne'])
+        ->name('notifications.markOne');
+});
 
 // PESO Jobs
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/{user}', [PesoJobsController::class, 'index'])

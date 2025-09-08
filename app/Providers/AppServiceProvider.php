@@ -78,22 +78,38 @@ class AppServiceProvider extends ServiceProvider
             },  
 
             'notifications' => function () {
-                $user = Auth::user();
+                $user = \Auth::user();
                 if (!$user) return [];
-                return $user->notifications()->latest()->take(10)->get()->map(function($notif) {
-                    return [
-                        'id' => $notif->id,
-                        'title' => $notif->data['title'] ?? 'Notification',
-                        'body' => $notif->data['body'] ?? '',
-                        'created_at' => $notif->created_at->diffForHumans(),
-                    ];
-                });
+                return $user->notifications()
+                    ->latest()
+                    ->take(20)
+                    ->get()
+                    ->map(function ($n) {
+                        $d = $n->data ?? [];
+                        // Autopopulate for legacy job_invite rows
+                        if (($d['status'] ?? null) === 'job_invite') {
+                            $d['title'] = $d['title'] ?? ('Job Invitation: ' . ($d['job_title'] ?? 'Position'));
+                            $d['body']  = $d['body']  ?? ($d['message'] ?? ('You have been invited to apply for "' . ($d['job_title'] ?? 'the job') . '".'));
+                            $d['link']  = $d['link']  ?? (isset($d['job_id']) ? url('/jobs/' . $d['job_id']) : null);
+                        }
+                        if (str_contains($n->type, 'ApplicationStatusUpdated')) {
+                            $statusTxt = ucfirst(str_replace('_',' ', $d['status'] ?? 'updated'));
+                            $d['title'] = $d['title'] ?? ('Application ' . $statusTxt);
+                            $d['body']  = $d['body']  ?? ($d['message'] ?? '');
+                        }
+                        return [
+                            'id' => $n->id,
+                            'title' => $d['title'] ?? 'Notification',
+                            'body' => $d['body'] ?? ($d['message'] ?? ''),
+                            'status' => $d['status'] ?? null,
+                            'job_id' => $d['job_id'] ?? null,
+                            'link' => $d['link'] ?? null,
+                            'read_at' => $n->read_at,
+                            'created_at' => $n->created_at->diffForHumans(),
+                        ];
+                    });
             },
-
-            'notifications_count' => function () {
-                $user = Auth::user();
-                return $user ? $user->unreadNotifications()->count() : 0;
-            },
+            'notifications_count' => fn() => \Auth::user()?->unreadNotifications()->count() ?? 0,
 
 
         ]);
