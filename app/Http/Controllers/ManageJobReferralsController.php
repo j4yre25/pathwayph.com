@@ -8,7 +8,7 @@ use App\Models\Job;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Notification;
-use App\Models\ReferralExport;
+use App\Models\Referral;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -18,7 +18,7 @@ class ManageJobReferralsController extends Controller
     public function index(Request $request)
     {
         // Advanced filtering and search
-        $query = \App\Models\JobInvitation::with(['graduate.user', 'job.company', 'graduate.graduateSkills.skill', 'job.programs']);
+        $query = \App\Models\Referral::with(['graduate.user', 'job.company', 'graduate.graduateSkills.skill', 'job.programs']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -204,7 +204,7 @@ class ManageJobReferralsController extends Controller
     }
 
 
-    public function generateCertificate(JobInvitation $referral)
+    public function generateCertificate(Referral $referral)
     {
         // Fetch all needed data for the template
         $graduate = $referral->graduate;
@@ -253,11 +253,18 @@ class ManageJobReferralsController extends Controller
                 $user->notify(new \App\Notifications\CertificateAvailable($path));
             }
 
-            \App\Models\ReferralExport::create([
-                'graduate_id' => $request->graduate_id,
-                'job_invitation_id' => $request->job_invitation_id ?? null,
-                'certificate_path' => $path,
-            ]);
+            $referral = \App\Models\Referral::find($request->referral_id);
+            if ($referral) {
+                \Log::info('Updating referral', [
+                    'id' => $referral->id,
+                    'certificate_path' => $path,
+                    'status' => 'success'
+                ]);
+                $referral->certificate_path = $path;
+                $referral->status = 'success';
+                $referral->save();
+                \Log::info('Referral after save', $referral->toArray());
+            }
 
             return redirect()->back()->with('success', 'Certificate uploaded successfully.');
         } catch (\Exception $e) {
@@ -275,21 +282,17 @@ class ManageJobReferralsController extends Controller
         return Storage::download($path);
     }
 
-    public function markSuccess(JobInvitation $referral)
+    public function markSuccess(Referral $referral)
     {
         $referral->status = 'success';
         $referral->save();
 
-        // Create ReferralExport if not exists
-        ReferralExport::firstOrCreate([
-            'graduate_id' => $referral->graduate_id,
-            'job_invitation_id' => $referral->id,
-        ]);
+
 
         return response()->json(['success' => true]);
     }
 
-    public function decline(JobInvitation $referral)
+    public function decline(Referral $referral)
     {
         $referral->status = 'rejected';
         $referral->save();

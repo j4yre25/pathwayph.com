@@ -510,7 +510,7 @@ class GraduateJobsController extends Controller
         $user = auth()->user();
         $graduate = $user->graduate;
 
-        \App\Models\JobInvitation::create([
+        \App\Models\Referral::create([
             'graduate_id' => $graduate->id,
             'job_id' => $request->job_id,
             'company_id' => $request->company_id, // <-- add this line

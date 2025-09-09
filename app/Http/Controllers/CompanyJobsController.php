@@ -154,6 +154,7 @@ class CompanyJobsController extends Controller
             // 'category' => 'required|exists:categories,id',
             'program_id' => 'required|array|min:1',
             'program_id.*' => 'exists:programs,id',
+            'sector_'
         ]);
 
         $user->loadMissing('hr');

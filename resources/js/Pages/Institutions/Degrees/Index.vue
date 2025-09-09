@@ -10,6 +10,7 @@ import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage();
+const userId = page.props.auth?.user?.id
 const degrees = ref([...page.props.degrees]); // Use a local ref array
 
 const selectedDegree = ref(null);
@@ -47,6 +48,38 @@ const uniqueDegreeTypes = new Set(degrees.value.map(d => d.degree?.type));
     </template>
 
     <Container class="py-8">
+
+      <!-- Navigation Menu -->
+      <div class="mb-8 max-w-3xl mx-auto bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <!-- Section Header -->
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800 text-center">Data Entries</h3>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-wrap gap-3 p-4 justify-center">
+          <Link :href="route('school-years', { user: userId })"
+            class="inline-flex items-center px-4 py-2 rounded-lg shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-green-50 hover:border-green-400 hover:text-green-600 transition-all duration-200">
+          <i class="fas fa-calendar-alt mr-2 text-blue-500"></i> School Years
+          </Link>
+
+          <Link :href="route('programs', { user: userId })"
+            class="inline-flex items-center px-4 py-2 rounded-lg shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-indigo-50 hover:border-indigo-400 hover:text-indigo-600 transition-all duration-200">
+          <i class="fas fa-book mr-2 text-indigo-500"></i> Programs
+          </Link>
+
+          <Link :href="route('careeropportunities', { user: userId })"
+            class="inline-flex items-center px-4 py-2 rounded-lg shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-purple-50 hover:border-purple-400 hover:text-purple-600 transition-all duration-200">
+          <i class="fas fa-briefcase mr-2 text-purple-500"></i> Career Opportunities
+          </Link>
+
+          <Link :href="route('instiskills', { user: userId })"
+            class="inline-flex items-center px-4 py-2 rounded-lg shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-pink-50 hover:border-pink-400 hover:text-pink-600 transition-all duration-200">
+          <i class="fas fa-cogs mr-2 text-pink-500"></i> Skills
+          </Link>
+        </div>
+      </div>
+
       <!-- Stats Summary -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">

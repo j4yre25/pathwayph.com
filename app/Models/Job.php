@@ -41,6 +41,8 @@ class Job extends Model
         'posted_by',
         'job_code',
         'job_id',
+        'sector_id',
+        'category_id',
     ];
 
 

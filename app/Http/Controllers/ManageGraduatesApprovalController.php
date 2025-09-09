@@ -113,7 +113,10 @@ class ManageGraduatesApprovalController extends Controller
         }
 
         if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
-            $query->whereBetween('users.created_at', [$filters['date_from'], $filters['date_to']]);
+            // Set date_to to end of day
+            $dateFrom = $filters['date_from'] . ' 00:00:00';
+            $dateTo = $filters['date_to'] . ' 23:59:59';
+            $query->whereBetween('users.created_at', [$dateFrom, $dateTo]);
         }
 
         if (!empty($filters['status']) && $filters['status'] !== 'all') {
@@ -132,7 +135,7 @@ class ManageGraduatesApprovalController extends Controller
                 'programs.name as program_name',
                 DB::raw("IF(users.deleted_at IS NULL, 'Active', 'Inactive') as status")
             )
-            ->paginate(30)
+            ->paginate(20)
             ->withQueryString();
 
         $programs = DB::table('graduates')

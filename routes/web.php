@@ -25,6 +25,7 @@ use App\Http\Controllers\CareerOpportunityController;
 use App\Http\Controllers\ManageGraduatesApprovalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DegreeController;
+use App\Http\Controllers\InstitutionEntriesController;
 use App\Http\Controllers\CustomRegisteredUserController;
 use App\Http\Controllers\GraduateProfileController;
 use App\Http\Controllers\GraduateJobsController;
@@ -279,26 +280,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/pipeline-stages/reorder', [\App\Http\Controllers\PipelineStageController::class, 'reorder'])->name('pipeline.stages.reorder');
 });
 Route::middleware(['auth'])->group(function () {
-    Route::post('/request-info/send', [\App\Http\Controllers\RequestMoreInfoController::class,'send'])->name('requestInfo.send');
-    Route::get('/request-info', [\App\Http\Controllers\RequestMoreInfoController::class,'index'])->name('requestInfo.index');
-    Route::post('/request-info/{requestMoreInfo}/complete', [\App\Http\Controllers\RequestMoreInfoController::class,'complete'])->name('requestInfo.complete');
-    Route::post('/request-info/{requestMoreInfo}/read', [\App\Http\Controllers\RequestMoreInfoController::class,'markRead'])->name('requestInfo.read');
+    Route::post('/request-info/send', [\App\Http\Controllers\RequestMoreInfoController::class, 'send'])->name('requestInfo.send');
+    Route::get('/request-info', [\App\Http\Controllers\RequestMoreInfoController::class, 'index'])->name('requestInfo.index');
+    Route::post('/request-info/{requestMoreInfo}/complete', [\App\Http\Controllers\RequestMoreInfoController::class, 'complete'])->name('requestInfo.complete');
+    Route::post('/request-info/{requestMoreInfo}/read', [\App\Http\Controllers\RequestMoreInfoController::class, 'markRead'])->name('requestInfo.read');
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::post('/assessment/instructions', [\App\Http\Controllers\AssessmentController::class,'sendInstructions'])->name('assessment.instructions.send');
-    Route::post('/assessment/reschedule',   [\App\Http\Controllers\AssessmentController::class,'reschedule'])->name('assessment.reschedule');
-    Route::post('/assessment/result',       [\App\Http\Controllers\AssessmentController::class,'recordResult'])->name('assessment.result.record');
+    Route::post('/assessment/instructions', [\App\Http\Controllers\AssessmentController::class, 'sendInstructions'])->name('assessment.instructions.send');
+    Route::post('/assessment/reschedule',   [\App\Http\Controllers\AssessmentController::class, 'reschedule'])->name('assessment.reschedule');
+    Route::post('/assessment/result',       [\App\Http\Controllers\AssessmentController::class, 'recordResult'])->name('assessment.result.record');
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::post('/interview/invite', [\App\Http\Controllers\InterviewController::class,'sendInvitation'])->name('interview.invite');
-    Route::post('/interview/reschedule', [\App\Http\Controllers\InterviewController::class,'reschedule'])->name('interview.reschedule');
-    Route::post('/interview/feedback', [\App\Http\Controllers\InterviewController::class,'recordFeedback'])->name('interview.feedback');
+    Route::post('/interview/invite', [\App\Http\Controllers\InterviewController::class, 'sendInvitation'])->name('interview.invite');
+    Route::post('/interview/reschedule', [\App\Http\Controllers\InterviewController::class, 'reschedule'])->name('interview.reschedule');
+    Route::post('/interview/feedback', [\App\Http\Controllers\InterviewController::class, 'recordFeedback'])->name('interview.feedback');
 });
 
 Route::middleware(['auth'])->group(function () {
-    Route::post('/offer/send', [\App\Http\Controllers\OfferController::class,'send'])->name('offer.send');
+    Route::post('/offer/send', [\App\Http\Controllers\OfferController::class, 'send'])->name('offer.send');
 });
 
 // Company Reports
@@ -475,9 +476,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/admin/manage-users/download', [ManageUsersController::class, 'downloadTemplate'])->name('companies.template.download');
     Route::post('/admin/manage-users/batch-upload', [ManageUsersController::class, 'batchUpload'])->name('companies.batch.upload');
     Route::get('/institutions/{institution}/download-verification', [ManageUsersController::class, 'downloadVerification'])
-    ->name('institutions.downloadVerification');
+        ->name('institutions.downloadVerification');
     Route::get('/companies/{company}/download-verification', [ManageUsersController::class, 'downloadCompanyVerification'])
-    ->name('companies.downloadVerification');
+        ->name('companies.downloadVerification');
 });
 
 // Sectors
@@ -624,7 +625,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::delete('/archive/{id}', [SkillController::class, 'archive'])->name('instiskills.archive');
     Route::get('/{user}/archivedlist', [SkillController::class, 'archivedlist'])->name('instiskills.archivedlist');
     Route::post('/restore/{id}', [SkillController::class, 'restore'])->name('instiskills.restore');
-
 });
 
 
@@ -656,6 +656,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/graduates/archived', [GraduateController::class, 'archivedList'])->name('graduates.archived');
     Route::put('/graduates/restore/{graduate}', [GraduateController::class, 'restore'])->name('graduates.restore');
 });
+
+//Institution Entries
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->get(
+    '/institutions/entries',[InstitutionEntriesController::class, 'index'])->name('institutions.entries');
 
 
 Route::group(['middleware' => config('fortify.middleware', ['web'])], function () {
@@ -1016,7 +1020,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
     Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
-   
+
     Route::post('/job-referrals/{referral}/decline', [ManageJobReferralsController::class, 'decline'])->name('peso.job-referrals.decline');
     Route::post('/job-referrals/{referral}/mark-success', [ManageJobReferralsController::class, 'markSuccess'])->name('peso.job-referrals.mark-success');
 
@@ -1026,6 +1030,10 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso-reports/employment/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'employmentData'])->name('peso.reports.employment.data');
     Route::get('/peso-reports/referral', [App\Http\Controllers\Admin\PesoReportsController::class, 'referral'])->name('peso.reports.referral');
     Route::get('/peso-reports/referral/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'referralData'])->name('peso.reports.referral.data');
+    Route::get('/peso-reports/school-employability', [App\Http\Controllers\Admin\PesoReportsController::class, 'schoolEmployability'])->name('peso.reports.schoolEmployability');
+    Route::get('/peso-reports/school-employability/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'schoolEmployabilityData'])->name('peso.reports.schoolEmployability.data');
+    Route::get('/peso-reports/skills', [App\Http\Controllers\Admin\PesoReportsController::class, 'skills'])->name('peso.reports.skills');
+    Route::get('/peso-reports/skills/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'skillsData'])->name('peso.reports.skills.data');
 
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
     Route::get('/admin/seminar-requests', [PesoCareerGuidanceController::class, 'seminarRequests'])->name('admin.seminar-requests');
@@ -1035,6 +1043,6 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
 
 
-Route::prefix('admin')->middleware(['auth'])->group(function () { });
+Route::prefix('admin')->middleware(['auth'])->group(function () {});
 
 Route::post('/profile/testimonials/request', [ProfileController::class, 'requestTestimonial'])->name('profile.testimonials.request');

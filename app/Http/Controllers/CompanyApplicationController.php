@@ -27,7 +27,7 @@ class CompanyApplicationController extends Controller
     {
             // Load related data (skills, portfolio, etc.)
         $application->load([
-                'graduate.user',       // Basic user info
+                'graduate.user',       
                 'graduate.graduateSkills.skill',    
                 'graduate.education',   
                 'graduate.experience',
@@ -40,8 +40,8 @@ class CompanyApplicationController extends Controller
                 'graduate.employmentPreference.salary',
                 'graduate.careerGoals',
                 'graduate.resume',
-                'job',                 // Job applied for
-                'graduate.referralExports', // <-- Added relation
+                'job',                 
+                'graduate.referralExports', 
             ]);
 
         $graduate = $application->graduate;
@@ -131,20 +131,25 @@ class CompanyApplicationController extends Controller
             ];
         }
 
-        $referralCertificates = $graduate?->referralExports?->map(function ($r) {
+        $referralCertificates = $graduate?->referralExports?->filter(function ($r) {
+            // Keep only records that actually have a non-empty certificate_path
+            return $r && is_string($r->certificate_path) && trim($r->certificate_path) !== '';
+        })->map(function ($r) {
             $path = $r->certificate_path;
-            // If already a full URL leave it, else build storage URL
-            $url = str_starts_with($path, 'http')
-                ? $path
-                : (\Storage::exists($path) ? \Storage::url($path) : null);
+            $url = null;
+            if (is_string($path) && $path !== '') {
+                $url = str_starts_with($path, 'http')
+                    ? $path
+                    : (\Storage::exists($path) ? \Storage::url($path) : null);
+            }
             return [
                 'id' => $r->id,
-                'file_name' => basename($path),
+                'file_name' => $path ? basename($path) : null,
                 'file_url' => $url,
                 'raw_path' => $path,
                 'uploaded_at' => $r->created_at,
             ];
-        })?->values() ?? [];
+        })->values() ?? [];
 
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,

@@ -138,6 +138,6 @@ class Graduate extends Model
 
     public function referralExports()
     {
-        return $this->hasMany(\App\Models\ReferralExport::class, 'graduate_id');
+        return $this->hasMany(\App\Models\Referral::class, 'graduate_id');
     }
 }
