@@ -6,6 +6,20 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { ref, computed } from 'vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
+// --- Mobile Number Formatting ---
+function formatMobileNumber(value) {
+    // Remove non-digits
+    let digits = value.replace(/\D/g, '');
+    // Format as +63 XXX XXX XXXX
+    if (digits.startsWith('0')) digits = '63' + digits.slice(1);
+    if (!digits.startsWith('63')) digits = '63' + digits;
+    let formatted = '+' + digits;
+    if (digits.length >= 12) {
+        formatted = `+${digits.slice(0,2)} ${digits.slice(2,5)} ${digits.slice(5,8)} ${digits.slice(8,12)}`;
+    }
+    return formatted;
+}
+
 const props = defineProps({
     degrees: {
         type: Array,
@@ -19,6 +33,14 @@ const props = defineProps({
         type: Array,
         default: () => ([]),
     },
+    companies: {
+        type: Array,
+        default: () => ([]),
+    },
+    sectors: {
+        type: Array,
+        default: () => ([]),
+    },
 });
 
 const form = ref({
@@ -27,7 +49,6 @@ const form = ref({
     last_name: '',
     email: '',
     contact_number: '',
-    address: '',
     gender: '',
     birth_date: '',
     degree_id: '',
@@ -35,8 +56,21 @@ const form = ref({
     school_year_id: '',
     employment_status: 'Unemployed',
     company_name: '',
-    position: '',
-    date_hired: '',
+    current_job_title: '',
+    company_not_found: false,
+    other_company_name: '',
+    other_company_sector: '',
+});
+
+// --- Formatted Mobile Number ---
+const formattedMobileNumber = computed({
+    get() {
+        return formatMobileNumber(form.value.contact_number);
+    },
+    set(val) {
+        // Remove formatting for storage
+        form.value.contact_number = val.replace(/\D/g, '').replace(/^63/, '0');
+    }
 });
 
 // Step process variables
@@ -83,8 +117,7 @@ function goToStep(step) {
 const handleEmploymentStatusChange = () => {
     if (form.value.employment_status === 'Unemployed') {
         form.value.company_name = '';
-        form.value.position = '';
-        form.value.date_hired = '';
+        form.value.current_job_title = '';
     }
 };
 
@@ -92,6 +125,31 @@ const filteredPrograms = computed(() => {
     if (!form.value.degree_id) return [];
     return props.programs.filter(program => program.degree_id === form.value.degree_id);
 });
+
+// Filter companies by search
+const companySearch = ref('');
+const showCompanyDropdown = ref(false);
+
+const filteredCompanies = computed(() => {
+    if (!companySearch.value) return props.companies;
+    return props.companies.filter(company =>
+        company.company_name.toLowerCase().includes(companySearch.value.toLowerCase())
+    );
+});
+
+function selectCompany(company) {
+    form.value.company_name = company.company_name;
+    companySearch.value = company.company_name;
+    form.value.other_company_name = '';
+    form.value.other_company_sector = '';
+    showCompanyDropdown.value = false;
+}
+
+function handleCompanyBlur() {
+    setTimeout(() => {
+        showCompanyDropdown.value = false;
+    }, 200);
+}
 
 const createGraduate = () => {
     router.post(route('graduates.store'), form.value, {
@@ -103,7 +161,6 @@ const createGraduate = () => {
                 last_name: '',
                 email: '',
                 contact_number: '',
-                address: '',
                 gender: '',
                 birth_date: '',
                 degree_id: '',
@@ -111,8 +168,10 @@ const createGraduate = () => {
                 school_year_id: '',
                 employment_status: 'Unemployed',
                 company_name: '',
-                position: '',
-                date_hired: '',
+                current_job_title: '',
+                company_not_found: false,
+                other_company_name: '',
+                other_company_sector: '',
             };
             currentStep.value = 1;
         },
@@ -122,6 +181,8 @@ const createGraduate = () => {
 const goBack = () => {
     window.history.back();
 };
+
+
 </script>
 
 <template>
@@ -181,100 +242,50 @@ const goBack = () => {
                             <i class="fas fa-user text-blue-500 mr-2"></i>
                             Personal Information
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="flex flex-col">
-                                <label for="first_name" class="text-sm font-medium text-gray-700 mb-1">First Name</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-user text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.first_name" type="text" id="first_name" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="email" class="text-sm font-medium text-gray-700 mb-1">Email <span class="text-blue-400">*</span></label>
+                                <input v-model="form.email" type="email" id="email" required
+                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    placeholder="Enter your email" />
                             </div>
-
-                            <div class="flex flex-col">
+                            <div>
+                                <label for="first_name" class="text-sm font-medium text-gray-700 mb-1">First Name <span class="text-emerald-400">*</span></label>
+                                <input v-model="form.first_name" type="text" id="first_name" required
+                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    placeholder="Enter your first name" />
+                            </div>
+                            <div>
                                 <label for="middle_name" class="text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-user text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.middle_name" type="text" id="middle_name"
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
+                                <input v-model="form.middle_name" type="text" id="middle_name"
+                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    placeholder="Enter your middle name" />
                             </div>
-
-                            <div class="flex flex-col">
-                                <label for="last_name" class="text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-user text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.last_name" type="text" id="last_name" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
+                            <div>
+                                <label for="last_name" class="text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-emerald-400">*</span></label>
+                                <input v-model="form.last_name" type="text" id="last_name" required
+                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    placeholder="Enter your last name" />
                             </div>
-
-                            <div class="flex flex-col">
-                                <label for="email" class="text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-envelope text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.email" type="email" id="email" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
+                            <div>
+                                <label for="birth_date" class="text-sm font-medium text-gray-700 mb-1">Birth Date <span class="text-emerald-400">*</span></label>
+                                <input v-model="form.birth_date" type="date" id="birth_date" required
+                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition" />
                             </div>
-
-                            <div class="flex flex-col">
-                                <label for="contact_number" class="text-sm font-medium text-gray-700 mb-1">Contact Number</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-phone text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.contact_number" type="text" id="contact_number" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
+                            <div>
+                                <label for="gender" class="text-sm font-medium text-gray-700 mb-1">Gender <span class="text-emerald-400">*</span></label>
+                                <select v-model="form.gender" id="gender" required
+                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
                             </div>
-
-                            <div class="flex flex-col">
-                                <label for="gender" class="text-sm font-medium text-gray-700 mb-1">Gender</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-venus-mars text-gray-400"></i>
-                                    </div>
-                                    <select v-model="form.gender" id="gender" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition">
-                                        <option value="">Select Gender</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                    </select>
-                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
-                                        <i class="fas fa-chevron-down"></i>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col">
-                                <label for="birth_date" class="text-sm font-medium text-gray-700 mb-1">Birth Date</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-calendar-alt text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.birth_date" type="date" id="birth_date" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col md:col-span-3">
-                                <label for="address" class="text-sm font-medium text-gray-700 mb-1">Address</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-map-marker-alt text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.address" type="text" id="address" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
+                            <div>
+                                <label for="contact_number" class="text-sm font-medium text-gray-700 mb-1">Mobile Number <span class="text-emerald-400">*</span></label>
+                                <input v-model="formattedMobileNumber" type="text" id="contact_number" required
+                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    placeholder="+63 XXX XXX XXXX" />
                             </div>
                         </div>
                     </div>
@@ -365,6 +376,7 @@ const goBack = () => {
                                         class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition">
                                         <option value="">Select Employment Status</option>
                                         <option value="Employed">Employed</option>
+                                        <option value="Underemployed">Underemployed</option>
                                         <option value="Unemployed">Unemployed</option>
                                     </select>
                                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
@@ -373,36 +385,61 @@ const goBack = () => {
                                 </div>
                             </div>
 
-                            <div class="flex flex-col" v-if="form.employment_status === 'Employed'">
-                                <label for="company_name" class="text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-building text-gray-400"></i>
-                                    </div>
-                                    <input v-model="form.company_name" type="text" id="company_name" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col" v-if="form.employment_status === 'Employed'">
-                                <label for="position" class="text-sm font-medium text-gray-700 mb-1">Position</label>
+                            <div class="flex flex-col" v-if="form.employment_status !== 'Unemployed'">
+                                <label for="current_job_title" class="text-sm font-medium text-gray-700 mb-1">Job Title</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-id-badge text-gray-400"></i>
                                     </div>
-                                    <input v-model="form.position" type="text" id="position" required
+                                    <input v-model="form.current_job_title" type="text" id="current_job_title" required
                                         class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
                                 </div>
                             </div>
 
-                            <div class="flex flex-col" v-if="form.employment_status === 'Employed'">
-                                <label for="date_hired" class="text-sm font-medium text-gray-700 mb-1">Date Hired</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-calendar-alt text-gray-400"></i>
+                            <!-- Company Searchable Dropdown & Checkbox -->
+                            <div class="flex flex-col" v-if="form.employment_status !== 'Unemployed'">
+                                <label class="inline-flex items-center mb-2">
+                                    <input type="checkbox" v-model="form.company_not_found" class="form-checkbox text-blue-400" />
+                                    <span class="ml-2 text-sm text-gray-700 font-medium">My company is not listed</span>
+                                </label>
+                                <!-- Company Search Dropdown -->
+                                <div v-if="!form.company_not_found" class="relative">
+                                    <label for="company_name" class="text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                                    <input
+                                        id="company_search"
+                                        v-model="companySearch"
+                                        type="text"
+                                        class="mt-2 block w-full rounded-lg border border-gray-300"
+                                        placeholder="Type to search company..."
+                                        autocomplete="off"
+                                        @focus="showCompanyDropdown = true"
+                                        @blur="handleCompanyBlur"
+                                    />
+                                    <div v-if="showCompanyDropdown && filteredCompanies.length" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        <div
+                                            v-for="company in filteredCompanies"
+                                            :key="company.id"
+                                            class="px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer"
+                                            @mousedown.prevent="selectCompany(company)"
+                                        >
+                                            {{ company.company_name }}
+                                        </div>
                                     </div>
-                                    <input v-model="form.date_hired" type="date" id="date_hired" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
+                                </div>
+                                <!-- Manual Company Name & Sector -->
+                                <div v-else class="space-y-2 mt-2">
+                                    <label for="other_company_name" class="text-sm font-medium text-gray-700 mb-1">Other Company Name</label>
+                                    <input v-model="form.other_company_name" type="text" id="other_company_name" required
+                                        class="block w-full rounded-lg border border-gray-300"
+                                        placeholder="Enter company name" />
+                                    <label for="other_company_sector" class="text-sm font-medium text-gray-700 mb-1">Sector</label>
+                                    <select v-model="form.other_company_sector" id="other_company_sector" required
+                                        class="block w-full rounded-lg border border-gray-300">
+                                        <option value="">Select Sector</option>
+                                        <option v-for="sector in sectors" :key="sector.id" :value="sector.id">
+                                            {{ sector.name }}
+                                        </option>
+                                    </select>
                                 </div>
                             </div>
                         </div>

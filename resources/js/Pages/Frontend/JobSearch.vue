@@ -134,7 +134,7 @@ function submitApplication() {
     applyForm.post(route('apply-for-job'), {
         preserveScroll: true,
         onSuccess: () => {
-            successMessage.value = 'Successfully applied for the job!';
+            successMessage.value = 'Successfully applied for the job and Referral sent to PESO!';
             isApplyModalOpen.value = false;
             isSuccessModalOpen.value = true;
             fetchJobs();
@@ -231,10 +231,8 @@ function requestReferral(companyId, jobId) {
         job_id: jobId,
     }, {
         onSuccess: () => {
-            alert('Referral request sent to PESO!');
         },
         onError: () => {
-            alert('Could not request referral. Please try again.');
         }
     });
 }

@@ -12,6 +12,16 @@ const selectedRole = ref('')
 const selectedSource = ref('')
 const selectedTimeline = ref('')
 
+const reportTypes = [
+    { value: 'funnel', label: 'Referral Success Rate' },
+    { value: 'trends', label: 'Referral Trends Over Time' },
+    { value: 'network', label: 'Referral Network Analysis' },
+    { value: 'performance', label: 'Referral Performance by Role' },
+    { value: 'bonuses', label: 'Referral Bonuses and Outcomes' },
+    { value: 'reasons', label: 'Reason for Referral Success' },
+]
+const selectedReport = ref(null)
+
 // --- Static filter options from page.props ---
 const page = usePage()
 const companies = ref(page.props.companies ?? [])
@@ -34,6 +44,7 @@ function fetchAnalyticsData() {
         }
     }).then(res => {
         analyticsData.value = res.data
+        console.log('Referral Data:', response.data);
     }).finally(() => {
         loading.value = false
     })
@@ -122,6 +133,19 @@ const bubbleOption = computed(() => ({
     }]
 }))
 
+const networkGraphOption = computed(() => ({
+    tooltip: { trigger: 'item' },
+    series: [{
+        type: 'graph',
+        layout: 'force',
+        roam: true,
+        data: (analyticsData.value.networkNodes ?? []).map(name => ({ name })),
+        links: analyticsData.value.networkLinks ?? [],
+        label: { show: true, position: 'right' },
+        force: { repulsion: 100, edgeLength: 80 }
+    }]
+}));
+
 const roleStatsOption = computed(() => ({
     tooltip: { trigger: 'axis' },
     legend: { data: ['Referred', 'Hired', 'Screened', 'Interviewed'] },
@@ -134,6 +158,22 @@ const roleStatsOption = computed(() => ({
         { name: 'Interviewed', type: 'bar', data: (analyticsData.value.roleStats ?? []).map(d => d.interviewed), itemStyle: { color: '#f59e42' } }
     ]
 }))
+
+const stackedRoleStatsOption = computed(() => ({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['Applied', 'Screened', 'Interviewed', 'Offered', 'Hired', 'Rejected'] },
+    xAxis: { type: 'category', data: (analyticsData.value.roleStats ?? []).map(d => d.role) },
+    yAxis: { type: 'value' },
+    series: [
+        { name: 'Referred', type: 'bar', stack: 'total', data: (analyticsData.value.roleStats ?? []).map(d => d.referred) },
+        { name: 'Applied', type: 'bar', stack: 'total', data: (analyticsData.value.roleStats ?? []).map(d => d.applied) },
+        { name: 'Screened', type: 'bar', stack: 'total', data: (analyticsData.value.roleStats ?? []).map(d => d.screened) },
+        { name: 'Interviewed', type: 'bar', stack: 'total', data: (analyticsData.value.roleStats ?? []).map(d => d.interviewed) },
+        { name: 'Offered', type: 'bar', stack: 'total', data: (analyticsData.value.roleStats ?? []).map(d => d.offered) },
+        { name: 'Hired', type: 'bar', stack: 'total', data: (analyticsData.value.roleStats ?? []).map(d => d.hired) },
+        { name: 'Rejected', type: 'bar', stack: 'total', data: (analyticsData.value.roleStats ?? []).map(d => d.rejected) },
+    ]
+}));
 
 const histogramOption = computed(() => ({
     tooltip: { trigger: 'axis' },
@@ -167,7 +207,8 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
                         <select v-model="selectedCompany"
                             class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
                             <option value="">All Companies</option>
-                            <option v-for="company in companies" :key="company.id" :value="company.id">{{ company.company_name }}</option>
+                            <option v-for="company in companies" :key="company.id" :value="company.id">{{
+                                company.company_name }}</option>
                         </select>
                     </div>
                     <div>
@@ -178,19 +219,23 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
                             <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Source</label>
-                        <select v-model="selectedSource"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
-                            <option value="">All Sources</option>
-                            <option v-for="src in sources" :key="src" :value="src">{{ src }}</option>
-                        </select>
-                    </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Timeline</label>
                         <input v-model="selectedTimeline" type="month"
                             class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200" />
                     </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                        <select v-model="selectedReport"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
+                            <option v-for="type in reportTypes" :key="type.value" :value="type.value">{{ type.label }}
+                            </option>
+                        </select>
+                    </div>
+
+
                 </div>
             </div>
             <!-- Loading Spinner -->
@@ -204,52 +249,57 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
             </div>
             <!-- KPI Cards -->
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-10">
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-200">
+                <div
+                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-200">
                     <h3 class="text-gray-600 text-sm font-medium mb-2">Total Referrals</h3>
-                    <p class="text-3xl font-bold text-blue-600">{{ analyticsData.funnelData?.[0]?.count ?? 0 }}</p>
+                    <p class="text-3xl font-bold text-blue-600">{{ analyticsData.totalReferrals ?? 0 }}</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
+                <div
+                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
                     <h3 class="text-gray-600 text-sm font-medium mb-2">Screened</h3>
-                    <p class="text-3xl font-bold text-green-600">{{ analyticsData.funnelData?.[1]?.count ?? 0 }}</p>
+                    <p class="text-3xl font-bold text-green-600">{{ analyticsData.funnelData?.[2]?.value ?? 0 }}</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-500 hover:shadow-md transition-shadow duration-200">
+                <div
+                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-500 hover:shadow-md transition-shadow duration-200">
                     <h3 class="text-gray-600 text-sm font-medium mb-2">Interviewed</h3>
-                    <p class="text-3xl font-bold text-yellow-600">{{ analyticsData.funnelData?.[2]?.count ?? 0 }}</p>
+                    <p class="text-3xl font-bold text-yellow-600">{{ analyticsData.funnelData?.[3]?.value ?? 0 }}</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
+                <div
+                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
                     <h3 class="text-gray-600 text-sm font-medium mb-2">Hired</h3>
-                    <p class="text-3xl font-bold text-red-600">{{ analyticsData.funnelData?.[3]?.count ?? 0 }}</p>
+                    <p class="text-3xl font-bold text-red-600">{{ analyticsData.funnelData?.[5]?.value ?? 0 }}</p>
                 </div>
+            </div>
+
+
+            <div v-if="!loading" class="mb-6">
+                <h2 class="text-xl font-bold text-blue-700">
+                    {{
+                        reportTypes.find(type => type.value === selectedReport)?.label
+                        || 'Referral Analytics'
+                    }}
+                </h2>
+            </div>
+
+            <div v-if="!loading && selectedReport === null" class="mb-6">
+                <h2 class="text-xl font-bold text-blue-700">Please select a report type.</h2>
             </div>
 
             <!-- Funnel Chart -->
-            <div v-if="!loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Success Rate (Funnel)</h3>
-                <VueECharts :option="funnelOption" style="height: 400px; width: 100%;" />
+            <div v-if="selectedReport === 'funnel' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
+                <h3 class="text-lg font-semibold mb-6 text-gray-700">Funnel Analytics</h3>
+                <template v-if="(analyticsData.funnelData ?? []).length">
+                    <VueECharts :option="funnelOption" style="height: 400px; width: 100%;" />
+                </template>
+                <template v-else>
+                    <div class="text-gray-400 text-center py-8">No funnel data available.</div>
+                </template>
             </div>
 
-            <!-- Bar Chart: Success rates -->
-            <div v-if="!loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                <h3 class="text-lg font-semibold mb-6 text-gray-700">Success Rates: Referrals vs Other Sources</h3>
-                <VueECharts :option="barSuccessOption" style="height: 400px; width: 100%;" />
-            </div>
 
-            <!-- Source of Referrals -->
-            <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Source of Referrals</h2>
-            <div v-if="!loading" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <div class="bg-white rounded-xl shadow p-8">
-                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Pie Chart</h3>
-                    <VueECharts :option="pieSourceOption" style="height: 400px; width: 100%;" />
-                </div>
-                <div class="bg-white rounded-xl shadow p-8">
-                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Treemap</h3>
-                    <VueECharts :option="treemapSourceOption" style="height: 400px; width: 100%;" />
-                </div>
-            </div>
 
             <!-- Referral Trends Over Time -->
-            <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Trends Over Time</h2>
-            <div v-if="!loading" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+            <div v-if="selectedReport === 'trends' && !loading" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                 <div class="bg-white rounded-xl shadow p-8">
                     <h3 class="text-lg font-semibold mb-6 text-gray-700">Line Chart</h3>
                     <VueECharts :option="lineTrendOption" style="height: 400px; width: 100%;" />
@@ -261,36 +311,37 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
             </div>
 
             <!-- Referral Network Analysis -->
-            <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Network Analysis</h2>
-            <div v-if="!loading" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+            <div v-if="selectedReport === 'network' && !loading" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                 <div class="bg-white rounded-xl shadow p-8">
                     <h3 class="text-lg font-semibold mb-6 text-gray-700">Bubble Chart (Influence)</h3>
                     <VueECharts :option="bubbleOption" style="height: 400px; width: 100%;" />
                 </div>
                 <!-- Network Graph placeholder (requires custom ECharts graph config) -->
-                <div class="bg-white rounded-xl shadow p-8">
-                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Network Graph</h3>
-                    <div class="text-gray-400 text-center py-8">Network graph visualization coming soon.</div>
+                <div v-if="!loading" class="bg-white rounded-xl shadow p-8 mb-10">
+                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Network Graph</h3>
+                    <VueECharts :option="networkGraphOption" style="height: 400px; width: 100%;" />
                 </div>
             </div>
 
             <!-- Referral Performance by Role -->
-            <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Performance by Role</h2>
-            <div v-if="!loading" class="bg-white rounded-xl shadow p-8 mb-10">
+            <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
                 <h3 class="text-lg font-semibold mb-6 text-gray-700">Clustered Bar Chart</h3>
                 <VueECharts :option="roleStatsOption" style="height: 400px; width: 100%;" />
             </div>
 
+            <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
+                <h3 class="text-lg font-semibold mb-6 text-gray-700">Stacked Column Chart</h3>
+                <VueECharts :option="stackedRoleStatsOption" style="height: 400px; width: 100%;" />
+            </div>
+
             <!-- Referral Bonuses and Outcomes -->
-            <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Referral Bonuses and Outcomes</h2>
-            <div v-if="!loading" class="bg-white rounded-xl shadow p-8 mb-10">
+            <div v-if="selectedReport === 'bonuses' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
                 <h3 class="text-lg font-semibold mb-6 text-gray-700">Histogram</h3>
                 <VueECharts :option="histogramOption" style="height: 400px; width: 100%;" />
             </div>
 
             <!-- Reason for Referral Success -->
-            <h2 class="text-2xl font-bold mb-3 mt-6 text-gray-800">Reason for Referral Success</h2>
-            <div v-if="!loading" class="bg-white rounded-xl shadow p-8 mb-10">
+            <div v-if="selectedReport === 'reasons' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
                 <h3 class="text-lg font-semibold mb-6 text-gray-700">Word Cloud</h3>
                 <div class="flex flex-wrap gap-2">
                     <span v-for="item in wordCloudData" :key="item.name"

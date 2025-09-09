@@ -51,7 +51,7 @@ function declineReferral(referralId) {
       'Accept': 'application/json'
     }
   }).then(() => {
-    Inertia.reload(); 
+    Inertia.reload();
   });
 }
 
@@ -85,7 +85,8 @@ function goToPage(link) {
     <div class="py-8 max-w-7xl mx-auto">
       <!-- Stats Summary -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+        <div
+          class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
           <div class="flex flex-col items-center text-center">
             <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
               <i class="fas fa-users text-white text-lg"></i>
@@ -120,7 +121,8 @@ function goToPage(link) {
           <i class="fas fa-filter text-blue-500 mr-2"></i>
           <h3 class="font-medium text-gray-700">Filter Referrals</h3>
           <div class="ml-auto">
-            <button type="button" @click="filters.status = ''; filters.company = ''; filters.candidate = ''; filters.search = ''"
+            <button type="button"
+              @click="filters.status = ''; filters.company = ''; filters.candidate = ''; filters.search = ''"
               class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
               <i class="fas fa-undo mr-2"></i> Reset Filter
             </button>
@@ -164,7 +166,8 @@ function goToPage(link) {
 
       <!-- Referrals Table Section -->
       <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div
+          class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div class="flex items-center">
             <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
               <i class="fas fa-exchange-alt text-white text-sm"></i>
@@ -195,45 +198,48 @@ function goToPage(link) {
                 <td class="px-6 py-4">{{ ref.job_title }}</td>
                 <td class="px-6 py-4">{{ ref.company }}</td>
                 <td class="px-6 py-4">
-                  <span
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                    :class="{
-                      'bg-green-100 text-green-800': ref.status === 'hired',
-                      'bg-yellow-100 text-yellow-800': ref.status === 'pending',
-                      'bg-red-100 text-red-800': ref.status === 'rejected'
-                    }">
+                  <span class="px-2 py-1 text-xs font-medium rounded-full" :class="{
+                    'bg-green-100 text-green-800': ref.status === 'success',
+                    'bg-yellow-100 text-yellow-800': ref.status === 'pending',
+                    'bg-red-100 text-red-800': ref.status === 'rejected'
+                  }">
                     {{ ref.status.charAt(0).toUpperCase() + ref.status.slice(1) }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-gray-600">{{ ref.referred_at }}</td>
                 <td class="px-6 py-4">
-                  <span
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                    :class="{
-                      'bg-green-100 text-green-800': ref.match_score >= 60,
-                      'bg-yellow-100 text-yellow-800': ref.match_score >= 30 && ref.match_score < 60,
-                      'bg-red-100 text-red-800': ref.match_score < 30
-                    }">
+                  <span class="px-2 py-1 text-xs font-medium rounded-full" :class="{
+                    'bg-green-100 text-green-800': ref.match_score >= 60,
+                    'bg-yellow-100 text-yellow-800': ref.match_score >= 30 && ref.match_score < 60,
+                    'bg-red-100 text-red-800': ref.match_score < 30
+                  }">
                     {{ ref.match_score }}
                   </span>
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex flex-wrap gap-1">
-                    <span v-for="detail in ref.match_details" :key="detail"
-                      class="bg-gray-100 rounded px-2 py-1 text-xs text-gray-700">
-                      {{ detail }}
-                    </span>
+                    <template v-if="ref.match_details && ref.match_details.length">
+                      <span v-for="detail in ref.match_details" :key="detail"
+                        class="bg-gray-100 rounded px-2 py-1 text-xs text-gray-700">
+                        {{ detail }}
+                      </span>
+                    </template>
+                    <template v-else>
+                      <span class="text-gray-400 italic">No matched details</span>
+                    </template>
                   </div>
                 </td>
                 <td class="py-3 px-4 border-b">
-                  <button v-if="ref.status === 'pending' || ref.status === 'hired'" @click="generateCertificate(ref.id)"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-semibold text-xs shadow transition">
-                    Generate Certificate
-                  </button>
-                   <button v-if="ref.status === 'pending'" @click="declineReferral(ref.id)"
+                  <div class="flex flex-col gap-2 items-start">
+                    <button v-if="ref.status === 'pending'" @click="generateCertificate(ref.id)"
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded font-semibold text-xs shadow transition w-full">
+                      Accept and Generate
+                    </button>
+                    <button v-if="ref.status === 'pending'" @click="declineReferral(ref.id)"
                       class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-semibold text-xs shadow transition w-full">
                       Decline
                     </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="referrals.length === 0">
@@ -258,18 +264,15 @@ function goToPage(link) {
         <nav aria-label="Page navigation">
           <ul class="inline-flex items-center -space-x-px rounded-md shadow-sm">
             <li v-for="(link, i) in pagination.links" :key="i">
-              <button
-                :disabled="!link.url"
-                @click="goToPage(link)"
-                :class="[
-                  'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
-                  link.active
-                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                  link.label.includes('Previous') ? 'rounded-l-md' : '',
-                  link.label.includes('Next') ? 'rounded-r-md' : '',
-                  !link.url ? 'opacity-50 cursor-not-allowed' : ''
-                ]">
+              <button :disabled="!link.url" @click="goToPage(link)" :class="[
+                'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
+                link.active
+                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                link.label.includes('Previous') ? 'rounded-l-md' : '',
+                link.label.includes('Next') ? 'rounded-r-md' : '',
+                !link.url ? 'opacity-50 cursor-not-allowed' : ''
+              ]">
                 <span v-html="link.label"></span>
               </button>
             </li>
