@@ -82,7 +82,7 @@ class CompanyProfileController extends Controller
     }
     public function update(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $company = $user->company;
 
         $validated = $request->validate([
@@ -160,7 +160,7 @@ class CompanyProfileController extends Controller
 
     public function showInformationForm()
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Get all sectors and categories
         $sectors = \App\Models\Sector::all(['id', 'name']);
@@ -175,7 +175,7 @@ class CompanyProfileController extends Controller
 
     public function saveInformation(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $validated = $request->validate([
             // Company

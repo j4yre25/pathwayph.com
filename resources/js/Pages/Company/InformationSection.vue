@@ -107,6 +107,7 @@ const maxDob = computed(() => {
 function onFileChange(e) {
   form.verification_file = e.target.files[0];
 }
+console.log(form.verification_file);
 
 function submit() {
   if (currentStep.value === totalSteps.value && canProceed.value) {
