@@ -141,53 +141,82 @@ const form = useForm({
     <AppLayout title="Jobs">
         <template #header>
             <div class="flex items-center">
-                <i class="fas fa-briefcase text-blue-500 text-xl mr-2"></i>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Jobs
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight flex items-center">
+                    <i class="fas fa-briefcase text-blue-500 mr-2"></i> Jobs
                 </h2>
             </div>
         </template>
 
-        <Container class="py-6">
-            <!-- Action buttons -->
-            <div class="flex flex-wrap gap-3 mb-6">
-                <Link :href="route('company.jobs.create', { user: page.props.auth.user.id })" class="flex-shrink-0">
-                    <PrimaryButton class="flex items-center">
-                        <i class="fas fa-plus-circle mr-2"></i>
-                        Post Jobs
-                    </PrimaryButton>
-                </Link>
+        <Container class="py-8">
 
-                <Link :href="route('company.jobs.manage', { user: page.props.auth.user.id })" class="flex-shrink-0">
-                    <PrimaryButton class="flex items-center">
-                        <i class="fas fa-tasks mr-2"></i>
-                        Manage Posted Jobs
-                    </PrimaryButton>
-                </Link>
-
-                <Link :href="route('company.jobs.archivedlist', { user: page.props.auth.user.id })" class="flex-shrink-0">
-                    <PrimaryButton class="flex items-center">
-                        <i class="fas fa-archive mr-2"></i>
-                        Archived Jobs
-                    </PrimaryButton>
-                </Link>
+            <!-- Stats Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Total Jobs -->
+                <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-briefcase text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-blue-700 text-sm font-medium mb-2">Total Jobs</h3>
+                        <p class="text-3xl font-bold text-blue-700">{{ props.jobs.length }}</p>
+                    </div>
+                </div>
+                <!-- Open Jobs -->
+                <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-unlock text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-green-700 text-sm font-medium mb-2">Open Jobs</h3>
+                        <p class="text-3xl font-bold text-green-900">
+                            {{ props.jobs.filter(j => j.status === 'open').length }}
+                        </p>
+                    </div>
+                </div>
+                <!-- Closed Jobs -->
+                <div class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-lock text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-red-700 text-sm font-medium mb-2">Closed Jobs</h3>
+                        <p class="text-3xl font-bold text-red-900">
+                            {{ props.jobs.filter(j => j.status === 'closed').length }}
+                        </p>
+                    </div>
+                </div>
+                <!-- Expired Jobs -->
+                <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+                    <div class="flex flex-col items-center text-center">
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mb-3">
+                            <i class="fas fa-hourglass-end text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-yellow-700 text-sm font-medium mb-2">Expired Jobs</h3>
+                        <p class="text-3xl font-bold text-yellow-900">
+                            {{ props.jobs.filter(j => j.status === 'expired').length }}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- Search and filters -->
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6 shadow-sm">
-                <div class="p-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800">Search & Filter</h3>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-end mb-2">
-                        <PrimaryButton
-                            class="bg-blue-200 text-gray-700 hover:bg-gray-300 border-none px-4 py-2 rounded"
-                            @click="resetFilters"
-                        >
-                            <i class="fas fa-undo mr-2"></i> Reset Filters
-                        </PrimaryButton>
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-gray-200 flex items-center">
+                     <i class="fas fa-filter text-blue-500 mr-2"></i>
+                    <div>
+                        <h3 class="font-medium text-gray-700">Search & Filter</h3>
+                        <p class="text-sm text-gray-500">Find jobs by criteria below</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="ml-auto">
+                        <Button
+                            class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300"
+                            @click="resetFilters">
+                            <i class="fas fa-undo mr-2"></i> Reset Filters
+                        </Button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                         <!-- Search Input -->
                         <div>
                             <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
@@ -212,8 +241,7 @@ const form = useForm({
                                 <select 
                                     id="jobType"
                                     v-model="selectedJobType" 
-                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                                >
+                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10">
                                     <option value="">All Employment Types</option>
                                     <option value="1">Full-time</option>
                                     <option value="2">Part-time</option>
@@ -232,7 +260,7 @@ const form = useForm({
                                     id="workEnv"
                                     v-model="selectedWorkEnvironment" 
                                     class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                                >
+            >
                                     <option v-for="option in workEnvironmentOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
                                     </option>
@@ -315,6 +343,46 @@ const form = useForm({
                 </div>
             </div>
 
+            <!-- Spacing between filter and action buttons -->
+            <div class="my-6"></div>
+
+            <!-- Action Buttons -->
+            <div class="bg-white rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 border border-gray-100 mb-8">
+                <div class="flex items-center space-x-4">
+                    <Link :href="route('company.jobs.manage', { user: page.props.auth.user.id })"
+                        :class="['px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border',
+                            'text-gray-600 hover:bg-gray-50 border-gray-200']">
+                        <i class="fas fa-tasks mr-2"></i>
+                        <span>Manage Posted Jobs</span>
+                    </Link>
+                    <Link :href="route('company.jobs.archivedlist', { user: page.props.auth.user.id })"
+                        :class="['px-4 py-2 rounded-md flex items-center space-x-2 font-medium transition-colors border',
+                            'text-gray-600 hover:bg-gray-50 border-gray-200']">
+                        <i class="fas fa-archive mr-2"></i>
+                        <span>Archived Jobs</span>
+                    </Link>
+                </div>
+               <div class="flex justify-end space-x-3">
+                    <!-- Post Jobs -->
+                    <Link 
+                        :href="route('company.jobs.create', { user: page.props.auth.user.id })"
+                        :class="[route().current('company.jobs.create') ? 'bg-blue-600' : 'bg-blue-500 hover:bg-blue-600',
+                            'px-4 py-2 rounded-md text-white font-medium transition-colors flex items-center shadow-sm']">
+                        <i class="fas fa-plus-circle mr-2"></i>
+                        <span>Post Jobs</span>
+                    </Link>
+
+                    <!-- Batch Upload Jobs -->
+                    <Link
+                        :href="route('company.jobs.batch.page')"
+                        class="px-4 py-2 rounded-md text-white font-medium transition-colors flex items-center shadow-sm bg-blue-500 hover:bg-blue-600">
+                        <i class="fas fa-upload mr-2"></i>
+                        <span>Batch Upload Jobs</span>
+                    </Link>
+                </div>
+
+            </div>
+
             <!-- Error message -->
             <div v-if="actionError" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4" role="alert">
                 <strong class="font-bold">Error!</strong>
@@ -325,12 +393,18 @@ const form = useForm({
             </div>
 
             <!-- Jobs listing -->
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                     <div class="flex items-center">
-                        <h3 class="text-lg font-semibold text-gray-800">List of Jobs</h3>
-                        <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-briefcase text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">My Jobs</h3>
+                            <p class="text-sm text-gray-500">View and manage your job postings</p>
+                        </div>
                     </div>
+                    <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
                 </div>
                 <!-- Jobs listing and empty states -->
                 <div>
@@ -341,13 +415,7 @@ const form = useForm({
                         <div class="mt-1 text-sm">Click <span class="font-bold text-blue-600">Post Jobs</span> above to create your first job posting.</div>
                     </div>
                     <!-- Jobs exist, but none match filter -->
-                    <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                            <div class="flex items-center">
-                                <h3 class="text-lg font-semibold text-gray-800">List of Jobs</h3>
-                                <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
-                            </div>
-                        </div>
+                    <div v-else>
                         <MyJobs
                             v-if="filteredJobs.length > 0"
                             :jobs="filteredJobs"

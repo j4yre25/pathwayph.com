@@ -66,36 +66,29 @@ const togglePasswordVisibility = () => {
 <template>
   <Head title="Sign In" />
   
-  <!-- Modern Gradient Background -->
-  <div class="min-h-screen gradient-bg flex items-center justify-center p-4 overflow-hidden relative">
-    <!-- Floating Background Elements -->
-    <div class="absolute inset-0">
-      <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-10 animate-float"></div>
-      <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-15 animate-float-reverse"></div>
-      <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-8 animate-morph"></div>
-      <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-5 animate-pulse-glow"></div>
-    </div>
+  <!-- Clean Gradient Background -->
+  <div class="min-h-screen flex items-center justify-center p-4" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
     
     <div class="w-full max-w-md relative z-10">
       <!-- Logo Section -->
       <div class="text-center mb-8">
-        <div class="w-16 h-16 gradient-card rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
-          <span class="text-white font-bold text-2xl enhanced-text">P</span>
+        <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span class="text-white font-bold text-2xl">P</span>
         </div>
-        <h2 class="text-4xl font-bold text-white mb-3 enhanced-text">Welcome Back</h2>
-        <p class="text-white/80 text-lg">Sign in to your <span class="text-blue-200 enhanced-text">Pathway</span> account</p>
+        <h2 class="text-4xl font-bold text-slate-800 mb-3">Welcome Back</h2>
+        <p class="text-slate-600 text-lg">Sign in to your <span class="text-blue-600">Pathway</span> account</p>
       </div>
 
-      <!-- Glass Card -->
-      <div class="glass p-8 rounded-3xl shadow-2xl border border-white/20 backdrop-blur-xl">
+      <!-- Clean Card -->
+      <div class="bg-white p-8 rounded-3xl shadow-lg border border-gray-200">
           <form @submit.prevent="submit" class="space-y-6">
             <div>
-              <InputLabel for="email" value="Email" class="text-lg font-semibold text-white mb-2" />
+              <InputLabel for="email" value="Email" class="text-lg font-semibold text-slate-700 mb-2" />
               <TextInput 
                 id="email" 
                 v-model="form.email" 
                 type="email" 
-                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
+                class="block w-full px-4 py-3 text-lg rounded-xl bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-400" 
                 placeholder="Enter your email"
                 required 
                 autofocus
@@ -104,23 +97,23 @@ const togglePasswordVisibility = () => {
             </div>
 
             <div class="relative">
-              <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
+              <InputLabel for="password" value="Password" class="text-lg font-semibold text-slate-700 mb-2" />
               <div class="relative">
                 <TextInput 
                   id="password" 
                   v-model="form.password" 
                   :type="showPassword ? 'text' : 'password'"
-                  class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
+                  class="block w-full px-4 py-3 pr-12 text-lg rounded-xl bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-400" 
                   placeholder="Enter your password"
                   required 
                   autocomplete="current-password"/>
                 <button type="button"
-                  class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
+                  class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 hover:enhanced-text focus:outline-none transition-all duration-200"
                   @click="togglePasswordVisibility">
                   <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
                 </button>
               </div>
-              <InputError class="mt-2 text-red-300" :message="form.errors.password" />
+              <InputError class="mt-2 text-red-600" :message="form.errors.password" />
             </div>
 
             <!-- <div class="flex items-center justify-between">
@@ -135,7 +128,7 @@ const togglePasswordVisibility = () => {
 
             <div class="pt-4">
               <button type="submit"
-                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                class="w-full px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-lg disabled:opacity-50"
                 :disabled="form.processing">
                 <span v-if="form.processing">Processing...</span>
                 <span v-else>Sign In</span>
@@ -144,9 +137,9 @@ const togglePasswordVisibility = () => {
           </form>
 
           <div class="mt-8 text-center">
-            <p class="text-base text-white/80">
+            <p class="text-base text-slate-600">
               Don't have an account?
-              <Link href="/register" class="text-blue-300 hover:text-blue-200 hover:enhanced-text font-semibold transition-all duration-200 ml-2">
+              <Link href="/register" class="text-blue-600 hover:text-blue-700 font-semibold transition-all duration-200 ml-2">
                 Sign Up
               </Link>
             </p>
