@@ -191,7 +191,7 @@ const createJob = () => {
         }
     });
 
-    console.log('Route:', route('company.jobs.store', { user: page.props.auth.user.id }));
+    
 }
 
 </script>

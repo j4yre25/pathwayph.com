@@ -36,7 +36,10 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
-            
+            'flash' => [
+                'banner' => session('flash.banner'),
+                'bannerStyle' => session('flash.bannerStyle', 'success'),
+            ],
             'roles' => [
                 'isPeso' => fn () => $request->user()?->hasRole('peso'),
                 'isInstitution' => fn () => $request->user()?->hasRole('institution'),
@@ -71,7 +74,8 @@ class HandleInertiaRequests extends Middleware
             ? auth()->user()->notifications->map(function ($notif) {
                 return [
                     'id' => $notif->id,
-                    'title' => 'Notification',
+                    'title' => $notif->data['title'] ?? '',
+                    'company' => $notif->data['company'] ?? '',
                     'body' => $notif->data['message'] ?? '',
                     'certificate_path' => $notif->data['certificate_path'] ?? null,
                     'created_at' => $notif->created_at->diffForHumans(),

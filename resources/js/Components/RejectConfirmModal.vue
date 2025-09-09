@@ -1,17 +1,39 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
   show: Boolean,
   applicationId: { type: Number, required: true },
-  applicantName: { type: String, required: true }
+  applicantName: { type: String, required: true },
+  actionKey: { type: String, default: 'reject' } // 'reject' | 'reject_withdraw'
 })
 const emit = defineEmits(['close','rejected'])
 
 const loading = ref(false)
 const error = ref(null)
 const note = ref('')
+
+// Reset note/error when reopened
+watch(() => props.show, v => {
+  if (v) {
+    error.value = null
+    note.value = ''
+  }
+})
+
+const isWithdraw = computed(() => props.actionKey === 'reject_withdraw')
+const title = computed(() => isWithdraw.value ? 'Confirm Withdraw / Reject' : 'Confirm Rejection')
+const bodyText = computed(() =>
+  isWithdraw.value
+    ? 'You are about to withdraw and reject'
+    : 'You are about to reject'
+)
+const buttonLabel = computed(() =>
+  loading.value
+    ? (isWithdraw.value ? 'Processing...' : 'Rejecting...')
+    : (isWithdraw.value ? 'Confirm Withdraw / Reject' : 'Confirm Reject')
+)
 
 async function confirm() {
   if (loading.value) return
@@ -20,12 +42,12 @@ async function confirm() {
   try {
     const { data } = await axios.post(
       route('applications.actions.perform', props.applicationId),
-      { action: 'reject', note: note.value || null }
+      { action: props.actionKey, note: note.value || null }
     )
     emit('rejected', data.stage || 'rejected')
     emit('close')
   } catch (e) {
-    error.value = e.response?.data?.message || 'Failed to reject.'
+    error.value = e.response?.data?.message || 'Failed to process.'
   } finally {
     loading.value = false
   }
@@ -37,11 +59,10 @@ async function confirm() {
     <div class="bg-white rounded-lg shadow w-full max-w-md p-6">
       <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
         <i class="fas fa-exclamation-triangle text-red-500"></i>
-        Confirm Rejection
+        {{ title }}
       </h3>
       <p class="text-sm text-gray-600 mb-4 leading-relaxed">
-        You are about to reject
-        <strong>{{ applicantName }}</strong>. This will move the application to the Rejected stage.
+        {{ bodyText }} <strong>{{ applicantName }}</strong>. This will move the application to the Rejected stage.
       </p>
 
       <div class="mb-4">
@@ -58,16 +79,12 @@ async function confirm() {
           class="px-4 py-2 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
           :disabled="loading"
           @click="$emit('close')"
-        >
-          Cancel
-        </button>
+        >Cancel</button>
         <button
           class="px-4 py-2 text-sm rounded bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60"
           :disabled="loading"
           @click="confirm"
-        >
-          {{ loading ? 'Rejecting...' : 'Confirm Reject' }}
-        </button>
+        >{{ buttonLabel }}</button>
       </div>
     </div>
   </div>

@@ -342,12 +342,6 @@ const form = useForm({
                     </div>
                     <!-- Jobs exist, but none match filter -->
                     <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                            <div class="flex items-center">
-                                <h3 class="text-lg font-semibold text-gray-800">List of Jobs</h3>
-                                <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
-                            </div>
-                        </div>
                         <MyJobs
                             v-if="filteredJobs.length > 0"
                             :jobs="filteredJobs"

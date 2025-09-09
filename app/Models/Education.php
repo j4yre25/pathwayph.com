@@ -20,20 +20,14 @@ class Education extends Model
 
     protected $fillable = [
         'user_id',
-        'education', // School or Institution
-        'achievements',
-        'is_current',
-        'degree',
-        'field_of_study',
-        'start_date',
-        'end_date',
-        'grade',
-        'activities',
-        'description',
+        'education', 
         'program',
         'field_of_study',
         'start_date',
         'end_date',
+        'school_year',
+        'achievements',
+        'is_current',
         'description',
     ];
 

@@ -447,7 +447,7 @@ onUnmounted(() => {
             </header>
             <main class="min-h-screen flex flex-col items-center justify-center text-center px-4 z-20">
                 <!-- Hero Title -->
-                <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 enhanced-text animate-float">
+                <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 enhanced-text ">
                     Pathway
                 </h1>
 
@@ -457,7 +457,7 @@ onUnmounted(() => {
                 </h3>
 
                 <!-- Professional Tagline -->
-                <p class="text-white/90 text-xl md:text-2xl max-w-3xl mb-12 font-light animate-float-reverse">
+                <p class="text-white/90 text-xl md:text-2xl max-w-3xl mb-12 font-light ">
                     The premier platform connecting <span class="text-blue-200 enhanced-text">Filipino talent</span> with <span class="text-blue-300 enhanced-text">global opportunities</span>.
                 </p>
 

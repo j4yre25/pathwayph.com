@@ -65,7 +65,11 @@ async function perform(action) {
 
   // Intercept reject (confirmation modal upstream)
   if (action.key === 'reject' || action.key === 'reject_withdraw') {
-    emit('reject', { action, applicationId: props.applicationId })
+    emit('reject', {
+      action,
+      actionKey: action.key,
+      applicationId: props.applicationId
+    })
     open.value = false
     return
   }
