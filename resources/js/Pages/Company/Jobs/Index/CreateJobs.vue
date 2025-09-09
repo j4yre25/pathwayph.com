@@ -16,7 +16,6 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import Modal from '@/Components/Modal.vue';
 import { useSectorCategories } from '@/Composables/useSectorCategories';
 import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
-import { useSalaryValidation } from '@/Composables/useSalaryValidation';
 import { useSkills } from '@/Composables/useSkills';
 
 
@@ -141,7 +140,6 @@ watch(() => form.job_vacancies, (vacancies) => {
 
 // const { availableCategories } = useSectorCategories(form, props.sectors);
 const { validateLocation } = useWorkEnvironmentValidation(form);
-const { salaryError, salaryWarning, validateSalary } = useSalaryValidation(form);
 const { newSkill, showSuggestions, filteredSkills, addSkill, removeSkill, selectSuggestion, filterSuggestions } = useSkills(form, props.skills);
 
 const showMissingFieldsModal = ref(false);
@@ -436,7 +434,7 @@ const createJob = () => {
                                     </InputLabel>
                                     <select id="salary_type"
                                         class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        v-model="form.salary.salary_type" @change="validateSalary">
+                                        v-model="form.salary.salary_type">
                                         <option value="">Select Salary Type</option>
                                         <option value="monthly">Monthly</option>
                                         <option value="weekly">Weekly</option>
@@ -449,7 +447,7 @@ const createJob = () => {
                                 <div class="flex items-center mt-6">
                                     <input id="is_negotiable" type="checkbox"
                                         class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
-                                        v-model="form.is_negotiable" @change="validateSalary" />
+                                        v-model="form.is_negotiable" />
                                     <label for="is_negotiable" class="ml-2 block text-sm text-gray-900">
                                         Salary is negotiable
                                     </label>
@@ -461,13 +459,11 @@ const createJob = () => {
                                         Minimum Salary <span class="text-pink-500" v-if="!form.is_negotiable">*</span>
                                     </InputLabel>
                                     <div class="relative mt-1">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
                                         <TextInput id="job_min_salary" type="number" class="pl-7 block w-full"
-                                            v-model="form.salary.job_min_salary" :disabled="form.is_negotiable"
-                                            @input="validateSalary" />
+                                            v-model="form.salary.job_min_salary" :disabled="form.is_negotiable" />
                                     </div>
                                 </div>
 
@@ -477,22 +473,13 @@ const createJob = () => {
                                         Maximum Salary <span class="text-pink-500" v-if="!form.is_negotiable">*</span>
                                     </InputLabel>
                                     <div class="relative mt-1">
-                                        <div
-                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
                                         <TextInput id="max_salary" type="number" class="pl-7 block w-full"
-                                            v-model="form.salary.job_max_salary" :disabled="form.is_negotiable"
-                                            @input="validateSalary" />
+                                            v-model="form.salary.job_max_salary" :disabled="form.is_negotiable" />
                                     </div>
                                 </div>
-                            </div>
-
-                            <div v-if="salaryError" class="text-red-500 text-sm">
-                                {{ salaryError }}
-                            </div>
-                            <div v-if="salaryWarning" class="text-yellow-600 text-sm">
-                                {{ salaryWarning }}
                             </div>
 
                             <div class="flex justify-between">

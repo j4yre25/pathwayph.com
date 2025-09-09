@@ -12,6 +12,7 @@ const isValid = ref(false)
 const isLoading = ref(false)
 const loadingPercent = ref(0)
 let loadingInterval = null
+const showInstructions = ref(false) // mobile fallback toggle
 
 
 function handleFileUpload(e) {
@@ -53,8 +54,6 @@ function handleFileUpload(e) {
           job_title: row.job_title || '',
           department_name: row.department_name || '',
           job_types: row.job_types || '',
-          sector_name: row.sector_name || '',
-          category_name: row.category_name || '',
           program_name: row.program_name || '',
           location: row.location || '',
           work_environment_type: row.work_environment_type || '',
@@ -86,8 +85,6 @@ function handleFileUpload(e) {
           job_title: row.job_title || '',
           department_name: row.department_name || '',
           job_types: row.job_types || '',
-          sector_name: row.sector_name || '',
-          category_name: row.category_name || '',
           program_name: row.program_name || '',
           location: row.location || '',
           work_environment_type: row.work_environment_type || '',
@@ -122,8 +119,6 @@ function validateRows() {
     const rowErrors = []
 
     if (!row.job_title) rowErrors.push('Missing job title')
-    if (!row.sector_name) rowErrors.push('Missing sector')
-    if (!row.category_name) rowErrors.push('Missing category')
     if (!row.program_name) rowErrors.push('Missing program')
     if (!row.job_vacancies) rowErrors.push('Missing job vacancies')
     if (!row.job_description) rowErrors.push('Missing job description')
@@ -201,60 +196,75 @@ function submitToBackend() {
               ⬇ Download Excel Template
           </a>
         <!-- 📝 Instructions Block -->
-        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded">
-          <h2 class="font-bold text-lg mb-2 flex items-center">
-            📝 How to Batch Upload Jobs (Step-by-Step Guide)
-          </h2>
-          <ol class="list-decimal pl-6 space-y-2 text-sm text-gray-800">
-            <li>
-              <span class="font-semibold">Download the Excel Template:</span>
-              <br>
-              Click the <span class="font-mono bg-green-100 px-2 py-1 rounded">Download Excel Template</span> button below.
-            </li>
-            <li>
-              <span class="font-semibold">Fill Out the Template:</span>
-              <ul class="list-disc pl-6 mt-1">
-                <li>
-                  Open the downloaded file. You will see <span class="font-semibold">four sheets</span> at the bottom:
-                  <ul class="list-disc pl-6">
-                    <li><span class="font-mono">job_template</span> – Enter the job details here.</li>
-                    <li><span class="font-mono">sector</span> – Reference list of sector codes and sector names.</li>
-                    <li><span class="font-mono">categories</span> – Detailed list of categories (division names) and their sectors.</li>
-                    <li><span class="font-mono">other_info</span> – Explains what to write in each column of <span class="font-mono">job_template</span>.</li>
-                  </ul>
-                </li>
-                <li>
-                  In the <span class="font-mono">job_template</span> sheet, go to the <span class="font-mono">category_name</span> column.
-                </li>
-                <li>
-                  Copy a <span class="font-mono">division_name</span> from the <span class="font-mono">categories</span> sheet and paste it here.
-                </li>
-                <li>
-                  The corresponding <span class="font-mono">sector_name</span> will be filled in automatically.
-                </li>
-              </ul>
-            </li>
-            <li>
-              <span class="font-semibold">Save the File:</span>
-              <br>
-              Save your filled-out file as <span class="font-mono">.xlsx</span> or <span class="font-mono">.csv</span>.
-            </li>
-            <li>
-              <span class="font-semibold">Upload the File:</span>
-              <br>
-              Go back to this page and upload your Excel file below.
-              <br>
-              A preview will appear—<span class="font-semibold">check carefully</span> that all information is correct.
-              <br>
-              <span class="text-yellow-700 font-semibold">⚠️ Note:</span> You cannot edit the data in the preview. If you find any mistakes, update your Excel file and re-upload it.
-            </li>
-            <li>
-              <span class="font-semibold">Submit the Data:</span>
-              <br>
-              Once everything looks correct in the preview, click <span class="font-mono bg-blue-100 px-2 py-1 rounded">Submit Data</span> to complete the upload.
-            </li>
-          </ol>
-        </div>
+        <div
+  class="relative group mb-6"
+  @click="showInstructions = !showInstructions"
+>
+  <!-- Trigger / Label -->
+  <div class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-blue-700">
+    <span>📝 Batch Upload Instructions </span>
+    <span
+      class="inline-block text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-600 border border-blue-300"
+    >Help</span>
+  </div>
+
+  <!-- Hidden Panel -->
+  <div
+    class="absolute left-0 mt-2 w-[52rem] max-w-[90vw] bg-white border border-blue-300 rounded-lg shadow-lg p-5 text-gray-800 text-sm leading-relaxed z-30
+           opacity-0 invisible group-hover:opacity-100 group-hover:visible
+           transition duration-200 ease-out
+           md:pointer-events-auto"
+    :class="{
+      'opacity-100 visible': showInstructions
+    }"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <h2 class="font-bold text-base">How to Batch Upload Jobs</h2>
+      <button
+        type="button"
+        class="text-gray-400 hover:text-gray-600 text-xs"
+        @click.stop="showInstructions = false"
+      >✕</button>
+    </div>
+    <ol class="list-decimal pl-5 space-y-3">
+      <li>
+        <span class="font-semibold">Download the Excel Template.</span><br>
+        Click the
+        <span class="font-mono bg-green-100 px-2 py-0.5 rounded">Download Excel Template</span>
+        button.
+      </li>
+      <li>
+        <span class="font-semibold">Fill out the <code>job_template</code> sheet.</span><br>
+        Enter data under the columns exactly as shown in the preview.<br>
+        ➤ For detailed guidance, check the <code>other_info</code> sheet.<br>
+        ➤ For an example format, refer to the <code>example</code> sheet included in the template.<br>
+        ⚠️ <strong>Do not rename or remove any column headers</strong>.<br>
+        <span class="text-xs text-gray-600">
+          Only optional column: <code>job_application_limit</code>. If <code>is_negotiable</code> = yes, leave min/max salary blank.
+        </span>
+      </li>
+      <li>
+        <span class="font-semibold">Save the file</span> as <code>.xlsx</code> or <code>.csv</code>.
+      </li>
+      <li>
+        <span class="font-semibold">Upload the file.</span><br>
+        A preview will be displayed. If you see errors, correct your file and re-upload.
+      </li>
+      <li>
+        <span class="font-semibold">Submit.</span><br>
+        Only valid rows will be saved. You will receive a summary of jobs posted and graduates invited.
+      </li>
+    </ol>
+    <div class="mt-3 text-right">
+      <button
+        type="button"
+        class="text-xs text-blue-600 hover:underline"
+        @click.stop="showInstructions = false"
+      >Hide</button>
+    </div>
+  </div>
+</div>
+
       </div>
 
       <!-- Upload CSV/Excel -->
@@ -293,8 +303,6 @@ function submitToBackend() {
               <th class="p-2 border">Job Title</th>
               <th class="p-2 border">Department</th>
               <th class="p-2 border">Job Types</th>
-              <th class="p-2 border">Sector</th>
-              <th class="p-2 border">Category</th>
               <th class="p-2 border">Program</th>
               <th class="p-2 border">Location</th>
               <th class="p-2 border">Work Environment</th>
@@ -317,8 +325,6 @@ function submitToBackend() {
               <td class="border p-2">{{ row.job_title }}</td>
               <td class="border p-2">{{ row.department_name }}</td>
               <td class="border p-2">{{ row.job_types }}</td>
-              <td class="border p-2">{{ row.sector_name }}</td>
-              <td class="border p-2">{{ row.category_name }}</td>
               <td class="border p-2">{{ row.program_name }}</td>
               <td class="border p-2">{{ row.location }}</td>
               <td class="border p-2">{{ row.work_environment_type }}</td>
