@@ -15,360 +15,25 @@ class InstitutionReportsController extends Controller
 
     public function schoolYear()
     {
-        $user = auth()->user();
-        $institution = $user->institution;
+        return Inertia::render('Institutions/Reports/SchoolYearReport');
 
-        // All school years for this institution
-        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
-            ->where('institution_id', $institution->id)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'school_year_id' => $item->schoolYear->id,
-                    'school_year_range' => $item->schoolYear->school_year_range,
-                    'term' => $item->term,
-                    'status' => $item->deleted_at ? 'Inactive' : 'Active',
-                ];
-            });
-
-        // Graduates with relations
-        $graduates = \App\Models\Graduate::with([
-            'program.degree',
-            'schoolYear',
-        ])
-            ->where('institution_id', $institution->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($g) use ($institution) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
-                    ->where('id', $g->school_year_id)
-                    ->first();
-
-                return [
-                    'id' => $g->id,
-                    'first_name' => $g->first_name,
-                    'middle_name' => $g->middle_name,
-                    'last_name' => $g->last_name,
-                    'gender' => $g->gender,
-                    'school_year_id' => $instSchoolYear?->schoolYear?->id,
-                    'school_year_range' => $instSchoolYear?->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term,
-                    'degree' => $g->program?->degree?->type,
-                    'degree_id' => $g->program?->degree?->id,
-                    'program' => $g->program?->name,
-                    'program_id' => $g->program?->id,
-                    'employment_status' => $g->employment_status,
-                    'current_job_title' => $g->current_job_title,
-                ];
-            });
-
-        // For filters
-        $degrees = \App\Models\Degree::whereIn('id', $graduates->pluck('degree_id')->unique()->filter())->get();
-        $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
-
-        return Inertia::render('Institutions/Reports/SchoolYearReport', [
-            'schoolYears' => $schoolYears,
-            'graduates' => $graduates,
-            'degrees' => $degrees,
-            'programs' => $programs,
-        ]);
     }
 
     public function degree(Request $request)
     {
-        $user = auth()->user();
-        $institution = $user->institution;
-
-        // Filters for Degree-to-Job Local Match Index
-        $year = $request->input('graduation_year');
-        $sectorId = $request->input('sector_id');
-        $programId = $request->input('program_id');
-
-        // For filter dropdowns
-        $availableYears = \App\Models\SchoolYear::orderBy('school_year_range', 'desc')->pluck('school_year_range', 'id');
-        $availableSectors = \App\Models\Sector::orderBy('name')->pluck('name', 'id');
-        $availablePrograms = \App\Models\Program::orderBy('name')->pluck('name', 'id');
-
-        // All degrees for this institution
-        $degrees = \App\Models\InstitutionDegree::with('degree')
-            ->where('institution_id', $institution->id)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'degree_id' => $item->degree->id,
-                    'degree_code' => $item->degree_code,
-                    'type' => $item->degree->type,
-                    'status' => $item->deleted_at ? 'Inactive' : 'Active',
-                ];
-            });
-
-        // Graduates with relations
-        $graduates = \App\Models\Graduate::with([
-            'program.degree',
-            'schoolYear',
-        ])
-            ->where('institution_id', $institution->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($g) use ($institution) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
-                    ->where('id', $g->school_year_id)
-                    ->first();
-
-                return [
-                    'id' => $g->id,
-                    'first_name' => $g->first_name,
-                    'middle_name' => $g->middle_name,
-                    'last_name' => $g->last_name,
-                    'gender' => $g->gender,
-                    'school_year_id' => $g->schoolYear?->id,
-                    'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term,
-                    'degree' => $g->program?->degree?->type,
-                    'degree_id' => $g->program?->degree?->id,
-                    'program' => $g->program?->name,
-                    'program_id' => $g->program?->id,
-                    'employment_status' => $g->employment_status,
-                    'current_job_title' => $g->current_job_title,
-                ];
-            });
-
-        // For filters
-        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
-            ->where('institution_id', $institution->id)
-            ->get()
-            ->map(fn($item) => [
-                'id' => $item->schoolYear->id,
-                'school_year_range' => $item->schoolYear->school_year_range,
-            ]);
-        $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
-
-        // --- Degree-to-Job Local Match Index logic ---
-        $programsQuery = \App\Models\InstitutionProgram::with('program.degree')
-            ->where('institution_id', $institution->id);
-
-        if ($programId) {
-            $programsQuery->where('program_id', $programId);
-        }
-
-        $programsForMatch = $programsQuery->get();
-
-        $results = [];
-
-        foreach ($programsForMatch as $instProgram) {
-            $program = $instProgram->program;
-            if (!$program)
-                continue;
-
-            // Get all jobs mapped to this program
-            $jobsQuery = \App\Models\Job::whereHas('programs', function ($q) use ($program) {
-                $q->where('program_id', $program->id);
-            })->whereNull('deleted_at');
-
-            if ($sectorId) {
-                $jobsQuery->where('sector_id', $sectorId);
-            }
-
-            $jobs = $jobsQuery->get();
-            $jobTitles = $jobs->pluck('job_title')->map(fn($t) => strtolower(trim($t)))->unique();
-
-            // Get all graduates for this program
-            $graduatesQuery = \App\Models\Graduate::where('program_id', $program->id)
-                ->where('institution_id', $institution->id)
-                ->whereNull('deleted_at');
-
-            if ($year) {
-                $graduatesQuery->whereHas('schoolYear', function ($q) use ($year) {
-                    $q->where('school_year_range', $year);
-                });
-            }
-
-            $graduatesForMatch = $graduatesQuery->get();
-
-            // Count matches
-            $matchedGraduates = $graduatesForMatch->filter(function ($grad) use ($jobTitles) {
-                return $grad->current_job_title && $jobTitles->contains(strtolower(trim($grad->current_job_title)));
-            });
-
-            $total = $graduatesForMatch->count();
-            $matched = $matchedGraduates->count();
-            $matchPercent = $total > 0 ? round(($matched / $total) * 100, 2) : 0;
-
-            $results[] = [
-                'program' => $program->name,
-                'degree' => $program->degree?->type,
-                'total_graduates' => $total,
-                'matched_graduates' => $matched,
-                'match_percentage' => $matchPercent,
-            ];
-        }
-
-        return Inertia::render('Institutions/Reports/DegreeReport', [
-            'degrees' => $degrees,
-            'graduates' => $graduates,
-            'schoolYears' => $schoolYears,
-            'programs' => $programs,
-            'results' => $results,
-            'filters' => [
-                'graduation_year' => $year,
-                'sector_id' => $sectorId,
-                'program_id' => $programId,
-            ],
-            'availableYears' => $availableYears,
-            'availableSectors' => $availableSectors,
-            'availablePrograms' => $availablePrograms,
-        ]);
+        return Inertia::render('Institutions/Reports/DegreeReport');
     }
 
     public function programs()
     {
-        $user = auth()->user();
-        $institution = $user->institution;
+        return Inertia::render('Institutions/Reports/ProgramsReport');
 
-        // All programs for this institution (with degree)
-        $programs = \App\Models\InstitutionProgram::with('program.degree')
-            ->where('institution_id', $institution->id)
-            ->orderBy('id', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'program_id' => $item->program->id,
-                    'program_code' => $item->program_code,
-                    'name' => $item->program->name,
-                    'degree' => $item->program->degree?->type,
-                    'degree_id' => $item->program->degree?->id,
-                    'status' => $item->deleted_at ? 'Inactive' : 'Active',
-                ];
-            });
-
-        // Graduates with relations
-        $graduates = \App\Models\Graduate::with([
-            'program.degree',
-            'schoolYear',
-        ])
-            ->where('institution_id', $institution->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($g) use ($institution) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
-                    ->where('id', $g->school_year_id)
-                    ->first();
-
-                return [
-                    'id' => $g->id,
-                    'first_name' => $g->first_name,
-                    'middle_name' => $g->middle_name,
-                    'last_name' => $g->last_name,
-                    'gender' => $g->gender,
-                    'school_year_id' => $g->schoolYear?->id,
-                    'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term,
-                    'degree' => $g->program?->degree?->type,
-                    'degree_id' => $g->program?->degree?->id,
-                    'program' => $g->program?->name,
-                    'program_id' => $g->program?->id,
-                    'employment_status' => $g->employment_status,
-                    'current_job_title' => $g->current_job_title,
-                ];
-            });
-
-        // For filters
-        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
-            ->where('institution_id', $institution->id)
-            ->get()
-            ->map(fn($item) => [
-                'id' => $item->schoolYear->id,
-                'school_year_range' => $item->schoolYear->school_year_range,
-            ]);
-        $degrees = \App\Models\Degree::whereIn('id', $graduates->pluck('degree_id')->unique()->filter())->get();
-        $programOptions = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
-
-        return Inertia::render('Institutions/Reports/ProgramsReport', [
-            'programs' => $programs,
-            'graduates' => $graduates,
-            'schoolYears' => $schoolYears,
-            'degrees' => $degrees,
-            'programOptions' => $programOptions,
-        ]);
     }
+
 
     public function career()
     {
-        $user = auth()->user();
-        $institution = $user->institution;
-
-        // All institution career opportunities (with degree and program, avoid duplicates)
-        $careerOpportunities = \App\Models\InstitutionCareerOpportunity::with(['careerOpportunity', 'program.degree'])
-            ->where('institution_id', $institution->id)
-            ->whereNull('deleted_at')
-            ->get()
-            ->unique(function ($item) {
-                return $item->career_opportunity_id . '-' . $item->program_id;
-            })
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'degree' => $item->program?->degree?->type,
-                    'program' => $item->program?->name,
-                    'career_opportunity' => $item->careerOpportunity?->title,
-                ];
-            })
-            ->values();
-
-        // Graduates with relations
-        $graduates = \App\Models\Graduate::with([
-            'program.degree',
-            'schoolYear',
-            'careerGoals.careerOpportunity',
-        ])
-            ->where('institution_id', $institution->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($g) use ($institution) {
-                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
-                    ->where('id', $g->school_year_id)
-                    ->first();
-
-                return [
-                    'id' => $g->id,
-                    'first_name' => $g->first_name,
-                    'middle_name' => $g->middle_name,
-                    'last_name' => $g->last_name,
-                    'gender' => $g->gender,
-                    'school_year_id' => $g->schoolYear?->id,
-                    'school_year_range' => $g->schoolYear?->school_year_range,
-                    'term' => $instSchoolYear?->term,
-                    'degree' => $g->program?->degree?->type,
-                    'degree_id' => $g->program?->degree?->id,
-                    'program' => $g->program?->name,
-                    'program_id' => $g->program?->id,
-                    'career_opportunity' => $g->careerGoals?->careerOpportunity?->title,
-                    'employment_status' => $g->employment_status,
-                    'current_job_title' => $g->current_job_title,
-                ];
-            });
-
-        // For filters
-        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
-            ->where('institution_id', $institution->id)
-            ->get()
-            ->map(fn($item) => [
-                'id' => $item->schoolYear->id,
-                'school_year_range' => $item->schoolYear->school_year_range,
-            ]);
-        $degrees = \App\Models\Degree::whereIn('id', $graduates->pluck('degree_id')->unique()->filter())->get();
-        $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
-
-        return Inertia::render('Institutions/Reports/CareerReport', [
-            'careerOpportunities' => $careerOpportunities,
-            'graduates' => $graduates,
-            'schoolYears' => $schoolYears,
-            'degrees' => $degrees,
-            'programs' => $programs,
-        ]);
+        return Inertia::render('Institutions/Reports/CareerReport');
     }
 
     public function skill()
@@ -599,4 +264,394 @@ class InstitutionReportsController extends Controller
             'misaligned' => $misaligned,
         ]);
     }
+
+    public function schoolYearData(Request $request)
+    {
+        $user = auth()->user();
+        $institution = $user->institution;
+
+        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'school_year_range' => $item->schoolYear->school_year_range ?? null,
+                    'term' => $item->term,
+                    'status' => $item->deleted_at ? 'Inactive' : 'Active', // <-- Use this for soft deletes
+                ];
+            });
+
+        $graduates = \App\Models\Graduate::with([
+            'program.degree',
+            'schoolYear',
+            'institutionSchoolYear.schoolYear', // <-- add this relationship
+        ])
+            ->where('institution_id', $institution->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($g) {
+                // Get term and school_year_range from institutionSchoolYear
+                $instSchoolYear = $g->institutionSchoolYear;
+                return [
+                    'id' => $g->id,
+                    'first_name' => $g->first_name,
+                    'middle_name' => $g->middle_name,
+                    'last_name' => $g->last_name,
+                    'school_year_range' => $instSchoolYear?->schoolYear?->school_year_range ?? null,
+                    'term' => $instSchoolYear?->term ?? null,
+                    'gender' => $g->gender,
+                    'employment_status' => $g->employment_status,
+                    'degree_id' => $g->program->degree->id ?? null,
+                    'program_id' => $g->program_id,
+                ];
+            });
+
+        $degrees = \App\Models\Degree::whereIn('id', $graduates->pluck('degree_id')->unique()->filter())->get();
+        $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
+
+        return response()->json([
+            'schoolYears' => $schoolYears,
+            'graduates' => $graduates,
+            'degrees' => $degrees,
+            'programs' => $programs,
+        ]);
+
+    }
+    public function degreeData(Request $request)
+    {
+        $user = auth()->user();
+        $institution = $user->institution;
+
+        // Main filters
+        $schoolYear = $request->input('schoolYear');
+        $degreeId = $request->input('degree');
+        $programId = $request->input('program');
+        $sectorId = $request->input('sector');
+
+        // For filter dropdowns
+        $availableYears = \App\Models\SchoolYear::orderBy('school_year_range', 'desc')->pluck('school_year_range', 'id');
+        $availableSectors = \App\Models\Sector::orderBy('name')->pluck('name', 'id');
+        $availablePrograms = \App\Models\Program::orderBy('name')->pluck('name', 'id');
+
+        // All degrees for this institution
+        $degrees = \App\Models\InstitutionDegree::with('degree')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'degree_id' => $item->degree->id,
+                    'degree_code' => $item->degree_code,
+                    'type' => $item->degree->type,
+                    'status' => $item->deleted_at ? 'Inactive' : 'Active',
+                ];
+            });
+
+        // Graduates with relations
+        $graduatesQuery = \App\Models\Graduate::with([
+            'program.degree',
+            'schoolYear',
+        ])->where('institution_id', $institution->id);
+
+        if ($schoolYear) {
+            $graduatesQuery->whereHas('schoolYear', function ($q) use ($schoolYear) {
+                $q->where('school_year_range', $schoolYear);
+            });
+        }
+        if ($degreeId) {
+            $graduatesQuery->whereHas('program.degree', function ($q) use ($degreeId) {
+                $q->where('id', $degreeId);
+            });
+        }
+        if ($programId) {
+            $graduatesQuery->where('program_id', $programId);
+        }
+
+        $graduates = $graduatesQuery->orderBy('created_at', 'desc')->get()->map(function ($g) use ($institution) {
+            $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
+                ->where('id', $g->school_year_id)
+                ->first();
+
+            return [
+                'id' => $g->id,
+                'first_name' => $g->first_name,
+                'middle_name' => $g->middle_name,
+                'last_name' => $g->last_name,
+                'gender' => $g->gender,
+                'school_year_id' => $g->schoolYear?->id,
+                'school_year_range' => $g->schoolYear?->school_year_range,
+                'term' => $instSchoolYear?->term,
+                'degree' => $g->program?->degree?->type,
+                'degree_id' => $g->program?->degree?->id,
+                'program' => $g->program?->name,
+                'program_id' => $g->program?->id,
+                'employment_status' => $g->employment_status,
+                'current_job_title' => $g->current_job_title,
+            ];
+        });
+
+        // For filters
+        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->schoolYear->id,
+                'school_year_range' => $item->schoolYear->school_year_range,
+            ]);
+        $programs = \App\Models\InstitutionProgram::with('program')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(fn($ip) => [
+                'id' => $ip->program->id,
+                'name' => $ip->program->name,
+            ])
+            ->unique('id')
+            ->values();
+
+        // --- Degree-to-Job Local Match Index logic ---
+        $programsQuery = \App\Models\InstitutionProgram::with('program.degree')
+            ->where('institution_id', $institution->id);
+
+        if ($programId) {
+            $programsQuery->where('program_id', $programId);
+        }
+        if ($degreeId) {
+            $programsQuery->whereHas('program.degree', function ($q) use ($degreeId) {
+                $q->where('id', $degreeId);
+            });
+        }
+
+        $programsForMatch = $programsQuery->get();
+
+        $results = [];
+
+        foreach ($programsForMatch as $instProgram) {
+            $program = $instProgram->program;
+            if (!$program)
+                continue;
+
+            // Get all jobs mapped to this program
+            $jobsQuery = \App\Models\Job::whereHas('programs', function ($q) use ($program) {
+                $q->where('program_id', $program->id);
+            })->whereNull('deleted_at');
+
+            if ($sectorId) {
+                $jobsQuery->where('sector_id', $sectorId);
+            }
+
+            $jobs = $jobsQuery->get();
+            $jobTitles = $jobs->pluck('job_title')->map(fn($t) => strtolower(trim($t)))->unique();
+
+            // Get all graduates for this program
+            $graduatesQuery = \App\Models\Graduate::where('program_id', $program->id)
+                ->where('institution_id', $institution->id)
+                ->whereNull('deleted_at');
+
+            if ($schoolYear) {
+                $graduatesQuery->whereHas('schoolYear', function ($q) use ($schoolYear) {
+                    $q->where('school_year_range', $schoolYear);
+                });
+            }
+            if ($degreeId) {
+                $graduatesQuery->whereHas('program.degree', function ($q) use ($degreeId) {
+                    $q->where('id', $degreeId);
+                });
+            }
+
+            $graduatesForMatch = $graduatesQuery->get();
+
+            // Count matches
+            $matchedGraduates = $graduatesForMatch->filter(function ($grad) use ($jobTitles) {
+                return $grad->current_job_title && $jobTitles->contains(strtolower(trim($grad->current_job_title)));
+            });
+
+            $total = $graduatesForMatch->count();
+            $matched = $matchedGraduates->count();
+            $matchPercent = $total > 0 ? round(($matched / $total) * 100, 2) : 0;
+
+            $results[] = [
+                'program' => $program->name,
+                'degree' => $program->degree?->type,
+                'total_graduates' => $total,
+                'matched_graduates' => $matched,
+                'match_percentage' => $matchPercent,
+                'program_id' => $program->id,
+                'degree_id' => $program->degree?->id,
+            ];
+        }
+        return response()->json([
+            'degrees' => $degrees,
+            'graduates' => $graduates,
+            'schoolYears' => $schoolYears,
+            'programs' => $programs,
+            'results' => $results,
+            'filters' => [
+                'schoolYear' => $schoolYear,
+                'degree' => $degreeId,
+                'program' => $programId,
+                'sector' => $sectorId,
+            ],
+            'availableYears' => $availableYears,
+            'availableSectors' => $availableSectors,
+            'availablePrograms' => $availablePrograms,
+        ]);
+    }
+
+    public function programsData()
+    {
+        $user = auth()->user();
+        $institution = $user->institution;
+
+        $programs = \App\Models\InstitutionProgram::with('program.degree')
+            ->where('institution_id', $institution->id)
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function ($item) use ($institution) {
+                // Get all career opportunities for this program in this institution
+                $careerOpportunities = \App\Models\InstitutionCareerOpportunity::with('careerOpportunity')
+                    ->where('institution_id', $institution->id)
+                    ->where('program_id', $item->program->id)
+                    ->get()
+                    ->pluck('careerOpportunity.title')
+                    ->filter()
+                    ->map(fn($t) => strtolower(trim($t)))
+                    ->unique()
+                    ->values();
+
+                return [
+                    'id' => $item->id,
+                    'program_id' => $item->program->id,
+                    'program_code' => $item->program_code,
+                    'name' => $item->program->name,
+                    'degree' => $item->program->degree?->type,
+                    'degree_id' => $item->program->degree?->id,
+                    'status' => $item->deleted_at ? 'Inactive' : 'Active',
+                    'career_opportunities' => $careerOpportunities, // <-- add this
+                ];
+            });
+
+        $graduates = \App\Models\Graduate::with([
+            'program.degree',
+            'schoolYear',
+            'careerGoals.careerOpportunity',
+        ])
+            ->where('institution_id', $institution->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($g) use ($institution) {
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institution->id)
+                    ->where('school_year_range_id', $g->school_year_id)
+                    ->first();
+
+                return [
+                    'id' => $g->id,
+                    'first_name' => $g->first_name,
+                    'middle_name' => $g->middle_name,
+                    'last_name' => $g->last_name,
+                    'gender' => $g->gender,
+                    'school_year_id' => $g->schoolYear?->id,
+                    'school_year_range' => $g->schoolYear?->school_year_range,
+                    'term' => $instSchoolYear?->term,
+                    'degree' => $g->program?->degree?->type,
+                    'degree_id' => $g->program?->degree?->id,
+                    'program' => $g->program?->name,
+                    'program_id' => $g->program?->id,
+                    'employment_status' => $g->employment_status,
+                    'current_job_title' => $g->current_job_title,
+                ];
+            });
+
+        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->schoolYear->id,
+                'school_year_range' => $item->schoolYear->school_year_range,
+            ]);
+        $degrees = \App\Models\Degree::whereIn('id', $graduates->pluck('degree_id')->unique()->filter())->get();
+        $programOptions = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
+
+        return response()->json([
+            'programs' => $programs,
+            'graduates' => $graduates,
+            'schoolYears' => $schoolYears,
+            'degrees' => $degrees,
+            'programOptions' => $programOptions,
+        ]);
+    }
+
+    public function careerData()
+    {
+        $user = auth()->user();
+        $institution = $user->institution;
+
+        $careerOpportunities = \App\Models\InstitutionCareerOpportunity::with(['careerOpportunity', 'program.degree'])
+            ->where('institution_id', $institution->id)
+            ->whereNull('deleted_at')
+            ->get()
+            ->unique(function ($item) {
+                return $item->career_opportunity_id . '-' . $item->program_id;
+            })
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'degree' => $item->program?->degree?->type,
+                    'program' => $item->program?->name,
+                    'career_opportunity' => $item->careerOpportunity?->title,
+                ];
+            })
+            ->values();
+
+        $graduates = \App\Models\Graduate::with([
+            'program.degree',
+            'schoolYear',
+            'careerGoals.careerOpportunity',
+        ])
+            ->where('institution_id', $institution->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($g) use ($institution) {
+                $instSchoolYear = \App\Models\InstitutionSchoolYear::with('schoolYear')
+                    ->where('id', $g->school_year_id)
+                    ->first();
+
+                return [
+                    'id' => $g->id,
+                    'first_name' => $g->first_name,
+                    'middle_name' => $g->middle_name,
+                    'last_name' => $g->last_name,
+                    'gender' => $g->gender,
+                    'school_year_id' => $g->schoolYear?->id,
+                    'school_year_range' => $g->schoolYear?->school_year_range,
+                    'term' => $instSchoolYear?->term,
+                    'degree' => $g->program?->degree?->type,
+                    'degree_id' => $g->program?->degree?->id,
+                    'program' => $g->program?->name,
+                    'program_id' => $g->program?->id,
+                    'career_opportunity' => $g->careerGoals?->careerOpportunity?->title,
+                    'employment_status' => $g->employment_status,
+                    'current_job_title' => $g->current_job_title,
+                ];
+            });
+
+        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')
+            ->where('institution_id', $institution->id)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->schoolYear->id,
+                'school_year_range' => $item->schoolYear->school_year_range,
+            ]);
+        $degrees = \App\Models\Degree::whereIn('id', $graduates->pluck('degree_id')->unique()->filter())->get();
+        $programs = \App\Models\Program::whereIn('id', $graduates->pluck('program_id')->unique()->filter())->get();
+
+        return response()->json([
+            'careerOpportunities' => $careerOpportunities,
+            'graduates' => $graduates,
+            'schoolYears' => $schoolYears,
+            'degrees' => $degrees,
+            'programs' => $programs,
+        ]);
+    }
+
 }
