@@ -410,7 +410,7 @@ class DashboardController extends Controller
         $unemployed = $graduates->where('employment_status', 'Unemployed')->count();
 
         $referralsThisMonth = $this->filterByDate(
-            \App\Models\ReferralExport::whereMonth('created_at', now()->month),
+            \App\Models\Referral::whereMonth('created_at', now()->month),
             $year,
             $dateFrom,
             $dateTo
@@ -446,7 +446,7 @@ class DashboardController extends Controller
                 ];
             });
 
-        $referralExports = \App\Models\ReferralExport::selectRaw('COUNT(*) as count, MONTH(created_at) as month')
+        $referralExports = \App\Models\Referral::selectRaw('COUNT(*) as count, MONTH(created_at) as month')
             ->whereYear('created_at', date('Y'))
             ->groupBy('month')
             ->get();
