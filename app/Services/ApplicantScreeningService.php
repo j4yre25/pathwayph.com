@@ -30,8 +30,18 @@ class ApplicantScreeningService
         // 2. Education
         $criteria++;
         $education = $graduate->education->first();
-        $program = $education ? $education->program : null;
-        $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
+        // Support either raw string in 'program' column or related Program model via programRelation()
+        $programName = null;
+        if ($education) {
+            if (is_string($education->program)) {
+                $programName = $education->program;
+            } elseif (method_exists($education, 'programRelation') && $education->relationLoaded('programRelation')) {
+                $programName = $education->programRelation?->name;
+            } elseif (method_exists($education, 'programRelation')) {
+                $programName = $education->programRelation()->value('name');
+            }
+        }
+        $educationMatch = $programName && stripos($job->job_requirements, $programName) !== false;
         if ($educationMatch) {
             $labels[] = 'Education';
             $score++;

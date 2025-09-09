@@ -151,13 +151,15 @@ async function markAllNotifications() {
   localUnread.value = 0
   localNotifications.value = localNotifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }))
 }
+
+console.log(page.props.notifications)
 </script>
 
 <template>
   <div>
-    <Head :title="title" />
-
     <Banner />
+    
+    <Head :title="title" />
 
     <Modal v-model="showApprovalModal">
       <template #header>
