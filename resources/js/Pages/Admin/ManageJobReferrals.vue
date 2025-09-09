@@ -95,8 +95,7 @@ function goToPage(link) {
             <p class="text-2xl font-bold text-blue-900">{{ totalReferrals }}</p>
           </div>
         </div>
-        <div
-          class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+        <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
           <div class="flex flex-col items-center text-center">
             <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
               <i class="fas fa-check-circle text-white text-lg"></i>
@@ -105,8 +104,7 @@ function goToPage(link) {
             <p class="text-2xl font-bold text-green-900">{{ successfulReferrals }}</p>
           </div>
         </div>
-        <div
-          class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+        <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
           <div class="flex flex-col items-center text-center">
             <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mb-3">
               <i class="fas fa-chart-line text-white text-lg"></i>

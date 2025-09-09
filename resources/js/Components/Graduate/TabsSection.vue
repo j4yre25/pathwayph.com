@@ -1,4 +1,5 @@
 <script setup>
+
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -30,6 +31,7 @@ const props = defineProps({
     type: Array,
     default: () => []
   }
+
 
 });
 

@@ -65,310 +65,151 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
 
 <template>
   <AppLayout title="Company Profile">
-    <!-- Clean White Gradient Background -->
-    <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-hidden">
-      <!-- Subtle Background Elements -->
-      <div class="absolute inset-0">
-        <div class="absolute top-10 left-10 w-32 h-32 bg-blue-100 rounded-full opacity-30 animate-float"></div>
-        <div class="absolute top-1/4 right-20 w-24 h-24 bg-purple-100 rounded-full opacity-40 animate-float-reverse"></div>
-        <div class="absolute bottom-20 left-1/4 w-40 h-40 bg-green-100 rounded-full opacity-25 animate-morph"></div>
-        <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-pink-100 rounded-full opacity-20 animate-pulse-glow"></div>
-      </div>
-      
-      <!-- Modern Gradient Header Section -->
-      <div class="relative h-80 overflow-hidden bg-gradient-to-br from-purple-600 via-blue-600 to-teal-500">
-        <!-- Abstract Shapes -->
-        <div class="absolute inset-0">
-          <div class="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full animate-float"></div>
-          <div class="absolute top-20 right-20 w-24 h-24 bg-white/5 rounded-full animate-float-reverse"></div>
-          <div class="absolute bottom-10 left-1/4 w-40 h-40 bg-white/10 rounded-full animate-morph"></div>
-        </div>
-        
-        <!-- Navigation Breadcrumb -->
-        <div class="relative z-10 pt-6 px-6">
-          <nav class="flex items-center space-x-2 text-white/80 text-sm">
-            <span>Home</span>
-            <i class="fas fa-chevron-right text-xs"></i>
-            <span>Company Profile</span>
-          </nav>
-        </div>
-        
-        <!-- Star Icon -->
-        <div class="absolute top-6 right-6 z-10">
-          <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-            <i class="fas fa-star text-white text-xl"></i>
+    <!-- Cover Section -->
+    <div class="relative h-52">
+      <img
+        src="/images/company.png"
+        alt="Company Cover"
+        class="absolute inset-0 w-full h-full object-cover brightness-95"/>
+      <div class="absolute inset-0 bg-white/30"></div>
+    </div>
+
+    <!-- Profile Container -->
+    <div class="relative max-w-6xl mx-auto px-6 -mt-16">
+      <div class="bg-white rounded-2xl shadow-md pb-8">
+        <!-- Profile Pic -->
+        <div class="flex justify-center">
+          <div class="relative -mt-20">
+            <img
+              :src="company.profile_photo_path || '/images/default-logo.png'"
+              alt="Company Logo"
+              class="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"/>
           </div>
         </div>
-        
-        <!-- Profile Card -->
-        <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-20">
-          <div class="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 min-w-[600px]">
-            <!-- Company Avatar and Info -->
-            <div class="flex flex-col items-center text-center">
-              <div class="relative mb-4">
-                <div class="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-gradient-to-br from-blue-100 to-purple-100">
-                  <img
-                    :src="company.profile_photo_path || '/images/default-logo.png'"
-                    alt="Company Logo"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white flex items-center justify-center">
-                  <i class="fas fa-check text-white text-xs"></i>
-                </div>
-              </div>
-              
-              <h1 class="text-2xl font-bold text-gray-800 mb-2">{{ company.company_name }}</h1>
-              <p class="text-gray-600 mb-4">{{ company.sector || 'Technology Company' }}</p>
-              
-              <!-- Stats -->
-              <div class="flex items-center space-x-8 mb-6">
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-800">{{ company.job_post_count || 0 }}</div>
-                  <div class="text-sm text-gray-500">Jobs Posted</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-800">{{ company.employee_count || '50+' }}</div>
-                  <div class="text-sm text-gray-500">Employees</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-gray-800">{{ company.years_active || '5+' }}</div>
-                  <div class="text-sm text-gray-500">Years Active</div>
-                </div>
-              </div>
-              
-              <!-- Social Links and Action Button -->
-              <div class="flex items-center justify-center space-x-4 mb-6">
-                <a
-                  v-for="(link, key) in company.social_links || {}"
-                  :key="key"
-                  :href="link"
-                  target="_blank"
-                  class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-300"
-                >
-                  <i :class="`fab fa-${key}`"></i>
-                </a>
-                <a
-                  v-if="canEdit"
-                  :href="route('profile.show', { id: company.id, edit: 'company' })"
-                  class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-all duration-300 text-sm"
-                >
-                  Edit Profile
-                </a>
-              </div>
-              
-              <!-- Tab Navigation -->
-              <div class="flex items-center space-x-6 border-b border-gray-200 w-full">
-                <button class="pb-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm">
-                  <i class="fas fa-user mr-2"></i>Profile
-                </button>
-                <button class="pb-3 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
-                  <i class="fas fa-briefcase mr-2"></i>Jobs
-                </button>
-                <button class="pb-3 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
-                  <i class="fas fa-images mr-2"></i>Gallery
-                </button>
-                <button class="pb-3 px-1 text-gray-500 hover:text-gray-700 font-medium text-sm">
-                  <i class="fas fa-star mr-2"></i>Reviews
-                </button>
-              </div>
-            </div>
-          </div>
+
+        <!-- Name + Sector -->
+        <div class="mt-4 text-center">
+          <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ company.company_name }}</h2>
+          <p class="text-gray-500 text-sm mt-1">{{ company.sector }}</p>
+        </div>
+
+        <!-- Social Links Row -->
+        <div
+          v-if="company.social_links && Object.keys(company.social_links).length"
+          class="flex justify-center space-x-5 border-t border-gray-200 mt-6 pt-4">
+          <a
+            v-for="(link, key) in company.social_links"
+            :key="key"
+            :href="link"
+            target="_blank"
+            class="text-gray-400 hover:text-blue-500 transition-colors duration-200 text-xl">
+            <i :class="`fab fa-${key}`"></i>
+          </a>
         </div>
       </div>
+    </div>
 
-      <!-- Main Content -->
-      <div class="pt-32 pb-12 relative z-10">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          <!-- About Section -->
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-100">
-              <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                <i class="fas fa-building mr-3 text-blue-600"></i>
-                About {{ company.company_name }}
-              </h2>
-            </div>
-            <div class="p-6">
-              <!-- Edit Mode -->
-              <div v-if="isEditing" class="space-y-4">
-                <textarea
-                  v-model="localDescription"
-                  class="w-full bg-gray-50 border border-gray-300 rounded-xl p-4 text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 resize-none"
-                  rows="6"
-                  placeholder="Tell us about your company's mission, values, culture, and what makes you unique..."
-                ></textarea>
-                <div class="flex justify-end space-x-3">
-                  <button 
-                    @click="cancelEditing" 
-                    class="px-6 py-2 bg-gray-100 border border-gray-300 rounded-xl text-gray-700 hover:text-gray-900 hover:bg-gray-200 transition-all duration-200 font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    @click="saveDescription" 
-                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all duration-200"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-
-              <!-- View Mode -->
-              <div v-else>
-                <div class="flex justify-between items-start mb-4">
-                  <p class="text-gray-700 leading-relaxed text-lg">{{ localDescription || 'We are a forward-thinking company dedicated to innovation and excellence. Our team is passionate about creating solutions that make a difference in the world.' }}</p>
-                  <button
-                    v-if="canEdit"
-                    @click="isEditing = true"
-                    class="ml-4 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                </div>
-                
-                <!-- Company Details Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                  <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-                    <div class="flex items-center mb-2">
-                      <i class="fas fa-industry text-blue-600 mr-3"></i>
-                      <span class="text-sm font-medium text-blue-800">Industry</span>
-                    </div>
-                    <p class="text-gray-800 font-semibold">{{ company.sector || 'Technology' }}</p>
-                  </div>
-                  
-                  <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
-                    <div class="flex items-center mb-2">
-                      <i class="fas fa-calendar-alt text-green-600 mr-3"></i>
-                      <span class="text-sm font-medium text-green-800">Founded</span>
-                    </div>
-                    <p class="text-gray-800 font-semibold">{{ company.created_at || '2019' }}</p>
-                  </div>
-                  
-                  <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
-                    <div class="flex items-center mb-2">
-                      <i class="fas fa-map-marker-alt text-purple-600 mr-3"></i>
-                      <span class="text-sm font-medium text-purple-800">Location</span>
-                    </div>
-                    <p class="text-gray-800 font-semibold">{{ company.address || 'Philippines' }}</p>
-                  </div>
-                  
-                  <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
-                    <div class="flex items-center mb-2">
-                      <i class="fas fa-id-card text-orange-600 mr-3"></i>
-                      <span class="text-sm font-medium text-orange-800">Company ID</span>
-                    </div>
-                    <p class="text-gray-800 font-semibold">{{ company.company_id || 'COMP-001' }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-6 mt-10 grid md:grid-cols-3 gap-8 items-stretch">
+      <!-- Left Column -->
+      <div class="space-y-8 flex flex-col">
+        <!-- About Section -->
+        <section class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 flex-1">
+          <h4 class="text-lg font-semibold text-gray-900 flex items-center pb-2 border-b border-gray-200">
+            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+            About
+          </h4>
+          <div class="mt-3">
+            <p class="text-gray-600 leading-relaxed text-sm">
+              {{ localDescription || "No description available." }}
+            </p>
           </div>
+        </section>
 
-          <!-- Job Opportunities Section -->
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden">
-            <div class="bg-gradient-to-r from-green-50 to-teal-50 px-6 py-4 border-b border-gray-100">
-              <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                <i class="fas fa-briefcase mr-3 text-green-600"></i>
-                Current Opportunities
-              </h2>
-            </div>
-            <div class="p-6">
-              <div class="text-center py-8">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i class="fas fa-briefcase text-green-600 text-2xl"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ company.job_post_count || 0 }} Active Job Postings</h3>
-                <p class="text-gray-600 mb-6">We're always looking for talented individuals to join our team.</p>
-                <button class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all duration-200">
-                  View All Jobs
-                </button>
+        <!-- Contact Info -->
+        <section class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 flex-1">
+          <h4 class="text-lg font-semibold text-gray-900 flex items-center pb-2 border-b border-gray-200">
+            <i class="fas fa-address-card text-green-500 mr-2"></i>
+            Contact Information
+          </h4>
+          <ul class="mt-4 space-y-4 text-gray-600 text-sm">
+            <li class="flex items-center space-x-3">
+              <div class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100">
+                <i class="fas fa-building text-gray-500"></i>
               </div>
-            </div>
-          </div>
+              <span>{{ company.address || "N/A" }}</span>
+            </li>
+            <li class="flex items-center space-x-3">
+              <div class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100">
+                <i class="fas fa-envelope text-gray-500"></i>
+              </div>
+              <span>{{ company.company_email || "N/A" }}</span>
+            </li>
+            <li class="flex items-center space-x-3">
+              <div class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100">
+                <i class="fas fa-mobile-alt text-gray-500"></i>
+              </div>
+              <span>{{ formattedMobileNumber || "N/A" }}</span>
+            </li>
+            <li class="flex items-center space-x-3">
+              <div class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100">
+                <i class="fas fa-phone text-gray-500"></i>
+              </div>
+              <span>{{ formattedTelephoneNumber || "N/A" }}</span>
+            </li>
+          </ul>
+        </section>
+      </div>
 
-          <!-- Contact Information Section -->
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-100">
-              <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                <i class="fas fa-phone mr-3 text-purple-600"></i>
-                Get In Touch
-              </h2>
-            </div>
-            <div class="p-6">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 hover:shadow-md transition-all duration-200">
-                  <div class="flex items-center mb-3">
-                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
-                      <i class="fas fa-map-marker-alt text-white"></i>
-                    </div>
-                    <div>
-                      <h3 class="font-semibold text-gray-800">Office Address</h3>
-                      <p class="text-sm text-gray-600">Visit us at our location</p>
-                    </div>
-                  </div>
-                  <p class="text-gray-800 font-medium">{{ company.address || 'Manila, Philippines' }}</p>
-                </div>
-                
-                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 hover:shadow-md transition-all duration-200">
-                  <div class="flex items-center mb-3">
-                    <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mr-4">
-                      <i class="fas fa-envelope text-white"></i>
-                    </div>
-                    <div>
-                      <h3 class="font-semibold text-gray-800">Email Address</h3>
-                      <p class="text-sm text-gray-600">Send us a message</p>
-                    </div>
-                  </div>
-                  <p class="text-gray-800 font-medium">{{ company.company_email || 'contact@company.com' }}</p>
-                </div>
-                
-                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 hover:shadow-md transition-all duration-200">
-                  <div class="flex items-center mb-3">
-                    <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mr-4">
-                      <i class="fas fa-mobile-alt text-white"></i>
-                    </div>
-                    <div>
-                      <h3 class="font-semibold text-gray-800">Mobile Number</h3>
-                      <p class="text-sm text-gray-600">Call us anytime</p>
-                    </div>
-                  </div>
-                  <p class="text-gray-800 font-medium">{{ formattedMobileNumber || '+63 912 345 6789' }}</p>
-                </div>
-                
-                <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 hover:shadow-md transition-all duration-200">
-                  <div class="flex items-center mb-3">
-                    <div class="w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center mr-4">
-                      <i class="fas fa-phone text-white"></i>
-                    </div>
-                    <div>
-                      <h3 class="font-semibold text-gray-800">Telephone</h3>
-                      <p class="text-sm text-gray-600">Office landline</p>
-                    </div>
-                  </div>
-                  <p class="text-gray-800 font-medium">{{ formattedTelephoneNumber || '(02) 8123 4567' }}</p>
-                </div>
-              </div>
-              
-              <!-- Contact CTA -->
-              <div class="mt-8 text-center bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Ready to Join Our Team?</h3>
-                <p class="text-gray-600 mb-4">We'd love to hear from you. Get in touch with us today!</p>
-                <div class="flex justify-center space-x-4">
-                  <button class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all duration-200">
-                    <i class="fas fa-envelope mr-2"></i>Send Message
-                  </button>
-                  <button class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-all duration-200">
-                    <i class="fas fa-phone mr-2"></i>Call Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Company Details section has been removed and integrated with the location section above -->
-          
+      <!-- Right Column -->
+      <div class="md:col-span-2 flex flex-col">
+        <!-- Stat Cards -->
+        <div class="flex space-x-6 mb-6">
+          <div class="flex-1 bg-white rounded-xl shadow p-4 border border-gray-100 flex items-center">
+        <div class="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 mr-4">
+          <i class="fas fa-check-circle text-green-500 text-2xl"></i>
         </div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900">
+            {{
+          company.jobs
+            ? company.jobs.filter(job => job.status === 'open' || job.status === 'active').length
+            : 0
+            }}
+          </div>
+          <div class="text-xs text-gray-500">Available Jobs</div>
+        </div>
+          </div>
+        </div>
+        <!-- Job Opportunities -->
+        <section class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 flex-1">
+          <h4 class="text-lg font-semibold text-gray-900 flex items-center pb-2 border-b border-gray-200">
+        <i class="fas fa-briefcase text-blue-500 mr-2"></i>
+        Jobs For You
+          </h4>
+
+          <!-- Job Opportunities List -->
+          <div
+            v-if="company.jobs && company.jobs.length"
+            v-for="job in company.jobs"
+            :key="job.id"
+            class="mt-6 p-4 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <h5 class="text-lg font-semibold text-gray-900">{{ job.title }}</h5>
+            <p class="text-gray-600 mt-2 leading-relaxed">{{ job.description }}</p>
+            <p class="text-xs text-gray-400 mt-3">Posted {{ job.posted_at }}</p>
+          </div>
+
+          <!-- Empty State -->
+          <div
+            v-if="!company.jobs || company.jobs.length === 0"
+            class="mt-6 text-center text-gray-400">
+            <div class="w-16 h-16 mx-auto flex items-center justify-center rounded-full bg-gray-100 mb-4">
+              <i class="fas fa-briefcase text-2xl text-gray-400"></i>
+            </div>
+            <h5 class="text-lg font-semibold text-gray-700">No Jobs Available</h5>
+            <p class="text-sm text-gray-500 mt-2">Please check back later for new opportunities.</p>
+          </div>
+        </section>
       </div>
     </div>
   </AppLayout>
