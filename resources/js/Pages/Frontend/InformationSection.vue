@@ -174,124 +174,103 @@ function goToProfile() {
 
 <template>
   <AppLayout>
-    <div class="relative min-h-screen gradient-bg overflow-hidden">
-      <!-- Floating Background Elements -->
-      <div class="absolute inset-0">
-        <div class="absolute top-20 left-10 w-64 h-64 gradient-card rounded-full opacity-10 animate-float"></div>
-        <div class="absolute top-40 right-20 w-48 h-48 gradient-feature rounded-full opacity-15 animate-float-reverse"></div>
-        <div class="absolute bottom-20 left-1/4 w-72 h-72 gradient-cta rounded-full opacity-8 animate-morph"></div>
-        <div class="absolute top-1/3 right-1/3 w-32 h-32 bg-white rounded-full opacity-5 animate-pulse-glow"></div>
-        <div class="absolute bottom-1/3 right-10 w-40 h-40 gradient-card rounded-full opacity-12 animate-float"></div>
-      </div>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden">
 
-      <div class="relative z-10 max-w-4xl mx-auto py-12 px-6">
+      <div class="max-w-3xl mx-auto py-10 relative z-10">
         <!-- Header with Step Progress -->
         <div class="text-center mb-8 reveal">
-          <h1 class="text-4xl font-bold text-white mb-4 enhanced-text">Graduate Information</h1>
-          <p class="text-white/80 text-lg mb-8">Complete your profile in {{ totalSteps }} easy steps</p>
+          <h1 class="text-4xl font-bold text-slate-800 mb-4">
+            Graduate Information
+          </h1>
+          <p class="text-slate-600 text-lg mb-8">Complete your profile in {{ totalSteps }} easy steps</p>
           
           <!-- Step Progress Bar -->
           <div class="flex justify-center items-center space-x-4 mb-8">
-            <div 
-              v-for="step in totalSteps" 
-              :key="step"
-              class="flex items-center"
-            >
-              <div 
-                @click="goToStep(step)"
-                :class="[
-                  'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer transition-all duration-300',
-                  currentStep >= step 
-                    ? 'glass text-white shadow-lg animate-pulse-glow' 
-                    : 'bg-white/20 text-white/60 hover:bg-white/30'
-                ]"
-              >
+            <div v-for="step in totalSteps" :key="step"
+              class="flex items-center">
+              <div @click="goToStep(step)"
+                :class="['w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer transition-all duration-300',
+                currentStep >= step ? 'bg-emerald-500 text-white shadow-lg' : 'bg-gray-200 text-gray-500 hover:bg-gray-300']">
                 {{ step }}
               </div>
-              <div 
-                v-if="step < totalSteps"
-                :class="[
-                  'w-16 h-1 mx-2 rounded transition-all duration-300',
-                  currentStep > step ? 'bg-white' : 'bg-white/30'
-                ]"
-              ></div>
+              <div v-if="step < totalSteps":class="['w-16 h-1 mx-2 rounded transition-all duration-300',
+              currentStep > step ? 'bg-emerald-500' : 'bg-gray-300']">
+              </div>
             </div>
           </div>
         </div>
 
         <form @submit.prevent="submit" class="space-y-8">
         <!-- Step 1: Personal Details -->
-        <div v-show="currentStep === 1" class="glass rounded-2xl p-8 reveal">
+        <div v-show="currentStep === 1" class="bg-white rounded-2xl p-8 shadow-lg border border-gray-200 reveal">
           <div class="flex items-center mb-6">
-            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white enhanced-text">Personal Details</h2>
-              <p class="text-white/70">Tell us about yourself</p>
+              <h2 class="text-2xl font-bold text-slate-800">Personal Details</h2>
+              <p class="text-slate-600">Tell us about yourself</p>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="md:col-span-2">
-              <InputLabel for="email" class="text-white font-medium">Email Address <span class="text-blue-400">*</span></InputLabel>
+              <InputLabel for="email" class="text-slate-800 font-medium">Email Address <span class="text-red-500">*</span></InputLabel>
               <TextInput
                 id="email"
                 v-model="form.email"
                 type="email"
                 required
-                class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400"
-                readonly
-              />
-              <InputError :message="form.errors.email" class="text-blue-300" />
+                class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
+                readonly/>
+              <InputError :message="form.errors.email" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="first_name" class="text-white font-medium">First Name <span class="text-emerald-400">*</span></InputLabel>
-              <TextInput id="first_name" v-model="form.first_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
-              <InputError :message="form.errors.first_name" class="text-red-300" />
+              <InputLabel for="first_name" class="text-slate-800 font-medium">First Name <span class="text-red-500">*</span></InputLabel>
+              <TextInput id="first_name" v-model="form.first_name" type="text" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500" />
+              <InputError :message="form.errors.first_name" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="middle_name" class="text-white font-medium">Middle Name</InputLabel>
-              <TextInput id="middle_name" v-model="form.middle_name" type="text" class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
-              <InputError :message="form.errors.middle_name" class="text-red-300" />
+              <InputLabel for="middle_name" class="text-slate-800 font-medium">Middle Name</InputLabel>
+              <TextInput id="middle_name" v-model="form.middle_name" type="text" class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500" />
+              <InputError :message="form.errors.middle_name" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="last_name" class="text-white font-medium">Last Name <span class="text-emerald-400">*</span></InputLabel>
-              <TextInput id="last_name" v-model="form.last_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
-              <InputError :message="form.errors.last_name" class="text-red-300" />
+              <InputLabel for="last_name" class="text-slate-800 font-medium">Last Name <span class="text-red-500">*</span></InputLabel>
+              <TextInput id="last_name" v-model="form.last_name" type="text" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500" />
+              <InputError :message="form.errors.last_name" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="dob" class="text-white font-medium">Date of Birth <span class="text-emerald-400">*</span></InputLabel>
-              <TextInput id="dob" v-model="form.dob" type="date" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
-              <InputError :message="form.errors.dob" class="text-red-300" />
+              <InputLabel for="dob" class="text-slate-800 font-medium">Date of Birth <span class="text-red-500">*</span></InputLabel>
+              <TextInput id="dob" v-model="form.dob" type="date" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500" />
+              <InputError :message="form.errors.dob" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="gender" class="text-white font-medium">Gender <span class="text-emerald-400">*</span></InputLabel>
-              <select id="gender" v-model="form.gender" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
-                <option value="" class="bg-gray-800">Select Gender</option>
-                <option value="Male" class="bg-gray-800">Male</option>
-                <option value="Female" class="bg-gray-800">Female</option>
+              <InputLabel for="gender" class="text-slate-800 font-medium">Gender <span class="text-red-500">*</span></InputLabel>
+              <select id="gender" v-model="form.gender" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
+                <option value="" class="bg-white">Select Gender</option>
+                <option value="Male" class="bg-white">Male</option>
+                <option value="Female" class="bg-white">Female</option>
               </select>
-              <InputError :message="form.errors.gender" class="text-red-300" />
+              <InputError :message="form.errors.gender" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="mobile_number" class="text-white font-medium">Mobile Number <span class="text-emerald-400">*</span></InputLabel>
+              <InputLabel for="mobile_number" class="text-slate-800 font-medium">Mobile Number <span class="text-red-500">*</span></InputLabel>
               <TextInput
                 id="mobile_number"
                 v-model="formattedMobileNumber"
                 type="text"
                 required
-                class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400"
-                placeholder="+63 XXX XXX XXXX"
-              />
-              <InputError :message="form.errors.mobile_number" class="text-red-300" />
+                class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
+                placeholder="+63 XXX XXX XXXX"/>
+              <InputError :message="form.errors.mobile_number" class="text-red-600" />
             </div>
           </div>
         </div>
 
         <!-- Step 2: Educational Background -->
-        <div v-show="currentStep === 2" class="glass rounded-2xl p-8 reveal">
+        <div v-show="currentStep === 2" class="bg-white rounded-2xl p-8 shadow-lg border border-gray-200 reveal">
           <div class="flex items-center mb-6">
             <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,48 +279,48 @@ function goToProfile() {
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white enhanced-text">Educational Background</h2>
-              <p class="text-white/70">Tell us about your academic journey</p>
+              <h2 class="text-2xl font-bold text-slate-800">Educational Background</h2>
+              <p class="text-slate-600">Tell us about your academic journey</p>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <InputLabel for="graduate_school_graduated_from" class="text-white font-medium">School Graduated From <span class="text-emerald-400">*</span></InputLabel>
-              <select id="graduate_school_graduated_from" v-model="form.graduate_school_graduated_from" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
-                <option value="" class="bg-gray-800">Select School</option>
-                <option v-for="school in props.institutions" :key="school.id" :value="school.id" class="bg-gray-800">{{ school.institution_name }}</option>
+              <InputLabel for="graduate_school_graduated_from" class="text-slate-800 font-medium">School Graduated From <span class="text-red-500">*</span></InputLabel>
+              <select id="graduate_school_graduated_from" v-model="form.graduate_school_graduated_from" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
+                <option value="" class="bg-white">Select School</option>
+                <option v-for="school in props.institutions" :key="school.id" :value="school.id" class="bg-white">{{ school.institution_name }}</option>
               </select>
-              <InputError :message="form.errors.graduate_school_graduated_from" class="text-red-300" />
+              <InputError :message="form.errors.graduate_school_graduated_from" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="graduate_degree" class="text-white font-medium">Degree <span class="text-emerald-400">*</span></InputLabel>
-              <select id="graduate_degree" v-model="form.graduate_degree" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
-                <option value="" class="bg-gray-800">Select Degree</option>
-                <option v-for="degree in filteredDegrees" :key="degree.id" :value="degree.id" class="bg-gray-800">{{ degree.type }}</option>
+              <InputLabel for="graduate_degree" class="text-slate-800 font-medium">Degree <span class="text-red-500">*</span></InputLabel>
+              <select id="graduate_degree" v-model="form.graduate_degree" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
+                <option value="" class="bg-white">Select Degree</option>
+                <option v-for="degree in filteredDegrees" :key="degree.id" :value="degree.id" class="bg-white">{{ degree.type }}</option>
               </select>
-              <InputError :message="form.errors.graduate_degree" class="text-red-300" />
+              <InputError :message="form.errors.graduate_degree" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="graduate_program_completed" class="text-white font-medium">Program Completed <span class="text-emerald-400">*</span></InputLabel>
-              <select id="graduate_program_completed" v-model="form.graduate_program_completed" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
-                <option value="" class="bg-gray-800">Select Program</option>
-                <option v-for="program in filteredPrograms" :key="program.id" :value="program.id" class="bg-gray-800">{{ program.name }}</option>
+              <InputLabel for="graduate_program_completed" class="text-slate-800 font-medium">Program Completed <span class="text-red-500">*</span></InputLabel>
+              <select id="graduate_program_completed" v-model="form.graduate_program_completed" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
+                <option value="" class="bg-white">Select Program</option>
+                <option v-for="program in filteredPrograms" :key="program.id" :value="program.id" class="bg-white">{{ program.name }}</option>
               </select>
-              <InputError :message="form.errors.graduate_program_completed" class="text-red-300" />
+              <InputError :message="form.errors.graduate_program_completed" class="text-red-600" />
             </div>
             <div>
-              <InputLabel for="graduate_year_graduated" class="text-white font-medium">Year Graduated <span class="text-emerald-400">*</span></InputLabel>
-              <select id="graduate_year_graduated" v-model="form.graduate_year_graduated" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
-                <option value="" class="bg-gray-800">Select Year</option>
-                <option v-for="year in filteredYears" :key="year.id" :value="year.id" class="bg-gray-800">{{ year.year }}</option>
+              <InputLabel for="graduate_year_graduated" class="text-slate-800 font-medium">Year Graduated <span class="text-red-500">*</span></InputLabel>
+              <select id="graduate_year_graduated" v-model="form.graduate_year_graduated" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
+                <option value="" class="bg-white">Select Year</option>
+                <option v-for="year in filteredYears" :key="year.id" :value="year.id" class="bg-white">{{ year.year }}</option>
               </select>
-              <InputError :message="form.errors.graduate_year_graduated" class="text-red-300" />
+              <InputError :message="form.errors.graduate_year_graduated" class="text-red-600" />
             </div>
           </div>
         </div>
 
         <!-- Step 3: Employment Information -->
-        <div v-show="currentStep === 3" class="glass rounded-2xl p-8 reveal">
+        <div v-show="currentStep === 3" class="bg-white rounded-2xl p-8 shadow-lg border border-gray-200 reveal">
           <div class="flex items-center mb-6">
             <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -349,31 +328,31 @@ function goToProfile() {
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white enhanced-text">Employment Information</h2>
-              <p class="text-white/70">Tell us about your current work status</p>
+              <h2 class="text-2xl font-bold text-slate-800">Employment Information</h2>
+              <p class="text-slate-600">Tell us about your current work status</p>
             </div>
           </div>
           <div class="space-y-6">
             <div>
-              <InputLabel for="employment_status" class="text-white font-medium">Employment Status <span class="text-emerald-400">*</span></InputLabel>
-              <select id="employment_status" v-model="form.employment_status" @change="handleEmploymentStatusChange" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
-                <option value="" class="bg-gray-800">Select Status</option>
-                <option value="Employed" class="bg-gray-800">Employed</option>
-                <option value="Unemployed" class="bg-gray-800">Unemployed</option>
-                <option value="Underemployed" class="bg-gray-800">Underemployed</option>
+              <InputLabel for="employment_status" class="text-slate-800 font-medium">Employment Status <span class="text-red-500">*</span></InputLabel>
+              <select id="employment_status" v-model="form.employment_status" @change="handleEmploymentStatusChange" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
+                <option value="" class="bg-white">Select Status</option>
+                <option value="Employed" class="bg-white">Employed</option>
+                <option value="Unemployed" class="bg-white">Unemployed</option>
+                <option value="Underemployed" class="bg-white">Underemployed</option>
               </select>
-              <InputError :message="form.errors.employment_status" class="text-red-300" />
+              <InputError :message="form.errors.employment_status" class="text-red-600" />
             </div>
             <div v-if="form.employment_status !== 'Unemployed'" class="transition-all duration-300">
-              <InputLabel for="current_job_title" class="text-white font-medium">Current Job Title <span class="text-emerald-400">*</span></InputLabel>
-              <TextInput id="current_job_title" v-model="form.current_job_title" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
-              <InputError :message="form.errors.current_job_title" class="text-red-300" />
+              <InputLabel for="current_job_title" class="text-slate-800 font-medium">Current Job Title <span class="text-red-500">*</span></InputLabel>
+              <TextInput id="current_job_title" v-model="form.current_job_title" type="text" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500" />
+              <InputError :message="form.errors.current_job_title" class="text-red-600" />
             </div>
           </div>
         </div>
 
         <!-- Step 4: Company Information -->
-        <div v-show="currentStep === 4 && (form.employment_status === 'Employed' || form.employment_status === 'Underemployed')" class="glass rounded-2xl p-8 reveal">
+        <div v-show="currentStep === 4 && (form.employment_status === 'Employed' || form.employment_status === 'Underemployed')" class="bg-white rounded-2xl p-8 shadow-lg border border-gray-200 reveal">
           <div class="flex items-center mb-6">
             <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,62 +360,60 @@ function goToProfile() {
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white enhanced-text">Company Information</h2>
-              <p class="text-white/70">Tell us about your workplace</p>
+              <h2 class="text-2xl font-bold text-slate-800">Company Information</h2>
+              <p class="text-slate-600">Tell us about your workplace</p>
             </div>
           </div>
           <div class="space-y-6">
             <div>
               <label class="inline-flex items-center">
                 <input type="checkbox" v-model="form.company_not_found" class="form-checkbox text-blue-400 focus:ring-blue-400 focus:ring-offset-0 bg-transparent border-white/20" />
-                <span class="ml-3 text-white font-medium">My company is not listed</span>
+                <span class="ml-3 text-slate-800 font-medium">My company is not listed</span>
               </label>
             </div>
             <!-- Company Searchable Dropdown -->
             <div v-if="!form.company_not_found" class="relative">
-              <InputLabel for="company_name" class="text-white font-medium">Company Name <span class="text-emerald-400">*</span></InputLabel>
+              <InputLabel for="company_name" class="text-slate-800 font-medium">Company Name <span class="text-red-500">*</span></InputLabel>
               <TextInput
                 id="company_search"
                 v-model="companySearch"
                 type="text"
-                class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400"
+                class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500"
                 placeholder="Type to search company..."
                 autocomplete="off"
                 @focus="showCompanyDropdown = true"
-                @blur="handleCompanyBlur"
-              />
-              <div v-if="showCompanyDropdown && filteredCompanies.length" class="absolute z-20 w-full mt-1 glass border border-white/20 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                @blur="handleCompanyBlur"/>
+              <div v-if="showCompanyDropdown && filteredCompanies.length" class="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                 <div
                   v-for="company in filteredCompanies"
                   :key="company.id"
-                  class="px-4 py-3 text-white hover:bg-white/10 cursor-pointer transition-colors duration-200"
-                  @mousedown.prevent="selectCompany(company)"
-                >
+                  class="px-4 py-3 text-slate-800 hover:bg-gray-100 cursor-pointer transition-colors duration-200"
+                  @mousedown.prevent="selectCompany(company)">
                   {{ company.company_name }}
                 </div>
               </div>
-              <InputError :message="form.errors.company_name" class="text-red-300" />
+              <InputError :message="form.errors.company_name" class="text-red-600" />
             </div>
             <div v-else class="space-y-4">
               <div>
-                <InputLabel for="other_company_name" class="text-white font-medium">Other Company Name <span class="text-emerald-400">*</span></InputLabel>
-                <TextInput id="other_company_name" v-model="form.other_company_name" type="text" required class="mt-2 block w-full glass border-white/20 text-white placeholder-white/50 focus:border-blue-400 focus:ring-blue-400" />
-                <InputError :message="form.errors.other_company_name" class="text-red-300" />
+                <InputLabel for="other_company_name" class="text-slate-800 font-medium">Other Company Name <span class="text-red-500">*</span></InputLabel>
+                <TextInput id="other_company_name" v-model="form.other_company_name" type="text" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500" />
+                <InputError :message="form.errors.other_company_name" class="text-red-600" />
               </div>
               <div>
-                <InputLabel for="other_company_sector" class="text-white font-medium">Sector <span class="text-emerald-400">*</span></InputLabel>
-                <select id="other_company_sector" v-model="form.other_company_sector" required class="mt-2 block w-full glass border-white/20 text-white bg-transparent focus:border-blue-400 focus:ring-blue-400 rounded-lg">
-                  <option value="" class="bg-gray-800">Select Sector</option>
-                  <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id" class="bg-gray-800">{{ sector.name }}</option>
+                <InputLabel for="other_company_sector" class="text-slate-800 font-medium">Sector <span class="text-red-500">*</span></InputLabel>
+                <select id="other_company_sector" v-model="form.other_company_sector" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
+                  <option value="" class="bg-white">Select Sector</option>
+                  <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id" class="bg-white">{{ sector.name }}</option>
                 </select>
-                <InputError :message="form.errors.other_company_sector" class="text-red-300" />
+                <InputError :message="form.errors.other_company_sector" class="text-red-600" />
               </div>
             </div>
           </div>
         </div>
 
         <!-- Step 4: Final Review (for unemployed users) -->
-        <div v-show="currentStep === 4 && form.employment_status === 'Unemployed'" class="glass rounded-2xl p-8 reveal">
+        <div v-show="currentStep === 4 && form.employment_status === 'Unemployed'" class="bg-white rounded-2xl p-8 shadow-lg border border-gray-200 reveal">
           <div class="flex items-center mb-6">
             <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mr-4">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -444,13 +421,13 @@ function goToProfile() {
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-white enhanced-text">Ready to Submit</h2>
-              <p class="text-white/70">Review your information and submit your profile</p>
+              <h2 class="text-2xl font-bold text-slate-800">Ready to Submit</h2>
+              <p class="text-slate-600">Review your information and submit your profile</p>
             </div>
           </div>
           <div class="text-center py-8">
-            <p class="text-white/80 text-lg mb-4">Your profile information is complete!</p>
-            <p class="text-white/60">Click the button below to save your information.</p>
+            <p class="text-slate-700 text-lg mb-4">Your profile information is complete!</p>
+            <p class="text-slate-500">Click the button below to save your information.</p>
           </div>
         </div>
 
@@ -460,8 +437,7 @@ function goToProfile() {
             v-if="currentStep > 1"
             @click="prevStep"
             type="button"
-            class="glass px-6 py-3 text-white font-medium rounded-lg hover:bg-white/20 transition-all duration-300 flex items-center space-x-2"
-          >
+            class="bg-gray-100 border-gray-300 text-slate-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-all duration-300 flex items-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
@@ -472,34 +448,28 @@ function goToProfile() {
           <div class="flex space-x-4">
             <button
               v-if="currentStep < totalSteps"
+              type="button"
               @click="nextStep"
               :disabled="!canProceed"
-              type="button"
-              :class="[
-                'px-8 py-3 font-medium rounded-lg transition-all duration-300 flex items-center space-x-2',
-                canProceed 
-                  ? 'gradient-cta text-white hover:shadow-lg hover:scale-105 animate-pulse-glow' 
-                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              ]"
-            >
+              class="gradient-cta px-6 py-3 rounded-xl font-medium text-white hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
               <span>Next Step</span>
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
               </svg>
             </button>
-            <PrimaryButton
-              v-else
+            
+            <button
+              v-if="currentStep === totalSteps"
+              type="submit"
               :disabled="form.processing || !canProceed"
-              :class="[
-                'px-8 py-3 font-medium rounded-lg transition-all duration-300',
-                canProceed 
-                  ? 'gradient-cta text-white hover:shadow-lg hover:scale-105 animate-pulse-glow' 
-                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              ]"
-            >
+              class="gradient-cta hover-rainbow px-8 py-3 rounded-xl font-bold text-white transform hover:scale-105 animate-pulse-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+              <svg v-if="form.processing" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
               <span v-if="form.processing">Saving...</span>
               <span v-else>Save Information</span>
-            </PrimaryButton>
+            </button>
           </div>
         </div>
       </form>
@@ -511,7 +481,7 @@ function goToProfile() {
         </template>
         <template #body>
           <p class="mb-6 text-gray-700">
-            Your institution information has been saved.<br>
+            Your personal information has been saved.<br>
             You will now be redirected to your profile page.
           </p>
         </template>
@@ -553,58 +523,7 @@ function goToProfile() {
   100% { background-position: 0% 50%; }
 }
 
-.floating-elements {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1;
-}
 
-.floating-element {
-  position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-  backdrop-filter: blur(10px);
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-reverse {
-  animation: float-reverse 8s ease-in-out infinite;
-}
-
-.animate-morph {
-  animation: morph 10s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(180deg); }
-}
-
-@keyframes float-reverse {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(20px) rotate(-180deg); }
-}
-
-@keyframes morph {
-  0%, 100% { border-radius: 50%; transform: scale(1); }
-  25% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: scale(1.1); }
-  50% { border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%; transform: scale(0.9); }
-  75% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; transform: scale(1.05); }
-}
-
-.glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
 
 .gradient-card {
   background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
@@ -618,18 +537,7 @@ function goToProfile() {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
 }
 
-.enhanced-text {
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-}
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes pulse-glow {
-  from { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
-  to { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
-}
 
 .reveal {
   animation: reveal 0.6s ease-out;
@@ -659,23 +567,7 @@ function goToProfile() {
   background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
 }
 
-/* Input Styles */
-input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, textarea {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  color: white !important;
-  transition: all 0.3s ease !important;
-}
 
-input[type="text"]:focus, input[type="email"]:focus, input[type="tel"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-  background: rgba(255, 255, 255, 0.15) !important;
-}
-
-input::placeholder {
-  color: rgba(255, 255, 255, 0.5) !important;
-}
 
 /* Checkbox Styles */
 input[type="checkbox"] {
@@ -684,17 +576,8 @@ input[type="checkbox"] {
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .glass {
-    margin: 1rem;
-    padding: 1.5rem !important;
-  }
-  
   .gradient-bg {
     padding: 1rem;
-  }
-  
-  .floating-element {
-    display: none;
   }
 }
 </style>

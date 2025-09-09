@@ -34,19 +34,47 @@ const handleOfferResponse = () => {
   );
 };
 const getNotificationMessage = () => {
-  if (notification.type === 'ApplicationStatusUpdated') {
-    return `The status of your application for the position "<b>${notification.data.job_title}</b>" has been updated to: <b>${notification.data.status.charAt(0).toUpperCase() + notification.data.status.slice(1).replace('_', ' ')}</b>.`;
+  // Normalize type (Laravel stores full class path)
+  const full = notification.type || ''
+  const shortType = full.split('\\').pop()
+
+  if (shortType === 'ApplicationStatusUpdated') {
+    return `The status of your application for the position "<b>${notification.data.job_title}</b>" has been updated to: <b>${(notification.data.status || '').replace(/_/g,' ').replace(/^\w/, c=>c.toUpperCase())}</b>.`
   }
-  if (notification.type === 'InterviewScheduledNotification') {
+
+  if (shortType === 'JobInviteNotification' || notification.data.status === 'job_invite') {
+    return `You have a new job invitation for "<b>${notification.data.job_title}</b>" at <b>${notification.data.company || 'a company'}</b>.`
+  }
+
+  if (shortType === 'InterviewScheduledNotification') {
     return `Interview scheduled for <b>${notification.data.job_title}</b>`
       + (notification.data.company ? ` at <b>${notification.data.company}</b>` : '')
       + (notification.data.scheduled_at ? ` on <b>${new Date(notification.data.scheduled_at).toLocaleString()}</b>` : '')
       + (notification.data.location ? ` (${notification.data.location})` : '')
-      + '.';
   }
-  // Add more notification types as needed
-  return notification.data?.message || 'No additional details.';
+
+  return notification.data?.message || 'No additional details.'
 };
+
+function resolvedTitle() {
+  const full = notification.type || ''
+  const shortType = full.split('\\').pop()
+  if (notification.data?.title) return notification.data.title
+  if (shortType === 'JobInviteNotification') {
+    return 'Job Invitation'
+  }
+  return 'Notification'
+}
+
+function resolvedBody() {
+  const data = notification.data || {}
+  if (data.body) return data.body
+  if (data.message) return data.message
+  if (data.status === 'job_invite' && data.job_title) {
+    return `You have been invited to apply for "${data.job_title}" at ${data.company || 'a company'}.`
+  }
+  return 'No details.'
+}
 </script>
 
 <template>
@@ -72,6 +100,12 @@ const getNotificationMessage = () => {
             class="bg-red-600 text-white px-4 py-2 rounded"
             @click="handleOfferClick('decline')"
           >Decline Offer</button>
+        </div>
+        <!-- Conditional block for job invite actions if needed (optional) -->
+        <div v-else-if="notification.data.status === 'job_invite'" class="mt-6 text-sm text-gray-600">
+          <a :href="`/jobs/${notification.data.job_id}`" class="text-indigo-600 hover:underline font-medium">
+            View Job Details
+          </a>
         </div>
         <div class="mt-6">
           <a href="/job-inbox" class="text-blue-600 hover:underline">Back to Inbox</a>

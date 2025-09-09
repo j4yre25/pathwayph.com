@@ -160,9 +160,23 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Modern blue gradient backgrounds */
+/* CSS Variables for new color scheme */
+:root {
+    --primary-bg: #2c3e50;
+    --secondary-bg: #34495e;
+    --accent-color: #e74c3c;
+    --text-accent: #ec7063;
+    --primary-text: #2c3e50;
+    --secondary-text: #7f8c8d;
+    --light-text: #ecf0f1;
+    --accent-bg: rgba(231, 76, 60, 0.1);
+    --accent-text: #c0392b;
+}
+
+/* Background with subtle gradient */
 .gradient-bg {
-    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    position: relative;
 }
 
 .gradient-card {
@@ -177,32 +191,7 @@ onUnmounted(() => {
     background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
 }
 
-/* Floating animations */
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(-20px);
-    }
-}
-
-@keyframes float-reverse {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(20px);
-    }
-}
-
-.animate-float {
-    animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-reverse {
-    animation: float-reverse 4s ease-in-out infinite;
-}
+/* Removed floating animations for cleaner design */
 
 /* Pulse glow effect */
 @keyframes pulse-glow {
@@ -232,14 +221,14 @@ onUnmounted(() => {
     animation: morph 8s ease-in-out infinite;
 }
 
-/* Blue hover effects */
-.hover-blue:hover {
-    background: linear-gradient(45deg, #1e40af, #2563eb, #3b82f6, #60a5fa);
+/* Accent hover effects */
+.hover-accent:hover {
+    background: linear-gradient(45deg, var(--accent-color), var(--text-accent), #e74c3c, #ec7063);
     background-size: 400% 400%;
-    animation: blue-shift 2s ease infinite;
+    animation: accent-shift 2s ease infinite;
 }
 
-@keyframes blue-shift {
+@keyframes accent-shift {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
@@ -263,13 +252,7 @@ onUnmounted(() => {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Mobile optimizations */
-@media (max-width: 768px) {
-    .animate-float,
-    .animate-float-reverse {
-        animation-duration: 3s;
-    }
-}
+
 
 /* Scroll reveal animations */
 .reveal {
@@ -315,27 +298,20 @@ onUnmounted(() => {
     </Head>
 
     <div class="relative min-h-screen gradient-bg overflow-hidden">
-        <!-- Floating Background Elements -->
-        <div class="absolute inset-0">
-            <div class="absolute top-20 left-10 w-64 h-64 gradient-card rounded-full opacity-20 animate-float"></div>
-            <div class="absolute top-40 right-20 w-48 h-48 gradient-feature rounded-full opacity-30 animate-float-reverse"></div>
-            <div class="absolute bottom-20 left-1/4 w-72 h-72 gradient-cta rounded-full opacity-15 animate-morph"></div>
-            <div class="absolute top-1/3 right-1/3 w-32 h-32 bg-white rounded-full opacity-10 animate-pulse-glow"></div>
-            <div class="absolute bottom-1/3 right-10 w-40 h-40 gradient-card rounded-full opacity-25 animate-float"></div>
-        </div>
+        <!-- Background overlay for better text readability -->
+        <div class="absolute inset-0 z-0"></div>
         
         <!-- Landing Section -->
         <div id="home" class="relative z-10">
             
             <!-- Modern Header -->
-            <header 
+           <header 
                 role="banner"
                 class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" 
                 :class="{
                     'glass shadow-lg py-3': isScrolled, 
                     'bg-transparent py-4': !isScrolled
-                }"
-            >
+                }">
                 <div class="max-w-7xl mx-auto px-6">
                     <div class="flex items-center justify-between">
                         <!-- Logo -->
@@ -346,7 +322,7 @@ onUnmounted(() => {
                                 </div>
                                 <span :class="[
                                     'font-extrabold text-xl leading-none select-none transition-colors duration-200 enhanced-text',
-                                    isScrolled ? 'text-blue-600' : 'text-white'
+                                    isScrolled ? 'text-blue-600' : 'text-blue-600'
                                 ]">Pathway</span>
                             </Link>
                         </div>
@@ -360,10 +336,9 @@ onUnmounted(() => {
                                 :class="[
                                     'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded px-3 py-2',
                                     activeSection === 'home' 
-                                        ? (isScrolled ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-white enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
-                                        : isScrolled 
-                                            ? 'text-gray-700 hover:text-blue-600 hover:enhanced-text' 
-                                            : 'text-white/90 hover:text-white hover:enhanced-text']">
+                                        ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' 
+                                        : 'text-blue-600/80 hover:text-blue-600 hover:enhanced-text'
+                                ]">
                                 Home
                             </a>
                             <a 
@@ -373,10 +348,9 @@ onUnmounted(() => {
                                 :class="[
                                     'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded px-3 py-2',
                                     activeSection === 'about' 
-                                        ? (isScrolled ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-white enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
-                                        : isScrolled 
-                                            ? 'text-gray-700 hover:text-blue-600 hover:enhanced-text' 
-                                            : 'text-white/90 hover:text-white hover:enhanced-text']">
+                                        ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' 
+                                        : 'text-blue-600/80 hover:text-blue-600 hover:enhanced-text'
+                                ]">
                                 About
                             </a>
                             <a 
@@ -386,10 +360,9 @@ onUnmounted(() => {
                                 :class="[
                                     'text-sm font-medium transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 rounded px-3 py-2',
                                     activeSection === 'features' 
-                                        ? (isScrolled ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : 'text-white enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white')
-                                        : isScrolled 
-                                            ? 'text-gray-700 hover:text-blue-600 hover:enhanced-text' 
-                                            : 'text-white/90 hover:text-white hover:enhanced-text']">
+                                        ? 'text-blue-600 enhanced-text after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' 
+                                        : 'text-blue-600/80 hover:text-blue-600 hover:enhanced-text'
+                                ]">
                                 Features
                             </a>
                         </nav>
@@ -398,12 +371,7 @@ onUnmounted(() => {
                         <div class="hidden md:flex items-center space-x-4">
                             <button 
                                 @click="navigateToLogin"
-                                :class="[
-                                    'px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400',
-                                    isScrolled 
-                                        ? 'glass text-blue-600 hover:text-blue-700 hover:enhanced-text' 
-                                        : 'glass text-white hover:text-white hover:enhanced-text']
-                                ">
+                                class="px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-600 hover:text-blue-700 hover:enhanced-text">
                                 Sign In
                             </button>
                             <button 
@@ -412,81 +380,59 @@ onUnmounted(() => {
                                 Sign up
                             </button>
                         </div>
-
-                        <!-- Mobile menu button -->
-                        <div class="md:hidden">
-                            <button 
-                                @click="toggleMobileMenu"
-                                :aria-expanded="isMobileMenuOpen"
-                                aria-label="Toggle navigation menu"
-                                :class="[
-                                    'p-2 rounded-xl glass transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400',
-                                    isScrolled ? 'text-blue-600 hover:enhanced-text' : 'text-white hover:enhanced-text'
-                                ]"
-                            >
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path 
-                                        v-if="!isMobileMenuOpen"
-                                        stroke-linecap="round" 
-                                        stroke-linejoin="round" 
-                                        stroke-width="2" 
-                                        d="M4 6h16M4 12h16M4 18h16" 
-                                    />
-                                    <path 
-                                        v-else
-                                        stroke-linecap="round" 
-                                        stroke-linejoin="round" 
-                                        stroke-width="2" 
-                                        d="M6 18L18 6M6 6l12 12" 
-                                    />
-                                </svg>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </header>
-            <main class="min-h-screen flex flex-col items-center justify-center text-center px-4 z-20">
-                <!-- Hero Title -->
-                <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 enhanced-text animate-float">
-                    Pathway
-                </h1>
 
-                <!-- Tagline -->
-                <h3 class="text-white font-bold text-3xl md:text-5xl leading-tight mb-8 animate-fade-in">
-                    Connect. Grow. <span class="text-blue-200 enhanced-text">Succeed.</span>
-                </h3>
 
-                <!-- Professional Tagline -->
-                <p class="text-white/90 text-xl md:text-2xl max-w-3xl mb-12 font-light animate-float-reverse">
-                    The premier platform connecting <span class="text-blue-200 enhanced-text">Filipino talent</span> with <span class="text-blue-300 enhanced-text">global opportunities</span>.
-                </p>
 
-                <!-- Primary and Secondary CTAs -->
-                <div class="flex flex-col sm:flex-row gap-6 mb-12 justify-center items-center">
-                    <button 
-                        @click="navigateToRegister"
-                        class="px-10 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-110 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:ring-offset-2 shadow-2xl animate-pulse-glow">
-                        Join the Path
-                        <svg class="inline-block ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                        </svg>
-                    </button>
-                    <button 
-                        @click="scrollToSection('about')"
-                        class="px-8 py-4 glass text-white text-lg font-semibold rounded-2xl hover:enhanced-text transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50">
-                        Learn More
-                    </button>
-                </div>
+            <main class="min-h-screen flex items-center px-4 z-20 relative">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-9 mb-9">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <!-- Left Column - Content -->
+                        <div class="text-left order-2 lg:order-1">
+                            <!-- Hero Title -->
+                            <h1 class="text-gray-900 font-extrabold text-6xl md:text-8xl leading-tight mb-4 enhanced-text">
+                                Pathway
+                            </h1>
 
-                <!-- Scroll Indicator -->
-                <div class="cursor-pointer animate-float" @click="scrollToSection('about')">
-                    <div class="flex flex-col items-center space-y-2 text-white/80 hover:text-white hover:enhanced-text transition-all duration-300">
-                        <span class="text-sm font-semibold">Discover More</span>
-                        <div class="w-8 h-8 gradient-feature rounded-full flex items-center justify-center animate-pulse-glow">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                            </svg>
+                            <!-- Tagline -->
+                            <h3 class="text-gray-800 font-bold text-3xl md:text-5xl leading-tight mb-8">
+                                Connect. Grow. <span class="text-[var(--text-accent)] enhanced-text">Succeed.</span>
+                            </h3>
+
+                            <!-- Professional Tagline -->
+                            <p class="text-gray-700 text-xl md:text-2xl max-w-3xl mb-12 font-light">
+                                The premier platform connecting <span class="text-[var(--text-accent)] enhanced-text">Filipino talent</span> with <span class="text-[var(--accent-color)] enhanced-text">global opportunities</span>.
+                            </p>
+
+                            <!-- Primary and Secondary CTAs -->
+                            <div class="flex flex-col sm:flex-row gap-6 mb-12 justify-start items-start">
+                                <button 
+                                    @click="navigateToRegister"
+                                    class="px-8 py-4 gradient-cta text-white text-lg font-semibold rounded-2xl hover-blue transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 shadow-lg animate-pulse-glow">
+                                    Join the Path
+                                    
+                                </button>
+                                <button 
+                                    @click="scrollToSection('about')"
+                                    class="px-8 py-4 bg-gray-200 hover:bg-gray-300 text-gray-800 text-lg font-semibold rounded-2xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-gray-300">
+                                    Learn More
+                                </button>
+                            </div>
                         </div>
+                        
+                        <!-- Right Column - Image -->
+                        <div class="order-1 lg:order-2 flex justify-center lg:justify-end">
+                            <div class="relative max-w-full">
+                                <img 
+                                    src="/images/vector_home.png" 
+                                    alt="Pathway Platform Illustration" 
+                                    class="w-full h-auto max-w-lg lg:max-w-xl xl:max-w-2xl object-contain"
+                                />
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </main>

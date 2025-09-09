@@ -126,83 +126,76 @@ function updatePasswordStrength() {
 <template>
     <Head title="Sign Up" />
     
-    <!-- Modern Gradient Background -->
-    <div class="min-h-screen gradient-bg flex items-center justify-center p-4 overflow-hidden relative">
-        <!-- Floating Background Elements -->
-        <div class="absolute inset-0">
-            <div class="absolute top-10 left-10 w-32 h-32 gradient-card rounded-full opacity-10 animate-float"></div>
-            <div class="absolute top-1/4 right-20 w-24 h-24 gradient-feature rounded-full opacity-15 animate-float-reverse"></div>
-            <div class="absolute bottom-20 left-1/4 w-40 h-40 gradient-cta rounded-full opacity-8 animate-morph"></div>
-            <div class="absolute top-1/2 right-1/3 w-16 h-16 bg-white rounded-full opacity-5 animate-pulse-glow"></div>
-        </div>
+    <!-- Clean Gradient Background -->
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         
         <div class="w-full max-w-lg relative z-10">
             <!-- Logo Section -->
             <div class="text-center mb-8">
-                <div class="w-16 h-16 gradient-card rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
-                    <span class="text-white font-bold text-2xl enhanced-text">P</span>
+                <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span class="text-white font-bold text-2xl">P</span>
                 </div>
-                <h2 class="text-4xl font-bold text-white mb-3 enhanced-text">Join Pathway</h2>
-            <p class="text-white/80 text-lg">Create your <span class="text-blue-300 enhanced-text">Pathway</span> account</p>
+                <h2 class="text-4xl font-bold text-slate-800 mb-3">Join Pathway</h2>
+            <p class="text-slate-600 text-lg">Create your <span class="text-blue-600">Pathway</span> account</p>
             </div>
 
-            <!-- Glass Card -->
-            <div class="glass p-8 rounded-3xl shadow-2xl border border-white/20 backdrop-blur-xl">
+            <!-- Clean Card -->
+            <div class="bg-white p-8 rounded-3xl shadow-lg border border-gray-200">
                 <!-- User Level Selection -->
                 <div v-if="currentStep === 'user-level'" class="space-y-6">
                     <div class="text-center mb-6">
-                        <h3 class="text-2xl font-bold text-white mb-2 enhanced-text">Select User Type</h3>
-                        <p class="text-white/80">Choose the option that best describes you</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mb-2">Select User Type</h3>
+                        <p class="text-slate-600">Choose the option that best describes you</p>
                     </div>
                     
                     <div class="space-y-4">
                         <!-- Graduate Option -->
                         <div @click="selectUserLevel('graduates')" 
-                             class="glass p-6 rounded-2xl hover:scale-105 cursor-pointer transition-all duration-300 border border-white/30 hover:border-cyan-400 group">
+                             class="bg-white-50 p-6 rounded-2xl hover:bg-gray-100 cursor-pointer transition-all duration-200 border border-gray-200 hover:border-cyan-400 group">
                             <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 gradient-feature rounded-xl flex items-center justify-center group-hover:animate-pulse-glow">
+                                <div class="w-12 h-12 bg-cyan-600 rounded-xl flex items-center justify-center">
                                     <i class="fas fa-user-graduate text-white text-xl"></i>
                                 </div>
                                 <div>
-                                    <h4 class="text-lg font-bold text-white enhanced-text">Graduate</h4>
-                                    <p class="text-white/70 text-sm">For recent graduates seeking opportunities</p>
+                                    <h4 class="text-lg font-bold text-slate-800">Graduate</h4>
+                                    <p class="text-slate-600 text-sm">For recent graduates seeking opportunities</p>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Institution Option -->
                         <div @click="selectUserLevel('institution')" 
-                             class="glass p-6 rounded-2xl hover:scale-105 cursor-pointer transition-all duration-300 border border-white/30 hover:border-emerald-400 group">
+                             class="bg-white-50 p-6 rounded-2xl hover:bg-gray-100 cursor-pointer transition-all duration-200 border border-gray-200 hover:border-emerald-400 group">
                             <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:animate-pulse-glow">
+                                <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center">
                                     <i class="fas fa-university text-white text-xl"></i>
                                 </div>
                                 <div>
-                                    <h4 class="text-lg font-bold text-white enhanced-text">Institution</h4>
-                                    <p class="text-white/70 text-sm">For schools, colleges and universities</p>
+                                    <h4 class="text-lg font-bold text-slate-800">Institution</h4>
+                                    <p class="text-slate-600 text-sm">For schools, colleges and universities</p>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Company Option -->
                         <div @click="selectUserLevel('industry')" 
-                             class="glass p-6 rounded-2xl hover:scale-105 cursor-pointer transition-all duration-300 border border-white/30 hover:border-amber-400 group">
+                             class="bg-white-50 p-6 rounded-2xl hover:bg-gray-100 cursor-pointer transition-all duration-200 border border-gray-200 hover:border-amber-400 group">
                             <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center group-hover:animate-pulse-glow">
+                                <div class="w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center">
                                     <i class="fas fa-building text-white text-xl"></i>
                                 </div>
                                 <div>
-                                    <h4 class="text-lg font-bold text-white enhanced-text">Company</h4>
-                                    <p class="text-white/70 text-sm">For companies seeking qualified talent</p>
+                                    <h4 class="text-lg font-bold text-slate-800">Company</h4>
+                                    <p class="text-slate-600 text-sm">For companies seeking qualified talent</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="text-center pt-4">
-                        <p class="text-white/80">
+                        <p class="text-black/80">
                             Already have an account?
-                            <Link href="/login" class="text-blue-300 hover:text-blue-100 hover:enhanced-text font-semibold transition-all duration-200 ml-2">
+                            <Link href="/login" class="text-blue-600 hover:text-blue-700 hover:enhanced-text font-semibold transition-all duration-200 ml-2">
                                 Sign In
                             </Link>
                         </p>
@@ -212,40 +205,40 @@ function updatePasswordStrength() {
                 <!-- Graduate Registration Form -->
                 <div v-else-if="currentStep === 'graduate'" class="space-y-6">
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-white enhanced-text">Graduate Registration</h3>
+                        <h3 class="text-2xl font-bold text-slate-800">Graduate Registration</h3>
                         <button @click="currentStep = 'user-level'"
-                                class="text-white/80 hover:text-white hover:enhanced-text p-2 rounded-xl glass transition-all duration-300 hover:scale-110">
+                                class="text-slate-600 hover:text-slate-800 p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-200">
                             <i class="fas fa-arrow-left text-lg"></i>
                         </button>
                     </div>
                     
                     <form @submit.prevent="submitGraduateAccount" class="space-y-6">
                         <div>
-                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-white mb-2" />
+                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-slate-700 mb-2" />
                             <TextInput 
                                 id="email" 
                                 v-model="form.email" 
                                 type="email" 
-                                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
+                                class="block w-full px-4 py-3 text-lg rounded-xl bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-400" 
                                 placeholder="Enter your email"
                                 required />
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.email" />
+                            <InputError class="mt-2 text-red-600" :message="form.errors.email" />
                         </div>
                         
                         <div class="relative">
-                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
+                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-slate-700 mb-2" />
                             <div class="relative">
                                 <TextInput 
                                     id="password" 
                                     v-model="form.password" 
                                     :type="showPassword ? 'text' : 'password'"
-                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl bg-gray-50 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-400" 
                                     placeholder="Enter your password"
                                     required
                                     @input="updatePasswordStrength"
                                 />
                                 <button type="button"
-                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none transition-all duration-200"
                                     @click="togglePasswordVisibility">
                                     <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
                                 </button>
@@ -261,7 +254,281 @@ function updatePasswordStrength() {
                                     }"></i>
                                 </span>
                             </div>
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.password" />
+                            <InputError class="mt-2 text-red-600" :message="form.errors.password" />
+
+                            <!-- Password strength bar and text -->
+                            <div v-if="form.password" class="mt-3 mb-2">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs font-medium" :class="{
+                                        'text-red-400': passwordStrength === 1,
+                                        'text-orange-400': passwordStrength === 2,
+                                        'text-yellow-400': passwordStrength === 3,
+                                        'text-blue-400': passwordStrength === 4,
+                                        'text-emerald-500': passwordStrength === 5
+                                    }">{{ strengthText.text }}</span>
+                                    <span class="text-xs text-slate-500">{{ passwordStrength }}/5</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="h-full transition-all duration-500 ease-out"
+                                        :class="strengthText.color"
+                                        :style="{ width: (passwordStrength * 20) + '%' }"></div>
+                                </div>
+                            </div>
+
+                            <!-- Password requirements -->
+                            <div v-if="form.password"
+                                class="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200 transition-all duration-300">
+                                <p class="text-xs text-slate-600 mb-2 font-medium">Password Requirements:</p>
+                                <ul class="text-xs text-slate-600 space-y-1 pl-1">
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': minLengthMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[minLengthMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        At least 8 characters
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasUpperCaseMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasUpperCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include uppercase letter (A-Z)
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasLowerCaseMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasLowerCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include lowercase letter (a-z)
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasNumberMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasNumberMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include number (0-9)
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasSpecialCharMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasSpecialCharMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include special character (!@#$%^&*)
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="relative">
+                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-slate-800 mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password_confirmation" 
+                                    v-model="form.password_confirmation" 
+                                    :type="showConfirmPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl bg-gray-100 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-500" 
+                                    placeholder="Confirm your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all duration-200"
+                                    @click="toggleConfirmPasswordVisibility">
+                                    <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                            </div>
+                            <InputError class="mt-2 text-red-600" :message="form.errors.password_confirmation" />
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button type="submit"
+                                class="w-full px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-2xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-lg disabled:opacity-50 disabled:transform-none"
+                                :disabled="form.processing">
+                                <span v-if="form.processing">Creating Account...</span>
+                                <span v-else>Create Graduate Account</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Institution Registration Form -->
+                <div v-else-if="currentStep === 'institution'" class="space-y-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-slate-800">Institution Registration</h3>
+                        <button @click="currentStep = 'user-level'"
+                                class="text-slate-600 hover:text-slate-800 p-2 rounded-xl bg-gray-100 border border-gray-200 transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-arrow-left text-lg"></i>
+                        </button>
+                    </div>
+                    
+                    <form @submit.prevent="submitInstitutionAccount" class="space-y-6">
+                        <div>
+                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-slate-800 mb-2" />
+                            <TextInput 
+                                id="email" 
+                                v-model="form.email" 
+                                type="email" 
+                                class="block w-full px-4 py-3 text-lg rounded-xl bg-gray-100 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-500" 
+                                placeholder="Enter institution email"
+                                required />
+                            <InputError class="mt-2 text-red-600" :message="form.errors.email" />
+                        </div>
+                        
+                        <div class="relative">
+                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-slate-800 mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password" 
+                                    v-model="form.password" 
+                                    :type="showPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl bg-gray-100 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-500" 
+                                    placeholder="Enter your password"
+                                    required
+                                    @input="updatePasswordStrength"
+                                />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all duration-200"
+                                    @click="togglePasswordVisibility">
+                                    <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                                <!-- Password strength indicator icon -->
+                                <span v-if="form.password && !showConfirmPassword" 
+                                      class="absolute inset-y-0 right-10 flex items-center pr-3 transition-all duration-300">
+                                    <i class="fas" :class="{
+                                        'fa-shield-alt text-emerald-500': passwordStrength === 5,
+                                        'fa-shield-alt text-blue-400': passwordStrength === 4,
+                                        'fa-shield-alt text-yellow-400': passwordStrength === 3,
+                                        'fa-shield-alt text-orange-400': passwordStrength === 2,
+                                        'fa-shield-alt text-red-400': passwordStrength === 1
+                                    }"></i>
+                                </span>
+                            </div>
+                            <InputError class="mt-2 text-red-600" :message="form.errors.password" />
+
+                            <!-- Password strength bar and text -->
+                            <div v-if="form.password" class="mt-3 mb-2">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs font-medium" :class="{
+                                        'text-red-400': passwordStrength === 1,
+                                        'text-orange-400': passwordStrength === 2,
+                                        'text-yellow-400': passwordStrength === 3,
+                                        'text-blue-400': passwordStrength === 4,
+                                        'text-emerald-500': passwordStrength === 5
+                                    }">{{ strengthText.text }}</span>
+                                    <span class="text-xs text-slate-500">{{ passwordStrength }}/5</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="h-full transition-all duration-500 ease-out"
+                                        :class="strengthText.color"
+                                        :style="{ width: (passwordStrength * 20) + '%' }"></div>
+                                </div>
+                            </div>
+
+                            <!-- Password requirements -->
+                            <div v-if="form.password"
+                                class="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200 transition-all duration-300">
+                                <p class="text-xs text-slate-600 mb-2 font-medium">Password Requirements:</p>
+                                <ul class="text-xs text-slate-600 space-y-1 pl-1">
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': minLengthMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[minLengthMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        At least 8 characters
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasUpperCaseMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasUpperCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include uppercase letter (A-Z)
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasLowerCaseMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasLowerCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include lowercase letter (a-z)
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasNumberMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasNumberMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include number (0-9)
+                                    </li>
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasSpecialCharMet}">
+                                        <i class="fas mr-1.5 text-xs transition-all duration-300" 
+                                            :class="[hasSpecialCharMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
+                                        Include special character (!@#$%^&*)
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="relative">
+                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-slate-800 mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password_confirmation" 
+                                    v-model="form.password_confirmation" 
+                                    :type="showConfirmPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl bg-gray-100 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-500" 
+                                    placeholder="Confirm your password"
+                                    required />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all duration-200"
+                                    @click="toggleConfirmPasswordVisibility">
+                                    <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                            </div>
+                            <InputError class="mt-2 text-red-600" :message="form.errors.password_confirmation" />
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button type="submit"
+                                class="w-full px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-2xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-lg disabled:opacity-50 disabled:transform-none"
+                                :disabled="form.processing">
+                                <span v-if="form.processing">Creating Account...</span>
+                                <span v-else>Create Institution Account</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Company Registration Form -->
+                <div v-else-if="currentStep === 'company'" class="space-y-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-slate-800">Company Registration</h3>
+                        <button @click="currentStep = 'user-level'"
+                                class="text-slate-600 hover:text-slate-800 p-2 rounded-xl bg-gray-100 border border-gray-200 transition-all duration-300 hover:scale-110">
+                            <i class="fas fa-arrow-left text-lg"></i>
+                        </button>
+                    </div>
+                    
+                    <form @submit.prevent="submitCompanyAccount" class="space-y-6">
+                        <div>
+                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-slate-800 mb-2" />
+                            <TextInput 
+                                id="email" 
+                                v-model="form.email" 
+                                type="email" 
+                                class="block w-full px-4 py-3 text-lg rounded-xl bg-gray-100 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-500" 
+                                placeholder="Enter company email"
+                                required />
+                            <InputError class="mt-2 text-red-600" :message="form.errors.email" />
+                        </div>
+                        
+                        <div class="relative">
+                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-slate-800 mb-2" />
+                            <div class="relative">
+                                <TextInput 
+                                    id="password" 
+                                    v-model="form.password" 
+                                    :type="showPassword ? 'text' : 'password'"
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl bg-gray-100 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-500" 
+                                    placeholder="Enter your password"
+                                    required
+                                    @input="updatePasswordStrength"
+                                />
+                                <button type="button"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all duration-200"
+                                    @click="togglePasswordVisibility">
+                                    <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
+                                </button>
+                                <!-- Password strength indicator icon -->
+                                <span v-if="form.password && !showConfirmPassword" 
+                                      class="absolute inset-y-0 right-10 flex items-center pr-3 transition-all duration-300">
+                                    <i class="fas" :class="{
+                                        'fa-shield-alt text-emerald-500': passwordStrength === 5,
+                                        'fa-shield-alt text-blue-400': passwordStrength === 4,
+                                        'fa-shield-alt text-yellow-400': passwordStrength === 3,
+                                        'fa-shield-alt text-orange-400': passwordStrength === 2,
+                                        'fa-shield-alt text-red-400': passwordStrength === 1
+                                    }"></i>
+                                </span>
+                            </div>
+                            <InputError class="mt-2 text-red-600" :message="form.errors.password" />
 
                             <!-- Password strength bar and text -->
                             <div v-if="form.password" class="mt-3 mb-2">
@@ -284,32 +551,32 @@ function updatePasswordStrength() {
 
                             <!-- Password requirements -->
                             <div v-if="form.password"
-                                class="mt-3 p-3 bg-white/10 rounded-md border border-white/20 transition-all duration-300">
-                                <p class="text-xs text-white/70 mb-2 font-medium">Password Requirements:</p>
-                                <ul class="text-xs text-white/70 space-y-1 pl-1">
-                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-200 font-medium': minLengthMet}">
+                                class="mt-3 p-3 bg-gray-50 rounded-md border border-gray-200 transition-all duration-300">
+                                <p class="text-xs text-slate-600 mb-2 font-medium">Password Requirements:</p>
+                                <ul class="text-xs text-slate-600 space-y-1 pl-1">
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': minLengthMet}">
                                         <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                                            :class="[minLengthMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-white/30']"></i> 
+                                            :class="[minLengthMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
                                         At least 8 characters
                                     </li>
-                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-200 font-medium': hasUpperCaseMet}">
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasUpperCaseMet}">
                                         <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                                            :class="[hasUpperCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-white/30']"></i> 
+                                            :class="[hasUpperCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
                                         Include uppercase letter (A-Z)
                                     </li>
-                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-200 font-medium': hasLowerCaseMet}">
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasLowerCaseMet}">
                                         <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                                            :class="[hasLowerCaseMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-white/30']"></i> 
+                                            :class="[hasLowerCaseMet ? 'fa-check-circle text-emerald-500' : 'ffa-circle text-slate-300']"></i> 
                                         Include lowercase letter (a-z)
                                     </li>
-                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-200 font-medium': hasNumberMet}">
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasNumberMet}">
                                         <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                                            :class="[hasNumberMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-white/30']"></i> 
+                                            :class="[hasNumberMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
                                         Include number (0-9)
                                     </li>
-                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-200 font-medium': hasSpecialCharMet}">
+                                    <li class="flex items-center transition-all duration-300" :class="{'text-blue-600 font-medium': hasSpecialCharMet}">
                                         <i class="fas mr-1.5 text-xs transition-all duration-300" 
-                                            :class="[hasSpecialCharMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-white/30']"></i> 
+                                            :class="[hasSpecialCharMet ? 'fa-check-circle text-emerald-500' : 'fa-circle text-slate-300']"></i> 
                                         Include special character (!@#$%^&*)
                                     </li>
                                 </ul>
@@ -317,171 +584,27 @@ function updatePasswordStrength() {
                         </div>
                         
                         <div class="relative">
-                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-white mb-2" />
+                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-slate-800 mb-2" />
                             <div class="relative">
                                 <TextInput 
                                     id="password_confirmation" 
                                     v-model="form.password_confirmation" 
                                     :type="showConfirmPassword ? 'text' : 'password'"
-                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
+                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl bg-gray-100 border border-gray-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-slate-800 placeholder-slate-500" 
                                     placeholder="Confirm your password"
                                     required />
                                 <button type="button"
-                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
+                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all duration-200"
                                     @click="toggleConfirmPasswordVisibility">
                                     <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
                                 </button>
                             </div>
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.password_confirmation" />
+                            <InputError class="mt-2 text-red-600" :message="form.errors.password_confirmation" />
                         </div>
                         
                         <div class="pt-4">
                             <button type="submit"
-                                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
-                                :disabled="form.processing">
-                                <span v-if="form.processing">Creating Account...</span>
-                                <span v-else>Create Graduate Account</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Institution Registration Form -->
-                <div v-else-if="currentStep === 'institution'" class="space-y-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-white enhanced-text">Institution Registration</h3>
-                        <button @click="currentStep = 'user-level'"
-                                class="text-white/80 hover:text-white hover:enhanced-text p-2 rounded-xl glass transition-all duration-300 hover:scale-110">
-                            <i class="fas fa-arrow-left text-lg"></i>
-                        </button>
-                    </div>
-                    
-                    <form @submit.prevent="submitInstitutionAccount" class="space-y-6">
-                        <div>
-                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-white mb-2" />
-                            <TextInput 
-                                id="email" 
-                                v-model="form.email" 
-                                type="email" 
-                                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
-                                placeholder="Enter institution email"
-                                required />
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.email" />
-                        </div>
-                        
-                        <div class="relative">
-                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
-                            <div class="relative">
-                                <TextInput 
-                                    id="password" 
-                                    v-model="form.password" 
-                                    :type="showPassword ? 'text' : 'password'"
-                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
-                                    placeholder="Enter your password"
-                                    required />
-                                <button type="button"
-                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
-                                    @click="togglePasswordVisibility">
-                                    <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
-                                </button>
-                            </div>
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.password" />
-                        </div>
-                        
-                        <div class="relative">
-                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-white mb-2" />
-                            <div class="relative">
-                                <TextInput 
-                                    id="password_confirmation" 
-                                    v-model="form.password_confirmation" 
-                                    :type="showConfirmPassword ? 'text' : 'password'"
-                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
-                                    placeholder="Confirm your password"
-                                    required />
-                                <button type="button"
-                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
-                                    @click="toggleConfirmPasswordVisibility">
-                                    <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
-                                </button>
-                            </div>
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.password_confirmation" />
-                        </div>
-                        
-                        <div class="pt-4">
-                            <button type="submit"
-                                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
-                                :disabled="form.processing">
-                                <span v-if="form.processing">Creating Account...</span>
-                                <span v-else>Create Institution Account</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Company Registration Form -->
-                <div v-else-if="currentStep === 'company'" class="space-y-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-white enhanced-text">Company Registration</h3>
-                        <button @click="currentStep = 'user-level'"
-                                class="text-white/80 hover:text-white hover:enhanced-text p-2 rounded-xl glass transition-all duration-300 hover:scale-110">
-                            <i class="fas fa-arrow-left text-lg"></i>
-                        </button>
-                    </div>
-                    
-                    <form @submit.prevent="submitCompanyAccount" class="space-y-6">
-                        <div>
-                            <InputLabel for="email" value="Email Address" class="text-lg font-semibold text-white mb-2" />
-                            <TextInput 
-                                id="email" 
-                                v-model="form.email" 
-                                type="email" 
-                                class="block w-full px-4 py-3 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
-                                placeholder="Enter company email"
-                                required />
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.email" />
-                        </div>
-                        
-                        <div class="relative">
-                            <InputLabel for="password" value="Password" class="text-lg font-semibold text-white mb-2" />
-                            <div class="relative">
-                                <TextInput 
-                                    id="password" 
-                                    v-model="form.password" 
-                                    :type="showPassword ? 'text' : 'password'"
-                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
-                                    placeholder="Enter your password"
-                                    required />
-                                <button type="button"
-                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
-                                    @click="togglePasswordVisibility">
-                                    <i :class="[showPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
-                                </button>
-                            </div>
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.password" />
-                        </div>
-                        
-                        <div class="relative">
-                            <InputLabel for="password_confirmation" value="Confirm Password" class="text-lg font-semibold text-white mb-2" />
-                            <div class="relative">
-                                <TextInput 
-                                    id="password_confirmation" 
-                                    v-model="form.password_confirmation" 
-                                    :type="showConfirmPassword ? 'text' : 'password'"
-                                    class="block w-full px-4 py-3 pr-12 text-lg rounded-xl glass border border-white/30 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 text-white placeholder-white/60" 
-                                    placeholder="Confirm your password"
-                                    required />
-                                <button type="button"
-                                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white hover:enhanced-text focus:outline-none transition-all duration-200"
-                                    @click="toggleConfirmPasswordVisibility">
-                                    <i :class="[showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye', 'text-lg']"></i>
-                                </button>
-                            </div>
-                            <InputError class="mt-2 text-blue-300" :message="form.errors.password_confirmation" />
-                        </div>
-                        
-                        <div class="pt-4">
-                            <button type="submit"
-                                class="w-full px-8 py-4 gradient-cta text-white text-lg font-bold rounded-2xl hover-blue transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-2xl disabled:opacity-50 disabled:transform-none animate-pulse-glow"
+                                class="w-full px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-2xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400 shadow-lg disabled:opacity-50 disabled:transform-none"
                                 :disabled="form.processing">
                                 <span v-if="form.processing">Creating Account...</span>
                                 <span v-else>Create Company Account</span>
@@ -495,104 +618,6 @@ function updatePasswordStrength() {
 </template>
 
 <style scoped>
-/* Modern gradient backgrounds */
-.gradient-bg {
-     background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-}
-
-.gradient-card {
-    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
-}
-
-.gradient-feature {
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-}
-
-.gradient-cta {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-}
-
-/* Floating animations */
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(-20px);
-    }
-}
-
-@keyframes float-reverse {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(20px);
-    }
-}
-
-.animate-float {
-    animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-reverse {
-    animation: float-reverse 4s ease-in-out infinite;
-}
-
-/* Pulse glow effect */
-@keyframes pulse-glow {
-    0%, 100% {
-        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
-    }
-}
-
-.animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* Morphing shapes */
-@keyframes morph {
-    0%, 100% {
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    }
-    50% {
-        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-    }
-}
-
-.animate-morph {
-    animation: morph 8s ease-in-out infinite;
-}
-
-/* Blue hover effects */
-.hover-blue:hover {
-    background: linear-gradient(45deg, #1e40af, #2563eb, #3b82f6, #60a5fa, #93c5fd, #dbeafe);
-    background-size: 400% 400%;
-    animation: blue-shift 2s ease infinite;
-}
-
-@keyframes blue-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Glass morphism effect */
-.glass {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Enhanced text */
-.enhanced-text {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 10px rgba(59, 130, 246, 0.2);
-}
-
 /* Smooth transitions */
 * {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

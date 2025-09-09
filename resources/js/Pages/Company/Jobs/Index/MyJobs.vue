@@ -64,36 +64,54 @@ const getStatusText = (status) => {
         
         <div class="p-4 flex flex-col md:flex-row md:items-center md:justify-between">
           <div class="flex-1 min-w-0 mb-3 md:mb-0 md:mr-4">
-            <div class="flex flex-col md:flex-row md:items-center">
-              <h3 class="text-lg font-semibold text-gray-800 hover:text-blue-600 truncate mr-2"
-                  :class="{ 'opacity-50': isActionLoading && activeJobId === job.id }"
-                  :aria-disabled="isActionLoading && activeJobId === job.id"
-                  role="button"
-                  tabindex="0"
-                  :aria-label="`View details for ${job.job_title}`">
-                  {{ job.job_title }}
+            <!-- Job Title and Job Type beside each other -->
+            <div class="flex items-center space-x-2">
+              <h3
+                class="text-lg font-semibold text-gray-800 hover:text-blue-600 truncate mr-2"
+                :class="{ 'opacity-50': isActionLoading && activeJobId === job.id }"
+                :aria-disabled="isActionLoading && activeJobId === job.id"
+                role="button"
+                tabindex="0"
+                :aria-label="`View details for ${job.job_title}`">
+                {{ job.job_title }}
               </h3>
-             <div class="flex flex-wrap items-center gap-x-4 text-sm text-gray-500">
+
+              <!-- Job Type beside title -->
+                <div v-if="job.job_types.length" class="flex items-center space-x-1">
+                <span
+                  v-for="type in job.job_types"
+                  :key="type.id"
+                  class="inline-block rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="{
+                  'bg-blue-100 text-blue-800': type.type === 'Full-time',
+                  'bg-green-100 text-green-800': type.type === 'Part-time',
+                  'bg-purple-100 text-purple-800': type.type === 'Contract',
+                  'bg-pink-100 text-pink-800': type.type === 'Internship',
+                  'bg-yellow-100 text-yellow-800': type.type === 'Freelance',
+                  'bg-gray-200 text-gray-700': !['Full-time','Part-time','Contract','Internship','Freelance'].includes(type.type)
+                  }"
+                >
+                  {{ type.type }}
+                </span>
+                </div>
+            </div>
+
+            <!-- Job Details Row: Location, Work Environment, Salary, Vacancies -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+              <!-- Location -->
               <div v-if="job.locations.length" class="flex items-center">
                 <i class="fas fa-map-marker-alt mr-1" aria-hidden="true"></i>
                 <span>{{ job.locations.map(loc => loc.address).join(', ') }}</span>
               </div>
+
+              <!-- Work Environment -->
               <div v-if="job.work_environments.length" class="flex items-center">
                 <i class="fas fa-briefcase mr-1" aria-hidden="true"></i>
                 <span>{{ job.work_environments.map(env => env.environment_type).join(', ') }}</span>
               </div>
-            </div>
-            </div>
-            
-            <!-- Job type and details -->
-            <div class="flex flex-wrap items-center mt-2 text-sm text-gray-600">
-              <div class="mr-4 mb-1">
-                <span class="inline-block bg-gray-100 rounded-full px-2 py-0.5 text-xs font-medium text-gray-800">
-                  {{ job.job_types.map(type => type.type).join(', ') }}
-                </span>
-              </div>
-              
-              <div v-if="job.salary" class="mr-4 mb-1 flex items-center text-sm text-gray-500">
+
+              <!-- Salary -->
+              <div v-if="job.salary" class="flex items-center text-sm text-gray-500">
                 <i class="fas fa-money-bill-wave mr-1" aria-hidden="true"></i>
                 <span>
                   <template v-if="job.salary.job_min_salary && job.salary.job_max_salary">
@@ -108,6 +126,16 @@ const getStatusText = (status) => {
                   <template v-if="job.salary.salary_type">
                     /{{ job.salary.salary_type }}
                   </template>
+                </span>
+              </div>
+
+              <!-- Vacancies -->
+              <div v-if="typeof job.vacancies === 'number' && job.vacancies >= 0" class="flex items-center">
+                <i class="fas fa-users mr-1" aria-hidden="true"></i>
+                <span>
+                  {{ job.vacancies }} 
+                  <span v-if="job.vacancies === 1">vacancy</span>
+                  <span v-else>vacancies</span>
                 </span>
               </div>
             </div>

@@ -44,6 +44,15 @@ function scheduleInterview(applicant) {
   // router.post(route('applicants.scheduleInterview', applicant.id), { scheduled_at: ... })
   router.get(route('applicants.show', applicant.id))
 }
+
+// (optional normalization)
+const isTerminalStage = (stage) => {
+  if (!stage) return false
+  const s = stage.toString().toLowerCase()
+  return ['hired','rejected','hire','reject','decline'].some(k => s.includes(k))
+}
+const isHired = (stage) => stage && stage.toString().toLowerCase().includes('hir')
+const isRejected = (stage) => stage && (stage.toString().toLowerCase().includes('reject') || stage.toString().toLowerCase().includes('decline'))
 </script>
 
 <template>
@@ -111,7 +120,20 @@ function scheduleInterview(applicant) {
 
           <!-- Pipeline -->
           <div>
-            <CandidatePipeline :stage="applicant.stage" />
+            <template v-if="!isTerminalStage(applicant.stage)">
+              <CandidatePipeline :stage="applicant.stage" />
+            </template>
+            <template v-else>
+              <span
+                class="inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                :class="{
+                  'bg-green-100 text-green-700': isHired(applicant.stage),
+                  'bg-red-100 text-red-700': isRejected(applicant.stage)
+                }"
+              >
+                {{ isHired(applicant.stage) ? 'Hired' : 'Rejected' }}
+              </span>
+            </template>
           </div>
 
           <!-- Date -->
