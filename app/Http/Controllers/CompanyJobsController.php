@@ -2,32 +2,33 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Job;
-use App\Models\User;
+use App\Models\Category;
+use App\Models\Department;
 use App\Models\Graduate;
-use App\Models\Sector;
-use App\Models\Program;
+use App\Models\Job;
 use App\Models\JobInvitation;
+use App\Models\JobType;
 use App\Models\Location;
+use App\Models\Program;
 use App\Models\Salary;
+use App\Models\Sector;
 use App\Models\Skill;
+use App\Models\User;
+use App\Models\WorkEnvironment;
 use App\Notifications\JobInviteNotification;
 use App\Notifications\NewJobPostingNotification;
 use App\Services\JobCreationService;
+use App\Services\ApplicantScreeningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Models\JobType;
-use App\Models\WorkEnvironment;
-use App\Models\Category;
-use App\Models\Department;
 use Illuminate\Support\Facades\Validator;
 
 
@@ -35,21 +36,14 @@ class CompanyJobsController extends Controller
 {
     public function index(User $user)
     {
-
-         $jobs = Job::with([
-            'jobTypes:id,type',
-            'locations:id,address',
-            'workEnvironments:id,environment_type',
-            'salary'
-        ])
-        ->where('company_id', $user->hr->company_id)
-        ->orderByRaw('is_approved DESC') // prioritize approved jobs
-        ->orderBy('created_at', 'desc')            // then by latest
-        ->get();
+        $jobs = Job::with(['salary','locations','workEnvironments','jobTypes'])
+            ->where('company_id', $user->hr->company_id)
+            ->orderByRaw('is_approved DESC')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
-        
         ]);
     }
 
@@ -160,6 +154,7 @@ class CompanyJobsController extends Controller
             // 'category' => 'required|exists:categories,id',
             'program_id' => 'required|array|min:1',
             'program_id.*' => 'exists:programs,id',
+            'sector_'
         ]);
 
         $user->loadMissing('hr');
@@ -173,10 +168,11 @@ class CompanyJobsController extends Controller
         // Notify graduates of the new job posting
         $this->notifyGraduates($new_job);
 
-        // Auto-invite qualified graduates based on skills/program
-        $this->autoInvite($new_job);
+        $invitedCount = $this->autoScreenAndInvite($new_job, 50);
 
-        return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
+        return redirect()
+            ->route('company.jobs', ['user' => $user->id])
+            ->with('flash.banner', "Job posted successfully. {$invitedCount} graduates auto-invited.");
     }
 
     public function batchPage()
@@ -695,40 +691,91 @@ class CompanyJobsController extends Controller
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job Archived successfully.');
     }
 
-    public function autoInvite(Job $job)
+    protected function autoScreenAndInvite(Job $job, int $threshold = 50): int
     {
-        $jobSkills = collect($job->skills)
-            ->map(fn($skill) => Str::lower($skill))
-            ->filter()
-            ->unique();
-        $jobProgramIds = $job->programs->pluck('id');
+        $service = new ApplicantScreeningService();
 
-        // Match graduates who have matching skills AND are from related programs
-        $qualifiedGraduates = Graduate::whereHas('user', function ($query) {
-            $query->where('role', 'graduate');
-        })
-            ->whereIn('program_id', $jobProgramIds)
-            ->whereHas('graduateSkills.skill', function ($query) use ($jobSkills) {
-                $query->whereIn(DB::raw('LOWER(name)'), $jobSkills);
+        $job->loadMissing(['company', 'programs']);
+        $companyUserId = $job->company->user_id
+            ?? $job->company_id
+            ?? $job->user_id;
+
+        // Track already invited graduates to avoid duplicates
+        $alreadyInvited = JobInvitation::where('job_id', $job->id)
+            ->pluck('graduate_id')
+            ->all();
+
+        $alreadyInvited = array_flip($alreadyInvited); // faster lookup
+
+        $notifyUsers = [];
+        $newInvites = 0;
+
+        // Optional narrowing: if job has programs, prefer grads whose education matches
+        $programIds = $job->programs->pluck('id');
+
+        Graduate::with([
+                'user',
+                'graduateSkills.skill',
+                'education.programRelation',
+                'experience',
+                'employmentPreference',
+            ])
+            ->when($programIds->isNotEmpty(), function ($q) use ($programIds) {
+                // FIX: use programRelation instead of nonexistent education.program
+                $q->whereHas('education.programRelation', function ($qq) use ($programIds) {
+                    $qq->whereIn('programs.id', $programIds);
+                });
             })
-            ->get();
+            ->chunk(200, function ($graduates) use (
+                $service,
+                $job,
+                $threshold,
+                $companyUserId,
+                &$alreadyInvited,
+                &$notifyUsers,
+                &$newInvites
+            ) {
+                foreach ($graduates as $graduate) {
+                    if (!$graduate->user) {
+                        continue;
+                    }
 
-        foreach ($qualifiedGraduates as $graduate) {
-            JobInvitation::updateOrCreate([
-                'job_id' => $job->id,
-                'graduate_id' => $graduate->id,
-            ], [
-                'company_id' => Auth::user()->hr->company_id,
-                'status' => 'pending',
-                'title' => 'You have been invited to apply to this job opportunity.',
-            ]);
+                    if (isset($alreadyInvited[$graduate->id])) {
+                        continue;
+                    }
 
-            if ($graduate->user) {
-                $graduate->user->notify(new JobInviteNotification($job));
-            }
+                    // Skip if already applied
+                    if (method_exists($graduate, 'jobApplications') &&
+                        $graduate->jobApplications()->where('job_id', $job->id)->exists()) {
+                        continue;
+                    }
+
+                    $result = $service->screen($graduate, $job);
+
+                    if (($result['match_percentage'] ?? 0) >= $threshold) {
+                        JobInvitation::firstOrCreate(
+                            [
+                                'job_id' => $job->id,
+                                'graduate_id' => $graduate->id,
+                            ],
+                            [
+                                'company_id' => $companyUserId,
+                                'status' => 'pending',
+                                'message' => 'You have been auto-invited based on a match score of ' . ($result['match_percentage'] ?? 0) . '%.',
+                            ]
+                        );
+                        $alreadyInvited[$graduate->id] = true;
+                        $notifyUsers[] = $graduate->user;
+                        $newInvites++;
+                    }
+                }
+            });
+
+        if (!empty($notifyUsers)) {
+            Notification::send($notifyUsers, new JobInviteNotification($job));
         }
 
-        return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skills and program.');
+        return $newInvites;
     }
 
     

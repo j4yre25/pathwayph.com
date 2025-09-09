@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import ApplicationMark from '@/Components/ApplicationMark.vue'
@@ -39,10 +39,18 @@ onMounted(() => {
 })
 
 const showNotifications = ref(false)
-const notifications = computed(() => usePage().props.notifications || [])
-const serverUnread = computed(() => usePage().props.notifications_count || 0)
+const rawNotifications = computed(() => usePage().props.notifications || [])
+const localNotifications = ref([])
 
-// Local override so we can instantly zero after marking read
+onMounted(() => {
+  localNotifications.value = JSON.parse(JSON.stringify(rawNotifications.value))
+})
+
+watch(rawNotifications, (nv) => {
+  localNotifications.value = JSON.parse(JSON.stringify(nv))
+})
+
+const serverUnread = computed(() => usePage().props.notifications_count || 0)
 const localUnread = ref(null)
 const unreadDisplay = computed(() =>
   localUnread.value !== null ? localUnread.value : serverUnread.value
@@ -53,12 +61,13 @@ const notifDropdown = ref(null)
 const marking = ref(false)
 
 async function markNotificationsRead() {
+  // Use the same endpoint as markAllNotifications (or keep if you add a separate route)
   if (marking.value) return
   marking.value = true
   try {
-    await axios.post(route('notifications.markAsRead'))
-    // Optimistically zero unread
+    await axios.post(route('notifications.markAll'))
     localUnread.value = 0
+    localNotifications.value = localNotifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }))
   } catch (e) {
     console.warn('Mark read failed', e)
   } finally {
@@ -122,13 +131,35 @@ const logout = () => {
 }
 
 console.log(page.props.permissions.canManageInstitution)
+
+async function openNotification(notif) {
+  try {
+    if (!notif.read_at) {
+      await axios.post(route('notifications.markOne', notif.id))
+      const idx = localNotifications.value.findIndex(n => n.id === notif.id)
+      if (idx !== -1) localNotifications.value[idx].read_at = new Date().toISOString()
+      if (unreadDisplay.value > 0) localUnread.value = Math.max(0, unreadDisplay.value - 1)
+    }
+    if (notif.link) window.location.href = notif.link
+  } catch (e) {
+    console.warn(e)
+  }
+}
+
+async function markAllNotifications() {
+  await axios.post(route('notifications.markAll'))
+  localUnread.value = 0
+  localNotifications.value = localNotifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }))
+}
+
+console.log(page.props.notifications)
 </script>
 
 <template>
   <div>
-    <Head :title="title" />
-
     <Banner />
+    
+    <Head :title="title" />
 
     <Modal v-model="showApprovalModal">
       <template #header>
@@ -403,26 +434,49 @@ console.log(page.props.permissions.canManageInstitution)
                       <button ref="notifBell" @click.stop="toggleNotifications"
                         class="relative focus:outline-none mr-3" aria-label="Notifications">
                         <i class="fas fa-bell text-xl"></i>
-                        <span v-if="notificationsCount"
+                        <div class="font-semibold">Notification</div>
+                        <span v-if="unreadDisplay"
                           class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-                          {{ notificationsCount }}
+                          {{ unreadDisplay }}
                         </span>
                       </button>
                       <div v-if="showNotifications"
                         class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50">
-                        <div v-if="notifications.length">
-                          <div v-for="notif in notifications" :key="notif.id"
-                            class="p-3 border-b last:border-b-0">
-                            <div class="font-semibold">{{ notif.title }}</div>
-                            <div class="text-sm text-gray-600">{{ notif.body }}</div>
-                            <div v-if="notif.certificate_path">
-                              <a :href="route('certificates.download', { filename: notif.certificate_path.split('/').pop() })"
-                                target="_blank">
-                                Download Certificate
-                              </a>
+                        <div v-if="localNotifications.length">
+                          <div class="flex justify-between items-center px-3 pt-3 pb-1">
+                            <div class="text-xs font-semibold text-gray-600">Notifications</div>
+                            <button
+                              class="text-[10px] text-indigo-600 hover:underline"
+                              @click.stop="markAllNotifications"
+                              v-if="unreadDisplay > 0"
+                            >Mark all read</button>
+                          </div>
+                          <div class="max-h-96 overflow-y-auto divide-y">
+                            <div
+                              v-for="notif in localNotifications"
+                              :key="notif.id"
+                              class="p-3 cursor-pointer hover:bg-gray-50"
+                              @click.stop="openNotification(notif)"
+                            >
+                              <div class="flex justify-between items-start gap-2">
+                                <div class="flex-1">
+                                  <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                    {{ notif.title }}
+                                  </div>
+                                  <div class="text-xs text-gray-600 mt-0.5" v-html="notif.body"></div>
+                                </div>
+                                <span
+                                  v-if="!notif.read_at"
+                                  class="inline-block w-2 h-2 rounded-full bg-indigo-500 mt-1"
+                                ></span>
+                              </div>
+                              <div class="text-[10px] text-gray-400 mt-1">{{ notif.created_at }}</div>
+                              <div v-if="notif.status === 'job_invite'" class="mt-2">
+                                <span class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-medium">
+                                  Job Invite
+                                </span>
+                              </div>
                             </div>
-                            <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
-
                           </div>
                         </div>
                         <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
@@ -474,9 +528,10 @@ console.log(page.props.permissions.canManageInstitution)
                       <button ref="notifBell" @click.stop="toggleNotifications"
                         class="relative focus:outline-none mr-3" aria-label="Notifications">
                         <i class="fas fa-bell text-xl"></i>
-                        <span v-if="notifications.length"
+                        <!-- OLD: span v-if="notifications.length" -->
+                        <span v-if="unreadDisplay"
                           class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-                          {{ notifications.length }}
+                          {{ unreadDisplay }}
                         </span>
                       </button>
                       <!-- Profile Photo -->
@@ -512,23 +567,41 @@ console.log(page.props.permissions.canManageInstitution)
                       <div v-if="showNotifications" ref="notifDropdown"
                         class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50"
                         style="top: 2.5rem;">
-                        <div v-if="notifications.length">
-                          <div v-for="notif in notifications" :key="notif.id"
-                            class="p-3 border-b last:border-b-0">
-                            <div class="font-semibold">{{ notif.title }}</div>
-                            <div class="text-sm text-gray-600">{{ notif.body }}</div>
-                            <a v-if="notif.certificate_path"
-                              :href="route('certificates.download', { filename: notif.certificate_path.split('/').pop() })"
-                              target="_blank"
-                              class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
-                                stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M12 16v-8m0 8l-4-4m4 4l4-4M4 20h16"></path>
-                              </svg>
-                              Download Certificate
-                            </a>
-                            <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
+                        <div v-if="localNotifications.length">
+                          <div class="flex justify-between items-center px-3 pt-3 pb-1">
+                            <div class="text-xs font-semibold text-gray-600">Notifications</div>
+                            <button
+                              class="text-[10px] text-indigo-600 hover:underline"
+                              @click.stop="markAllNotifications"
+                              v-if="unreadDisplay > 0"
+                            >Mark all read</button>
+                          </div>
+                          <div class="max-h-96 overflow-y-auto divide-y">
+                            <div
+                              v-for="notif in localNotifications"
+                              :key="notif.id"
+                              class="p-3 cursor-pointer hover:bg-gray-50"
+                              @click.stop="openNotification(notif)"
+                            >
+                              <div class="flex justify-between items-start gap-2">
+                                <div class="flex-1">
+                                  <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                    {{ notif.title }}
+                                  </div>
+                                  <div class="text-xs text-gray-600 mt-0.5" v-html="notif.body"></div>
+                                </div>
+                                <span
+                                  v-if="!notif.read_at"
+                                  class="inline-block w-2 h-2 rounded-full bg-indigo-500 mt-1"
+                                ></span>
+                              </div>
+                              <div class="text-[10px] text-gray-400 mt-1">{{ notif.created_at }}</div>
+                              <div v-if="notif.status === 'job_invite'" class="mt-2">
+                                <span class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-medium">
+                                  Job Invite
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <div v-else class="p-3 text-gray-500 text-center">No notifications</div>

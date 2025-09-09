@@ -384,6 +384,22 @@ onUnmounted(() => {
                 </div>
             </header>
 
+            <main class="min-h-screen flex flex-col items-center justify-center text-center px-4 z-20">
+                <!-- Hero Title -->
+                <h1 class="text-white font-extrabold text-6xl md:text-8xl leading-tight mb-4 enhanced-text ">
+                    Pathway
+                </h1>
+
+                <!-- Tagline -->
+                <h3 class="text-white font-bold text-3xl md:text-5xl leading-tight mb-8 animate-fade-in">
+                    Connect. Grow. <span class="text-blue-200 enhanced-text">Succeed.</span>
+                </h3>
+
+                <!-- Professional Tagline -->
+                <p class="text-white/90 text-xl md:text-2xl max-w-3xl mb-12 font-light ">
+                    The premier platform connecting <span class="text-blue-200 enhanced-text">Filipino talent</span> with <span class="text-blue-300 enhanced-text">global opportunities</span>.
+                </p>
+
             <main class="min-h-screen flex items-center px-4 z-20 relative">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-9 mb-9">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

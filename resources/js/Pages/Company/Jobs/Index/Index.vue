@@ -415,7 +415,8 @@ const form = useForm({
                         <div class="mt-1 text-sm">Click <span class="font-bold text-blue-600">Post Jobs</span> above to create your first job posting.</div>
                     </div>
                     <!-- Jobs exist, but none match filter -->
-                    <div v-else>
+
+                    <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <MyJobs
                             v-if="filteredJobs.length > 0"
                             :jobs="filteredJobs"
