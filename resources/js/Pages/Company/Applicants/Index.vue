@@ -27,40 +27,7 @@ const props = defineProps({
   },
 })
 
-const statsDisplay = computed(() => [
-  {
-    title: 'Total Applicants',
-    value: props.stats.total_applicants.toString(),
-    period: props.stats.this_month_label,
-    icon: 'fas fa-user-friends',
-    iconBg: 'bg-[#E9D5FF]',
-    iconColor: 'text-[#7C3AED]'
-  },
-  {
-    title: 'Total Hired',
-    value: props.stats.hired.toString(),
-    period: props.stats.this_month_label,
-    icon: 'fas fa-check-circle',
-    iconBg: 'bg-[#D1FAE5]',
-    iconColor: 'text-[#059669]'
-  },
-  {
-    title: 'Total Rejected',
-    value: props.stats.rejected.toString(),
-    period: props.stats.this_month_label,
-    icon: 'fas fa-times-circle',
-    iconBg: 'bg-[#FECACA]',
-    iconColor: 'text-[#DC2626]'
-  },
-  {
-    title: 'Interviews Scheduled',
-    value: props.stats.interviews.toString(),
-    period: props.stats.this_month_label,
-    icon: 'fas fa-calendar-alt',
-    iconBg: 'bg-[#FEF3C7]',
-    iconColor: 'text-[#B45309]'
-  },
-])
+// Stats are now displayed using direct props access in template
 
 const filters = ref({ ...props.filters, keywords: '' })
 
@@ -193,166 +160,239 @@ onBeforeUnmount(()=> document.removeEventListener('keydown', escListener))
     </template>
 
     <Container class="py-8">
-      <!-- Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div
-          v-for="(stat, index) in statsDisplay"
-          :key="index"
-          class="bg-white rounded-lg p-4 border border-gray-200 relative overflow-hidden"
-        >
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-sm text-gray-500 mb-1">{{ stat.title }}</p>
-              <p class="text-2xl font-bold">{{ stat.value }}</p>
-              <p class="text-xs text-gray-400 mt-1">{{ stat.period }}</p>
+      <!-- Stats Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <!-- Total Applicants -->
+        <div class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-user-friends text-white text-xl"></i>
             </div>
-            <div :class="[stat.iconBg,'rounded-full p-3 flex items-center justify-center']">
-              <i :class="[stat.icon, stat.iconColor]"></i>
-            </div>
+            <h3 class="text-purple-700 text-sm font-medium mb-2">Total Applicants</h3>
+            <p class="text-3xl font-bold text-purple-700">{{ props.stats.total_applicants }}</p>
           </div>
         </div>
-        <div class="flex gap-6 mb-6">
-          <div class="bg-white rounded-lg shadow p-4 flex-1 text-center">
-            <div class="text-lg font-bold">Average Match %</div>
-            <div class="text-3xl font-extrabold text-indigo-600">
-              {{ averageMatchPercent }}%
+
+        <!-- Total Hired -->
+        <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-check-circle text-white text-xl"></i>
             </div>
-            <div class="text-xs text-gray-500">Across all applicants</div>
+            <h3 class="text-green-800 text-sm font-medium mb-2">Total Hired</h3>
+            <p class="text-3xl font-bold text-green-900">{{ props.stats.hired }}</p>
+          </div>
+        </div>
+
+        <!-- Total Rejected -->
+        <div class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-times-circle text-white text-xl"></i>
+            </div>
+            <h3 class="text-red-700 text-sm font-medium mb-2">Total Rejected</h3>
+            <p class="text-3xl font-bold text-red-900">{{ props.stats.rejected }}</p>
+          </div>
+        </div>
+
+        <!-- Interviews -->
+        <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-comments text-white text-xl"></i>
+            </div>
+            <h3 class="text-blue-700 text-sm font-medium mb-2">Interviews</h3>
+            <p class="text-3xl font-bold text-blue-700">{{ props.stats.interviews }}</p>
+          </div>
+        </div>
+
+        <!-- Average Match % -->
+        <div class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-percentage text-white text-xl"></i>
+            </div>
+            <h3 class="text-indigo-700 text-sm font-medium mb-2">Average Match</h3>
+            <p class="text-3xl font-bold text-indigo-700">{{ averageMatchPercent }}%</p>
           </div>
         </div>
       </div>
 
       <!-- Filters -->
-      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
-        <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
-          <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
-            <div class="flex flex-wrap gap-4">
-              <!-- Search -->
-              <div class="flex flex-col">
-                <label class="text-sm font-medium mb-1">Search</label>
-                <input
-                  v-model="filters.keywords"
-                  @input="applyFilters"
-                  placeholder="Applicants, job title, or result"
-                  class="border px-2 py-1 rounded w-56"
-                  type="text"
-                />
-              </div>
-
-              <!-- Job -->
-              <div class="flex flex-col">
-                <label class="text-sm font-medium mb-1">Job Position</label>
-                <select v-model="filters.job_id" @change="applyFilters" class="border px-2 py-1 rounded w-48">
-                  <option value="">All Positions</option>
-                  <option v-for="job in jobs || []" :key="job.id" :value="job.id">
-                    {{ job.job_title || job.title }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Screening Result -->
-              <div class="flex flex-col">
-                <label class="text-sm font-medium mb-1">Screening Result</label>
-                <select v-model="filters.screening_label" @change="applyFilters" class="border px-2 py-1 rounded w-44">
-                  <option value="">All Results</option>
-                  <option value="Shortlisted">Shortlisted</option>
-                  <option value="Review Further">Review Further</option>
-                  <option value="Not Recommended">Not Recommended</option>
-                </select>
-              </div>
-
-              <!-- Match % -->
-              <div class="flex flex-col">
-                <label class="text-sm font-medium mb-1">Match %</label>
-                <select v-model="filters.match_range" @change="applyFilters" class="border px-2 py-1 rounded w-40">
-                  <option value="">All</option>
-                  <option value="70">70% +</option>
-                  <option value="30">30% - 69%</option>
-                  <option value="lt30">&lt; 30%</option>
-                </select>
-              </div>
-
-              <!-- Stage -->
-              <div class="flex flex-col">
-                <label class="text-sm font-medium mb-1">Stage</label>
-                <select v-model="filters.stage" @change="applyFilters" class="border px-2 py-1 rounded w-40">
-                  <option value="">All Stages</option>
-                  <option value="applied">Applied</option>
-                  <option value="screening">Screening</option>
-                  <option value="assessment">Assessment</option>
-                  <option value="interview">Interview</option>
-                  <option value="offer">Offer</option>
-                  <option value="hired">Hired</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-              </div>
-
-              <!-- Applied Date Preset -->
-              <div class="flex flex-col">
-                <label class="text-sm font-medium mb-1">Applied Date</label>
-                <select
-                  v-model="selectedAppliedDate"
-                  @change="() => { if(selectedAppliedDate !== 'custom'){ customFromDate=''; customToDate=''; } applyFilters(); }"
-                  class="border px-2 py-1 rounded w-44"
-                >
-                  <option value="">All Dates</option>
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="3months">Last 3 Months</option>
-                  <option value="custom">Custom Range…</option>
-                </select>
-
-                <!-- Custom Range -->
-                <div v-if="selectedAppliedDate === 'custom'" class="flex gap-2 mt-2">
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600">From</label>
-                    <input
-                      type="date"
-                      v-model="customFromDate"
-                      @change="applyFilters"
-                      class="border px-2 py-1 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600">To</label>
-                    <input
-                      type="date"
-                      v-model="customToDate"
-                      :min="customFromDate || undefined"
-                      @change="applyFilters"
-                      class="border px-2 py-1 rounded"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Reset + Customize -->
-              <div class="flex flex-col justify-end space-y-2">
-                <button
-                  class="mt-5 text-xs text-gray-600 hover:underline"
-                  @click="resetFilters"
-                  type="button"
-                >
-                  Reset Filters
-                </button>
-                <button
-                  class="text-xs text-indigo-600 hover:underline font-medium"
-                  type="button"
-                  @click="showStageManager = true"
-                >
-                  Customize Stage Order
-                </button>
-              </div>
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 flex items-center">
+          <i class="fas fa-filter text-blue-500 mr-2"></i>
+          <div>
+        <h3 class="font-medium text-gray-700">Search & Filter</h3>
+        <p class="text-sm text-gray-500">Find applicants by criteria below</p>
+          </div>
+          <div class="ml-auto">
+        <button
+          class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300"
+          @click="resetFilters"
+          type="button"
+        >
+          <i class="fas fa-undo mr-2"></i> Reset Filters
+        </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <!-- Search Input -->
+        <div>
+          <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <i class="fas fa-search text-gray-400"></i>
             </div>
+            <input
+          id="search"
+          v-model="filters.keywords"
+          @input="applyFilters"
+          type="text"
+          placeholder="Applicants, job title, or result"
+          class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+            />
+          </div>
+        </div>
+
+        <!-- Job Position Dropdown -->
+        <div>
+          <label for="jobPosition" class="block text-sm font-medium text-gray-700 mb-1">Job Position</label>
+          <div class="relative">
+            <select
+          id="jobPosition"
+          v-model="filters.job_id"
+          @change="applyFilters"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+          <option value="">All Positions</option>
+          <option v-for="job in jobs || []" :key="job.id" :value="job.id">
+            {{ job.job_title || job.title }}
+          </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Screening Result Dropdown -->
+        <div>
+          <label for="screeningResult" class="block text-sm font-medium text-gray-700 mb-1">Screening Result</label>
+          <div class="relative">
+            <select
+          id="screeningResult"
+          v-model="filters.screening_label"
+          @change="applyFilters"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+          <option value="">All Results</option>
+          <option value="Shortlisted">Shortlisted</option>
+          <option value="Review Further">Review Further</option>
+          <option value="Not Recommended">Not Recommended</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Match % Dropdown -->
+        <div>
+          <label for="matchPercent" class="block text-sm font-medium text-gray-700 mb-1">Match %</label>
+          <div class="relative">
+            <select
+          id="matchPercent"
+          v-model="filters.match_range"
+          @change="applyFilters"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+          <option value="">All</option>
+          <option value="70">70% +</option>
+          <option value="30">30% - 69%</option>
+          <option value="lt30">&lt; 30%</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Stage Dropdown -->
+        <div>
+          <label for="stage" class="block text-sm font-medium text-gray-700 mb-1">Stage</label>
+          <div class="relative">
+            <select
+          id="stage"
+          v-model="filters.stage"
+          @change="applyFilters"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+          <option value="">All Stages</option>
+          <option value="applied">Applied</option>
+          <option value="screening">Screening</option>
+          <option value="assessment">Assessment</option>
+          <option value="interview">Interview</option>
+          <option value="offer">Offer</option>
+          <option value="hired">Hired</option>
+          <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Applied Date Preset Dropdown -->
+        <div>
+          <label for="appliedDate" class="block text-sm font-medium text-gray-700 mb-1">Applied Date</label>
+          <div class="relative">
+            <select
+          id="appliedDate"
+          v-model="selectedAppliedDate"
+          @change="() => { if(selectedAppliedDate !== 'custom'){ customFromDate=''; customToDate=''; } applyFilters(); }"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+          <option value="">All Dates</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="3months">Last 3 Months</option>
+          <option value="custom">Custom Range…</option>
+            </select>
+          </div>
+          <!-- Custom Range Fields -->
+          <div v-if="selectedAppliedDate === 'custom'" class="flex gap-2 mt-2">
+            <div>
+          <label class="block text-xs font-medium text-gray-600">From</label>
+          <input
+            type="date"
+            v-model="customFromDate"
+            @change="applyFilters"
+            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+          />
+            </div>
+            <div>
+          <label class="block text-xs font-medium text-gray-600">To</label>
+          <input
+            type="date"
+            v-model="customToDate"
+            :min="customFromDate || undefined"
+            @change="applyFilters"
+            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+          />
+            </div>
+          </div>
+        </div>
+
+        <!-- Customize Stage Order Button -->
+        <div class="flex flex-col justify-end">
+          <button
+            class="text-xs text-indigo-600 hover:underline font-medium mt-2"
+            type="button"
+            @click="showStageManager = true"
+          >
+            <i class="fas fa-cogs mr-1"></i>
+            Customize Stage Order
+          </button>
+        </div>
           </div>
         </div>
       </div>
 
-      <!-- List -->
+      <!-- Applicants List -->
       <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div class="flex items-center">
-          <h3 class="text-lg font-semibold p-4 border-b border-gray-200">List of Applicants</h3>
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">List of Applicants</h3>
         </div>
         <ListOfApplicants
           :jobs="jobs"

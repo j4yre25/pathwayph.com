@@ -176,6 +176,21 @@ const resetForm = () => {
                 <InputError :message="form.errors['social_links.linkedin']" class="mt-1" />
               </div>
 
+              <div class="relative">
+                <label for="indeed-url" class="block text-gray-700 font-medium mb-1">Indeed Profile</label>
+                <div class="relative">
+                  <i class="fab fa-info absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  <TextInput
+                    id="indeed-url"
+                    v-model="form.social_links.indeed"
+                    type="url"
+                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                    placeholder="https://indeed.com/company/yourcompany"
+                  />
+                </div>
+                <InputError :message="form.errors['social_links.indeed']" class="mt-1" />
+              </div>
+
               <!-- Instagram -->
               <div class="relative">
                 <label for="instagram-url" class="block text-gray-700 font-medium mb-1">Instagram Profile</label>
@@ -210,7 +225,7 @@ const resetForm = () => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- First Name -->
             <div>
-              <label for="peso_first_name" class="block text-gray-700 font-medium mb-1">Full Name *</label>
+              <label for="peso_first_name" class="block text-gray-700 font-medium mb-1">First Name <span class="text-red-500">*</span></label>
               <div class="relative">
                 <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <TextInput
@@ -226,7 +241,7 @@ const resetForm = () => {
             </div>
             <!-- Last Name -->
             <div>
-              <label for="peso_last_name" class="block text-gray-700 font-medium mb-1">Last Name</label>
+              <label for="peso_last_name" class="block text-gray-700 font-medium mb-1">Last Name <span class="text-red-500">*</span></label>
               <div class="relative">
                 <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <TextInput
@@ -241,7 +256,7 @@ const resetForm = () => {
             </div>
             <!-- Email -->
             <div>
-              <label for="email" class="block text-gray-700 font-medium mb-1">Email Address *</label>
+              <label for="email" class="block text-gray-700 font-medium mb-1">Email Address <span class="text-red-500">*</span></label>
               <div class="relative">
                 <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <TextInput
@@ -257,7 +272,7 @@ const resetForm = () => {
             </div>
             <!-- Contact Number -->
             <div>
-              <label for="contact_number" class="block text-gray-700 font-medium mb-1">Phone Number *</label>
+              <label for="contact_number" class="block text-gray-700 font-medium mb-1">Phone Number <span class="text-red-500">*</span></label>
               <div class="relative">
                 <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <TextInput

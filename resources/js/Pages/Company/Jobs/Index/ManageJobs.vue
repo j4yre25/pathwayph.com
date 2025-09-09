@@ -177,12 +177,25 @@ const getStatusText = (status) => {
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Pending';
 };
 
+const goTo = (url) => {
+    router.get(url); // Use Inertia's router to navigate to the next/previous page
+};
+
+const goBack = () => {
+    window.history.back();
+};
+
 </script>
 
 <template>
   <AppLayout title="Manage Jobs">
     <template #header>
-      <div class="flex items-center justify-between">
+      <div class="flex items-center">
+        <button 
+            @click="goBack"
+            class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
+            <i class="fas fa-chevron-left"></i>
+        </button>
         <h2 class="font-semibold text-xl text-gray-800 leading-tight flex items-center">
           <i class="fas fa-briefcase text-blue-500 mr-2"></i> Manage Jobs
         </h2>
@@ -190,214 +203,266 @@ const getStatusText = (status) => {
       </div>
     </template>
 
-    <Container class="py-6">
+    <Container class="py-6 ">
       <!-- Search and filters section -->
-      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6 shadow-sm">
-          <div class="p-4 border-b border-gray-200">
-              <h3 class="text-lg font-semibold text-gray-800">Search & Filter</h3>
-          </div>
-          <div class="p-4">
-              <div class="flex justify-end mb-2">
-                  <PrimaryButton
-                      class="bg-blue-200 text-gray-700 hover:bg-gray-300 border-none px-4 py-2 rounded"
-                      @click="resetFilters"
-                  >
-                      <i class="fas fa-undo mr-2"></i> Reset Filters
-                  </PrimaryButton>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <!-- Search Input -->
-                  <div>
-                      <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                      <div class="relative">
-                          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                              <i class="fas fa-search text-gray-400"></i>
-                          </div>
-                          <input 
-                              id="search"
-                              v-model="searchQuery" 
-                              type="text" 
-                              placeholder="Search jobs..." 
-                              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm"
-                          />
-                      </div>
-                  </div>
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-200 flex items-center">
+          <i class="fas fa-filter text-blue-500 mr-2"></i>
+        <div>
+            <h3 class="font-medium text-gray-700">Search & Filter</h3>
+            <p class="text-sm text-gray-500">Manage jobs by criteria below</p>
+        </div>
+        <div class="ml-auto">
+        <Button
+            class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300"
+            @click="resetFilters">
+            <i class="fas fa-undo mr-2"></i> Reset Filters
+        </Button>
+        </div>
+        </div>
+        <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Search Input -->
+            <div>
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <i class="fas fa-search text-gray-400"></i>
+            </div>
+            <input 
+                id="search"
+                v-model="searchQuery" 
+                type="text" 
+                placeholder="Search jobs..." 
+                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+            />
+            </div>
+            </div>
 
-                  <!-- Job Type Dropdown -->
-                  <div>
-                      <label for="jobType" class="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
-                      <div class="relative">
-                          <select 
-                              id="jobType"
-                              v-model="selectedJobType" 
-                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                          >
-                              <option value="">All Employment Types</option>
-                              <option value="1">Full-time</option>
-                              <option value="2">Part-time</option>
-                              <option value="3">Contract</option>
-                              <option value="4">Freelance</option>
-                              <option value="5">Internship</option>
-                          </select>
-                      </div>
-                  </div>
+            <!-- Job Type Dropdown -->
+            <div>
+            <label for="jobType" class="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
+            <div class="relative">
+            <select 
+                id="jobType"
+                v-model="selectedJobType" 
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+                <option value="">All Employment Types</option>
+                <option value="1">Full-time</option>
+                <option value="2">Part-time</option>
+                <option value="3">Contract</option>
+                <option value="4">Freelance</option>
+                <option value="5">Internship</option>
+            </select>
+            </div>
+            </div>
 
-                  <!-- Work Environment Dropdown -->
-                  <div>
-                      <label for="workEnv" class="block text-sm font-medium text-gray-700 mb-1">Work Environment</label>
-                      <div class="relative">
-                          <select 
-                              id="workEnv"
-                              v-model="selectedWorkEnvironment" 
-                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                          >
-                              <option v-for="option in workEnvironmentOptions" :key="option.value" :value="option.value">
-                                  {{ option.label }}
-                              </option>
-                          </select>
-                      </div>
-                  </div>
+            <!-- Work Environment Dropdown -->
+            <div>
+            <label for="workEnv" class="block text-sm font-medium text-gray-700 mb-1">Work Environment</label>
+            <div class="relative">
+            <select 
+                id="workEnv"
+                v-model="selectedWorkEnvironment" 
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+                <option v-for="option in workEnvironmentOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+                </option>
+            </select>
+            </div>
+            </div>
 
-                  <!-- Status Dropdown -->
-                  <div>
-                      <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                      <div class="relative">
-                          <select 
-                              id="status"
-                              v-model="selectedStatus" 
-                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                          >
-                              <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                                  {{ option.label }}
-                              </option>
-                          </select>
-                      </div>
-                  </div>
+            <!-- Status Dropdown -->
+            <div>
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <div class="relative">
+            <select 
+                id="status"
+                v-model="selectedStatus" 
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+                </option>
+            </select>
+            </div>
+            </div>
 
-                  <!-- Experience Level Dropdown -->
-                  <div>
-                      <label for="expLevel" class="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
-                      <div class="relative">
-                          <select 
-                              id="expLevel"
-                              v-model="selectedExperienceLevel" 
-                              class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                          >
-                              <option v-for="option in experienceLevelOptions" :key="option.value" :value="option.value">
-                                  {{ option.label }}
-                              </option>
-                          </select>
-                      </div>
-                  </div>
-                  <div>
-                    <label for="openDate" class="block text-sm font-medium text-gray-700 mb-1">
-                        Posted Date
-                    </label>
-                    <div class="relative">
-                        <select 
-                        id="openDate"
-                        v-model="selectedOpenDate" 
-                        class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none 
-                                focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                        >
-                            <option value="">All Dates</option>
-                            <option value="today">Opened Today</option>
-                            <option value="week">Opened This Week</option>
-                            <option value="month">Opened This Month</option>
-                            <option value="3months">Opened in Last 3 Months</option>
-                            <option value="custom">Custom Range…</option>
-                        </select>
-                    </div>
-                    <!-- Custom Range Fields -->
-                    <div v-if="selectedOpenDate === 'custom'" class="flex gap-2 mt-2">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600">From</label>
-                            <input 
-                            type="date" 
-                            v-model="customFromDate" 
-                            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600">To</label>
-                            <input 
-                            type="date" 
-                            v-model="customToDate" 
-                            class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                    </div>
-                </div>
-              </div>
-          </div>
-      </div>
+            <!-- Experience Level Dropdown -->
+            <div>
+            <label for="expLevel" class="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+            <div class="relative">
+            <select 
+                id="expLevel"
+                v-model="selectedExperienceLevel" 
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+                <option v-for="option in experienceLevelOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+                </option>
+            </select>
+            </div>
+            </div>
+            <div>
+            <label for="openDate" class="block text-sm font-medium text-gray-700 mb-1">
+            Posted Date
+            </label>
+            <div class="relative">
+            <select 
+            id="openDate"
+            v-model="selectedOpenDate" 
+            class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none 
+                focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
+            >
+                <option value="">All Dates</option>
+                <option value="today">Opened Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="3months">In Last 3 Months</option>
+                <option value="custom">Custom Range…</option>
+            </select>
+            </div>
+            <!-- Custom Range Fields -->
+            <div v-if="selectedOpenDate === 'custom'" class="flex gap-2 mt-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-600">From</label>
+                <input 
+                type="date" 
+                v-model="customFromDate" 
+                class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600">To</label>
+                <input 
+                type="date" 
+                v-model="customToDate" 
+                :min="customFromDate || undefined"
+                class="border border-gray-300 rounded px-2 py-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+            </div>
+            </div>
+        </div>
+        </div>
+        </div>
+
+      <!-- Spacing between filter and job list -->
+      <div class="h-8"></div>
 
       <!-- Jobs grid layout -->
-      <div v-if="filteredJobs.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="job in filteredJobs" :key="job.id" class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-300">
-          <!-- Job card header -->
-          <div class="bg-blue-50 p-4 border-b border-gray-200">
-            <div class="flex justify-between items-start">
-              <h3 class="text-lg font-semibold text-blue-800 truncate" :title="job.job_title">{{ job.job_title }}</h3>
-              <span :class="getStatusClass(job.status)" class="px-2 py-1 text-xs font-medium rounded-full">
-                {{ getStatusText(job.status) }}
-              </span>
-            </div>
-            <div class="mt-2 text-sm text-gray-600 flex items-center">
-              <i class="fas fa-map-marker-alt text-gray-500 mr-1"></i>
-              <span>
-                <template v-if="String(job.work_environment) === '2'">
-                  Remote
-                </template>
-                <template v-else>
-                  {{ job.locations && job.locations.length > 0 ? job.locations.map(loc => loc.address).join(', ') : '—' }}
-                </template>
-              </span>
-            </div>
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden 8xl" v-if="filteredJobs.length > 0">
+        <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div class="flex items-center">
+        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+          <i class="fas fa-table text-white"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-800">Job List</h3>
           </div>
-          
-          <!-- Job card body -->
-          <div class="p-4">
-            <div class="grid grid-cols-3  text-sm">
-              <div class="flex items-center">
-                <i class="fas fa-briefcase text-blue-500 mr-2"></i>
-                <span class="text-gray-700">{{ job.job_types.map(type => type.type).join(', ') }}</span>
-              </div>
-              <div class="flex items-center">
-                <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
-                <span class="text-gray-700">{{ job.job_experience_level }}</span>
-              </div>
-              <div class="flex items-center ml-5">
-                <i class="fas fa-globe text-blue-500 mr-2"></i>
-                <span class="text-gray-700">
-                  {{
-                    job.work_environment == 1 ? 'On-site'
-                    : job.work_environment == 2 ? 'Remote'
-                    : job.work_environment == 3 ? 'Hybrid'
-                    : '—'
-                  }}
-                </span>
-              </div>
-            </div>
-            
-            <!-- Action buttons -->
-            <div class="mt-4 flex flex-wrap gap-2">
-              <Link :href="route('company.jobs.view', { job: job.id })" class="inline-flex items-center px-3 py-1.5 bg-blue-600 border border-transparent rounded-md font-medium text-xs text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150">
-                <i class="fas fa-eye mr-1"></i> View
-              </Link>
-              <Link :href="route('company.jobs.edit', { job: job.id })" class="inline-flex items-center px-3 py-1.5 bg-green-600 border border-transparent rounded-md font-medium text-xs text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-150">
-                <i class="fas fa-edit mr-1"></i> Edit
-              </Link>
-              <button 
-                @click="confirmArchive(job)" 
-                :disabled="isActionLoading && activeJobId === job.id"
-                class="inline-flex items-center px-3 py-1.5 bg-red-600 border border-transparent rounded-md font-medium text-xs text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-archive mr-1"></i>
-                <span v-if="isActionLoading && activeJobId === job.id">Processing...</span>
-                <span v-else>Archive</span>
-              </button>
-            </div>
-          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
+              <tr>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Title</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Experience</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Work Environment</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vacancies</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Posted</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 bg-white">
+              <tr v-for="job in filteredJobs" :key="job.id" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <span class="text-sm font-semibold text-gray-900 truncate" :title="job.job_title">{{ job.job_title }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm text-gray-700">{{ job.job_types.map(type => type.type).join(', ') }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm text-gray-700">{{ job.job_experience_level }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm text-gray-700">
+                    {{
+                      job.work_environment == 1 ? 'On-site'
+                      : job.work_environment == 2 ? 'Remote'
+                      : job.work_environment == 3 ? 'Hybrid'
+                      : '—'
+                    }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm text-gray-700">
+                    <template v-if="String(job.work_environment) === '2'">
+                      Remote
+                    </template>
+                    <template v-else>
+                      {{ job.locations && job.locations.length > 0 ? job.locations.map(loc => loc.address).join(', ') : '—' }}
+                    </template>
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm text-gray-700">
+                    {{ job.no_of_vacancies !== undefined ? job.no_of_vacancies : '—' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="text-sm text-gray-600">{{ new Date(job.created_at).toLocaleDateString() }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span :class="getStatusClass(job.status)" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border shadow-sm">
+                    <i :class="job.status === 'open' ? 'fas fa-check-circle mr-1.5' : job.status === 'closed' ? 'fas fa-times-circle mr-1.5' : 'fas fa-clock mr-1.5'"></i>
+                    {{ getStatusText(job.status) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex justify-center gap-2">
+                    <Link
+                      :href="route('company.jobs.view', { job: job.id })"
+                      class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-full font-medium text-xs text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-150"
+                    >
+                      <i class="fas fa-eye mr-1"></i>
+                    </Link>
+                    <Link
+                      :href="route('company.jobs.edit', { job: job.id })"
+                      class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-full font-medium text-xs text-gray-700 hover:bg-green-600 hover:text-white hover:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-150"
+                    >
+                      <i class="fas fa-edit mr-1"></i>
+                    </Link>
+                    <button
+                      @click="confirmArchive(job)"
+                      :disabled="isActionLoading && activeJobId === job.id"
+                      class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-full font-medium text-xs text-gray-700 hover:bg-red-600 hover:text-white hover:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <i class="fas fa-archive mr-1"></i>
+                      <span v-if="isActionLoading && activeJobId === job.id">Processing...</span>
+                      <span v-else></span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="filteredJobs.length === 0">
+                <td colspan="9" class="px-6 py-12 text-center">
+                  <div class="flex flex-col items-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <i class="fas fa-search text-gray-400 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-500 text-lg font-medium">No jobs found</p>
+                    <p class="text-gray-400 text-sm mt-1">Try adjusting your search criteria</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
