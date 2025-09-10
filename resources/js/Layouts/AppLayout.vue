@@ -228,6 +228,7 @@ console.log(page.props.notifications)
                   :disabled="!page.props.auth.user.is_approved">
                   Reports
                 </NavLink>
+
               </div>
 
               <!-- Graduate Navigation Links -->

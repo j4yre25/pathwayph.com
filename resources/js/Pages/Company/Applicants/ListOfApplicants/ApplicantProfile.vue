@@ -1009,27 +1009,18 @@ const referralCerts = computed(() => props.referralCertificates || [])
                     <div class="space-y-1">
                       <div class="text-sm font-medium text-gray-800 flex items-center gap-2">
                         <i class="fas fa-file-certificate text-indigo-500"></i>
-                        {{ rc.file_name }}
+                        {{ rc.file_name || 'Certificate' }}
                       </div>
                       <div class="text-[11px] text-gray-500">
                         Uploaded: {{ rc.uploaded_at ? formatShortDate(rc.uploaded_at) : 'N/A' }}
                       </div>
                       <div v-if="rc.file_url" class="flex gap-3 text-xs mt-1">
-                        <a
-                          :href="rc.file_url"
-                          target="_blank"
-                          class="text-indigo-600 hover:underline font-medium"
-                        >View</a>
-                        <a
-                          :href="rc.file_url"
-                          download
-                          class="text-indigo-600 hover:underline font-medium"
-                        >Download</a>
+                        <a :href="rc.file_url" target="_blank" class="text-indigo-600 hover:underline font-medium">View</a>
+                        <a :href="rc.file_url" download class="text-indigo-600 hover:underline font-medium">Download</a>
                       </div>
-                      <div v-else class="text-xs text-red-500">File missing ({{ rc.raw_path }})</div>
-                    </div>
-                    <div v-if="rc.file_url && rc.file_name.endsWith('.pdf')" class="hidden md:block w-20 h-24 border rounded overflow-hidden bg-white">
-                      <iframe :src="rc.file_url" class="w-full h-full"></iframe>
+                      <div v-else class="text-xs text-red-500">
+                        File not publicly accessible. 
+                      </div>
                     </div>
                   </div>
                 </div>

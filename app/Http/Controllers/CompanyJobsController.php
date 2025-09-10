@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 
 class CompanyJobsController extends Controller
@@ -165,10 +166,11 @@ class CompanyJobsController extends Controller
         $new_job->status = 'open';
         $new_job->save();
 
+        $invitedCount = $this->autoScreenAndInvite($new_job, 30);
+
         // Notify graduates of the new job posting
         $this->notifyGraduates($new_job);
 
-        $invitedCount = $this->autoScreenAndInvite($new_job, 50);
 
         return redirect()
             ->route('company.jobs', ['user' => $user->id])
@@ -235,7 +237,6 @@ class CompanyJobsController extends Controller
 
         foreach ($dataRows as $data) {
             $row = array_combine($header, $data);
-            \Log::info('BatchUpload: Raw row', $row);
 
             // Skip empty rows
             if (!$row || !is_array($row) || empty(array_filter($row))) {
@@ -251,35 +252,6 @@ class CompanyJobsController extends Controller
                         'input_trimmed' => trim($row['department_name']),
                     ]);
                 $row['department_id'] = $department ? $department->id : null;
-            }
-
-            // --- Sector ---
-            if (!empty($row['sector_name'])) {
-                $sector = $this->fuzzyFind(Sector::class, 'name', $row['sector_name']);
-                \Log::info('BatchUpload: Sector Lookup', [
-                    'input' => $row['sector_name'],
-                    'found' => $sector ? $sector->name : null
-                ]);
-                $row['sector_id'] = $sector ? $sector->id : null;
-            }
-
-            // After category lookup
-            if (!empty($row['category_name']) && !empty($row['sector_id'])) {
-                $category = Category::where('sector_id', $row['sector_id'])
-                    ->whereRaw('LOWER(name) = ?', [strtolower(trim($row['category_name']))])
-                    ->first();
-                if (!$category) {
-                    // Try partial/fuzzy match within sector
-                    $category = Category::where('sector_id', $row['sector_id'])
-                        ->where('name', 'LIKE', '%' . trim($row['category_name']) . '%')
-                        ->first();
-                }
-                \Log::info('BatchUpload: Category Lookup', [
-                    'input' => $row['category_name'],
-                    'sector_id' => $row['sector_id'],
-                    'found' => $category ? $category->name : null
-                ]);
-                $row['category_id'] = $category ? $category->id : null;
             }
 
             // --- Program ---
@@ -401,8 +373,8 @@ class CompanyJobsController extends Controller
                 'work_environment' => 'required|exists:work_environments,id',
                 'program_id' => 'required|array',
                 'program_id.*' => 'exists:programs,id',
-                // 'category_id' => 'required|exists:categories,id',
-                // 'sector_id' => 'required|exists:sectors,id',
+                'category_id' => 'required|exists:categories,id',
+                'sector_id' => 'required|exists:sectors,id',
                 'job_experience_level' => 'required|string|max:255',
                 'status' => 'nullable|string|max:255',
                 'is_approved' => 'nullable|boolean',
@@ -429,15 +401,19 @@ class CompanyJobsController extends Controller
                 'errors' => $errors,
             ], 422);
         }
-
+        
         $user = auth()->user();
+        $user->loadMissing('hr.company');
+        $company = $user->hr?->company; 
         $jobService = new JobCreationService();
         
+        $totalInvited = 0;
+        $totalJobs = 0;
         
         foreach ($validRows as $row) {
             // Map to expected keys for JobCreationService
-            $row['sector'] = $row['sector_id'] ?? null;
-            $row['category'] = $row['category_id'] ?? null;
+             $row['sector_id']   = $company?->sector_id;
+            $row['category_id'] = $company?->category_id;
 
             // --- Duplicate Check ---
             $existingJob = Job::where('job_title', $row['job_title'])
@@ -453,11 +429,15 @@ class CompanyJobsController extends Controller
             if (!empty($row['job_type_ids'])) {
                 $job->jobTypes()->sync($row['job_type_ids']);
             }
+            
+            $invited = $this->autoScreenAndInvite($job, 30);
+            $totalInvited += $invited;
         }
 
+
         return redirect()
-            ->route('company.jobs', ['user' => auth()->id()])
-            ->with('flash.banner', 'Batch upload successful! All jobs have been posted.');
+            ->route('company.jobs', ['user' => $user->id])
+            ->with('flash.banner', "Batch upload successful. {$totalJobs} jobs posted; {$totalInvited} graduates auto‑invited.");
     }
 
 
@@ -691,89 +671,140 @@ class CompanyJobsController extends Controller
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job Archived successfully.');
     }
 
-    protected function autoScreenAndInvite(Job $job, int $threshold = 50): int
+    protected function autoScreenAndInvite(Job $job, int $threshold = 30): int
     {
         $service = new ApplicantScreeningService();
 
-        $job->loadMissing(['company', 'programs']);
-        $companyUserId = $job->company->user_id
-            ?? $job->company_id
-            ?? $job->user_id;
+        $job->loadMissing(['company','programs','jobTypes','locations']);
+        $companyIdForInvite = $job->company_id ?? $job->company->id ?? null;
 
-        // Track already invited graduates to avoid duplicates
+        $programIds = $job->programs->pluck('id');
+        $programNames = $job->programs->pluck('name')->map(fn($n) => mb_strtolower($n))->filter()->values();
+
+        // Base query (unfiltered)
+        $baseQuery = Graduate::with([
+            'user',
+            'graduateSkills.skill',
+            'education',              // keep simple (avoid programRelation constraint if not reliable)
+            'experience',
+            'employmentPreference',
+        ]);
+
+        $usingFiltered = false;
+        $filteredQuery = null;
+
+        if ($programNames->isNotEmpty()) {
+            // Try string match against education.program column (since many educations store plain string)
+            $filteredQuery = (clone $baseQuery)->whereHas('education', function ($q) use ($programNames) {
+                $q->whereIn(DB::raw('LOWER(program)'), $programNames->toArray());
+            });
+
+            // Quick existence check
+            $hasAny = (clone $filteredQuery)->limit(1)->count();
+            if ($hasAny) {
+                $usingFiltered = true;
+            }
+        }
+
+        $query = $usingFiltered ? $filteredQuery : $baseQuery;
+
+        // Log which path we take
+        \Log::info('AutoScreen: graduate query prepared', [
+            'job_id' => $job->id,
+            'using_filtered' => $usingFiltered,
+            'program_names' => $programNames,
+            'total_graduates' => (clone $query)->count(),
+        ]);
+
+        // Already invited grads
         $alreadyInvited = JobInvitation::where('job_id', $job->id)
             ->pluck('graduate_id')
-            ->all();
+            ->flip();
 
-        $alreadyInvited = array_flip($alreadyInvited); // faster lookup
-
-        $notifyUsers = [];
+        $attempted = 0;
+        $matched = 0;
         $newInvites = 0;
+        $notifyUsers = [];
 
-        // Optional narrowing: if job has programs, prefer grads whose education matches
-        $programIds = $job->programs->pluck('id');
+        $query->chunk(150, function ($graduates) use (
+            $service,
+            $job,
+            $threshold,
+            $companyIdForInvite,
+            &$alreadyInvited,
+            &$notifyUsers,
+            &$newInvites,
+            &$attempted,
+            &$matched
+        ) {
+            foreach ($graduates as $graduate) {
+                if (!$graduate->user) continue;
+                if (isset($alreadyInvited[$graduate->id])) continue;
 
-        Graduate::with([
-                'user',
-                'graduateSkills.skill',
-                'education.programRelation',
-                'experience',
-                'employmentPreference',
-            ])
-            ->when($programIds->isNotEmpty(), function ($q) use ($programIds) {
-                // FIX: use programRelation instead of nonexistent education.program
-                $q->whereHas('education.programRelation', function ($qq) use ($programIds) {
-                    $qq->whereIn('programs.id', $programIds);
-                });
-            })
-            ->chunk(200, function ($graduates) use (
-                $service,
-                $job,
-                $threshold,
-                $companyUserId,
-                &$alreadyInvited,
-                &$notifyUsers,
-                &$newInvites
-            ) {
-                foreach ($graduates as $graduate) {
-                    if (!$graduate->user) {
-                        continue;
-                    }
+                if (method_exists($graduate, 'jobApplications') &&
+                    $graduate->jobApplications()->where('job_id', $job->id)->exists()) {
+                    continue;
+                }
 
-                    if (isset($alreadyInvited[$graduate->id])) {
-                        continue;
-                    }
+                $attempted++;
 
-                    // Skip if already applied
-                    if (method_exists($graduate, 'jobApplications') &&
-                        $graduate->jobApplications()->where('job_id', $job->id)->exists()) {
-                        continue;
-                    }
+                $result = $service->screen($graduate, $job);
+                $match = (int)($result['match_percentage'] ?? 0);
 
-                    $result = $service->screen($graduate, $job);
+                if ($match >= $threshold) {
+                    $matched++;
 
-                    if (($result['match_percentage'] ?? 0) >= $threshold) {
-                        JobInvitation::firstOrCreate(
+                    $invitationMessage = 'You have been invited to apply for "' .
+                        $job->job_title . '" at ' . ($job->company->company_name ?? 'the company') . '.';
+
+                    try {
+                        $invite = JobInvitation::updateOrCreate(
                             [
                                 'job_id' => $job->id,
                                 'graduate_id' => $graduate->id,
                             ],
                             [
-                                'company_id' => $companyUserId,
+                                'company_id' => $companyIdForInvite,
                                 'status' => 'pending',
-                                'message' => 'You have been auto-invited based on a match score of ' . ($result['match_percentage'] ?? 0) . '%.',
+                                'message' => $invitationMessage,
                             ]
                         );
+
                         $alreadyInvited[$graduate->id] = true;
                         $notifyUsers[] = $graduate->user;
                         $newInvites++;
+
+                        \Log::info('AutoScreen: invitation stored', [
+                            'job_id' => $job->id,
+                            'graduate_id' => $graduate->id,
+                            'invite_id' => $invite->id,
+                            'match' => $match
+                        ]);
+                    } catch (\Throwable $e) {
+                        \Log::error('AutoScreen: invitation insert failed', [
+                            'job_id' => $job->id,
+                            'graduate_id' => $graduate->id,
+                            'company_id_used' => $companyIdForInvite,
+                            'error' => $e->getMessage()
+                        ]);
                     }
                 }
-            });
+            }
+        });
 
-        if (!empty($notifyUsers)) {
+        if ($newInvites > 0) {
             Notification::send($notifyUsers, new JobInviteNotification($job));
         }
+
+        \Log::info('AutoScreen summary', [
+            'job_id' => $job->id,
+            'threshold' => $threshold,
+            'attempted' => $attempted,
+            'matched' => $matched,
+            'new_invites_created' => $newInvites,
+            'using_filtered' => $usingFiltered,
+            'company_id_used' => $companyIdForInvite
+        ]);
 
         return $newInvites;
     }

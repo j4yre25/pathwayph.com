@@ -41,7 +41,7 @@ class CompanyApplicationController extends Controller
                 'graduate.careerGoals',
                 'graduate.resume',
                 'job',                 
-                'graduate.referralExports', 
+                'graduate.referrals', 
             ]);
 
         $graduate = $application->graduate;
@@ -131,25 +131,48 @@ class CompanyApplicationController extends Controller
             ];
         }
 
-        $referralCertificates = $graduate?->referralExports?->filter(function ($r) {
-            // Keep only records that actually have a non-empty certificate_path
-            return $r && is_string($r->certificate_path) && trim($r->certificate_path) !== '';
-        })->map(function ($r) {
-            $path = $r->certificate_path;
-            $url = null;
-            if (is_string($path) && $path !== '') {
-                $url = str_starts_with($path, 'http')
-                    ? $path
-                    : (\Storage::exists($path) ? \Storage::url($path) : null);
-            }
-            return [
-                'id' => $r->id,
-                'file_name' => $path ? basename($path) : null,
-                'file_url' => $url,
-                'raw_path' => $path,
-                'uploaded_at' => $r->created_at,
-            ];
-        })->values() ?? [];
+        // Ensure referrals relation loaded
+        $graduate?->loadMissing('referrals');
+
+        $referralCertificates = collect();
+
+        if ($graduate && $graduate->referrals?->count()) {
+            $referralCertificates = $graduate->referrals
+                ->whereNotNull('certificate_path')
+                ->filter(fn($r) => trim($r->certificate_path) !== '')
+                ->map(function ($r) {
+                    $path = $r->certificate_path;
+                    // If stored under private/ generate a download route (make sure route name exists)
+                    $isPrivate = str_starts_with($path, 'private/');
+                    $fileName = basename($path);
+                    $fileUrl = null;
+
+                    if ($isPrivate) {
+                        // Route should point to ManageJobReferralsController@download
+                        // Route example: Route::get('referrals/certificates/{filename}', ...)->name('referrals.certificates.download');
+                        if (function_exists('route')) {
+                            try {
+                                $fileUrl = route('referrals.certificates.download', ['filename' => $fileName]);
+                            } catch (\Throwable $e) {
+                                $fileUrl = null;
+                            }
+                        }
+                    } else {
+                        if (\Storage::exists($path)) {
+                            $fileUrl = \Storage::url($path);
+                        }
+                    }
+
+                    return [
+                        'id' => $r->id,
+                        'file_name' => $fileName,
+                        'file_url' => $fileUrl,
+                        'raw_path' => $path,
+                        'uploaded_at' => $r->created_at,
+                    ];
+                })
+                ->values();
+        }
 
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,
@@ -206,7 +229,7 @@ class CompanyApplicationController extends Controller
                 'file_name' => $resume->file_name,
             ] : null,
             'job' => $application->job,
-            'referralCertificates' => $referralCertificates, // <-- Added referralCertificates
+            'referralCertificates' => $referralCertificates,
         ]);
     }
 

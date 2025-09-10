@@ -74,8 +74,6 @@ function handleFileUpload(e) {
           job_title: row.job_title || '',
           department_name: row.department_name || '',
           job_types: row.job_types || '',
-          sector_name: row.sector_name || '',
-          category_name: row.category_name || '',
           program_name: row.program_name || '',
           location: row.location || '',
           work_environment_type: row.work_environment_type || '',
@@ -107,8 +105,6 @@ function handleFileUpload(e) {
           job_title: row.job_title || '',
           department_name: row.department_name || '',
           job_types: row.job_types || '',
-          sector_name: row.sector_name || '',
-          category_name: row.category_name || '',
           program_name: row.program_name || '',
           location: row.location || '',
           work_environment_type: row.work_environment_type || '',
@@ -143,8 +139,6 @@ function validateRows() {
     const rowErrors = []
 
     if (!row.job_title) rowErrors.push('Missing job title')
-    if (!row.sector_name) rowErrors.push('Missing sector')
-    if (!row.category_name) rowErrors.push('Missing category')
     if (!row.program_name) rowErrors.push('Missing program')
     if (!row.job_vacancies) rowErrors.push('Missing job vacancies')
     if (!row.job_description) rowErrors.push('Missing job description')
