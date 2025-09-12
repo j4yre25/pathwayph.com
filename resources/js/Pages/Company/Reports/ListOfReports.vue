@@ -8,56 +8,149 @@ const categories = [
     code: 'A',
     title: 'Job Market & Openings Reports',
     reports: [
-      { label: 'Job Openings Overview', route: 'company.reports.overview' },
-      { label: 'Department-Wise Job Listings', route: 'company.reports.department' },
-      { label: 'Job Posting Trends', route: 'company.reports.trends' },
-      { label: 'Employment Type', route: 'company.reports.employmentType' },
-      { label: 'Salary Insights', route: 'company.reports.salary' },
-      { label: 'Job Posting Performance', route: 'company.reports.performance' },
+      { 
+        label: 'Job Openings Overview', 
+        route: 'company.reports.overview',
+        description: 'Shows total job openings, active listings, and roles filled.'
+      },
+      { 
+        label: 'Department-Wise Job Listings', 
+        route: 'company.reports.department',
+        description: 'Breaks down job openings across departments and role levels.'
+      },
+      { 
+        label: 'Job Posting Trends', 
+        route: 'company.reports.trends',
+        description: 'Tracks job postings over time and by department activity.'
+      },
+      { 
+        label: 'Employment Type', 
+        route: 'company.reports.employmentType',
+        description: 'Displays job openings by type (full-time, part-time, freelance,  etc.).'
+      },
+      { 
+        label: 'Salary Insights', 
+        route: 'company.reports.salary',
+        description: 'Analyzes salary ranges and distribution across roles and departments.'
+      },
+      { 
+        label: 'Job Posting Performance', 
+        route: 'company.reports.performance',
+        description: 'Evaluates applicant diversity and engagement for job postings.'
+      },
     ]
   },
   {
     code: 'B',
     title: 'Recruitment Process & Pipeline Reports',
     reports: [
-      { label: 'Hiring Funnel', route: 'company.reports.hiringFunnel' },
-      { label: 'Application Analysis', route: 'company.reports.applicationAnalysis' },
-      { label: 'Applicant Status Overview', route: 'company.reports.applicantStatus' },
-      { label: 'Candidate Screening Insights', route: 'company.reports.screening' },
-      { label: 'Interview Progress', route: 'company.reports.interviewProgress' },
-      { label: 'Recruitment Efficiency', route: 'company.reports.efficiency' },
+      { 
+        label: 'Hiring Funnel', 
+        route: 'company.reports.hiringFunnel',
+        description: 'Visualizes the recruitment pipeline from applications to hires.'
+      },
+      { 
+        label: 'Application Analysis', 
+        route: 'company.reports.applicationAnalysis',
+        description: 'Examines volume, trends, and patterns of job applications.'
+      },
+      { 
+        label: 'Applicant Status Overview', 
+        route: 'company.reports.applicantStatus',
+        description: 'Summarizes candidate statuses such as applied, screened, or hired.'
+      },
+      { 
+        label: 'Candidate Screening Insights', 
+        route: 'company.reports.screening',
+        description: 'Shows how candidates are screened by qualifications and skills.'
+      },
+      { 
+        label: 'Interview Progress', 
+        route: 'company.reports.interviewProgress',
+        description: 'Tracks candidates through different interview stages.'
+      },
+      { 
+        label: 'Recruitment Efficiency', 
+        route: 'company.reports.efficiency',
+        description: 'Measures time and success rate across recruitment stages.'
+      },
     ]
   },
   {
     code: 'C',
     title: 'Skills, Competency & Qualification Reports',
     reports: [
-      { label: 'Skills and Qualifications', route: 'company.reports.skills' },
-      { label: 'Skills and Competency Analysis', route: 'company.reports.competency' },
+      { 
+        label: 'Skills and Qualifications', 
+        route: 'company.reports.skills',
+        description: 'Highlights required skills in jobs versus skills in the talent pool.'
+      },
+      { 
+        label: 'Skills and Competency Analysis', 
+        route: 'company.reports.competency',
+        description: 'Compares candidate skill levels with job role requirements.'
+      },
     ]
   },
   {
     code: 'D',
     title: 'Graduate Insights & Matching Reports',
     reports: [
-      { label: 'Graduate Pool Overview', route: 'company.reports.graduatePool' },
-      { label: 'Graduate Demographics', route: 'company.reports.graduateDemographics' },
-      { label: 'Employment Preferences', route: 'company.reports.preferences' },
-      { label: 'Matching Success Rate', route: 'company.reports.matchingSuccess' },
-      { label: 'Internship Experience', route: 'company.reports.internship' },
-      { label: 'Future Potential', route: 'company.reports.futurePotential' },
+      { 
+        label: 'Graduate Pool Overview', 
+        route: 'company.reports.graduatePool',
+        description: 'Shows total graduates, matches to jobs, and average qualifications.'
+      },
+      { 
+        label: 'Graduate Demographics', 
+        route: 'company.reports.graduateDemographics',
+        description: 'Breaks down graduates by age, gender, education, and location.'
+      },
+      { 
+        label: 'Employment Preferences', 
+        route: 'company.reports.preferences',
+        description: 'Summarizes graduates’ preferred job types and industries.'
+      },
+      { 
+        label: 'Matching Success Rate', 
+        route: 'company.reports.matchingSuccess',
+        description: 'Tracks how many graduates match and get placed in job roles.'
+      },
+      { 
+        label: 'Internship Experience', 
+        route: 'company.reports.internship',
+        description: 'Analyzes internship backgrounds and links them to hiring outcomes.'
+      },
+      { 
+        label: 'Future Potential', 
+        route: 'company.reports.futurePotential',
+        description: 'Forecasts talent growth and high-potential fields of study.'
+      },
     ]
   },
   {
     code: 'E',
     title: 'Feedback & Inclusion Reports',
     reports: [
-      { label: 'Diversity and Inclusion', route: 'company.reports.diversity' },
-      { label: 'Employer Feedback', route: 'company.reports.employerFeedback' },
-      { label: 'Feedback and Satisfaction', route: 'company.reports.feedback' },
+      { 
+        label: 'Diversity and Inclusion', 
+        route: 'company.reports.diversity',
+        description: 'Evaluates inclusivity in job postings and workforce composition.'
+      },
+      { 
+        label: 'Employer Feedback', 
+        route: 'company.reports.employerFeedback',
+        description: 'Summarizes employer evaluations of graduate skills and readiness.'
+      },
+      { 
+        label: 'Feedback and Satisfaction', 
+        route: 'company.reports.feedback',
+        description: 'Analyzes candidate feedback on recruitment experience.'
+      },
     ]
   },
 ]
+
 
 const search = ref('')
 const flatReports = computed(() =>
@@ -141,7 +234,7 @@ function go(routeName) {
                   {{ report.label }}
                 </div>
                 <div class="mt-1 text-xs text-gray-500">
-                  {{ cat.title }}
+                  {{ report.description }}
                 </div>
               </div>
             </div>

@@ -208,15 +208,19 @@ class CompanyJobsController extends Controller
             'csv_file' => 'required|file|mimes:csv,txt,xlsx,xls',
         ]);
 
+        // Resolve company once (for departments + sector/category)
+        $user = auth()->user();
+        $user->loadMissing('hr.company');
+        $company = $user->hr?->company;
+        $companyId = $company?->id;
+
         $extension = $request->file('csv_file')->getClientOriginalExtension();
 
         if (in_array($extension, ['xlsx', 'xls'])) {
-            // Parse Excel
             $rows = Excel::toArray(new \stdClass(), $request->file('csv_file'))[0];
             $header = array_map(fn($h) => strtolower(trim($h)), $rows[0]);
             $dataRows = array_slice($rows, 1);
         } else {
-            // Parse CSV as before
             $file = $request->file('csv_file');
             $handle = fopen($file, 'r');
             $header = fgetcsv($handle, 0, ',');
@@ -235,27 +239,51 @@ class CompanyJobsController extends Controller
         $validRows = [];
         $rowNum = 2;
 
+        // Does company already have departments? (affects required rule)
+        $hasExistingDepartments = $companyId
+            ? Department::where('company_id', $companyId)->exists()
+            : false;
+
         foreach ($dataRows as $data) {
             $row = array_combine($header, $data);
 
-            // Skip empty rows
             if (!$row || !is_array($row) || empty(array_filter($row))) {
                 $rowNum++;
                 continue;
             }
 
-            // --- Department ---
+            // Inject sector & category from company BEFORE validation
+            $row['sector_id']   = $company?->sector_id;
+            $row['category_id'] = $company?->category_id;
+
+            // --- Department (auto-create if missing) ---
+            $row['department_id'] = null;
             if (!empty($row['department_name'])) {
-                $department = $this->fuzzyFind(Department::class, 'department_name', $row['department_name']);
-                \Log::info('BatchUpload: Department Lookup', [
-                     'input_raw' => $row['department_name'],
-                        'input_trimmed' => trim($row['department_name']),
-                    ]);
-                $row['department_id'] = $department ? $department->id : null;
+                $deptName = trim($row['department_name']);
+                if ($deptName !== '' && $companyId) {
+                    // Try exact-case-insensitive match
+                    $dept = Department::where('company_id', $companyId)
+                        ->whereRaw('LOWER(department_name) = ?', [mb_strtolower($deptName)])
+                        ->first();
+
+                    if (!$dept) {
+                        // Create if not exists
+                        $dept = Department::create([
+                            'company_id' => $companyId,
+                            'department_name' => $deptName,
+                        ]);
+                        \Log::info('BatchUpload: Department created', [
+                            'company_id' => $companyId,
+                            'department_id' => $dept->id,
+                            'name' => $deptName,
+                        ]);
+                    }
+                    $row['department_id'] = $dept->id;
+                }
             }
 
             // --- Program ---
-            $row['program_id'] = []; // Always start as array
+            $row['program_id'] = []; 
             if (!empty($row['program_name'])) {
                 $programNames = array_map('trim', explode(',', $row['program_name']));
                 foreach ($programNames as $progName) {
@@ -287,21 +315,14 @@ class CompanyJobsController extends Controller
                 $typeNames = array_map('trim', explode(',', $row['job_types']));
                 foreach ($typeNames as $typeName) {
                     $jobType = $this->fuzzyFind(JobType::class, 'type', $typeName);
-                    if ($jobType) {
-                        $jobTypeIds[] = $jobType->id;
-                    }
+                    if ($jobType) $jobTypeIds[] = $jobType->id;
                 }
             }
             $row['job_type_ids'] = $jobTypeIds;
             $row['job_type'] = !empty($jobTypeIds) ? $jobTypeIds[0] : null;
 
-            // --- Job Experience Level (enum) ---
-            $allowed = [
-                'Entry-level',
-                'Intermediate',
-                'Mid-level',
-                'Senior/Executive'
-            ];
+            // --- Experience Level normalize ---
+            $allowed = ['Entry-level','Intermediate','Mid-level','Senior/Executive'];
             $input = strtolower(trim($row['job_experience_level'] ?? ''));
             $matched = collect($allowed)->first(function($level) use ($input) {
                 $levelLower = strtolower($level);
@@ -312,49 +333,48 @@ class CompanyJobsController extends Controller
             });
             $row['job_experience_level'] = $matched ?? $allowed[0];
 
-            // --- Skills as array ---
+            // --- Skills ---
             if (!empty($row['skills'])) {
                 $row['skills'] = array_map('trim', explode(',', $row['skills']));
             }
 
-            // --- job_application_limit ---
+            // --- job_application_limit (only optional column) ---
             $row['job_application_limit'] = isset($row['job_application_limit']) && $row['job_application_limit'] !== '' ? (int)$row['job_application_limit'] : null;
 
-            // --- Salary fields ---
+            // --- Salary fields + negotiable rule ---
             $row['job_min_salary'] = isset($row['job_min_salary']) && $row['job_min_salary'] !== '' ? $row['job_min_salary'] : null;
             $row['job_max_salary'] = isset($row['job_max_salary']) && $row['job_max_salary'] !== '' ? $row['job_max_salary'] : null;
 
             // --- Location ---
             $row['location'] = $row['location'] ?? null;
 
+            // --- Deadline (supports Excel serial) ---
             if (isset($row['job_deadline']) && trim($row['job_deadline']) !== '') {
                 if (is_numeric($row['job_deadline'])) {
-                    // Convert Excel serial to date
                     $row['job_deadline'] = $this->excelSerialToDate($row['job_deadline']);
                 } else {
                     $date = str_replace(['/', '.'], '-', $row['job_deadline']);
-                    try {
-                        $carbon = Carbon::createFromFormat('Y-m-d', $date);
-                    } catch (\Exception $e) {
-                        $carbon = null;
-                    }
+                    try { $carbon = Carbon::createFromFormat('Y-m-d', $date); } catch (\Exception $e) { $carbon = null; }
                     $row['job_deadline'] = $carbon ? $carbon->format('Y-m-d') : null;
                 }
             } else {
                 $row['job_deadline'] = null;
             }
 
-            // --- Is Negotiable ---
+            // --- Negotiable ---
             if (isset($row['is_negotiable']) && strtolower(trim($row['is_negotiable'])) === 'yes') {
                 $row['is_negotiable'] = 1;
+                // enforce no min/max when negotiable
+                $row['job_min_salary'] = null;
+                $row['job_max_salary'] = null;
             } else {
                 $row['is_negotiable'] = 0;
             }
 
-            // --- Status and Approval ---
+            // --- Status ---
             $row['status'] = $row['status'] ?? 'pending';
 
-            // --- Salary array for service ---
+            // --- Salary payload for service ---
             $row['salary'] = [
                 'job_min_salary' => $row['job_min_salary'],
                 'job_max_salary' => $row['job_max_salary'],
@@ -364,30 +384,39 @@ class CompanyJobsController extends Controller
             // --- Validation ---
             $validator = \Validator::make($row, [
                 'job_title' => 'required|string|max:255',
-                'department_id' => 'required|exists:departments,id',
+                // Department required only if company already maintains departments
+                'department_id' => [Rule::requiredIf($hasExistingDepartments), 'nullable', 'exists:departments,id'],
                 'job_description' => 'required|string',
                 'job_requirements' => 'required|string',
                 'job_min_salary' => 'nullable|numeric',
                 'job_max_salary' => 'nullable|numeric',
                 'location' => 'nullable|string|max:255',
                 'work_environment' => 'required|exists:work_environments,id',
-                'program_id' => 'required|array',
+                'program_id' => 'required|array|min:1',
                 'program_id.*' => 'exists:programs,id',
-                'category_id' => 'required|exists:categories,id',
-                'sector_id' => 'required|exists:sectors,id',
+                // sector/category now injected – no validation required here
                 'job_experience_level' => 'required|string|max:255',
                 'status' => 'nullable|string|max:255',
                 'is_approved' => 'nullable|boolean',
-                'skills' => 'required|array',
+                'skills' => 'required|array|min:1',
                 'job_deadline' => 'required|date|after:today',
                 'job_application_limit' => 'nullable|integer|min:1',
             ]);
 
+            // Extra check: if not negotiable, min/max must be present and valid
+            $validator->after(function($v) use ($row) {
+                if (empty($row['is_negotiable'])) {
+                    if ($row['job_min_salary'] === null) $v->errors()->add('job_min_salary', 'Min salary is required when not negotiable.');
+                    if ($row['job_max_salary'] === null) $v->errors()->add('job_max_salary', 'Max salary is required when not negotiable.');
+                    if ($row['job_min_salary'] !== null && $row['job_max_salary'] !== null
+                        && (float)$row['job_min_salary'] > (float)$row['job_max_salary']) {
+                        $v->errors()->add('job_min_salary', 'Min salary cannot exceed max salary.');
+                    }
+                }
+            });
+
             if ($validator->fails()) {
-                $errors[] = [
-                    'row' => $rowNum,
-                    'messages' => $validator->errors()->all(),
-                ];
+                $errors[] = ['row' => $rowNum, 'messages' => $validator->errors()->all()];
             } else {
                 $validRows[] = $row;
             }
@@ -401,39 +430,45 @@ class CompanyJobsController extends Controller
                 'errors' => $errors,
             ], 422);
         }
-        
-        $user = auth()->user();
-        $user->loadMissing('hr.company');
-        $company = $user->hr?->company; 
+
         $jobService = new JobCreationService();
-        
+
         $totalInvited = 0;
         $totalJobs = 0;
-        
-        foreach ($validRows as $row) {
-            // Map to expected keys for JobCreationService
-             $row['sector_id']   = $company?->sector_id;
-            $row['category_id'] = $company?->category_id;
 
-            // --- Duplicate Check ---
+        foreach ($validRows as $row) {
+            // Duplicate check
             $existingJob = Job::where('job_title', $row['job_title'])
                 ->where('user_id', $user->id)
                 ->where('location', $row['location'])
                 ->first();
             if ($existingJob) {
-                continue; 
+                continue;
             }
-            
+
+            // Ensure the company sector/category always applied
+            $row['sector_id']   = $company?->sector_id;
+            $row['category_id'] = $company?->category_id;
+
             $job = $jobService->createJob($row, $user);
-            // Attach all job types if multiple
+
             if (!empty($row['job_type_ids'])) {
                 $job->jobTypes()->sync($row['job_type_ids']);
             }
-            
+            if (!empty($row['program_id'])) {
+                $job->programs()->sync($row['program_id']);
+            }
+
+            // Open/approve by default
+            $job->update(['is_approved' => 1, 'status' => 'open']);
+
+            // Auto-invite + general notification
             $invited = $this->autoScreenAndInvite($job, 30);
             $totalInvited += $invited;
-        }
+            $this->notifyGraduates($job);
 
+            $totalJobs++;
+        }
 
         return redirect()
             ->route('company.jobs', ['user' => $user->id])

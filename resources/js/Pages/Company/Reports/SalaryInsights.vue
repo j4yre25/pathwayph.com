@@ -1,79 +1,112 @@
 <script setup>
-import AppLayout from "@/Layouts/AppLayout.vue";
-import VueECharts from "vue-echarts";
+import { ref, watch, computed } from "vue"
+import AppLayout from "@/Layouts/AppLayout.vue"
+import VueECharts from "vue-echarts"
 
+// Safer props (defaults avoid .map on undefined)
 const props = defineProps({
-  boxPlotData: Array,
-  histogramBins: Array,
-});
+  boxPlotData: { type: Array, default: () => [] },
+  histogramBins: { type: Array, default: () => [] },
+})
 
-console.log('Box Plot Data:', props.boxPlotData);
-// Box Plot Option
-const boxPlotOption = {
-  tooltip: { trigger: "item" },
-  xAxis: { type: "category", data: props.boxPlotData.map(d => d.role), name: "Job Role" },
-  yAxis: { type: "value", name: "Salary" },
-  series: [{
-    name: "Salary Range",
-    type: "boxplot",
-    data: props.boxPlotData.map(d => d.values),
-  }]
-};
+console.log('SalaryInsights props -> boxPlotData:', props.boxPlotData)
+console.log('SalaryInsights props -> histogramBins:', props.histogramBins)
 
-// Histogram Option
-const histogramOption = {
-  tooltip: {
-    trigger: "axis",
-    formatter: params => {
-      const bin = props.histogramBins[params[0].dataIndex];
-      const jobs = bin.jobs && bin.jobs.length ? `<br>Jobs:<br>${bin.jobs.join('<br>')}` : '';
-      return `${bin.range}<br>Count: ${bin.count}${jobs}`;
-    }
-  },
-  xAxis: {
-    type: "category",
-    data: props.histogramBins.map(b => b.range),
-    name: "Salary Range",
-    axisLabel: {
-        formatter: (value, idx) => {
-        const bin = props.histogramBins[idx];
-        if (bin.jobs && bin.jobs.length) {
-            // Salary range on first line, job titles on second line
-            return `${value}\n${bin.jobs.join(', ')}`;
-        }
-        return value;
-        },
-        fontSize: 11,
-        color: "#444",
-        lineHeight: 15,
-        rotate: 30, // Rotates both lines, but this is the best ECharts can do
-        }
+// Derived categories
+const boxCategories = computed(() => props.boxPlotData.map(d => d.role))
+const boxSeriesData = computed(() => props.boxPlotData.map(d => d.values))
+const histCategories = computed(() => props.histogramBins.map(b => b.range))
+const histCounts = computed(() => props.histogramBins.map(b => b.count))
+
+// Reactive chart options
+const boxPlotOption = ref({})
+const histogramOption = ref({})
+
+function buildBoxPlotOption() {
+  boxPlotOption.value = {
+    tooltip: { trigger: "item" },
+    grid: { left: 50, right: 30, top: 40, bottom: 60 },
+    xAxis: { type: "category", data: boxCategories.value, name: "Job Role", axisLabel: { rotate: 25 } },
+    yAxis: { type: "value", name: "Salary" },
+    series: [{
+      name: "Salary Range",
+      type: "boxplot",
+      itemStyle: { color: "#4F46E5" },
+      data: boxSeriesData.value,
+    }],
+  }
+}
+
+function buildHistogramOption() {
+  histogramOption.value = {
+    tooltip: {
+      trigger: "axis",
+      formatter: params => {
+        const idx = params[0].dataIndex
+        const bin = props.histogramBins[idx]
+        if (!bin) return ''
+        const jobs = bin.jobs?.length ? `<br/>Jobs:<br/>${bin.jobs.join('<br/>')}` : ''
+        return `${bin.range}<br/>Count: ${bin.count}${jobs}`
+      }
     },
-  yAxis: { type: "value", name: "Number of Jobs" },
-  series: [{
-    name: "Jobs",
-    type: "bar",
-    data: props.histogramBins.map(b => b.count),
-    label: {
-      show: false 
-    }
-  }]
-};
+    grid: { left: 50, right: 30, top: 40, bottom: 80 },
+    xAxis: {
+      type: "category",
+      data: histCategories.value,
+      name: "Salary Range",
+      axisLabel: { rotate: 35, fontSize: 11, lineHeight: 14 }
+    },
+    yAxis: { type: "value", name: "Jobs" },
+    series: [{
+      name: "Jobs",
+      type: "bar",
+      data: histCounts.value,
+      itemStyle: { color: "#6366F1" }
+    }]
+  }
+}
+
+watch(
+  () => [props.boxPlotData, props.histogramBins],
+  () => {
+    buildBoxPlotOption()
+    buildHistogramOption()
+  },
+  { immediate: true, deep: true }
+)
 </script>
 
 <template>
   <AppLayout title="Salary Insights">
     <div class="max-w-7xl mx-auto py-8 px-4 space-y-12">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800">Salary Insights</h2>
+      <h2 class="text-2xl font-bold text-gray-800">Salary Insights</h2>
 
-      <div class="bg-white rounded-xl shadow p-8 mb-8">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Box Plot: Salary Ranges by Job Role</h3>
-        <VueECharts :option="boxPlotOption" style="height: 400px; width: 100%;" />
+      <!-- Box Plot -->
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Salary Ranges by Job Role (Box Plot)</h3>
+          <span class="text-xs text-gray-500" v-if="!boxPlotData.length">No salary data found.</span>
+        </div>
+        <div v-if="boxPlotData.length">
+          <VueECharts :option="boxPlotOption" style="height: 420px; width: 100%;" />
+        </div>
+        <div v-else class="text-sm text-gray-500 italic py-6 text-center">
+          No salary entries yet for this company’s jobs.
+        </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow p-8 mb-8">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Histogram: Frequency of Salary Ranges</h3>
-        <VueECharts :option="histogramOption" style="height: 500px; width: 100%;" />
+      <!-- Histogram -->
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-700">Salary Range Distribution (Histogram)</h3>
+          <span class="text-xs text-gray-500" v-if="!histogramBins.length">No histogram data.</span>
+        </div>
+        <div v-if="histogramBins.length">
+          <VueECharts :option="histogramOption" style="height: 500px; width: 100%;" />
+        </div>
+        <div v-else class="text-sm text-gray-500 italic py-6 text-center">
+          Not enough salary data to build a histogram.
+        </div>
       </div>
     </div>
   </AppLayout>
