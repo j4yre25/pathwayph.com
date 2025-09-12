@@ -520,9 +520,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/career', [InstitutionReportsController::class, 'career'])->name('institutions.reports.career');
     Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
     Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
-    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
-        ->get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])
-        ->name('institutions.reports.graduate.data');
+    Route::get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])->name('institutions.reports.graduate.data');
+    Route::get('/institution/reports/school-year/data', [InstitutionReportsController::class, 'schoolYearData'])->name('institutions.reports.schoolYear.data');
+    Route::get('/institutions/reports/school-year', [InstitutionReportsController::class, 'schoolYear'])->name('institutions.reports.schoolYear');
+    Route::get('/institutions/reports/degree/data', [InstitutionReportsController::class, 'degreeData'])->name('institutions.reports.degree.data');
+    Route::get('/institutions/reports/programs/data', [InstitutionReportsController::class, 'programsData'])->name('institutions.reports.programs.data');
+    Route::get('/institutions/reports/career/data', [InstitutionReportsController::class, 'careerData'])->name('institutions.reports.career.data');
 });
 
 //Internship Routes
@@ -659,7 +662,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 //Institution Entries
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->get(
-    '/institutions/entries',[InstitutionEntriesController::class, 'index'])->name('institutions.entries');
+    '/institutions/entries',
+    [InstitutionEntriesController::class, 'index']
+)->name('institutions.entries');
 
 
 Route::group(['middleware' => config('fortify.middleware', ['web'])], function () {
@@ -1012,7 +1017,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::post('/certificates/store', [ManageJobReferralsController::class, 'store'])->name('certificate.store');
-    Route::get('/certificates/download/{filename}', [\App\Http\Controllers\ManageJobReferralsController::class, 'download'])
+    Route::get('/certificates/download/{filename}', [ManageJobReferralsController::class, 'download'])
         ->name('certificates.download');
 });
 
