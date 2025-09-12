@@ -27,6 +27,7 @@ const props = defineProps({
   },
 })
 
+console.log('Applicants:', props.applicants)
 // Stats are now displayed using direct props access in template
 
 const filters = ref({ ...props.filters, keywords: '' })
@@ -61,7 +62,9 @@ function deriveDateRange() {
 }
 
 const filteredApplicants = computed(() => {
-  let apps = props.applicants
+  // Defensive cast in case backend returns an object (keyed collection)
+  const raw = props.applicants || []
+  let apps = Array.isArray(raw) ? raw : Object.values(raw)
 
   if (filters.value.job_id) {
     apps = apps.filter(a => a.job_id == filters.value.job_id)
@@ -82,7 +85,7 @@ const filteredApplicants = computed(() => {
     })
   }
   if (filters.value.date_to) {
-    apps = apps.filter(a => {
+    apps = apps.filter(a => { 
       const iso = a.applied_at_iso || ''
       return iso ? iso <= filters.value.date_to : true
     })
@@ -138,6 +141,7 @@ function resetFilters() {
   customToDate.value = ''
   applyFilters()
 }
+
 
 const showStageManager = ref(false) // <-- added
 

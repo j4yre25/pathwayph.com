@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\JobType;
 use App\Models\EmploymentPreference;
 use App\Models\Program;
@@ -129,88 +130,298 @@ class CompanyReportsController extends Controller
     public function hiringFunnel(Request $request)
     {
         $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
+        $companyId = $user->hr->company_id;
 
-        // Funnel Chart: Applications received to candidates hired per job
-        $jobs = Job::where('company_id', $companyId)->get();
-        $funnelData = [];
-        foreach ($jobs as $job) {
-            $funnelData[] = [
-                'job_title' => $job->title,
-                'applied' => $job->applications()->count(),
-                'interviewed' => $job->applications()->where('status', 'interviewed')->count(),
-                'offered' => $job->applications()->where('status', 'offered')->count(),
-                'hired' => $job->applications()->where('status', 'hired')->count(),
-            ];
-        }
-
-        // Line Chart: Time to progress through each stage
-        $stages = ['applied', 'interviewed', 'offered', 'hired'];
-        // Get all months where there are stage changes for this company
-        $months = JobApplicationStage::whereHas('jobApplication.job', function ($q) use ($companyId) {
-            $q->where('company_id', $companyId);
-        })
-            ->selectRaw("DATE_FORMAT(changed_at, '%Y-%m') as month")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->pluck('month')
-            ->toArray();
-
-        $series = [];
-
-        // For each stage transition, calculate average days taken per month
-        for ($i = 1; $i < count($stages); $i++) {
-            $from = $stages[$i - 1];
-            $to = $stages[$i];
-            $data = [];
-
-            foreach ($months as $month) {
-                // Get all "from" stage records for this month
-                $fromStages = JobApplicationStage::where('stage', $from)
-                    ->whereRaw("DATE_FORMAT(changed_at, '%Y-%m') = ?", [$month])
-                    ->whereHas('jobApplication.job', function ($q) use ($companyId) {
-                        $q->where('company_id', $companyId);
-                    })
-                    ->get();
-
-                $totalDiff = 0;
-                $count = 0;
-
-                foreach ($fromStages as $fromStage) {
-                    // Find the next stage for the same application
-                    $toStage = JobApplicationStage::where('job_application_id', $fromStage->job_application_id)
-                        ->where('stage', $to)
-                        ->where('changed_at', '>=', $fromStage->changed_at)
-                        ->orderBy('changed_at')
-                        ->first();
-
-                    if ($toStage) {
-                        $diff = Carbon::parse($fromStage->changed_at)->diffInDays(Carbon::parse($toStage->changed_at));
-                        $totalDiff += $diff;
-                        $count++;
-                    }
-                }
-
-                $avg = $count > 0 ? round($totalDiff / $count, 2) : 0;
-                $data[] = $avg;
-            }
-
-            $series[] = [
-                'name' => ucfirst($from) . ' → ' . ucfirst($to),
-                'type' => 'line',
-                'data' => $data,
-            ];
-        }
-
-        $stageTrends = [
-            'labels' => $months,
-            'series' => $series,
+        // Filter params (affect ONLY table, line chart, interpretation)
+        $dept     = $request->query('department');
+        $jobId    = $request->query('job_id');
+        $band     = $request->query('duration_band'); // fast | moderate | slow
+        // Duration band thresholds (days)
+        $bands = [
+            'fast'     => [0, 4],      // <5
+            'moderate' => [5, 10],     // 5–10
+            'slow'     => [11, null],  // >10
         ];
 
+        // Ordered pipeline stages (company specific or global)
+        $companyStageQuery = \App\Models\JobPipelineStage::where('owner_type','company')
+            ->where('owner_id',$companyId)
+            ->orderBy('position');
+
+        $stages = ($companyStageQuery->exists()
+                ? $companyStageQuery
+                : \App\Models\JobPipelineStage::whereNull('owner_type')->whereNull('owner_id')->orderBy('position'))
+            ->get(['id','slug','name','position']);
+
+        // Exclude terminal/result stages from analytics
+        $excludeSlugs = ['hired','rejected'];
+        $stages = $stages->reject(fn($s) => in_array(strtolower($s->slug), $excludeSlugs))->values();
+
+        if ($stages->isEmpty()) {
+            return Inertia::render('Company/Reports/HiringFunnel', [
+                'stageCounts'=>[],
+                'stageTable'=>[],
+                'lineChart'=>['labels'=>[],'series'=>[]],
+                'summaryStats'=>[],
+                'stages'=>[],
+                'filters'=>[
+                    'department'=>$dept,'job_id'=>$jobId,'duration_band'=>$band
+                ],
+                'departments'=>[],
+                'jobs'=>[],
+            ]);
+        }
+
+        $orderedSlugs = $stages->pluck('slug');
+
+        // Funnel (UNFILTERED) counts: how many applications reached each stage
+        $stageCounts = $orderedSlugs->map(function($slug) use ($companyId){
+            $count = JobApplication::whereHas('job', fn($q)=>$q->where('company_id',$companyId))
+                ->where('stage',$slug)
+                ->count();
+            return [
+                'slug'=>$slug,
+                'name'=>\Str::title(str_replace('_',' ',$slug)),
+                'count'=>$count
+            ];
+        })->values();
+
+        // Build filtered application base for table + durations
+        $filteredAppIds = JobApplication::whereHas('job', function($q) use ($companyId,$dept,$jobId){
+                $q->where('company_id',$companyId)
+                ->when($dept, fn($qq,$d)=>$qq->whereHas('department', fn($dqq)=>$dqq->where('department_name',$d)))
+                ->when($jobId, fn($qq,$jid)=>$qq->where('id',$jid));
+            })
+            ->pluck('id');
+
+        if ($filteredAppIds->isEmpty()) {
+            return Inertia::render('Company/Reports/HiringFunnel', [
+                'stageCounts'=>$stageCounts,
+                'stageTable'=>[],
+                'lineChart'=>['labels'=>[],'series'=>[]],
+                'summaryStats'=>[],
+                'stages'=>$stages->map(fn($s)=>['slug'=>$s->slug,'name'=>$s->name]),
+                'filters'=>[
+                    'department'=>$dept,'job_id'=>$jobId,'duration_band'=>$band
+                ],
+                'departments'=>\App\Models\Department::whereHas('jobs',fn($q)=>$q->where('company_id',$companyId))
+                    ->pluck('department_name')->unique()->values(),
+                'jobs'=>Job::where('company_id',$companyId)->select('id','job_title')->orderBy('job_title')->get(),
+            ]);
+        }
+
+        // Fetch logs for filtered applications
+        // NOTE: user stated JobApplicationStageLog has columns: from_stage, to_stage, created_at
+        $logs = \App\Models\JobApplicationStageLog::whereIn('job_application_id',$filteredAppIds)
+            ->orderBy('job_application_id')
+            ->orderBy('created_at')
+            ->get(['job_application_id','from_stage','to_stage','created_at']);
+
+        // Group logs per application (sequential transitions)
+        $logsByApp = $logs->groupBy('job_application_id');
+
+        // For each application reconstruct time spent in each stage:
+        // When an application transitions A -> B at time T, that means: it ENTERED B at T; duration in A ends at T.
+        // Need entry time for first stage: we infer from earliest log where to_stage = first stage.
+        $stageDurations = []; // stage_slug => [durations in days ...]
+        $transitionDurations = []; // "A→B" => [days...]
+
+        foreach ($logsByApp as $appLogs) {
+            $appLogs = $appLogs->values();
+            if ($appLogs->isEmpty()) continue;
+
+            // Build ordered events: each row denotes leaving from_stage and entering to_stage at created_at
+            // Determine entry times: entry[to_stage] = timestamp
+            $entryTimes = [];
+            foreach ($appLogs as $log) {
+                // First occurrence of to_stage sets entry time if not already set
+                if (!isset($entryTimes[$log->to_stage])) {
+                    $entryTimes[$log->to_stage] = Carbon::parse($log->created_at);
+                }
+            }
+
+            // Sort stages by pipeline order
+            $sortedReached = $orderedSlugs->filter(fn($slug)=>isset($entryTimes[$slug]))->values();
+
+            for ($i=0; $i < $sortedReached->count(); $i++) {
+                $stageSlug = $sortedReached[$i];
+                $entry = $entryTimes[$stageSlug];
+                $exit = null;
+                if ($i+1 < $sortedReached->count()) {
+                    $nextStage = $sortedReached[$i+1];
+                    $exit = $entryTimes[$nextStage]; // left when entering next
+                    $duration = max(0, $entry->diffInDays($exit)); // stage duration
+                    $stageDurations[$stageSlug][] = $duration;
+
+                    // Transition duration stageSlug -> nextStage (same value)
+                    $key = $stageSlug.'→'.$nextStage;
+                    $transitionDurations[$key][] = $duration;
+                } else {
+                    // Last stage reached: no next
+                    // Duration undefined; skip unless needed
+                }
+            }
+        }
+
+        // Compute per-stage average days to NEXT stage, classify speed
+        $avgToNext = []; // stageSlug => avg days
+        foreach ($transitionDurations as $key=>$arr) {
+            [$from,$to] = explode('→',$key);
+            if (count($arr)) {
+                $avgToNext[$from] = round(array_sum($arr)/count($arr),2);
+            }
+        }
+
+        // Candidate counts per stage within filtered set
+        $stageCandidateCounts = [];
+        foreach ($orderedSlugs as $slug) {
+            $stageCandidateCounts[$slug] = 0;
+        }
+        // If an application has entry time to a stage -> counted
+        foreach ($logsByApp as $appLogs) {
+            $reached = $appLogs->pluck('to_stage')->unique();
+            foreach ($reached as $slug) {
+                if (isset($stageCandidateCounts[$slug])) {
+                    $stageCandidateCounts[$slug]++;
+                }
+            }
+        }
+
+        $firstStageSlug = $orderedSlugs->first();
+        $firstStageCount = max(1, $stageCandidateCounts[$firstStageSlug] ?? 1);
+
+        // Department & job distributions per stage (filtered)
+        $appStageDept = []; // stage => dept_name => count
+        $appStageJob  = []; // stage => job_title => count
+        // Preload applications with job + dept
+        $appsIndexed = JobApplication::with(['job.department'])
+            ->whereIn('id',$filteredAppIds)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($logsByApp as $appId=>$appLogs) {
+            $app = $appsIndexed[$appId] ?? null;
+            if (!$app) continue;
+            $deptName = optional($app->job->department)->department_name ?: 'Unassigned';
+            $jobTitle = $app->job->job_title ?? 'Unknown';
+
+            $reachedStages = $appLogs->pluck('to_stage')->unique();
+            foreach ($reachedStages as $s) {
+                $appStageDept[$s][$deptName] = ($appStageDept[$s][$deptName] ?? 0) + 1;
+                $appStageJob[$s][$jobTitle]  = ($appStageJob[$s][$jobTitle]  ?? 0) + 1;
+            }
+        }
+
+        // Helper classify transition feedback
+        $classify = function($days){
+            if ($days === null) return 'No Data';
+            if ($days < 5) return 'Fast (<5d)';
+            if ($days <= 10) return 'Moderate (5–10d)';
+            return 'Slow (>10d)';
+        };
+        // Apply duration_band filter to transitions (table + line chart)
+        $bandRange = $bands[$band] ?? null;
+
+        $tableRows = [];
+        foreach ($orderedSlugs as $index=>$slug) {
+            $count = $stageCandidateCounts[$slug] ?? 0;
+            $avgDays = $avgToNext[$slug] ?? null;
+            $feedback = $classify($avgDays);
+
+            // Skip if duration band filter active and this row has avgDays outside band (except last stage with null)
+            if ($bandRange && $avgDays !== null) {
+                [$min,$max] = $bandRange;
+                $ok = $avgDays >= $min && ($max === null || $avgDays <= $max);
+                if (!$ok) continue;
+            }
+
+            $deptCounts = $appStageDept[$slug] ?? [];
+            arsort($deptCounts);
+            $topDept = array_key_first($deptCounts) ?: '';
+
+            $jobCounts = $appStageJob[$slug] ?? [];
+            arsort($jobCounts);
+            $topJob = array_key_first($jobCounts) ?: '';
+
+            $conversion = round(($count / $firstStageCount) * 100, 2);
+
+            $tableRows[] = [
+                'slug' => $slug,
+                'name' => $stages->firstWhere('slug',$slug)->name ?? \Str::title(str_replace('_',' ',$slug)),
+                'count' => $count,
+                'top_department' => $topDept,
+                'top_job' => $topJob,
+                'conversion_percent' => $conversion,
+                'avg_days_to_next' => $avgDays,
+                'transition_feedback' => $feedback,
+            ];
+        }
+
+        // Line chart (filtered transitions, respect duration band)
+        $lineLabels = [];
+        $lineData = [];
+        foreach ($orderedSlugs as $i=>$slug) {
+            if ($i+1 >= $orderedSlugs->count()) break;
+            $next = $orderedSlugs[$i+1];
+            $key = $slug.'→'.$next;
+            if (!isset($transitionDurations[$key]) || !count($transitionDurations[$key])) {
+                $lineLabels[] = $slug.'→'.$next;
+                $lineData[] = 0;
+                continue;
+            }
+            $avg = round(array_sum($transitionDurations[$key]) / count($transitionDurations[$key]),2);
+            // Band filter
+            if ($bandRange) {
+                [$min,$max] = $bandRange;
+                $ok = $avg >= $min && ($max === null || $avg <= $max);
+                if (!$ok) continue;
+            }
+            $lineLabels[] = $slug.'→'.$next;
+            $lineData[] = $avg;
+        }
+
+        $lineChart = [
+            'labels' => $lineLabels,
+            'series' => [[
+                'name' => 'Avg Days',
+                'type' => 'line',
+                'smooth' => true,
+                'data' => $lineData
+            ]]
+        ];
+
+        // Summary
+        $bottleneck = collect($tableRows)->filter(fn($r)=>$r['avg_days_to_next'] !== null)
+            ->sortByDesc('avg_days_to_next')->first();
+        $summaryStats = [
+            'total_candidates_first_stage' => $stageCandidateCounts[$firstStageSlug] ?? 0,
+            'bottleneck_stage' => $bottleneck['name'] ?? null,
+            'bottleneck_avg_days' => $bottleneck['avg_days_to_next'] ?? null,
+            'filtered_rows' => count($tableRows),
+            'duration_band' => $band,
+        ];
+
+        // Filter dropdown sources
+        $departments = \App\Models\Department::whereHas('jobs',fn($q)=>$q->where('company_id',$companyId))
+            ->pluck('department_name')->unique()->values();
+        $jobs = Job::where('company_id',$companyId)
+            ->select('id','job_title')
+            ->orderBy('job_title')
+            ->get();
+
         return Inertia::render('Company/Reports/HiringFunnel', [
-            'funnelData' => $funnelData,
-            'stageTrends' => $stageTrends,
+            'stageCounts' => $stageCounts,          
+            'stageTable' => $tableRows,
+            'lineChart' => $lineChart,
+            'summaryStats' => $summaryStats,
+            'stages' => $stages->map(fn($s)=>['slug'=>$s->slug,'name'=>$s->name]),
+            'filters' => [
+                'department'=>$dept,
+                'job_id'=>$jobId,
+                'duration_band'=>$band,
+            ],
+            'departments' => $departments,
+            'jobs' => $jobs,
         ]);
     }
 
@@ -586,7 +797,7 @@ class CompanyReportsController extends Controller
         $hr = $user->hr;
         $companyId = $hr->company_id;
 
-        // 1. Box Plot: Salary ranges for different job roles
+        // Distinct roles
         $roles = Job::where('company_id', $companyId)
             ->select('job_title')
             ->distinct()
@@ -594,81 +805,127 @@ class CompanyReportsController extends Controller
             ->toArray();
 
         $boxPlotData = [];
+
         foreach ($roles as $role) {
-            $jobs = Job::where('company_id', $companyId)
+            $jobsForRole = Job::where('company_id', $companyId)
                 ->where('job_title', $role)
                 ->with('salary')
                 ->get();
 
             $salaries = [];
-            foreach ($jobs as $job) {
+
+            foreach ($jobsForRole as $job) {
+                // Prefer related salary record
                 if ($job->salary) {
-                    if ($job->salary->job_min_salary) {
-                        $salaries[] = $job->salary->job_min_salary;
-                    }
-                    if ($job->salary->job_max_salary) {
-                        $salaries[] = $job->salary->job_max_salary;
-                    }
+                    if (!is_null($job->salary->job_min_salary)) $salaries[] = (float)$job->salary->job_min_salary;
+                    if (!is_null($job->salary->job_max_salary)) $salaries[] = (float)$job->salary->job_max_salary;
+                } else {
+                    // Fallback: direct columns on jobs table
+                    if (!is_null($job->job_min_salary)) $salaries[] = (float)$job->job_min_salary;
+                    if (!is_null($job->job_max_salary)) $salaries[] = (float)$job->job_max_salary;
                 }
             }
-            $salaries = collect($salaries)->filter()->sort()->values()->toArray();
-            $count = count($salaries);
-            if ($count > 0) {
-                $min = $salaries[0];
-                $max = $salaries[$count - 1];
-                $q1 = $salaries[(int) floor($count * 0.25)];
-                $median = $salaries[(int) floor($count * 0.5)];
-                $q3 = $salaries[(int) floor($count * 0.75)];
-                $boxPlotData[] = [
-                    'role' => $role,
-                    'values' => [$min, $q1, $median, $q3, $max],
-                ];
+
+            $salaries = collect($salaries)->filter(fn($v) => $v > 0)->sort()->values();
+            $n = $salaries->count();
+            if ($n === 0) continue;
+
+            // Helper for percentile index
+            $p = function($percent) use ($n) {
+                if ($n === 1) return 0;
+                $idx = ($n - 1) * $percent;
+                return (int)round($idx);
+            };
+
+            $min   = $salaries->first();
+            $max   = $salaries->last();
+            $q1    = $salaries->get($p(0.25));
+            $median= $salaries->get($p(0.50));
+            $q3    = $salaries->get($p(0.75));
+
+            $boxPlotData[] = [
+                'role' => $role,
+                'values' => [$min, $q1, $median, $q3, $max],
+            ];
+        }
+
+        // Histogram (use midpoint of range; fallback to job columns too)
+        $allJobs = Job::where('company_id', $companyId)->with('salary')->get();
+
+        $allSalaries = [];
+        foreach ($allJobs as $job) {
+            $minS = null;
+            $maxS = null;
+
+            if ($job->salary) {
+                $minS = $job->salary->job_min_salary;
+                $maxS = $job->salary->job_max_salary;
+            } else {
+                $minS = $job->job_min_salary;
+                $maxS = $job->job_max_salary;
+            }
+
+            // Normalize numeric
+            $minS = is_numeric($minS) ? (float)$minS : null;
+            $maxS = is_numeric($maxS) ? (float)$maxS : null;
+
+            if (!is_null($minS) && !is_null($maxS)) {
+                $allSalaries[] = ($minS + $maxS) / 2;
+            } elseif (!is_null($minS)) {
+                $allSalaries[] = $minS;
+            } elseif (!is_null($maxS)) {
+                $allSalaries[] = $maxS;
             }
         }
 
-        // 2. Histogram: Frequency of salary ranges
-        $allJobs = Job::where('company_id', $companyId)->with('salary')->get();
-        $allSalaries = $allJobs->map(function ($job) {
-            if ($job->salary) {
-                if ($job->salary->job_min_salary && $job->salary->job_max_salary) {
-                    return ($job->salary->job_min_salary + $job->salary->job_max_salary) / 2;
-                } elseif ($job->salary->job_min_salary) {
-                    return $job->salary->job_min_salary;
-                } elseif ($job->salary->job_max_salary) {
-                    return $job->salary->job_max_salary;
-                }
-            }
-            return null;
-        })->filter()->toArray();
+        $allSalaries = array_values(array_filter($allSalaries, fn($v) => $v > 0));
+
+        if (count($allSalaries) === 0) {
+            \Log::info('SalaryInsights: no salary data (including fallback) for company', ['company_id' => $companyId]);
+            return Inertia::render('Company/Reports/SalaryInsights', [
+                'boxPlotData' => $boxPlotData,
+                'histogramBins' => [],
+            ]);
+        }
 
         $binSize = 10000;
         $minSalary = floor(min($allSalaries) / $binSize) * $binSize;
         $maxSalary = ceil(max($allSalaries) / $binSize) * $binSize;
+        if ($minSalary === $maxSalary) {
+            $maxSalary = $minSalary + $binSize;
+        }
+
         $bins = [];
-        for ($bin = $minSalary; $bin < $maxSalary; $bin += $binSize) {
+        for ($b = $minSalary; $b < $maxSalary; $b += $binSize) {
             $bins[] = [
-                'range' => ($bin) . '-' . ($bin + $binSize - 1),
+                'range' => $b . '-' . ($b + $binSize - 1),
                 'count' => 0,
                 'jobs' => [],
             ];
         }
+
+        // Populate bins (use same salary midpoint logic)
         foreach ($allJobs as $job) {
-            if ($job->salary) {
-                if ($job->salary->job_min_salary && $job->salary->job_max_salary) {
-                    $salary = ($job->salary->job_min_salary + $job->salary->job_max_salary) / 2;
-                } elseif ($job->salary->job_min_salary) {
-                    $salary = $job->salary->job_min_salary;
-                } elseif ($job->salary->job_max_salary) {
-                    $salary = $job->salary->job_max_salary;
-                } else {
-                    continue;
-                }
-                $index = (int) floor(($salary - $minSalary) / $binSize);
-                if (isset($bins[$index])) {
-                    $bins[$index]['count']++;
-                    $bins[$index]['jobs'][] = $job->job_title; // or $job->id or any identifier
-                }
+            $minS = $job->salary->job_min_salary ?? $job->job_min_salary;
+            $maxS = $job->salary->job_max_salary ?? $job->job_max_salary;
+
+            $minS = is_numeric($minS) ? (float)$minS : null;
+            $maxS = is_numeric($maxS) ? (float)$maxS : null;
+
+            if (is_null($minS) && is_null($maxS)) continue;
+
+            if (!is_null($minS) && !is_null($maxS)) {
+                $mid = ($minS + $maxS) / 2;
+            } else {
+                $mid = !is_null($minS) ? $minS : $maxS;
             }
+
+            if ($mid <= 0) continue;
+
+            $index = (int) floor(($mid - $minSalary) / $binSize);
+            if (!isset($bins[$index])) continue;
+            $bins[$index]['count']++;
+            $bins[$index]['jobs'][] = $job->job_title;
         }
 
         return Inertia::render('Company/Reports/SalaryInsights', [
@@ -722,36 +979,211 @@ class CompanyReportsController extends Controller
     public function applicantStatus(Request $request)
     {
         $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
+        $companyId = $user->hr->company_id;
 
-        // Pie Chart: Proportion of candidates in different statuses
-        $statuses = ['applied', 'screened', 'interviewed', 'hired', 'rejected'];
-        $statusCounts = [];
-        foreach ($statuses as $status) {
-            $statusCounts[ucfirst($status)] = JobApplication::whereHas('job', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })->where('stage', $status)->count();
+        // Filters
+        $jobId        = $request->query('job_id');
+        $department   = $request->query('department');
+        $statusFilter  = $request->query('status'); 
+        $datePreset   = $request->query('date_preset', 'overall'); 
+        $dateFrom     = $request->query('date_from');
+        $dateTo       = $request->query('date_to');
+
+        // Resolve preset to dates (if not custom)
+        if ($datePreset !== 'custom') {
+            $now = Carbon::now();
+            switch ($datePreset) {
+                case 'last_7':      $dateFrom = $now->copy()->subDays(7)->startOfDay();  $dateTo = $now; break;
+                case 'last_30':     $dateFrom = $now->copy()->subDays(30)->startOfDay(); $dateTo = $now; break;
+                case 'last_90':     $dateFrom = $now->copy()->subDays(90)->startOfDay(); $dateTo = $now; break;
+                case 'this_month':  $dateFrom = $now->copy()->startOfMonth(); $dateTo = $now->copy()->endOfMonth(); break;
+                case 'last_month':
+                    $dateFrom = $now->copy()->subMonth()->startOfMonth();
+                    $dateTo   = $now->copy()->subMonth()->endOfMonth();
+                    break;
+                case 'this_year':   $dateFrom = $now->copy()->startOfYear(); $dateTo = $now->copy()->endOfYear(); break;
+                case 'last_year':
+                    $dateFrom = $now->copy()->subYear()->startOfYear();
+                    $dateTo   = $now->copy()->subYear()->endOfYear();
+                    break;
+                case 'last_2_years':
+                    $dateFrom = $now->copy()->subYears(2)->startOfDay();
+                    $dateTo   = $now;
+                    break;
+                case 'overall':
+                default:
+                    $dateFrom = null;
+                    $dateTo   = null;
+            }
+        } else {
+            // Custom: ensure Carbon objects or null
+            $dateFrom = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : null;
+            $dateTo   = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
         }
 
-        // KPI Cards
-        $totalApplications = JobApplication::whereHas('job', function ($q) use ($companyId) {
-            $q->where('company_id', $companyId);
-        })->count();
+         $statusMap = [
+        'screening' => 'screening',
+        'offered'   => 'offer',     
+        'rejected'  => 'rejected',
+        'hired'     => 'hired',
+    ];
 
-        $shortlisted = JobApplication::whereHas('job', function ($q) use ($companyId) {
-            $q->where('company_id', $companyId);
-        })->where('stage', 'screened')->count();
+    $baseQuery = JobApplication::with(['job.department','graduate'])
+        ->whereHas('job', function($q) use ($companyId, $department, $jobId) {
+            $q->where('company_id', $companyId)
+              ->when($department, fn($qq,$d)=>$qq->whereHas('department', fn($dq)=>$dq->where('department_name',$d)))
+              ->when($jobId, fn($qq,$jid)=>$qq->where('id',$jid));
+        })
+        ->when($statusFilter && isset($statusMap[$statusFilter]),
+            fn($q)=>$q->where('stage', $statusMap[$statusFilter]))
+        ->when($dateFrom, fn($q)=>$q->where('created_at','>=',$dateFrom))
+        ->when($dateTo, fn($q)=>$q->where('created_at','<=',$dateTo));
 
-        $rolesFilled = Job::where('company_id', $companyId)
-            ->where('status', 'filled')
-            ->count();
+        $applications = $baseQuery->get();
+
+        // Track which rejected applicants had previously reached the Offer stage
+        $offerStage = \App\Models\JobPipelineStage::whereIn('slug', ['offer','offered'])->first();
+
+        $appsReachedOffer = collect();
+        if ($offerStage && $applications->count()) {
+            $logsQuery = \App\Models\JobApplicationStageLog::whereIn(
+                'job_application_id',
+                $applications->pluck('id')
+            );
+
+            if (Schema::hasColumn('job_application_stage_logs', 'to_stage_id')) {
+                // Numeric FK column exists
+                $logsQuery->where('to_stage_id', $offerStage->id);
+            } elseif (Schema::hasColumn('job_application_stage_logs', 'to_stage')) {
+                // Fallback string / slug column
+                $logsQuery->where('to_stage', $offerStage->slug);
+            } else {
+                // Neither column present; skip
+                $logsQuery = null;
+            }
+
+            if ($logsQuery) {
+                $appsReachedOffer = $logsQuery->pluck('job_application_id')->unique();
+            }
+        }
+
+
+        // Status (stage) counts for filtered dataset
+        $relevantStages = ['applied','screening','offer','hired','rejected'];
+        $statusCounts = [];
+        foreach ($relevantStages as $st) {
+            $statusCounts[ucfirst($st)] = $applications->where('stage',$st)->count();
+        }
+
+        $totalApplications = $applications->count();
+
+        // KPI: Shortlisted = in offer stage
+        $shortlisted = $applications->where('stage','offer')->count();
+
+        // KPI: Roles Filled = jobs where hired count >= vacancies (and vacancies > 0), respecting job/department filters
+        $jobsForRoleFill = Job::where('company_id',$companyId)
+            ->when($department, fn($q,$d)=>$q->whereHas('department', fn($dq)=>$dq->where('department_name',$d)))
+            ->when($jobId, fn($q,$jid)=>$q->where('id',$jid))
+            ->get(['id','job_vacancies']);
+        $jobIds = $jobsForRoleFill->pluck('id');
+        $hiredCountsPerJob = JobApplication::whereIn('job_id',$jobIds)
+            ->where('stage','hired')
+            ->select('job_id', DB::raw('COUNT(*) as hired'))
+            ->groupBy('job_id')
+            ->pluck('hired','job_id');
+        $rolesFilled = 0;
+        foreach ($jobsForRoleFill as $job) {
+            $vac = (int)($job->job_vacancies ?? 0);
+            if ($vac > 0 && ($hiredCountsPerJob[$job->id] ?? 0) >= $vac) {
+                $rolesFilled++;
+            }
+        }
+
+        // Table rows
+         $tableRows = $applications->map(function($app) use ($appsReachedOffer) {
+            $grad = $app->graduate;
+            $name = trim(($grad->first_name ?? '').' '.($grad->last_name ?? '')) ?: 'Applicant #'.$app->id;
+            $dept = $app->job?->department?->department_name;
+            $reachedOffer = $appsReachedOffer->contains($app->id);
+            return [
+                'id' => $app->id,
+                'applicant_name' => $name,
+                'job_title' => $app->job?->job_title,
+                'department' => $dept,
+                'stage' => $app->stage,
+                'stage_label' => ucfirst(str_replace('_',' ',$app->stage)),
+                'applied_date' => optional($app->created_at)->format('Y-m-d'),
+                'reached_offer' => $reachedOffer,
+            ];
+        })->values();
+
+        // Top job & department (filtered)
+        $topJob = $tableRows->groupBy('job_title')->map->count()->sortDesc()->keys()->first();
+        $topDept = $tableRows->groupBy('department')->map->count()->sortDesc()->keys()->first();
+
+        $hired = $statusCounts['Hired'] ?? 0;
+        $rejected = $statusCounts['Rejected'] ?? 0;
+        $offer = $statusCounts['Offer'] ?? 0;
+
+        
+        $rejectedAfterOffer = $tableRows->where('stage','rejected')->where('reached_offer', true)->count();
+        $rejectedBeforeOffer = $tableRows->where('stage','rejected')->where('reached_offer', false)->count();
+        $postOfferRejectionRate = $offer > 0 ? round($rejectedAfterOffer / $offer * 100, 2) : 0;
+
+
+        $offerToHireRate = $offer > 0 ? round($hired / $offer * 100, 2) : 0;
+        $rejectionRate   = $totalApplications > 0 ? round($rejected / $totalApplications * 100, 2) : 0;
+
+        // Summary stats for interpretation
+        $summary = [
+            'total' => $totalApplications,
+            'shortlisted' => $shortlisted,
+            'hired' => $hired,
+            'rejected' => $rejected,
+            'offer' => $offer,
+            'offer_to_hire_rate' => $offerToHireRate,
+            'rejection_rate' => $rejectionRate,
+            'roles_filled' => $rolesFilled,
+            'roles_filled_pct' => $jobsForRoleFill->count() ? round($rolesFilled / $jobsForRoleFill->count() * 100, 2) : 0,
+            'top_job' => $topJob,
+            'top_department' => $topDept,
+            'filters_active' => (bool)($jobId || $department || $statusFilter || ($datePreset !== 'overall' && $datePreset) || ($datePreset === 'custom' && ($dateFrom || $dateTo))),
+            'date_range_label' => $datePreset === 'custom'
+                ? (($dateFrom?->format('Y-m-d') ?? '—').' to '.($dateTo?->format('Y-m-d') ?? '—'))
+                : ucfirst(str_replace('_',' ', $datePreset)),
+            'rejected_after_offer' => $rejectedAfterOffer,
+            'rejected_before_offer' => $rejectedBeforeOffer,
+            'post_offer_rejection_rate' => $postOfferRejectionRate,
+        ];
+
+        // Filter dropdown sources
+        $departments = \App\Models\Department::whereHas('jobs', fn($q)=>$q->where('company_id',$companyId))
+            ->pluck('department_name')->unique()->values();
+        $jobs = Job::where('company_id',$companyId)
+            ->select('id','job_title')
+            ->orderBy('job_title')
+            ->get();
+        $distinctStages = JobApplication::whereHas('job', fn($q)=>$q->where('company_id',$companyId))
+            ->distinct()->pluck('stage')->filter()->values();
 
         return Inertia::render('Company/Reports/ApplicantStatusOverview', [
             'statusCounts' => $statusCounts,
             'totalApplications' => $totalApplications,
             'shortlisted' => $shortlisted,
             'rolesFilled' => $rolesFilled,
+            'tableRows' => $tableRows,
+            'summary' => $summary,
+            'filters' => [
+                'job_id'=>$jobId,
+                'department'=>$department,
+                'status'=>$statusFilter,
+                'date_preset'=>$datePreset,
+                'date_from'=>$request->query('date_from'),
+                'date_to'=>$request->query('date_to'),
+            ],
+            'jobs' => $jobs,
+            'departments' => $departments,
+            'stages' => $distinctStages,
         ]);
     }
 

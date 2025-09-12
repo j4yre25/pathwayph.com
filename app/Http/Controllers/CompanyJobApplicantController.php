@@ -27,7 +27,9 @@ class CompanyJobApplicantController extends Controller
 
         $jobs = Job::where('company_id', $companyId)
             ->whereIn('id', $jobIdsWithApplicants)
-            ->get();
+            ->get()
+            ->map(fn($j) => ['id' => $j->id, 'job_title' => $j->job_title])
+            ->values(); // ensure plain array
 
         $applicationsQuery = JobApplication::with([
             'graduate.user',
@@ -85,7 +87,7 @@ class CompanyJobApplicantController extends Controller
                 'job_title' => $job?->job_title ?? '',
                 'job_id' => $job?->id ?? '',
                 'employment_type' => $job?->jobTypes?->map(fn($jt) => $jt->type)->join(', '),
-                'status' => $application->status, // legacy status
+                'status' => $application->status,
                 'stage' => $stageSlug,
                 'screening_label' => $screeningLabel,
                 'applied_at' => optional($application->applied_at)->format('M d, Y'),
@@ -94,7 +96,7 @@ class CompanyJobApplicantController extends Controller
                 'notes' => $application->notes ?? '',
                 'profile_picture' => $graduate?->graduate_picture ?? null,
             ];
-        });
+        })->values(); // ensure plain array
 
         $totalApplicants = $applicants->count();
         $hiredCount = $applicants->where('status', 'hired')->count();
@@ -106,7 +108,7 @@ class CompanyJobApplicantController extends Controller
 
         return Inertia::render('Company/Applicants/Index', [
             'applicants' => $applicants,
-            'jobs' => $jobs->map(fn($j) => ['id' => $j->id, 'job_title' => $j->job_title]),
+            'jobs' => $jobs,
             'employmentTypes' => ['Full-time','Part-time','Internship','Contract','Freelance'],
             'filters' => $request->only([
                 'job_id','employment_type','date_from','date_to','stage','match_range','screening_label','selected_applied_date'
