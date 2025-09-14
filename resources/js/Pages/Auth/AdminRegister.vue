@@ -1,210 +1,242 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import Modal from '@/Components/Modal.vue';
 import { ref, computed } from 'vue';
-import { Inertia } from '@inertiajs/inertia';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-
-const showModal = ref(false);
+import { useForm } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import Modal from '@/Components/Modal.vue';
 
 const form = useForm({
     peso_first_name: '',
     peso_last_name: '',
-    gender: '',
-    dob: '',
+    peso_middle_name: '',
+    description: '',
     contact_number: '',
     telephone_number: '',
+    address: '',
+    logo: null,
     email: '',
     password: '',
     password_confirmation: '',
-    role: 'peso', // Default role for PESO admin
-    terms: false,
-    is_approved: true, // Automatically approve PESO admin
 });
 
-const formattedContactNumber = computed({
-    get: () => {
-        let rawNumber = form.contact_number.replace(/\D/g, "");
-        if (rawNumber.length > 10) {
-            rawNumber = rawNumber.slice(0, 10);
-        }
-        return `+63 ${rawNumber.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3")}`.trim();
-    },
-    set: (value) => {
-        let rawValue = value.replace(/\D/g, "");
-        if (rawValue.startsWith("63")) {
-            rawValue = rawValue.slice(2);
-        }
-        if (rawValue.startsWith("0")) {
-            rawValue = rawValue.slice(1);
-        }
-        if (rawValue.length > 10) {
-            rawValue = rawValue.slice(0, 10);
-        }
-        form.contact_number = rawValue;
-    },
-});
+const showModal = ref(false);
+const currentStep = ref(1);
+const totalSteps = ref(2);
 
-const passwordCriteria = computed(() => {
-    const password = form.password;
-    return {
-        length: password.length >= 8,
-        uppercaseLowercase: /[a-z]/.test(password) && /[A-Z]/.test(password),
-        number: /\d/.test(password),
-        symbol: /[~!@#$%^&*()-=+_/>.,<;'']/.test(password),
-    };
-});
+function nextStep() {
+    if (canProceed.value && currentStep.value < totalSteps.value) {
+        currentStep.value++;
+    }
+}
 
-const submit = () => {
-    form.post(route('admin.register.submit'), {
-        onFinish: () => {
-            form.reset('password', 'password_confirmation');
-        },
-        onSuccess: () => {
-            showModal.value = true;
-        },
-    });
-};
+function prevStep() {
+    if (currentStep.value > 1) {
+        currentStep.value--;
+    }
+}
 
-const redirectToDashboard = () => {
-    Inertia.visit(route('dashboard'));
-};
+function goToStep(step) {
+    if (step >= 1 && step <= totalSteps.value) {
+        currentStep.value = step;
+    }
+}
+
+function isStepValid(step) {
+    switch (step) {
+        case 1:
+            return form.peso_first_name && form.peso_last_name && form.contact_number && form.address && form.email && form.password && form.password_confirmation;
+        case 2:
+            return true; // Only logo is optional
+        default:
+            return false;
+    }
+}
+
+const canProceed = computed(() => isStepValid(currentStep.value));
+
+function onFileChange(e) {
+    form.logo = e.target.files[0];
+}
+
+function submit() {
+    if (currentStep.value === totalSteps.value && canProceed.value) {
+        form.post(route('admin.register.submit'), {
+            forceFormData: true,
+            onSuccess: () => {
+                console.log('Registration succeeded');
+                showModal.value = true;
+            },
+            onError: (errors) => {
+                console.log('Registration failed', errors);
+            }
+        });
+    }
+}
+
+function goToDashboard() {
+    window.location.href = route('dashboard');
+}
 </script>
 
-
 <template>
+    <AppLayout>
+        <div class="relative min-h-screen gradient-bg overflow-hidden">
+            <div class="relative z-10 max-w-3xl mx-auto py-12 px-6">
+                <div class="text-center mb-10 bg-white rounded-xl shadow p-6">
+                    <h1 class="text-4xl font-bold text-gray-900 mb-2">Register PESO Admin</h1>
+                    <p class="text-lg text-gray-700">Fill in your details to create your account</p>
+                </div>
 
-    <Head title="Peso Admin Register" />
-
-    <AuthenticationCard>
-    <template #registerForm>
-
-        <div class="flex space-x-12">
-            <!-- Left Side: Welcome Section -->
-            <div
-                class="flex-1 flex flex-col items-start justify-center p-6 bg-gradient-to-r from-purple-600 to-blue-500 rounded-lg shadow-lg text-white">
-                <AuthenticationCardLogo class="mx-20 fill-white-100" />
-                <h2 class="text-6xl font-bold">Welcome to</h2>
-                <h1 class="text-7xl font-extrabold">Pathway</h1>
-                <p class="mt-4 text-sm">
-                    Join us in shaping the future of education. We are excited to partner with you in this journey.
-                </p>
-            </div>
-
-            <!-- Right Side: Registration Form -->
-            <div class="flex-1 space-y-6">
-                <h2 class="text-xl font-semibold text-gray-900">PESO Registration</h2>
-                <p class="text-sm text-gray-600">Provide your personal and account details below.</p>
-
-                <form @submit.prevent="submit" autocomplete="off">
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- First Name -->
-                        <div>
-                            <InputLabel for="peso_first_name" value="First Name" />
-                            <TextInput id="peso_first_name" v-model="form.peso_first_name" type="text"
-                                class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.peso_first_name" />
+                <!-- Step Progress Indicator -->
+                <div class="flex justify-center mb-8">
+                    <div class="flex items-center space-x-4">
+                        <div v-for="step in totalSteps" :key="step" class="flex items-center">
+                            <div @click="goToStep(step)" :class="[
+                                'w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                                currentStep === step ? 'bg-blue-600 text-white scale-110' :
+                                    currentStep > step ? 'bg-blue-400 text-white' : 'bg-gray-200 text-gray-400'
+                            ]">
+                                <span>{{ step }}</span>
+                            </div>
+                            <div v-if="step < totalSteps" class="w-10 h-0.5 bg-blue-200 mx-2"></div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Last Name -->
-                        <div>
-                            <InputLabel for="peso_last_name" value="Last Name" />
-                            <TextInput id="peso_last_name" v-model="form.peso_last_name" type="text"
-                                class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.peso_last_name" />
-                        </div>
-
-                        <!-- Gender -->
-                        <div>
-                            <InputLabel for="gender" value="Gender" />
-                            <select id="gender" v-model="form.gender"
-                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                                <option value="">Select Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            <InputError class="mt-2" :message="form.errors.gender" />
-                        </div>
-
-                        <!-- Date of Birth -->
-                        <div>
-                            <InputLabel for="dob" value="Date of Birth" />
-                            <TextInput id="dob" v-model="form.dob" type="date" class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.dob" />
+                <form @submit.prevent="submit" class="space-y-8">
+                    <!-- Step 1: Personal Information -->
+                    <div v-show="currentStep === 1" class="bg-white rounded-2xl shadow p-8">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-700">Personal Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <InputLabel for="peso_first_name">First Name <span class="text-red-500">*</span>
+                                </InputLabel>
+                                <TextInput id="peso_first_name" v-model="form.peso_first_name" type="text" required
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.peso_first_name" />
+                            </div>
+                            <div>
+                                <InputLabel for="peso_last_name">Last Name <span class="text-red-500">*</span>
+                                </InputLabel>
+                                <TextInput id="peso_last_name" v-model="form.peso_last_name" type="text" required
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.peso_last_name" />
+                            </div>
+                            <div>
+                                <InputLabel for="peso_middle_name">Middle Name</InputLabel>
+                                <TextInput id="peso_middle_name" v-model="form.peso_middle_name" type="text"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.peso_middle_name" />
+                            </div>
+                            <div>
+                                <InputLabel for="description">Description</InputLabel>
+                                <TextInput id="description" v-model="form.description" type="text"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.description" />
+                            </div>
+                            <div>
+                                <InputLabel for="contact_number">Contact Number <span class="text-red-500">*</span>
+                                </InputLabel>
+                                <TextInput id="contact_number" v-model="form.contact_number" type="text" required
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.contact_number" />
+                            </div>
+                            <div>
+                                <InputLabel for="telephone_number">Telephone Number</InputLabel>
+                                <TextInput id="telephone_number" v-model="form.telephone_number" type="text"
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.telephone_number" />
+                            </div>
+                            <div class="md:col-span-2">
+                                <InputLabel for="address">Address <span class="text-red-500">*</span></InputLabel>
+                                <TextInput id="address" v-model="form.address" type="text" required
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.address" />
+                            </div>
+                            <div class="md:col-span-2">
+                                <InputLabel for="email">Email <span class="text-red-500">*</span></InputLabel>
+                                <TextInput id="email" v-model="form.email" type="email" required
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.email" />
+                            </div>
+                            <div>
+                                <InputLabel for="password">Password <span class="text-red-500">*</span></InputLabel>
+                                <TextInput id="password" v-model="form.password" type="password" required
+                                    class="mt-1 block w-full" />
+                                <InputError :message="form.errors.password" />
+                            </div>
+                            <div>
+                                <InputLabel for="password_confirmation">Confirm Password <span
+                                        class="text-red-500">*</span></InputLabel>
+                                <TextInput id="password_confirmation" v-model="form.password_confirmation"
+                                    type="password" required class="mt-1 block w-full" />
+                                <InputError :message="form.errors.password_confirmation" />
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Contact Information -->
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <!-- Contact Number -->
+                    <!-- Step 2: Profile Picture -->
+                    <div v-show="currentStep === 2" class="bg-white rounded-2xl shadow p-8">
+                        <h2 class="text-xl font-semibold mb-4 text-blue-700">Profile Picture</h2>
                         <div>
-                            <InputLabel for="contact_number" value="Contact Number" />
-                            <TextInput id="contact_number" v-model="formattedContactNumber" type="text"
-                                class="mt-1 block w-full" required />
-                            <InputError class="mt-2" :message="form.errors.contact_number" />
-                        </div>
-
-                        <!-- Telephone Number -->
-                        <div>
-                            <InputLabel for="telephone_number" value="Telephone Number" />
-                            <TextInput id="telephone_number" v-model="form.telephone_number" type="text"
-                                class="mt-1 block w-full" />
-                            <InputError class="mt-2" :message="form.errors.telephone_number" />
+                            <InputLabel for="logo">Upload Profile Picture</InputLabel>
+                            <input id="logo" type="file" class="mt-2 block w-full" @change="onFileChange"
+                                accept="image/*" />
+                            <InputError :message="form.errors.logo" />
+                            <div v-if="form.logo" class="mt-2 text-sm text-blue-600">
+                                Selected: {{ form.logo.name }}
+                            </div>
+                            <p class="text-gray-500 text-xs mt-2">Accepted formats: JPG, JPEG, PNG, GIF</p>
                         </div>
                     </div>
 
-                    <!-- Email -->
-                    <div class="mt-4">
-                        <InputLabel for="email" value="Email Address" />
-                        <TextInput id="email" v-model="form.email" type="email" class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.email" />
-                    </div>
-
-                    <!-- Password -->
-                    <div class="mt-4">
-                        <InputLabel for="password" value="Password" />
-                        <TextInput id="password" v-model="form.password" type="password" class="mt-1 block w-full"
-                            required />
-                        <InputError class="mt-2" :message="form.errors.password" />
-                    </div>
-
-                    <!-- Confirm Password -->
-                    <div class="mt-4">
-                        <InputLabel for="password_confirmation" value="Confirm Password" />
-                        <TextInput id="password_confirmation" v-model="form.password_confirmation" type="password"
-                            class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.password_confirmation" />
-                    </div>
-
-                    <!-- Submit Button -->
-                    <div class="flex items-center justify-end mt-6">
-                        <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                            Register
-                        </PrimaryButton>
+                    <!-- Navigation Buttons -->
+                    <div class="flex justify-between items-center mt-8">
+                        <button v-if="currentStep > 1" type="button" @click="prevStep"
+                            class="bg-blue-100 text-blue-700 px-6 py-2 rounded-xl font-medium hover:bg-blue-200 transition-all duration-300 flex items-center space-x-2">
+                            <span>Previous</span>
+                        </button>
+                        <div v-else></div>
+                        <div class="flex space-x-4">
+                            <button v-if="currentStep < totalSteps" type="button" @click="nextStep"
+                                :disabled="!canProceed"
+                                class="bg-blue-600 px-6 py-2 rounded-xl font-medium text-white hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+                                <span>Next Step</span>
+                            </button>
+                            <button v-if="currentStep === totalSteps" type="submit"
+                                :disabled="form.processing || !canProceed"
+                                class="bg-blue-600 px-8 py-2 rounded-xl font-bold text-white hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+                                <span v-if="form.processing">Registering...</span>
+                                <span v-else>Register</span>
+                            </button>
+                        </div>
                     </div>
                 </form>
+
+                <Modal v-model="showModal">
+                    <template #header>
+                        <h2 class="text-2xl font-bold text-blue-600">Registration Successful!</h2>
+                    </template>
+                    <template #body>
+                        <p class="mb-6 text-gray-700">
+                            Your PESO admin account has been created.<br>
+                            You will now be redirected to your dashboard.
+                        </p>
+                    </template>
+                    <template #footer>
+                        <PrimaryButton @click="goToDashboard">Go to Dashboard</PrimaryButton>
+                    </template>
+                </Modal>
             </div>
         </div>
-    </template>
-
-    </AuthenticationCard>
-
-    <!-- Success Modal -->
-    <Modal v-if="showModal" :show="showModal" @close="redirectToDashboard">
-        <template #default>
-            <div class="text-center">
-                <h2 class="text-lg font-semibold">Registration Successful</h2>
-                <p class="mt-2 text-gray-600">You have registered successfully.</p>
-                <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition" @click="redirectToDashboard">
-                    Okay
-                </button>
-            </div>
-        </template>
-    </Modal>
+    </AppLayout>
 </template>
+
+<style scoped>
+.gradient-bg {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+}
+</style>

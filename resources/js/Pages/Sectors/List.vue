@@ -178,7 +178,7 @@ function applyFilter() {
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                        {{ sector.user ? sector.user.peso_first_name : 'Unknown' }}
+                                         {{ sector.peso ? sector.peso.peso_first_name + ' ' + sector.peso.peso_last_name : 'Unknown' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span :class="[sector.deleted_at ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800', 'px-2 py-1 text-xs rounded-full font-medium']">

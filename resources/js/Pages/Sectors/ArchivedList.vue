@@ -98,9 +98,7 @@ const confirmRestore = (sector) => {
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
                                     <div class="flex items-center">Name</div>
                                 </th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                                    <div class="flex items-center">Posted By</div>
-                                </th>
+                        
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
                                     <div class="flex items-center">Status</div>
                                 </th>
@@ -114,9 +112,7 @@ const confirmRestore = (sector) => {
                                 <td class="px-6 py-5 whitespace-nowrap">
                                     <div class="text-sm font-semibold text-gray-900">{{ sector.name }}</div>
                                 </td>
-                                <td class="px-6 py-5 whitespace-nowrap">
-                                    <div class="text-sm text-gray-700 font-medium">{{ sector.user ? sector.user.peso_first_name : 'Unknown' }}</div>
-                                </td>
+         
                                 <td class="px-6 py-5 whitespace-nowrap">
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 shadow-sm">
                                         <i class="fas fa-archive mr-1.5"></i> Archived

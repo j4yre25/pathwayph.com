@@ -90,7 +90,7 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:categories'],
-            'division_code' => ['required', 'integer', 'between:1,100'],
+            'division_code' => ['required'],
 
         ]);
 

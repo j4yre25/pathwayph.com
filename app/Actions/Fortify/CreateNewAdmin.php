@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Models\Peso;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -26,9 +27,7 @@ class CreateNewAdmin implements CreatesNewUsers
         $rules = [
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => $this->passwordRules(),
-            'dob' => ['required', 'date'],
             'is_approved' => ['boolean'],
-            'gender' => ['required', 'string', 'in:Male,Female,Other'],
             'contact_number' => ['required', 'digits_between:10,15'],
             'telephone_number' => ['nullable', 'digits_between:7,15'],
         ];
@@ -53,21 +52,18 @@ class CreateNewAdmin implements CreatesNewUsers
             'password' => Hash::make($input['password']),
             'role' => $role,
             'is_approved' => true,
-            'dob' => $input['dob'],
-            'gender' => $input['gender'],
-            'contact_number' => $input['contact_number'],
-            'telephone_number' => $input['telephone_number'],
-    
-            
+
         ];
+
+
 
         // Add role-specific fields
         switch ($role) {
             case 'peso':
                 $userData['peso_first_name'] = $input['peso_first_name'];
                 $userData['peso_last_name'] = $input['peso_last_name'];
-              
-            // Add more cases for other roles if needed
+
+                // Add more cases for other roles if needed
             default:
                 // Handle the default case if necessary
                 break;
@@ -76,6 +72,17 @@ class CreateNewAdmin implements CreatesNewUsers
 
         $user = User::create($userData);
 
+        $peso = Peso::create([
+            'user_id' => $user->id,
+            'peso_first_name' => $input['peso_first_name'] ?? null,
+            'peso_last_name' => $input['peso_last_name'] ?? null,
+            'peso_middle_name' => $input['peso_middle_name'] ?? null,
+            'description' => $input['description'] ?? null,
+            'contact_number' => $input['contact_number'] ?? null,
+            'telephone_number' => $input['telephone_number'] ?? null,
+            'address' => $input['address'] ?? null,
+            'logo' => $logoPath ?? null,
+        ]);
         // Assign the role to the user
         $user->assignRole($role);
 
