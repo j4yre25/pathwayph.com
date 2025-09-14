@@ -41,6 +41,33 @@ const createCategory = () => {
     });
 }
 
+
+const divisionOptions = [
+    "01-03",
+    "05-09",
+    "10-33",
+    "35",
+    "36-39",
+    "41-43",
+    "45-47",
+    "49-53",
+    "55-56",
+    "58-63",
+    "64-66",
+    "68",
+    "69-75",
+    "77-82",
+    "84",
+    "85",
+    "86-88",
+    "90-93",
+    "94-96",
+    "98-98",
+    "99",
+    "PESO",
+];
+
+
 </script>
 
 
@@ -48,9 +75,7 @@ const createCategory = () => {
     <AppLayout>
         <template #header>
             <div class="flex items-center">
-                <button 
-                    @click="goBack" 
-                    class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
+                <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <div>
@@ -64,7 +89,8 @@ const createCategory = () => {
         </template>
 
         <Container class="py-6 space-y-6">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+            <div
+                class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
                 <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                     <FormSection @submitted="createCategory()">
                         <template #title>
@@ -77,7 +103,8 @@ const createCategory = () => {
                         </template>
 
                         <template #description>
-                            <p class="text-gray-600">Fill in the details below to add a new category for job listings.</p>
+                            <p class="text-gray-600">Fill in the details below to add a new category for job listings.
+                            </p>
                         </template>
 
                         <template #form>
@@ -96,17 +123,20 @@ const createCategory = () => {
 
                                 <div>
                                     <InputLabel for="name" value="Category Name" class="text-gray-700 font-semibold" />
-                                    <TextInput id="name" v-model="form.name" type="text" class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200" placeholder="Enter category name" />
+                                    <TextInput id="name" v-model="form.name" type="text"
+                                        class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200"
+                                        placeholder="Enter category name" />
                                     <InputError :message="form.errors.name" class="mt-2" />
                                 </div>
 
                                 <div>
-                                    <InputLabel for="division_code" value="Division Code" class="text-gray-700 font-semibold" />
+                                    <InputLabel for="division_code" value="Division Code"
+                                        class="text-gray-700 font-semibold" />
                                     <select id="division_code" v-model="form.division_code"
                                         class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200">
                                         <option value="" disabled>Select a division code</option>
-                                        <option v-for="n in 100" :key="n" :value="n">
-                                            {{ n }}
+                                        <option v-for="div in divisionOptions" :key="div" :value="div">
+                                            {{ div }}
                                         </option>
                                     </select>
                                     <InputError :message="form.errors.division_code" class="mt-2" />
@@ -115,11 +145,14 @@ const createCategory = () => {
                         </template>
                         <template #actions>
                             <div class="flex items-center justify-end space-x-4">
-                                <button @click="goBack" type="button" class="mr-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all duration-200 border border-gray-300">
+                                <button @click="goBack" type="button"
+                                    class="mr-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all duration-200 border border-gray-300">
                                     <i class="fas fa-times mr-2"></i>
                                     Cancel
                                 </button>
-                                <PrimaryButton type="submit" :class="{ 'opacity-25': form.processing }" :disabled="form.processing" class="mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors duration-200">
+                                <PrimaryButton type="submit" :class="{ 'opacity-25': form.processing }"
+                                    :disabled="form.processing"
+                                    class="mr-4 p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors duration-200">
                                     <i class="fas fa-plus mr-2"></i>
                                     {{ form.processing ? 'Creating...' : 'Add Category' }}
                                 </PrimaryButton>

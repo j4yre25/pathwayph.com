@@ -45,7 +45,8 @@ const divisionOptions = [
     "90-93",
     "94-96",
     "98-98",
-    "99"
+    "99",
+    "PESO",
 ];
 
 const createSector = () => {

@@ -6,16 +6,16 @@ const props = defineProps({
   peso: Object,
   jobs: Array,
 });
+
+
+
 </script>
 
 <template>
   <AppLayout title="PESO Profile">
     <!-- Cover Section -->
     <div class="relative h-52">
-      <img
-        src="/images/peso_bg.png"
-        alt="Cover"
-        class="absolute inset-0 w-full h-full object-cover brightness-95"/>
+      <img src="/images/peso_bg.png" alt="Cover" class="absolute inset-0 w-full h-full object-cover brightness-95" />
       <div class="absolute inset-0 bg-white/30"></div>
     </div>
 
@@ -25,28 +25,21 @@ const props = defineProps({
         <!-- Profile Pic -->
         <div class="flex justify-center">
           <div class="relative -mt-20">
-            <img
-              :src="peso.logo || '/images/default-logo.png'"
-              alt="PESO Logo"
-              class="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"/>
+            <img :src="peso.logo ? '/storage/' + peso.logo : '/images/default-logo.png'" alt="PESO Logo"
+              class="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover" />
           </div>
         </div>
 
         <!-- Name + Role -->
         <div class="mt-4 text-center">
-          <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ peso.first_name }}</h2>
+          <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ peso.peso_first_name }}</h2>
           <p class="text-gray-500 text-sm mt-1">{{ peso.role || "Public Employment Service Office" }}</p>
         </div>
 
         <!-- Social Links Row -->
-        <div
-          v-if="peso.social_links && Object.keys(peso.social_links).length"
+        <div v-if="peso.social_links && Object.keys(peso.social_links).length"
           class="flex justify-center space-x-5 border-t border-gray-200 mt-6 pt-4">
-          <a
-            v-for="(link, key) in peso.social_links"
-            :key="key"
-            :href="link"
-            target="_blank"
+          <a v-for="(link, key) in peso.social_links" :key="key" :href="link" target="_blank"
             class="text-gray-400 hover:text-blue-500 transition-colors duration-200 text-xl">
             <i :class="`fab fa-${key}`"></i>
           </a>
@@ -108,9 +101,7 @@ const props = defineProps({
           </h4>
 
           <!-- Job Announcements List -->
-          <div
-            v-for="job in jobs"
-            :key="job.id"
+          <div v-for="job in jobs" :key="job.id"
             class="mt-6 p-4 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-200">
             <h5 class="text-lg font-semibold text-gray-900">{{ job.title }}</h5>
             <p class="text-gray-600 mt-2 leading-relaxed">{{ job.description }}</p>
@@ -118,9 +109,7 @@ const props = defineProps({
           </div>
 
           <!-- Empty State -->
-          <div
-            v-if="!jobs || jobs.length === 0"
-            class="mt-6 text-center text-gray-400">
+          <div v-if="!jobs || jobs.length === 0" class="mt-6 text-center text-gray-400">
             <div class="w-16 h-16 mx-auto flex items-center justify-center rounded-full bg-gray-100 mb-4">
               <i class="fas fa-briefcase text-2xl text-gray-400"></i>
             </div>
