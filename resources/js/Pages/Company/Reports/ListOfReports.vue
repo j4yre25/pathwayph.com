@@ -64,11 +64,11 @@ const categories = [
         route: 'company.reports.screening',
         description: 'Shows how candidates are screened by qualifications and skills.'
       },
-      { 
-        label: 'Interview Progress', 
-        route: 'company.reports.interviewProgress',
-        description: 'Tracks candidates through different interview stages.'
-      },
+      // { 
+      //   label: 'Interview Progress', 
+      //   route: 'company.reports.interviewProgress',
+      //   description: 'Tracks candidates through different interview stages.'
+      // },
       { 
         label: 'Recruitment Efficiency', 
         route: 'company.reports.efficiency',
@@ -116,11 +116,11 @@ const categories = [
         route: 'company.reports.matchingSuccess',
         description: 'Tracks how many graduates match and get placed in job roles.'
       },
-      { 
-        label: 'Internship Experience', 
-        route: 'company.reports.internship',
-        description: 'Analyzes internship backgrounds and links them to hiring outcomes.'
-      },
+      // { 
+      //   label: 'Internship Experience', 
+      //   route: 'company.reports.internship',
+      //   description: 'Analyzes internship backgrounds and links them to hiring outcomes.'
+      // },
       { 
         label: 'Future Potential', 
         route: 'company.reports.futurePotential',
@@ -137,11 +137,11 @@ const categories = [
         route: 'company.reports.diversity',
         description: 'Evaluates inclusivity in job postings and workforce composition.'
       },
-      { 
-        label: 'Employer Feedback', 
-        route: 'company.reports.employerFeedback',
-        description: 'Summarizes employer evaluations of graduate skills and readiness.'
-      },
+      // { 
+      //   label: 'Employer Feedback', 
+      //   route: 'company.reports.employerFeedback',
+      //   description: 'Summarizes employer evaluations of graduate skills and readiness.'
+      // },
       { 
         label: 'Feedback and Satisfaction', 
         route: 'company.reports.feedback',

@@ -48,7 +48,7 @@ const wordCloudOption = {
 };
 </script>
 
-<template>
+<template> 
   <AppLayout title="Skills and Competency Analysis">
     <div class="max-w-7xl mx-auto py-8 px-4 space-y-12">
       <h2 class="text-2xl font-bold mb-6 text-gray-800">Skills and Competency Analysis</h2>
