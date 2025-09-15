@@ -12,14 +12,18 @@ class PesoProfileController extends Controller
     public function profile()
     {
         $user = Auth::user();
+        $peso = \App\Models\Peso::where('user_id', $user->id)->first();
 
         return Inertia::render('Admin/PesoProfile', [
             'peso' => [
-                'peso_first_name' => $user->peso_first_name,
-                'peso_last_name' => $user->peso_last_name,
+                'peso_first_name' => $peso?->peso_first_name,
+                'peso_last_name' => $peso?->peso_last_name,
                 'email' => $user->email,
-                'contact_number' => $user->company_contact_number,
-                'description' => $user->description,
+                'contact_number' => $peso?->contact_number,
+                'description' => $peso?->description,
+                'address' => $peso?->address,
+                'logo' => $peso?->logo ?? null,
+                'social_links' => $peso?->social_links ? json_decode($peso->social_links, true) : [],
             ],
         ]);
     }
@@ -27,17 +31,18 @@ class PesoProfileController extends Controller
     public function settings()
     {
         $user = Auth::user();
+        $peso = \App\Models\Peso::where('user_id', $user->id)->first();
 
         return Inertia::render('Admin/PesoProfileSettings', [
             'peso' => [
-                'peso_first_name' => $user->peso_first_name,
-                'peso_last_name' => $user->peso_last_name,
+                'peso_first_name' => $peso?->peso_first_name,
+                'peso_last_name' => $peso?->peso_last_name,
                 'email' => $user->email,
-                'contact_number' => $user->company_contact_number,
-                'description' => $user->description,
-                'logo' => $user->peso_logo,
-                'address' => $user->peso_address,
-                'social_links' => $user->peso_social_links ? json_decode($user->peso_social_links, true) : [],
+                'contact_number' => $peso?->contact_number,
+                'description' => $peso?->description,
+                'address' => $peso?->address,
+                'logo' => $peso?->logo ?? null,
+                'social_links' => $peso?->social_links ? json_decode($peso->social_links, true) : [],
             ],
         ]);
     }
@@ -45,6 +50,7 @@ class PesoProfileController extends Controller
     public function update(Request $request)
     {
         $user = Auth::user();
+        $peso = \App\Models\Peso::where('user_id', $user->id)->first();
 
         $validated = $request->validate([
             'peso_first_name' => 'required|string|max:255',
@@ -53,7 +59,6 @@ class PesoProfileController extends Controller
             'contact_number' => 'nullable|string|max:20',
             'description' => 'nullable|string|max:1000',
             'address' => 'nullable|string|max:500',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'social_links' => 'nullable|array',
             'social_links.facebook' => 'nullable|url',
             'social_links.twitter' => 'nullable|url',
@@ -62,28 +67,49 @@ class PesoProfileController extends Controller
         ]);
 
         // Handle logo upload
-        if ($request->hasFile('logo')) {
-            // Delete old logo if exists
-            if ($user->peso_logo) {
-                Storage::disk('public')->delete($user->peso_logo);
-            }
-            
-            $logoPath = $request->file('logo')->store('peso-logos', 'public');
-            $validated['peso_logo'] = $logoPath;
+
+
+        // Update PESO fields
+        if ($peso) {
+            $peso->update([
+                'peso_first_name' => $validated['peso_first_name'],
+                'peso_last_name' => $validated['peso_last_name'],
+                'contact_number' => $validated['contact_number'],
+                'description' => $validated['description'],
+                'address' => $validated['address'] ?? null,
+                'social_links' => isset($validated['social_links']) ? json_encode($validated['social_links']) : null,
+            ]);
         }
 
-        // Update user fields
-        $user->update([
-            'peso_first_name' => $validated['peso_first_name'],
-            'peso_last_name' => $validated['peso_last_name'],
-            'email' => $validated['email'],
-            'company_contact_number' => $validated['contact_number'],
-            'description' => $validated['description'],
-            'peso_address' => $validated['address'] ?? null,
-            'peso_logo' => $validated['peso_logo'] ?? $user->peso_logo,
-            'peso_social_links' => isset($validated['social_links']) ? json_encode($validated['social_links']) : null,
-        ]);
+        // Update email in users table if changed
+        if ($user->email !== $validated['email']) {
+            $user->email = $validated['email'];
+            $user->save();
+        }
 
         return back()->with('flash.banner', 'Profile updated successfully!');
     }
+
+
+    public function updateLogo(Request $request)
+{
+    $user = Auth::user();
+    $peso = \App\Models\Peso::where('user_id', $user->id)->first();
+
+    $validated = $request->validate([
+        'logo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
+
+    // Handle logo upload
+    if ($request->hasFile('logo')) {
+        if ($peso && $peso->logo) {
+            Storage::disk('public')->delete($peso->logo);
+        }
+        $logoPath = $request->file('logo')->store('peso-logos', 'public');
+        $peso->logo = $logoPath;
+        $peso->save();
+    }
+
+    return back()->with('flash.banner', 'Profile picture updated successfully!');
+}
 }

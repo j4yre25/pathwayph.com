@@ -17,7 +17,7 @@ class SectorController extends Controller
     {
 
 
-         $sectors = Sector::all(); 
+        $sectors = Sector::all();
         return Inertia::render('Sectors/Index', [
             'sectors' => $sectors
         ]);
@@ -29,12 +29,12 @@ class SectorController extends Controller
         $status = $request->input('status', 'all');
 
         // Query sectors with filtering based on the status
-        $sectors = Sector::with('user')->withTrashed()
+        $sectors = Sector::with(['user', 'peso'])->withTrashed()
             ->when($status === 'active', function ($query) {
-                $query->whereNull('deleted_at'); // Active sectors (not archived)
+                $query->whereNull('deleted_at');
             })
             ->when($status === 'inactive', function ($query) {
-                $query->whereNotNull('deleted_at'); // Inactive sectors (archived)
+                $query->whereNotNull('deleted_at');
             })
             ->get();
 
@@ -71,41 +71,22 @@ class SectorController extends Controller
             'division' => ['required', 'string'],
         ]);
 
-        // Create a new sector (but don't save yet)
         $new_sector = new Sector();
         $new_sector->user_id = $user->id;
         $new_sector->name = $request->input('name');
         $new_sector->division_codes = $request->input('division');
+        // Set sector_code based on division_codes mapping
+        $new_sector->sector_code = $this->divisionToSectorCode($new_sector->division_codes);
 
-        // Temporarily save to get the ID
         $new_sector->save();
 
         // Now use the ID to generate sector_id
         $new_sector->sector_id = 'S' . str_pad($new_sector->id, 4, '0', STR_PAD_LEFT);
-        $code = $this->toAlphaCode($new_sector->id);
-
-        // Make sure it's unique
-        while (Sector::where('sector_code', $code)->exists()) {
-            $new_sector->id++;
-            $code = $this->toAlphaCode($new_sector->id);
-        }
-
-        $new_sector->sector_code = $code;
         $new_sector->save();
 
         return redirect()->back()->with('flash.banner', 'Sector added successfully.');
     }
 
-    private function toAlphaCode($number)
-    {
-        $alpha = '';
-        while ($number > 0) {
-            $mod = ($number - 1) % 26;
-            $alpha = chr(65 + $mod) . $alpha;
-            $number = (int)(($number - $mod) / 26);
-        }
-        return $alpha;
-    }
 
 
 
@@ -152,5 +133,34 @@ class SectorController extends Controller
 
 
         return redirect()->route('sectors',  ['user' => $user_id])->with('flash.banner', 'Sector restored successfully.');
+    }
+
+    private function divisionToSectorCode($division)
+    {
+        $map = [
+            "01-03" => "A",
+            "05-09" => "B",
+            "10-33" => "C",
+            "35" => "D",
+            "36-39" => "E",
+            "41-43" => "F",
+            "45-47" => "G",
+            "49-53" => "H",
+            "55-56" => "I",
+            "58-63" => "J",
+            "64-66" => "K",
+            "68" => "L",
+            "69-75" => "M",
+            "77-82" => "N",
+            "84" => "O",
+            "85" => "P",
+            "86-88" => "Q",
+            "90-93" => "R",
+            "94-96" => "S",
+            "98-98" => "T",
+            "99" => "U",
+            "PESO" => "PESO",
+        ];
+        return $map[$division] ?? null;
     }
 }

@@ -381,6 +381,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // PESO Profile Settings
     Route::get('/admin/profile/settings', [PesoProfileController::class, 'settings'])->name('peso.profile.settings');
     Route::put('/admin/profile/settings', [PesoProfileController::class, 'update'])->name('peso.profile.update');
+    Route::post('/admin/peso-profile/update-logo', [PesoProfileController::class, 'updateLogo'])->name('peso.profile.updateLogo');
 });
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
