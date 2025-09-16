@@ -85,11 +85,11 @@ const categories = [
         route: 'company.reports.skills',
         description: 'Highlights required skills in jobs versus skills in the talent pool.'
       },
-      { 
-        label: 'Skills and Competency Analysis', 
-        route: 'company.reports.competency',
-        description: 'Compares candidate skill levels with job role requirements.'
-      },
+      // { 
+      //   label: 'Skills and Competency Analysis', 
+      //   route: 'company.reports.competency',
+      //   description: 'Compares candidate skill levels with job role requirements.'
+      // },
     ]
   },
   {

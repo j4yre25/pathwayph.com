@@ -9,6 +9,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import { useFormattedMobileNumber } from '@/Composables/useFormattedMobileNumber.js';
 import { useFormattedTelephoneNumber } from '@/Composables/useFormattedTelephoneNumber.js';
+import { useFormattedBIRTIN } from '@/Composables/useFormattedBIRTIN.js';
 
 const props = defineProps({
   email: String,
@@ -36,6 +37,8 @@ const form = useForm({
   email: props.email || '',
   mobile_number: '',
   verification_file: null,
+  bir_tin: '',
+  company_logo: null,
 });
 
 const showModal = ref(false);
@@ -48,6 +51,7 @@ const totalSteps = ref(4);
 const { formattedMobileNumber } = useFormattedMobileNumber(form, 'company_mobile_phone');
 const { formattedTelephoneNumber } = useFormattedTelephoneNumber(form, 'telephone_number');
 const { formattedMobileNumber: formattedHRMobileNumber } = useFormattedMobileNumber(form, 'mobile_number');
+const { formattedBIRTIN } = useFormattedBIRTIN(form, 'bir_tin');
 
 // Filter categories based on selected sector
 const filteredCategories = computed(() =>
@@ -86,7 +90,8 @@ const isStepValid = computed(() => {
       return form.first_name && form.last_name && form.gender && 
              form.dob && form.email && form.mobile_number;
     case 4: // Verification
-      return form.verification_file;
+      // Require BIR TIN, Mayor/Business Permit, and Company Logo
+      return !!form.bir_tin && !!form.verification_file && !!form.company_logo;
     default:
       return false;
   }
@@ -107,7 +112,10 @@ const maxDob = computed(() => {
 function onFileChange(e) {
   form.verification_file = e.target.files[0];
 }
-console.log(form.verification_file);
+
+function onAnyFileChange(field, e) {
+  form[field] = e.target.files[0];
+}
 
 function submit() {
   if (currentStep.value === totalSteps.value && canProceed.value) {
@@ -379,19 +387,40 @@ function goToProfile() {
             </div>
             <div>
               <h2 class="text-2xl font-bold text-slate-800">Verification Document</h2>
-              <p class="text-slate-600">Upload your company verification document</p>
+              <p class="text-slate-600">
+                Please upload the required verification documents for your company, including your Mayor’s Permit/Business Permit, BIR TIN, and Company Logo.
+              </p>
             </div>
           </div>
-          <div class="space-y-4">
+          <div class="space-y-6">
+            <!-- BIR TIN -->
+            <div>
+              <InputLabel for="bir_tin" class="text-slate-800 font-medium">
+                BIR TIN <span class="text-red-500">*</span>
+              </InputLabel>
+              <TextInput
+                id="bir_tin"
+                v-model="formattedBIRTIN"
+                type="text"
+                required
+                inputmode="numeric"
+                maxlength="15"  
+                class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-blue-400 focus:ring-blue-400"
+                placeholder="___-___-___-___"
+              />
+              <InputError :message="form.errors.bir_tin" class="text-red-600" />
+            </div>
+
+            <!-- Mayor’s/Business Permit -->
             <div>
               <InputLabel for="verification_file" class="text-slate-800 font-medium">
-                Upload Document <span class="text-red-500">*</span>
+                Upload Mayor’s/Business Permit <span class="text-red-500">*</span>
               </InputLabel>
               <input
                 id="verification_file"
                 type="file"
                 class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gradient-to-r file:from-blue-500 file:to-blue-600 file:text-white hover:file:from-blue-600 hover:file:to-blue-700 focus:border-blue-400 focus:ring-blue-400"
-                @change="onFileChange"
+                @change="e => onAnyFileChange('verification_file', e)"
                 required
                 accept=".pdf,.jpg,.jpeg,.png"
               />
@@ -400,6 +429,26 @@ function goToProfile() {
                 Selected: {{ form.verification_file.name }}
               </div>
               <p class="text-slate-500 text-sm mt-2">Accepted formats: PDF, JPG, JPEG, PNG</p>
+            </div>
+
+            <!-- Company Logo -->
+            <div>
+              <InputLabel for="company_logo" class="text-slate-800 font-medium">
+                Company Logo <span class="text-red-500">*</span>
+              </InputLabel>
+              <input
+                id="company_logo"
+                type="file"
+                class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gradient-to-r file:from-blue-500 file:to-blue-600 file:text-white hover:file:from-blue-600 hover:file:to-blue-700 focus:border-blue-400 focus:ring-blue-400"
+                @change="e => onAnyFileChange('company_logo', e)"
+                required
+                accept=".jpg,.jpeg,.png"
+              />
+              <InputError :message="form.errors.company_logo" class="text-red-600" />
+              <div v-if="form.company_logo" class="mt-2 text-sm text-blue-600">
+                Selected: {{ form.company_logo.name }}
+              </div>
+              <p class="text-slate-500 text-sm mt-2">Accepted formats: JPG, JPEG, PNG</p>
             </div>
           </div>
         </div>
