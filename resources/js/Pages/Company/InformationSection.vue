@@ -10,6 +10,8 @@ import Modal from '@/Components/Modal.vue';
 import { useFormattedMobileNumber } from '@/Composables/useFormattedMobileNumber.js';
 import { useFormattedTelephoneNumber } from '@/Composables/useFormattedTelephoneNumber.js';
 import { useFormattedBIRTIN } from '@/Composables/useFormattedBIRTIN.js';
+import Datepicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
 
 const props = defineProps({
   email: String,
@@ -103,10 +105,7 @@ const canProceed = computed(() => {
 
 const today = new Date();
 const maxDob = computed(() => {
-  const year = today.getFullYear() - 18;
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
 });
 
 function onFileChange(e) {
@@ -349,7 +348,14 @@ function goToProfile() {
                 <InputLabel for="dob" class="text-slate-800 font-medium">
                   Date of Birth <span class="text-red-500">*</span>
                 </InputLabel>
-                <TextInput id="dob" v-model="form.dob" type="date" :max="maxDob" required class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-blue-400 focus:ring-blue-400" />
+                <Datepicker
+                  v-model="form.dob"
+                  :enable-time-picker="false"
+                  :max-date="maxDob"
+                  input-class-name="w-full p-2 border rounded-lg mt-2 bg-gray-50 border-gray-300 text-slate-800 placeholder-gray-400 focus:border-blue-400 focus:ring-blue-400"
+                  placeholder="Select date"
+                  required
+                />
                 <InputError :message="form.errors.dob" class="text-red-600" />
               </div>
               <div>

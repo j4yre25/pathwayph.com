@@ -280,63 +280,63 @@ class CompanyApplicationController extends Controller
         return back()->with('success', 'Updated: '.implode(', ',$changed));
     }
 
-    public function scheduleInterview(Request $request, JobApplication $application)
-    {
-        $request->validate([
-            'scheduled_at' => 'required|date|after:now',
-            'location' => 'nullable|string|max:255',
-        ]);
+    // public function scheduleInterview(Request $request, JobApplication $application)
+    // {
+    //     $request->validate([
+    //         'scheduled_at' => 'required|date|after:now',
+    //         'location' => 'nullable|string|max:255',
+    //     ]);
 
-        $interview = Interview::create([
-            'job_application_id' => $application->id,
-            'scheduled_at' => $request->scheduled_at,
-            'location' => $request->location,
-        ]);
+    //     $interview = Interview::create([
+    //         'job_application_id' => $application->id,
+    //         'scheduled_at' => $request->scheduled_at,
+    //         'location' => $request->location,
+    //     ]);
 
-        $interview->load('jobApplication.job.company');
+    //     $interview->load('jobApplication.job.company');
         
-        // Send notification to graduate/user
-        if ($application->graduate && $application->graduate->user) {
-        $application->graduate->user->notify(new InterviewScheduledNotification($interview));
-        }
+    //     // Send notification to graduate/user
+    //     if ($application->graduate && $application->graduate->user) {
+    //     $application->graduate->user->notify(new InterviewScheduledNotification($interview));
+    //     }
 
 
-        // (Optional) Integrate with Google/Outlook Calendar here and save event ID
+    //     // (Optional) Integrate with Google/Outlook Calendar here and save event ID
 
-        return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
-    }
+    //     return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
+    // }
 
-    public function storeOffer(Request $request, JobApplication $application)
-    {
-        $request->validate([
-            'offered_salary' => 'required|numeric|min:0',
-            'start_date' => 'required|date|after:today',
-            'offer_letter' => 'nullable|file|mimes:pdf|max:2048',
-        ]);
+    // public function storeOffer(Request $request, JobApplication $application)
+    // {
+    //     $request->validate([
+    //         'offered_salary' => 'required|numeric|min:0',
+    //         'start_date' => 'required|date|after:today',
+    //         'offer_letter' => 'nullable|file|mimes:pdf|max:2048',
+    //     ]);
 
-        $offerData = [
-            'job_application_id' => $application->id,
-            'offered_salary' => $request->offered_salary,
-            'start_date' => $request->start_date,
-        ];
+    //     $offerData = [
+    //         'job_application_id' => $application->id,
+    //         'offered_salary' => $request->offered_salary,
+    //         'start_date' => $request->start_date,
+    //     ];
 
-        if ($request->hasFile('offer_letter')) {
-            $offerData['offer_letter_path'] = $request->file('offer_letter')->store('offer_letters', 'public');
-        }
+    //     if ($request->hasFile('offer_letter')) {
+    //         $offerData['offer_letter_path'] = $request->file('offer_letter')->store('offer_letters', 'public');
+    //     }
 
-        $offer = JobOffer::create($offerData);
+    //     $offer = JobOffer::create($offerData);
 
-        // Update application status
-        $application->status = 'offer_sent';
-        $application->save();
+    //     // Update application status
+    //     $application->status = 'offer_sent';
+    //     $application->save();
 
-        // Notify applicant
-        if ($application->graduate && $application->graduate->user) {
-            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->status));
-        }
+    //     // Notify applicant
+    //     if ($application->graduate && $application->graduate->user) {
+    //         $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->status));
+    //     }
 
-        return redirect()->back()->with('success', 'Job offer sent successfully.');
-    }
+    //     return redirect()->back()->with('success', 'Job offer sent successfully.');
+    // }
 
     public function updateStatus(Request $request, JobApplication $application)
     {

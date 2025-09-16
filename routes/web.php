@@ -77,7 +77,7 @@ use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\Institution\InstitutionReportsController;
 use App\Http\Controllers\ResumeController;
-
+use App\Http\Controllers\MessageController;
 use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
@@ -115,6 +115,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('notifications.markAll');
     Route::post('/notifications/{notification}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markOne'])
         ->name('notifications.markOne');
+});
+
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/messages/mark-all', [MessageController::class, 'markAll'])->name('messages.markAll');
+    Route::post('/messages/{id}/mark-one', [MessageController::class, 'markOne'])->name('messages.markOne');
+
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/{conversation}', [MessageController::class, 'show'])->name('messages.show');
+     Route::post('/messages/{id}/respond', [MessageController::class, 'respond'])->name('messages.respond');
 });
 
 // PESO Jobs

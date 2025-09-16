@@ -38,10 +38,10 @@ class CompanyProfileController extends Controller
                 'created_at' => $user->created_at?->format('F j, Y') ?? null,
                 'job_post_count' => method_exists($company, 'jobs') ? ($company?->jobs()?->count() ?? 0) : ($user->jobs()->count()),
                 // Use company-level photos
-                'profile_photo' => $company?->company_profile_photo_path ? Storage::url($company->company_profile_photo_path) : null,
+                'profile_photo' => $company?->company_profile_photo_path
+                    ? Storage::url($company->company_profile_photo_path)
+                    : ($company?->company_logo_path ? Storage::url($company->company_logo_path) : null),
                 'cover_photo' => $company?->company_cover_photo_path ? Storage::url($company->company_cover_photo_path) : null,
-                'company_logo' => $company?->company_logo_path ? Storage::url($company->company_logo_path) : null,
-                'bir_tin' => $company?->bir_tin,
             ],
         ]);
     }
