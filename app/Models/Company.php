@@ -27,6 +27,16 @@ class Company extends Model
         'sector_id',
         'verification_file_path',
         'company_id',
+        'social_links',
+    ];
+    
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'social_links' => 'array',
     ];
 
     /**

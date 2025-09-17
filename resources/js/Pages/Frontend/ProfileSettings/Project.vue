@@ -64,6 +64,7 @@ const successMessage = ref('');
 const errorMessage = ref('');
 const noProjectUrl = ref(false);
 const showArchivedProjects = ref(false);
+const currentProjectFile = ref(null);
 
 
 const toggleArchivedProjects = () => {
@@ -124,11 +125,13 @@ const openUpdateProjectModal = (entry) => {
   form.graduate_projects_key_accomplishments = entry.graduate_projects_key_accomplishments || '';
   form.graduate_project_file = null;
   form.is_current = entry.is_current;
+  currentProjectFile.value = entry.graduate_project_file || null;
   noProjectUrl.value = !entry.graduate_projects_url;
   isUpdateProjectModalOpen.value = true;
 };
 const closeUpdateProjectModal = () => {
   isUpdateProjectModalOpen.value = false;
+  currentProjectFile.value = null;
   resetForm();
 };
 const closeSuccessModal = () => { isSuccessModalOpen.value = false; };
@@ -536,8 +539,33 @@ watch(
             </div>
             <div class="mb-4">
               <label for="project-file" class="block text-sm font-medium text-gray-700">Upload File</label>
+              <!-- Show existing file if available -->
+              <div v-if="currentProjectFile" class="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <i class="fas fa-file text-gray-500 mr-2"></i>
+                    <span class="text-sm font-medium text-gray-700">Current File:</span>
+                  </div>
+                  <div class="flex space-x-2">
+                    <a :href="`/storage/${currentProjectFile}`" 
+                       target="_blank" 
+                       class="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline">
+                      <i class="fas fa-eye mr-1"></i>View
+                    </a>
+                    <a :href="`/storage/${currentProjectFile}`" 
+                       download 
+                       class="text-green-600 hover:text-green-800 text-sm font-medium hover:underline">
+                      <i class="fas fa-download mr-1"></i>Download
+                    </a>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <span class="text-xs text-gray-500">{{ currentProjectFile.split('/').pop() }}</span>
+                </div>
+              </div>
               <input type="file" id="project-file" @change="handleFileUpload"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+              <p class="mt-1 text-xs text-gray-500">Upload a new file to replace the current one (optional)</p>
             </div>
             <PrimaryButton type="submit" class="w-full justify-center">Add Project</PrimaryButton>
           </form>

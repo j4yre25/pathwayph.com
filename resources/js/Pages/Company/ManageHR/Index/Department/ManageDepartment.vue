@@ -3,6 +3,8 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 import { ref } from "vue";
 import { router, Link } from "@inertiajs/vue3";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
+import SecondaryButton from "@/Components/SecondaryButton.vue";
+import DangerButton from "@/Components/DangerButton.vue";
 import * as XLSX from 'xlsx'
 import Papa from 'papaparse'
 
@@ -180,40 +182,44 @@ function deleteDepartment(dep) {
       </div>
 
       <h2 class="text-2xl font-bold mb-4">Departments</h2>
-      <table class="min-w-full bg-white border border-gray-300 table-fixed shadow rounded">
-        <thead class="bg-blue-100 text-gray-700 uppercase text-sm">
-          <tr>
-            <th class="w-1/2 px-4 py-3 border text-left">Department Name</th>
-            <th class="w-1/4 px-4 py-3 border text-center">Added By</th>
-            <th class="w-1/4 px-4 py-3 border text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="dep in departments" :key="dep.id" class="hover:bg-gray-50">
-            <td class="px-4 py-3 border">
-              <template v-if="editing === dep.id">
-                <input v-model="editName" class="border rounded px-2 py-1 w-full" />
-              </template>
-              <template v-else>
-                {{ dep.department_name }}
-              </template>
-            </td>
-            <td class="px-4 py-3 border text-center">
-              {{ dep.hr_name }}
-            </td>
-            <td class="px-4 py-3 border text-center">
-              <template v-if="editing === dep.id">
-                <button @click="saveEdit(dep)" class="text-green-600 mr-2">Save</button>
-                <button @click="editing = null" class="text-gray-500">Cancel</button>
-              </template>
-              <template v-else>
-                <button @click="startEdit(dep)" class="text-blue-600 mr-2">Edit</button>
-                <button @click="deleteDepartment(dep)" class="text-red-600">Delete</button>
-              </template>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="mt-8 min-w-full bg-white border border-gray-200">
+          <thead>
+            <tr class="w-full bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+              <th class="py-2 px-4 text-left border">Department Name</th>
+              <th class="py-2 px-4 text-left border">Added By</th>
+              <th class="py-2 px-4 text-left border">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-600 text-sm font-light">
+            <tr v-for="dep in departments" :key="dep.id" class="border-b border-gray-200 hover:bg-gray-100">
+              <td class="border border-gray-200 px-6 py-4">
+                <template v-if="editing === dep.id">
+                  <input v-model="editName" class="border rounded px-2 py-1 w-full" />
+                </template>
+                <template v-else>
+                  {{ dep.department_name }}
+                </template>
+              </td>
+              <td class="border border-gray-200 px-6 py-4">
+                {{ dep.hr_name }}
+              </td>
+              <td class="border border-gray-200 px-6 py-4">
+                <div class="flex items-center">
+                  <template v-if="editing === dep.id">
+                    <PrimaryButton class="mr-2" @click="saveEdit(dep)">Save</PrimaryButton>
+                    <SecondaryButton @click="editing = null">Cancel</SecondaryButton>
+                  </template>
+                  <template v-else>
+                    <PrimaryButton class="mr-2" @click="startEdit(dep)">Edit</PrimaryButton>
+                    <DangerButton @click="deleteDepartment(dep)">Delete</DangerButton>
+                  </template>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </AppLayout>
 </template>

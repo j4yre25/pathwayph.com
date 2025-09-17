@@ -581,9 +581,15 @@ console.log(page.props.permissions.canManageInstitution)
                       Career Officer Registration
                     </DropdownLink>
 
-                    <DropdownLink v-if="page.props.auth.user.role === 'company'"
+                    <DropdownLink v-if="page.props.auth.user.role === 'company'" 
                       :href="route('company.profile')">
                       Profile
+                    </DropdownLink>
+                    
+                    <DropdownLink
+                      v-if="page.props.auth.user.role === 'company'"
+                      :href="route('company.profile.settings')">
+                      Profile Settings
                     </DropdownLink>
 
                     <DropdownLink

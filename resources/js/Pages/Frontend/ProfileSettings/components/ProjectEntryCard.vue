@@ -85,8 +85,29 @@ const handleRemove = () => {
         <span v-else>No key accomplishment provided</span>
       </p>
       <div v-if="entry.graduate_project_file" class="mt-3">
-        <img :src="`/storage/${entry.graduate_project_file}`" :alt="entry.graduate_projects_title"
-          class="max-w-full h-auto rounded-lg shadow" />
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <i class="fas fa-file text-gray-500 mr-2"></i>
+              <span class="text-sm font-medium text-gray-700">Attached File:</span>
+            </div>
+            <div class="flex space-x-2">
+              <a :href="`/storage/${entry.graduate_project_file}`" 
+                 target="_blank" 
+                 class="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline">
+                <i class="fas fa-eye mr-1"></i>View
+              </a>
+              <a :href="`/storage/${entry.graduate_project_file}`" 
+                 download 
+                 class="text-green-600 hover:text-green-800 text-sm font-medium hover:underline">
+                <i class="fas fa-download mr-1"></i>Download
+              </a>
+            </div>
+          </div>
+          <div class="mt-2">
+            <span class="text-xs text-gray-500">{{ entry.graduate_project_file.split('/').pop() }}</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">

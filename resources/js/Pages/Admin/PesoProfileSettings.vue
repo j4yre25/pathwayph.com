@@ -84,260 +84,260 @@ const resetForm = () => {
     </template>
 
     <!-- Main Content -->
-    <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-9 mb-9 py-8">
-      <div class="flex flex-col lg:flex-row lg:space-x-8">
-        <!-- Left Column - Profile Picture and Social Links -->
-        <div class="w-full lg:w-1/3 mb-8 lg:mb-0">
-          <!-- Profile Picture Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-            <h2 class="text-xl font-semibold mb-2">Profile Picture</h2>
-            <p class="text-gray-600 mb-4">Update your profile picture</p>
-            <div class="flex flex-col items-center">
-              <div class="relative mb-4">
-                <img
-                  :src="logoPreview || '/images/default-logo.png'"
-                  alt="PESO Logo"
-                  class="rounded-full w-48 h-48 object-cover border border-gray-200 shadow-sm"
+      <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-9 mb-9 py-8">
+        <div class="flex flex-col lg:flex-row lg:space-x-8">
+          <!-- Left Column - Profile Picture and Social Links -->
+          <div class="w-full lg:w-1/3 mb-8 lg:mb-0">
+            <!-- Profile Picture Section -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+              <h2 class="text-xl font-semibold mb-2">Profile Picture</h2>
+              <p class="text-gray-600 mb-4">Update your profile picture</p>
+              <div class="flex flex-col items-center">
+                <div class="relative mb-4">
+                  <img
+                    :src="logoPreview || '/images/default-logo.png'"
+                    alt="PESO Logo"
+                    class="rounded-full w-48 h-48 object-cover border border-gray-200 shadow-sm"
+                  />
+                  <div class="absolute bottom-0 right-0">
+                    <label for="file-input"
+                      class="bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
+                      <i class="fas fa-camera"></i>
+                    </label>
+                  </div>
+                </div>
+                <input
+                  ref="logoInput"
+                  id="file-input"
+                  type="file"
+                  accept="image/*"
+                  @change="handleLogoChange"
+                  class="hidden"
                 />
-                <div class="absolute bottom-0 right-0">
-                  <label for="file-input"
-                    class="bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded-full p-2 cursor-pointer shadow-md">
-                    <i class="fas fa-camera"></i>
-                  </label>
-                </div>
+                <label for="file-input"
+                  class="text-blue-600 hover:text-blue-800 transition-colors font-medium cursor-pointer">
+                  Choose an image
+                </label>
               </div>
-              <input
-                ref="logoInput"
-                id="file-input"
-                type="file"
-                accept="image/*"
-                @change="handleLogoChange"
-                class="hidden"
-              />
-              <label for="file-input"
-                class="text-blue-600 hover:text-blue-800 transition-colors font-medium cursor-pointer">
-                Choose an image
-              </label>
+              <InputError :message="form.errors.logo" class="mt-2" />
             </div>
-            <InputError :message="form.errors.logo" class="mt-2" />
-          </div>
 
-          <!-- Contact and Social Links Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200">
-            <h2 class="text-xl font-semibold mb-2">Contact and Social Links</h2>
-            <p class="text-gray-600 mb-4">Add your professional networks and contact options</p>
+            <!-- Contact and Social Links Section -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200">
+              <h2 class="text-xl font-semibold mb-2">Contact and Social Links</h2>
+              <p class="text-gray-600 mb-4">Add your professional networks and contact options</p>
 
-            <div class="space-y-4">
-              <!-- Facebook -->
-              <div class="relative">
-                <label for="facebook-url" class="block text-gray-700 font-medium mb-1">Facebook Profile</label>
+              <div class="space-y-4">
+                <!-- Facebook -->
                 <div class="relative">
-                  <i class="fab fa-facebook absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <TextInput
-                    id="facebook-url"
-                    v-model="form.social_links.facebook"
-                    type="url"
-                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                    placeholder="https://facebook.com/yourpage"
-                  />
+                  <label for="facebook-url" class="block text-gray-700 font-medium mb-1">Facebook Profile</label>
+                  <div class="relative">
+                    <i class="fab fa-facebook absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <TextInput
+                      id="facebook-url"
+                      v-model="form.social_links.facebook"
+                      type="url"
+                      class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                      placeholder="https://facebook.com/yourpage"
+                    />
+                  </div>
+                  <InputError :message="form.errors['social_links.facebook']" class="mt-1" />
                 </div>
-                <InputError :message="form.errors['social_links.facebook']" class="mt-1" />
-              </div>
 
-              <!-- Twitter -->
-              <div class="relative">
-                <label for="twitter-url" class="block text-gray-700 font-medium mb-1">Twitter Profile</label>
+                <!-- Twitter -->
                 <div class="relative">
-                  <i class="fab fa-twitter absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <TextInput
-                    id="twitter-url"
-                    v-model="form.social_links.twitter"
-                    type="url"
-                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                    placeholder="https://twitter.com/yourhandle"
-                  />
+                  <label for="twitter-url" class="block text-gray-700 font-medium mb-1">Twitter Profile</label>
+                  <div class="relative">
+                    <i class="fab fa-twitter absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <TextInput
+                      id="twitter-url"
+                      v-model="form.social_links.twitter"
+                      type="url"
+                      class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                      placeholder="https://twitter.com/yourhandle"
+                    />
+                  </div>
+                  <InputError :message="form.errors['social_links.twitter']" class="mt-1" />
                 </div>
-                <InputError :message="form.errors['social_links.twitter']" class="mt-1" />
-              </div>
 
-              <!-- LinkedIn -->
-              <div class="relative">
-                <label for="linkedin-url" class="block text-gray-700 font-medium mb-1">LinkedIn Profile</label>
+                <!-- LinkedIn -->
                 <div class="relative">
-                  <i class="fab fa-linkedin absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <TextInput
-                    id="linkedin-url"
-                    v-model="form.social_links.linkedin"
-                    type="url"
-                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                    placeholder="https://linkedin.com/company/yourcompany"
-                  />
+                  <label for="linkedin-url" class="block text-gray-700 font-medium mb-1">LinkedIn Profile</label>
+                  <div class="relative">
+                    <i class="fab fa-linkedin absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <TextInput
+                      id="linkedin-url"
+                      v-model="form.social_links.linkedin"
+                      type="url"
+                      class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                      placeholder="https://linkedin.com/company/yourcompany"
+                    />
+                  </div>
+                  <InputError :message="form.errors['social_links.linkedin']" class="mt-1" />
                 </div>
-                <InputError :message="form.errors['social_links.linkedin']" class="mt-1" />
-              </div>
 
-              <div class="relative">
-                <label for="indeed-url" class="block text-gray-700 font-medium mb-1">Indeed Profile</label>
                 <div class="relative">
-                  <i class="fab fa-info absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <TextInput
-                    id="indeed-url"
-                    v-model="form.social_links.indeed"
-                    type="url"
-                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                    placeholder="https://indeed.com/company/yourcompany"
-                  />
+                  <label for="indeed-url" class="block text-gray-700 font-medium mb-1">Indeed Profile</label>
+                  <div class="relative">
+                    <i class="fab fa-info absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <TextInput
+                      id="indeed-url"
+                      v-model="form.social_links.indeed"
+                      type="url"
+                      class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                      placeholder="https://indeed.com/company/yourcompany"
+                    />
+                  </div>
+                  <InputError :message="form.errors['social_links.indeed']" class="mt-1" />
                 </div>
-                <InputError :message="form.errors['social_links.indeed']" class="mt-1" />
-              </div>
 
-              <!-- Instagram -->
-              <div class="relative">
-                <label for="instagram-url" class="block text-gray-700 font-medium mb-1">Instagram Profile</label>
+                <!-- Instagram -->
                 <div class="relative">
-                  <i class="fab fa-instagram absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <TextInput
-                    id="instagram-url"
-                    v-model="form.social_links.instagram"
-                    type="url"
-                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                    placeholder="https://instagram.com/yourpage"
-                  />
+                  <label for="instagram-url" class="block text-gray-700 font-medium mb-1">Instagram Profile</label>
+                  <div class="relative">
+                    <i class="fab fa-instagram absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <TextInput
+                      id="instagram-url"
+                      v-model="form.social_links.instagram"
+                      type="url"
+                      class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                      placeholder="https://instagram.com/yourpage"
+                    />
+                  </div>
+                  <InputError :message="form.errors['social_links.instagram']" class="mt-1" />
                 </div>
-                <InputError :message="form.errors['social_links.instagram']" class="mt-1" />
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Right Column - Form Fields -->
-        <div class="w-full lg:w-2/3 flex flex-col space-y-6">
-          <!-- Personal Information, About Me, and Buttons - Each in their own white box -->
-          <!-- Personal Information Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200">
-            <form @submit.prevent="submitForm">
+          <!-- Right Column - Form Fields -->
+          <div class="w-full lg:w-2/3 flex flex-col space-y-6">
+            <!-- Personal Information Section -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200">
+              <form @submit.prevent="submitForm">
+                <div>
+                  <div class="flex items-center mb-4">
+                    <i class="fas fa-user text-blue-600 mr-2"></i>
+                    <h2 class="text-xl font-semibold text-gray-900">Personal Information</h2>
+                  </div>
+                  <p class="text-gray-600 mb-6">Basic details about you</p>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- First Name -->
+                    <div>
+                      <label for="peso_first_name" class="block text-gray-700 font-medium mb-1">First Name <span class="text-red-500">*</span></label>
+                      <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <TextInput
+                  id="peso_first_name"
+                  v-model="form.peso_first_name"
+                  type="text"
+                  class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                  placeholder="Enter your first name"
+                  required
+                      />
+                    </div>
+                    <InputError :message="form.errors.peso_first_name" class="mt-1" />
+                  </div>
+                    <!-- Last Name -->
+                    <div>
+                      <label for="peso_last_name" class="block text-gray-700 font-medium mb-1">Last Name <span class="text-red-500">*</span></label>
+                      <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <TextInput
+                    id="peso_last_name"
+                    v-model="form.peso_last_name"
+                    type="text"
+                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                    placeholder="Enter your last name"
+                        />
+                      </div>
+                      <InputError :message="form.errors.peso_last_name" class="mt-1" />
+                    </div>
+                    <!-- Email -->
+                    <div>
+                      <label for="email" class="block text-gray-700 font-medium mb-1">Email Address <span class="text-red-500">*</span></label>
+                      <div class="relative">
+                        <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <TextInput
+                    id="email"
+                    v-model="form.email"
+                    type="email"
+                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                    placeholder="peso@example.com"
+                    required
+                        />
+                      </div>
+                      <InputError :message="form.errors.email" class="mt-1" />
+                    </div>
+                    <!-- Contact Number -->
+                    <div>
+                      <label for="contact_number" class="block text-gray-700 font-medium mb-1">Phone Number <span class="text-red-500">*</span></label>
+                      <div class="relative">
+                        <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <TextInput
+                    id="contact_number"
+                    v-model="form.contact_number"
+                    type="text"
+                    class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                    placeholder="9013604441"
+                        />
+                      </div>
+                      <InputError :message="form.errors.contact_number" class="mt-1" />
+                    </div>
+            </div>
+            <!-- Address -->
+            <div class="mt-6">
+              <label for="address" class="block text-gray-700 font-medium mb-1">Address</label>
+              <div class="relative">
+                <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <TextInput
+                  id="address"
+                  v-model="form.address"
+                  type="text"
+                  class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                  placeholder="Enter your Office Address"
+                />
+              </div>
+              <InputError :message="form.errors.address" class="mt-1" />
+            </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- About Me Section -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200">
+              <div class="flex items-center mb-4">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                <h2 class="text-xl font-semibold text-gray-900">About Me</h2>
+              </div>
+              <p class="text-gray-600 mb-6">Tell others about Peso</p>
               <div>
-          <div class="flex items-center mb-4">
-            <i class="fas fa-user text-blue-600 mr-2"></i>
-            <h2 class="text-xl font-semibold text-gray-900">Personal Information</h2>
-          </div>
-          <p class="text-gray-600 mb-6">Basic details about you</p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- First Name -->
-            <div>
-              <label for="peso_first_name" class="block text-gray-700 font-medium mb-1">First Name <span class="text-red-500">*</span></label>
-              <div class="relative">
-                <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <TextInput
-            id="peso_first_name"
-            v-model="form.peso_first_name"
-            type="text"
-            class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-            placeholder="Enter your first name"
-            required
-                />
+                <label for="description" class="block text-gray-700 font-medium mb-1">Description</label>
+                <textarea
+            id="description"
+            v-model="form.description"
+            rows="4"
+            class="w-full border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all resize-none"
+            placeholder="Describe your PESO office and services..."
+                ></textarea>
+                <InputError :message="form.errors.description" class="mt-1" />
               </div>
-              <InputError :message="form.errors.peso_first_name" class="mt-1" />
             </div>
-            <!-- Last Name -->
-            <div>
-              <label for="peso_last_name" class="block text-gray-700 font-medium mb-1">Last Name <span class="text-red-500">*</span></label>
-              <div class="relative">
-                <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <TextInput
-            id="peso_last_name"
-            v-model="form.peso_last_name"
-            type="text"
-            class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-            placeholder="Enter your last name"
-                />
-              </div>
-              <InputError :message="form.errors.peso_last_name" class="mt-1" />
-            </div>
-            <!-- Email -->
-            <div>
-              <label for="email" class="block text-gray-700 font-medium mb-1">Email Address <span class="text-red-500">*</span></label>
-              <div class="relative">
-                <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <TextInput
-            id="email"
-            v-model="form.email"
-            type="email"
-            class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-            placeholder="peso@example.com"
-            required
-                />
-              </div>
-              <InputError :message="form.errors.email" class="mt-1" />
-            </div>
-            <!-- Contact Number -->
-            <div>
-              <label for="contact_number" class="block text-gray-700 font-medium mb-1">Phone Number <span class="text-red-500">*</span></label>
-              <div class="relative">
-                <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <TextInput
-            id="contact_number"
-            v-model="form.contact_number"
-            type="text"
-            class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-            placeholder="9013604441"
-                />
-              </div>
-              <InputError :message="form.errors.contact_number" class="mt-1" />
-            </div>
-          </div>
-          <!-- Address -->
-          <div class="mt-6">
-            <label for="address" class="block text-gray-700 font-medium mb-1">Address</label>
-            <div class="relative">
-              <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-              <TextInput
-                id="address"
-                v-model="form.address"
-                type="text"
-                class="w-full pl-10 border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                placeholder="Enter your Office Address"
-              />
-            </div>
-            <InputError :message="form.errors.address" class="mt-1" />
-          </div>
-              </div>
-            </form>
-          </div>
 
-          <!-- About Me Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200">
-            <div class="flex items-center mb-4">
-              <i class="fas fa-info-circle text-blue-600 mr-2"></i>
-              <h2 class="text-xl font-semibold text-gray-900">About Me</h2>
+            <!-- Save/Reset Buttons Section -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 flex justify-end space-x-3">
+              <SecondaryButton @click="resetForm" :disabled="form.processing">
+                Reset
+              </SecondaryButton>
+              <PrimaryButton @click="submitForm" :disabled="form.processing" class="bg-blue-600 hover:bg-blue-700">
+                <span v-if="form.processing">Saving Changes...</span>
+                <span v-else>Save Changes</span>
+              </PrimaryButton>
             </div>
-            <p class="text-gray-600 mb-6">Tell others about Peso</p>
-            <div>
-              <label for="description" class="block text-gray-700 font-medium mb-1">Description</label>
-              <textarea
-          id="description"
-          v-model="form.description"
-          rows="4"
-          class="w-full border border-gray-300 rounded-md p-2 outline-none focus:ring-1 focus:ring-blue-600 transition-all resize-none"
-          placeholder="Describe your PESO office and services..."
-              ></textarea>
-              <InputError :message="form.errors.description" class="mt-1" />
-            </div>
-          </div>
-
-          <!-- Save/Reset Buttons Section -->
-          <div class="bg-white p-6 rounded-lg border border-gray-200 flex justify-end space-x-3">
-            <SecondaryButton @click="resetForm" :disabled="form.processing">
-              Reset
-            </SecondaryButton>
-            <PrimaryButton @click="submitForm" :disabled="form.processing" class="bg-blue-600 hover:bg-blue-700">
-              <span v-if="form.processing">Saving Changes...</span>
-              <span v-else>Save Changes</span>
-            </PrimaryButton>
           </div>
         </div>
       </div>
-    </div>
+      
 
     <!-- Success Modal -->
     <Modal :show="showUpdateModal" @close="showUpdateModal = false">

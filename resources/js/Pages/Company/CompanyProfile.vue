@@ -90,7 +90,27 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
         <!-- Name + Sector -->
         <div class="mt-4 text-center">
           <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ company.company_name }}</h2>
-          <p class="text-gray-500 text-sm mt-1">{{ company.sector }}</p>
+          
+          <!-- Additional company details with icons -->
+          <div class="flex justify-center space-x-6 mt-2">
+            <!-- Industry Sector -->
+            <div class="flex items-center text-gray-600 text-sm">
+              <i class="fas fa-industry text-blue-500 mr-1"></i>
+              <span>{{ company.sector || 'Industry Sector' }}</span>
+            </div>
+            
+            <!-- Company ID -->
+            <div class="flex items-center text-gray-600 text-sm">
+              <i class="fas fa-id-card text-blue-500 mr-1"></i>
+              <span> {{ company.category || 'Category' }}</span>
+            </div>
+            
+            <!-- Date Joined -->
+            <div class="flex items-center text-gray-600 text-sm">
+              <i class="fas fa-calendar-alt text-blue-500 mr-1"></i>
+              <span>Joined: {{ company.created_at ? new Date(company.created_at).toLocaleDateString() : 'N/A' }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Social Links Row -->
@@ -158,6 +178,43 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
               <span>{{ formattedTelephoneNumber || "N/A" }}</span>
             </li>
           </ul>
+        </section>
+        
+        <!-- Team Members Section -->
+        <section class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 flex-1">
+          <h4 class="text-lg font-semibold text-gray-900 flex items-center pb-2 border-b border-gray-200">
+            <i class="fas fa-users text-purple-500 mr-2"></i>
+            Team Members
+          </h4>
+          
+          <!-- Team Members List -->
+          <div class="mt-4 space-y-4">
+            <!-- If there are team members, display them -->
+            <div v-if="company.team_members && company.team_members.length > 0">
+              <div v-for="(member, index) in company.team_members" :key="index" 
+                   class="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                  <span class="text-blue-600 font-semibold">{{ member.name ? member.name.charAt(0).toUpperCase() : 'U' }}</span>
+                </div>
+                <div class="flex-1">
+                  <h5 class="font-medium text-gray-900">{{ member.name || 'Team Member' }}</h5>
+                  <p class="text-xs text-gray-500">{{ member.position || 'Position' }}</p>
+                </div>
+                <div class="text-gray-400 text-sm">
+                  <i class="fas fa-envelope mr-1"></i>
+                  {{ member.email || 'email@example.com' }}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Empty state when no team members -->
+            <div v-else class="text-center py-4">
+              <div class="w-16 h-16 mx-auto flex items-center justify-center rounded-full bg-gray-100 mb-3">
+                <i class="fas fa-user-plus text-gray-400 text-xl"></i>
+              </div>
+              <p class="text-gray-500 text-sm">No team members added yet</p>
+            </div>
+          </div>
         </section>
       </div>
 
