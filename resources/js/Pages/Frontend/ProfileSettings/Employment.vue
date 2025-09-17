@@ -283,7 +283,7 @@ watch(
       <div class="transition-all duration-300">
 
       <!-- Success Modal -->
-      <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+      <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
         <div class="p-6">
           <div class="flex items-center justify-center mb-4">
             <div class="bg-green-100 rounded-full p-2">
@@ -304,7 +304,7 @@ watch(
       </Modal>
 
       <!-- Error Modal -->
-      <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+      <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
         <div class="p-6">
           <div class="flex items-center justify-center mb-4">
             <div class="bg-red-100 rounded-full p-2">
@@ -434,7 +434,7 @@ watch(
       </div>
       
       <!-- Success Modal -->
-      <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+      <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
         <div class="p-6">
           <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-green-100 rounded-full">
             <i class="fas fa-check text-green-600 text-xl"></i>
@@ -450,7 +450,7 @@ watch(
       </Modal>
 
       <!-- Error Modal -->
-      <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+      <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
         <div class="p-6">
           <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
             <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
@@ -466,7 +466,7 @@ watch(
       </Modal>
 
       <!-- Edit Employment Preferences Modal -->
-      <Modal :show="isEditModalOpen" @close="closeEditModal" max-width="4xl">
+      <Modal :modelValue="isEditModalOpen" @close="closeEditModal" max-width="4xl">
         <div class="p-6">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold text-gray-900">Edit Employment Preferences</h2>
