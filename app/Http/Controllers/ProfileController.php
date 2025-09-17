@@ -180,7 +180,7 @@ class ProfileController extends Controller
             'last_name' => 'required|string|max:255',
             'current_job_title' => 'required|string|max:255',
             'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
-            'graduate_location' => 'nullable|string|max:255',
+            'graduate_location' => 'nullable|string|max:255', // Accept from frontend
             'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
             'contact_number' => 'nullable|string|max:15',
             'dob' => 'nullable|date',
@@ -193,37 +193,42 @@ class ProfileController extends Controller
         /** @var \App\Models\User $user */
 
         $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
+        $user->update([
+            'email' => $validated['email'],
+        ]);
 
+        $graduate->update([
+            'first_name' => $validated['first_name'],
+            'middle_name' => $validated['middle_name'],
+            'last_name' => $validated['last_name'],
+            'current_job_title' => $validated['current_job_title'],
+            'employment_status' => $validated['employment_status'],
+            'location' => $validated['graduate_location'] ?? $graduate->location, // Map to DB column
+            'contact_number' => $validated['contact_number'] ?? $graduate->contact_number,
+            'dob' => $validated['dob'] ?? null,
+            'gender' => $validated['gender'] ?? null,
+            'ethnicity' => $validated['graduate_ethnicity'] ?? null,
+            'address' => $validated['graduate_address'] ?? null,
+            'about_me' => $validated['graduate_about_me'] ?? null,
+            // Add other graduate fields if needed
+        ]);
 
         // Handle profile picture upload
         if ($request->hasFile('graduate_picture') && $request->file('graduate_picture')->isValid()) {
             $file = $request->file('graduate_picture');
-            if (!$file->getRealPath()) {
-                return back()->withErrors(['graduate_picture' => 'File upload failed. Please try again.']);
-            }
-            $originalName = $file->getClientOriginalName();
-            if (!$originalName) {
-                $originalName = uniqid('profile_', true) . '.' . $file->getClientOriginalExtension();
-            }
-            $filename = time() . '_' . $originalName;
+            $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('profile_pictures', $filename, 'public');
             $user->profile_picture = $path;
+            $user->save();
 
-            // Also update graduates table with the picture path
-            DB::table('graduates')
-                ->where('user_id', $user->id)
-                ->update([
-                    'graduate_picture' => $path,
-                ]);
+            $graduate->graduate_picture = $path;
+            $graduate->save();
         }
 
-        
-/** @var \App\Models\User $user */
-        $user = Auth::user();
-        $user->update($validated);
 
-            return redirect()->back()->with('flash.banner', 'Profile updated successfully!');
+        return redirect()->back()->with('flash.banner', 'Profile updated successfully!');
     }
 
 
