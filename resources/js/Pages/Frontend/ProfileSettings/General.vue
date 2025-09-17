@@ -72,7 +72,7 @@ const profile = ref({
     ? `/storage/${pageProps.graduate.graduate_picture}`
     : (pageProps.user?.profile_picture ? `/storage/${pageProps.user.profile_picture}` : 'path/to/default/image.jpg'),
   employment_status: pageProps.graduate?.employment_status || '',
-  graduate_professional_title: pageProps.graduate?.current_job_title || '',
+  current_job_title: pageProps.graduate?.current_job_title || '',
   email: pageProps.user?.email || '',
   graduate_phone: pageProps.graduate?.contact_number || '',
   graduate_location: pageProps.graduate?.graduate_location || '',
@@ -93,7 +93,7 @@ const profile = ref({
   enable_contact_form: pageProps.graduate?.enable_contact_form || false,
 });
 
-console.log('pageProps.user:', pageProps .graduate);
+console.log('pageProps.user:', pageProps.graduate);
 
 
 
@@ -102,7 +102,7 @@ const settingsForm = useForm({
   first_name: profile.value.first_name,
   middle_name: profile.value.middle_name,
   last_name: profile.value.last_name,
-  graduate_professional_title: profile.value.graduate_professional_title,
+  current_job_title: profile.value.current_job_title,
   email: profile.value.email,
   graduate_phone: profile.value.graduate_phone,
   graduate_location: profile.value.graduate_location,
@@ -170,7 +170,7 @@ const saveProfile = () => {
   settingsForm.email = profile.value.email;
   settingsForm.employment_status = profile.value.employment_status;
   settingsForm.contact_number = profile.value.graduate_phone; // <-- Map to backend
-  settingsForm.current_job_title = profile.value.graduate_professional_title; // <-- Map to backend
+  settingsForm.current_job_title = profile.value.current_job_title; // <-- Map to backend
   settingsForm.graduate_location = profile.value.graduate_location;
   settingsForm.gender = profile.value.graduate_gender;
   settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
@@ -187,27 +187,27 @@ const saveProfile = () => {
 
   // Only send changed fields
   const initial = {
-    first_name: graduate.first_name || '',
-    middle_name: graduate.middle_name || '',
-    last_name: graduate.last_name || '',
-    current_job_title: graduate.current_job_title || '',
+    first_name: pageProps.graduate?.first_name || '',
+    middle_name: pageProps.graduate?.middle_name || '',
+    last_name: pageProps.graduate?.last_name || '',
+    current_job_title: pageProps.graduate?.current_job_title || '',
     email: user.value.email || '',
-    contact_number: graduate.contact_number || '',
-    graduate_location: graduate.graduate_location || '',
-    dob: graduate.dob || '',
-    graduate_gender: graduate.gender || '',
-    employment_status: graduate.employment_status || '',
-    graduate_ethnicity: graduate.ethnicity || '',
-    graduate_address: graduate.address || '',
-    graduate_about_me: graduate.about_me || '',
-    graduate_school_graduated_from: graduate.institution?.institution_name || '',
-    graduate_program_completed: graduate.program?.name || '',
-    graduate_year_graduated: graduate.school_year?.school_year_range || '',
-    linkedin_url: graduate.linkedin_url || '',
-    github_url: graduate.github_url || '',
-    personal_website: graduate.personal_website || '',
-    other_social_links: graduate.other_social_links || '',
-    enable_contact_form: graduate.enable_contact_form || false,
+    contact_number: pageProps.graduate?.contact_number || '',
+    graduate_location: pageProps.graduate?.graduate_location || '',
+    dob: pageProps.graduate?.dob || '',
+    graduate_gender: pageProps.graduate?.gender || '',
+    employment_status: pageProps.graduate?.employment_status || '',
+    graduate_ethnicity: pageProps.graduate?.ethnicity || '',
+    graduate_address: pageProps.graduate?.address || '',
+    graduate_about_me: pageProps.graduate?.about_me || '',
+    graduate_school_graduated_from: pageProps.graduate?.institution?.institution_name || '',
+    graduate_program_completed: pageProps.graduate?.program?.name || '',
+    graduate_year_graduated: pageProps.graduate?.school_year?.school_year_range || '',
+    linkedin_url: pageProps.graduate?.linkedin_url || '',
+    github_url: pageProps.graduate?.github_url || '',
+    personal_website: pageProps.graduate?.personal_website || '',
+    other_social_links: pageProps.graduate?.other_social_links || '',
+    enable_contact_form: pageProps.graduate?.enable_contact_form || false,
   };
 
   const changedFields = {};
@@ -308,8 +308,8 @@ const validateForm = () => {
   }
 
   // Validate professional title if required by backend
-  if (!profile.value.graduate_professional_title) {
-    errors.graduate_professional_title = 'Professional title is required';
+  if (!profile.value.current_job_title) {
+    errors.current_job_title = 'Professional title is required';
     isValid = false;
   }
 
@@ -384,21 +384,32 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
   }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Input focus effects with glow */
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   animation: pulse 1.5s ease-in-out;
   transition: all 0.3s ease;
 }
@@ -468,10 +479,9 @@ form div {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h3>
         <p class="text-center text-gray-600">{{ errorMessage }}</p>
         <div class="mt-6 flex justify-center">
-          <DangerButton type="button"
-             @click="isErrorModalOpen = false">
-             Close
-           </DangerButton>
+          <DangerButton type="button" @click="isErrorModalOpen = false">
+            Close
+          </DangerButton>
         </div>
       </div>
     </Modal>
@@ -487,10 +497,9 @@ form div {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">No Changes Detected</h3>
         <p class="text-center text-gray-600">No changes were made to your profile.</p>
         <div class="mt-6 flex justify-center">
-          <PrimaryButton type="button"
-             @click="isNoChangesModalOpen = false">
-             Close
-           </PrimaryButton>
+          <PrimaryButton type="button" @click="isNoChangesModalOpen = false">
+            Close
+          </PrimaryButton>
         </div>
       </div>
     </Modal>
@@ -619,9 +628,9 @@ form div {
                 <label for="professional-title" class="block text-gray-700 font-medium mb-1">Professional Title</label>
                 <div class="relative">
                   <i class="fas fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <input type="text" id="graduate_professional-title"
+                  <input type="text" id="current_job_title"
                     class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                    v-model="profile.graduate_professional_title" placeholder="Enter your professional title" />
+                    v-model="profile.current_job_title" placeholder="Enter your professional title" />
                 </div>
               </div>
 
@@ -680,93 +689,95 @@ form div {
             </div>
           </div>
 
-            <!-- Education Information Section -->
-            <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-                <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white">
+          <!-- Education Information Section -->
+          <div
+            class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+            <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white">
+              <div>
+                <h3 class="text-lg font-semibold text-black">Education Information</h3>
+                <p class="text-sm text-gray-600 mt-1">Your academic background and credentials</p>
+              </div>
+            </div>
+            <div class="p-4 transition-all duration-300">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+                <!-- School Graduated From -->
                 <div>
-                  <h3 class="text-lg font-semibold text-black">Education Information</h3>
-                  <p class="text-sm text-gray-600 mt-1">Your academic background and credentials</p>
-                </div>
-                </div>
-                <div class="p-4 transition-all duration-300">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
-                  <!-- School Graduated From -->
-                  <div>
                   <label class="block text-black font-medium mb-1">School Graduated From</label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                  {{ profile.graduate_school_graduated_from || 'Not specified' }}
+                    {{ profile.graduate_school_graduated_from || 'Not specified' }}
                   </div>
-                  </div>
+                </div>
 
-                  <!-- Year Graduated -->
-                  <div>
+                <!-- Year Graduated -->
+                <div>
                   <label class="block text-black font-medium mb-1">Year Graduated</label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                  {{ profile.graduate_year_graduated || 'Not specified' }}
+                    {{ profile.graduate_year_graduated || 'Not specified' }}
                   </div>
-                  </div>
+                </div>
 
-                  <!-- Program Completed -->
-                  <div>
+                <!-- Program Completed -->
+                <div>
                   <label class="block text-black font-medium mb-1">Program Completed</label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                  {{ profile.graduate_program_completed || 'Not specified' }}
+                    {{ profile.graduate_program_completed || 'Not specified' }}
                   </div>
-                  </div>
+                </div>
 
-                  <!-- Degree Completed -->
-                  <div>
+                <!-- Degree Completed -->
+                <div>
                   <label class="block text-black font-medium mb-1">Degree Completed</label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                  {{ degreeCompleted }}
-                  </div>
+                    {{ degreeCompleted }}
                   </div>
                 </div>
-                </div>
-                
-                <!-- Other Education Entries - Only show if entries exist -->
-                <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
-                <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white rounded-t-lg">
-                  <div>
+              </div>
+            </div>
+
+            <!-- Other Education Entries - Only show if entries exist -->
+            <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
+              <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white rounded-t-lg">
+                <div>
                   <h3 class="text-lg font-semibold text-black">Additional Education</h3>
                   <p class="text-sm text-gray-600 mt-1">Other schools, programs, or certifications</p>
-                  </div>
                 </div>
-                <div class="grid grid-cols-1 gap-6 p-4">
-                    <div v-for="entry in props.educationEntries" :key="entry.id">
+              </div>
+              <div class="grid grid-cols-1 gap-6 p-4">
+                <div v-for="entry in props.educationEntries" :key="entry.id">
                   <div class="absolute top-4 right-4 flex space-x-2">
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <!-- Institution -->
                     <div>
-                    <label class="text-black font-medium mb-1">School Graduated From</label>
-                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                      {{ entry.education || 'Not specified' }}
-                    </div>
+                      <label class="text-black font-medium mb-1">School Graduated From</label>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                        {{ entry.education || 'Not specified' }}
+                      </div>
                     </div>
 
-                     <!-- Duration -->
+                    <!-- Duration -->
                     <div class="relative">
                       <label class="text-black font-medium mb-1">Year Graduated</label>
                       <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                        {{ entry.start_date ? new Date(entry.start_date).getFullYear() : '' }} - {{ entry.end_date ? new Date(entry.end_date).getFullYear() : 'Present' }}
+                        {{ entry.start_date ? new Date(entry.start_date).getFullYear() : '' }} - {{ entry.end_date ? new
+                          Date(entry.end_date).getFullYear() : 'Present' }}
                       </div>
                     </div>
 
                     <!-- Program -->
                     <div>
-                    <label class="text-black font-medium mb-1">Program Completed</label>
-                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                      {{ entry.program || 'Not specified' }}
-                    </div>
+                      <label class="text-black font-medium mb-1">Program Completed</label>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                        {{ entry.program || 'Not specified' }}
+                      </div>
                     </div>
 
                     <!-- Field of Study -->
                     <div>
-                    <label class="text-black font-medium mb-1">Degree Completed</label>
-                    <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                      {{ entry.field_of_study || 'Not specified' }}
-                    </div>
+                      <label class="text-black font-medium mb-1">Degree Completed</label>
+                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
+                        {{ entry.field_of_study || 'Not specified' }}
+                      </div>
                     </div>
                   </div>
                 </div>
