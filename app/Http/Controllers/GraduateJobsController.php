@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use App\Services\ApplicantScreeningService;
 
 class GraduateJobsController extends Controller
@@ -460,20 +461,24 @@ class GraduateJobsController extends Controller
             'interview_date' => 'nullable|date',
             'resume_id' => 'nullable|exists:resumes,id',
             'cover_letter' => 'nullable|string',
+            'cover_letter_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // add
             'additional_documents' => 'nullable|array',
-            // add other fields kung unsa pa ang need (check ang table named job_applications sa database)
         ]);
 
-        // Check if user already applied for this job
-        $exists = JobApplication::where('user_id', $user->id)
-            ->where('job_id', $validated['job_id'])
-            ->exists();
+        // Prepare additional documents payload
+        $additionalDocs = $validated['additional_documents'] ?? [];
 
-        if ($exists) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You have already applied to this job.'
-            ], 409);
+        // Store optional cover letter file
+        if ($request->hasFile('cover_letter_file')) {
+            $file = $request->file('cover_letter_file');
+            $path = $file->store('cover-letters', 'public');
+            $additionalDocs['cover_letter'] = [
+                'name' => $file->getClientOriginalName(),
+                'path' => $path,
+                'url'  => Storage::url($path),
+                'size' => $file->getSize(),
+                'uploaded_at' => now()->toISOString(),
+            ];
         }
 
         // Create application
@@ -483,7 +488,7 @@ class GraduateJobsController extends Controller
             'job_id' => $validated['job_id'],
             'resume_id' => $validated['resume_id'] ?? null,
             'cover_letter' => $validated['cover_letter'] ?? null,
-            'additional_documents' => $validated['additional_documents'] ?? null,
+            'additional_documents' => $additionalDocs ?: null, // save JSON with cover letter file if present
             'status' => 'applied',
             'stage' => 'applying',
             'applied_at' => now(),

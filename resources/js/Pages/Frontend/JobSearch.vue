@@ -123,7 +123,37 @@ function calculateMatchPercentage(job) {
 }
 
 // Apply for a job
-const applyForm = useForm({ job_id: null, cover_letter: '' });
+const applyForm = useForm({ job_id: null, cover_letter: '', cover_letter_file: null })
+
+function onCoverLetterFileChange(e) {
+    applyForm.cover_letter_file = (e.target.files && e.target.files[0]) ? e.target.files[0] : null
+}
+
+// Fallback-friendly getters for the Apply modal
+const applyJobTypes = computed(() => {
+    const j = selectedJob.value
+    if (!j) return []
+    if (Array.isArray(j.jobTypes) && j.jobTypes.length) return j.jobTypes.map(jt => jt.type).filter(Boolean)
+    if (Array.isArray(j.job_types) && j.job_types.length) return j.job_types.map(jt => jt.type).filter(Boolean)
+    return j.job_type ? [j.job_type] : []
+})
+
+const applySalary = computed(() => {
+    const j = selectedJob.value
+    if (!j) return null
+    if (j.salary) return j.salary
+    // fallback if salary fields are on job record
+    if (j.job_min_salary || j.job_max_salary || j.salary_type) {
+        return {
+            job_min_salary: j.job_min_salary || null,
+            job_max_salary: j.job_max_salary || null,
+            salary_type: j.salary_type || null,
+        }
+    }
+    return null
+})
+
+// Apply for a job
 function showApplyModal(job) {
     selectedJob.value = job;
     applyForm.job_id = job.id;
@@ -133,21 +163,22 @@ function showApplyModal(job) {
 function submitApplication() {
     applyForm.post(route('apply-for-job'), {
         preserveScroll: true,
+        forceFormData: true, // ensure file upload goes as multipart/form-data
         onSuccess: () => {
-            successMessage.value = 'Successfully applied for the job and Referral sent to PESO!';
-            isApplyModalOpen.value = false;
-            isSuccessModalOpen.value = true;
-            fetchJobs();
+            successMessage.value = 'Successfully applied for the job and Referral sent to PESO!'
+            isApplyModalOpen.value = false
+            isSuccessModalOpen.value = true
+            fetchJobs()
 
-              if (selectedJob.value && selectedJob.value.company && selectedJob.value.company.id) {
-                requestReferral(selectedJob.value.company.id, selectedJob.value.id);
+            if (selectedJob.value && selectedJob.value.company && selectedJob.value.company.id) {
+              requestReferral(selectedJob.value.company.id, selectedJob.value.id)
             }
         },
         onError: () => {
-            errorMessage.value = 'Failed to apply for the job. Please try again.';
+            errorMessage.value = 'Failed to apply for the job. Please try again.'
             isErrorModalOpen.value = true;
         }
-    });
+    })
 }
 
 const oneClickApply = (job) => {
@@ -471,10 +502,10 @@ onMounted(() => {
                                             <i class="fas fa-check-circle mr-1 text-green-500"></i> Already Applied
                                         </span>
 
-                                        <PrimaryButton @click="oneClickApply(job)"
+                                        <!-- <PrimaryButton @click="oneClickApply(job)"
                                             class="text-sm bg-green-600 hover:bg-green-700">
                                             One-Click Apply
-                                        </PrimaryButton>
+                                        </PrimaryButton> -->
 
                                         <PrimaryButton v-if="job.company && job.company.id"
                                             @click="goToCompanyProfile(job.company.id)"
@@ -664,10 +695,10 @@ onMounted(() => {
                                             class="bg-green-600 hover:bg-green-700">
                                             Apply Now
                                         </PrimaryButton>
-                                        <PrimaryButton @click="oneClickApply(selectedJob)"
+                                        <!-- <PrimaryButton @click="oneClickApply(selectedJob)"
                                             class="text-sm bg-green-600 hover:bg-green-700">
                                             One-Click Apply
-                                        </PrimaryButton>
+                                        </PrimaryButton> -->
                                     </template>
                                     <template v-else>
                                         <span class="text-gray-400 text-sm font-semibold flex items-center">
@@ -735,86 +766,94 @@ onMounted(() => {
 
                         <!-- Apply Job Modal -->
                         <Modal :modelValue="isApplyModalOpen" @close="closeApplyModal" max-width="2xl">
-                            <template #body>
-                            <div class="p-6" v-if="selectedJob">
-                                <div class="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h2 class="text-xl font-bold text-gray-900">Apply for: {{ selectedJob.job_title
-                                            }}
-                                        </h2>
-                                        <p class="text-md text-gray-600">
-                                            <template v-if="selectedJob.company">
-                                                {{ selectedJob.company.company_name }}
-                                            </template>
-                                            <template v-else>
-                                                Unknown
-                                            </template>
-                                        </p>
-                                    </div>
-                                    <span class="px-3 py-1 text-xs font-medium rounded-full" :class="{
-                                        'bg-indigo-100 text-indigo-800': calculateMatchPercentage(selectedJob) >= 90,
-                                        'bg-blue-100 text-blue-800': calculateMatchPercentage(selectedJob) >= 80 && calculateMatchPercentage(selectedJob) < 90,
-                                        'bg-green-100 text-green-800': calculateMatchPercentage(selectedJob) >= 70 && calculateMatchPercentage(selectedJob) < 80,
-                                        'bg-yellow-100 text-yellow-800': calculateMatchPercentage(selectedJob) >= 50 && calculateMatchPercentage(selectedJob) < 70,
-                                        'bg-gray-100 text-gray-800': calculateMatchPercentage(selectedJob) < 50
-                                    }">
-                                        {{ selectedJob.match_percentage !== undefined ? selectedJob.match_percentage + '%' : 'N/A' }} Match
-                                    </span>
-                                </div>
+      <template #body>
+      <div class="p-6" v-if="selectedJob">
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">Apply for: {{ selectedJob.job_title
+              }}
+            </h2>
+            <p class="text-md text-gray-600">
+              <template v-if="selectedJob.company">
+                {{ selectedJob.company.company_name }}
+              </template>
+              <template v-else>
+                Unknown
+              </template>
+            </p>
+          </div>
+          <span class="px-3 py-1 text-xs font-medium rounded-full" :class="{
+            'bg-indigo-100 text-indigo-800': calculateMatchPercentage(selectedJob) >= 90,
+            'bg-blue-100 text-blue-800': calculateMatchPercentage(selectedJob) >= 80 && calculateMatchPercentage(selectedJob) < 90,
+            'bg-green-100 text-green-800': calculateMatchPercentage(selectedJob) >= 70 && calculateMatchPercentage(selectedJob) < 80,
+            'bg-yellow-100 text-yellow-800': calculateMatchPercentage(selectedJob) >= 50 && calculateMatchPercentage(selectedJob) < 70,
+            'bg-gray-100 text-gray-800': calculateMatchPercentage(selectedJob) < 50
+          }">
+            {{ selectedJob.match_percentage !== undefined ? selectedJob.match_percentage + '%' : 'N/A' }} Match
+          </span>
+        </div>
 
-                                <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-                                    <div class="flex items-center text-gray-600">
-                                        <i class="fas fa-map-marker-alt mr-2"></i>
-                                        <span>
-                                            <template v-if="selectedJob.locations && selectedJob.locations.length">
-                                                {{selectedJob.locations.map(l => l.address).join(', ')}}
-                                            </template>
-                                            <template v-else>
-                                                Not specified
-                                            </template>
-                                        </span>
-                                    </div>
-                                    <div class="flex items-center text-gray-600">
-                                        <i class="fas fa-briefcase mr-2"></i>
-                                        <span>
-                                            <template v-if="selectedJob.jobTypes && selectedJob.jobTypes.length">
-                                                {{selectedJob.jobTypes.map(jt => jt.type).join(', ')}}
-                                            </template>
-                                            <template v-else>
-                                                Not specified
-                                            </template>
-                                        </span>
-                                    </div>
-                                    <div class="flex items-center text-gray-600">
-                                        <i class="fas fa-clock mr-2"></i>
-                                        {{ selectedJob.job_experience_level || 'Not specified' }}
-                                    </div>
-                                    <div class="flex items-center text-gray-600">
-                                        <i class="fas fa-dollar-sign mr-2"></i>
-                                        {{ formatSalary(selectedJob.salary) }}
-                                    </div>
-                                </div>
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+          <div class="flex items-center text-gray-600">
+            <i class="fas fa-map-marker-alt mr-2"></i>
+            <span>
+              <template v-if="selectedJob.locations && selectedJob.locations.length">
+                {{ selectedJob.locations.map(l => l.address).join(', ') }}
+              </template>
+              <template v-else>Not specified</template>
+            </span>
+          </div>
+          <div class="flex items-center text-gray-600">
+            <i class="fas fa-briefcase mr-2"></i>
+            <span>
+              <template v-if="applyJobTypes.length">
+                {{ applyJobTypes.join(', ') }}
+              </template>
+              <template v-else>Not specified</template>
+            </span>
+          </div>
+          <div class="flex items-center text-gray-600">
+            <i class="fas fa-clock mr-2"></i>
+            {{ selectedJob.job_experience_level || 'Not specified' }}
+          </div>
+          <div class="flex items-center text-gray-600">
+            <i class="fas fa-peso-sign mr-2"></i>
+            {{ formatSalary(applySalary) }}
+          </div>
+        </div>
 
-                                <div class="mb-6">
-                                    <h3 class="text-lg font-semibold mb-2">Cover Letter (Optional)</h3>
-                                    <textarea v-model="applyForm.cover_letter"
-                                        class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        rows="5"
-                                        placeholder="Tell the employer why you're a good fit for this position..."></textarea>
-                                </div>
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-2">Cover Letter</h3>
+          <textarea v-model="applyForm.cover_letter"
+            class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+            rows="5"
+            placeholder="Tell the employer why you're a good fit for this position..."></textarea>
 
-                                <div class="flex justify-end space-x-3">
-                                    <button @click="closeApplyModal"
-                                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                                        Cancel
-                                    </button>
-                                    <PrimaryButton @click="submitApplication" class="bg-green-600 hover:bg-green-700">
-                                        Submit Application
-                                    </PrimaryButton>
-                                </div>
-                            </div>
-                            </template>
-                        </Modal>
+          <!-- Optional file upload -->
+          <div class="mt-3">
+            <label class="block text-sm text-gray-700 mb-1">Upload Cover Letter (optional)</label>
+            <input type="file"
+                   accept=".pdf,.doc,.docx"
+                   @change="onCoverLetterFileChange"
+                   class="block w-full text-sm border rounded p-1" />
+            <div v-if="applyForm.cover_letter_file" class="text-xs text-gray-500 mt-1">
+              {{ applyForm.cover_letter_file.name }}
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+          <button @click="closeApplyModal"
+            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+          <PrimaryButton @click="submitApplication" class="bg-green-600 hover:bg-green-700">
+            Submit Application
+          </PrimaryButton>
+        </div>
+      </div>
+      </template>
+    </Modal>
                     </div>
                 </div>
             </div>

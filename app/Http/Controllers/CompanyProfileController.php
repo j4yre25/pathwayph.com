@@ -8,13 +8,13 @@ use Inertia\Inertia;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 
-
 class CompanyProfileController extends Controller
 {
     public function profile()
     {
         $user = Auth::user();
-        $company = $user->companyThroughHR ?? null;
+        $company = $user->companyThroughHR ?? $user->company ?? null;
+
         // Determine user role
         $userRole = $user->hasRole('company') ? 'company' : 'graduate';
 
@@ -25,46 +25,40 @@ class CompanyProfileController extends Controller
                 'company_email' => $company->company_email ?? 'N/A',
                 'company_contact_number' => $user->company_contact_number ?? 'N/A',
                 'address' => implode(', ', array_filter([
-                    $user->company->company_street_address,
-                    $user->company->company_brgy,
-                    $user->company->company_city,
-                    $user->company->company_province,
-                    $user->company->company_zip_code
+                    $company?->company_street_address,
+                    $company?->company_brgy,
+                    $company?->company_city,
+                    $company?->company_province,
+                    $company?->company_zip_code,
                 ])),
-                'sector' => $user->sector->name ?? null,
-                'description' => $user->company_description ?? null,
-                'mobile_phone' => $user->company->company_mobile_phone ?? null,
-                'telephone_number' => $user->company->company_tel_phone ?? null,
+                'sector' => $company?->sector?->name ?? null,
+                'description' => $company?->company_description ?? null,
+                'mobile_phone' => $company?->company_mobile_phone ?? null,
+                'telephone_number' => $company?->company_tel_phone ?? null,
                 'created_at' => $user->created_at?->format('F j, Y') ?? null,
-                'branch' => implode(', ', array_filter([
-                    $user->company_brgy,
-                    $user->company_city,
-                ])),
-                'job_post_count' => $user->jobs()->count(),
-                'profile_photo' => $user->profile_photo_path ? Storage::url($user->profile_photo_path) : null,
-                'cover_photo' => $user->cover_photo_path ? Storage::url($user->cover_photo_path) : null,
+                'job_post_count' => method_exists($company, 'jobs') ? ($company?->jobs()?->count() ?? 0) : ($user->jobs()->count()),
+                // Use company-level photos
+                'profile_photo' => $company?->company_profile_photo_path
+                    ? Storage::url($company->company_profile_photo_path)
+                    : ($company?->company_logo_path ? Storage::url($company->company_logo_path) : null),
+                'cover_photo' => $company?->company_cover_photo_path ? Storage::url($company->company_cover_photo_path) : null,
             ],
-
         ]);
     }
-
 
     public function post(Request $request)
     {
         $user = Auth::user();
 
-        // Validate the incoming request
         $request->validate([
             'company_description' => 'nullable|string|max:5000',
         ]);
 
-        // Update the company description (assuming user is linked to a company)
         $company = $user->company;
 
         if ($company) {
             $company->company_description = $request->input('company_description');
             $company->save();
-
 
             return redirect()->back()->with('success', 'Description updated successfully.');
         }
@@ -80,6 +74,7 @@ class CompanyProfileController extends Controller
             'company' => $user->company,
         ]);
     }
+
     public function update(Request $request)
     {
         $user = Auth::user();
@@ -96,11 +91,11 @@ class CompanyProfileController extends Controller
             'company_email' => ['required', 'string', 'email', 'max:255'],
             'telephone_number' => ['nullable', 'string', 'max:20'],
             'company_description' => ['nullable', 'string', 'max:1000'],
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
-            'cover_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            // Company media stored on companies table
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',       // company profile photo
+            'cover_photo' => 'nullable|image|mimes:jpg,jpeg,png|max:4096', // company cover photo
         ]);
 
-        // Update company fields
         if ($company) {
             $company->company_name = $validated['company_name'];
             $company->company_street_address = $validated['company_street_address'];
@@ -112,34 +107,36 @@ class CompanyProfileController extends Controller
             $company->company_tel_phone = $validated['telephone_number'] ?? $company->company_tel_phone;
             $company->company_description = $validated['company_description'] ?? $company->company_description;
             $company->save();
+
+            // Profile photo -> company_profile_photo_path
+            if ($request->hasFile('photo')) {
+                if ($company->company_profile_photo_path) {
+                    Storage::disk('public')->delete($company->company_profile_photo_path);
+                }
+                $company->company_profile_photo_path = $request->file('photo')->store('company-profile-photos', 'public');
+                $company->save();
+            }
+
+            // Cover photo -> company_cover_photo_path
+            if ($request->hasFile('cover_photo')) {
+                if ($company->company_cover_photo_path) {
+                    Storage::disk('public')->delete($company->company_cover_photo_path);
+                }
+                $company->company_cover_photo_path = $request->file('cover_photo')->store('company-cover-photos', 'public');
+                $company->save();
+            }
         }
 
-        // Update user fields
+        // Keep contact number on user model if used elsewhere
         $user->company_contact_number = $validated['company_contact_number'];
         $user->save();
 
-        // Handle profile photo upload if present
-        if ($request->hasFile('photo')) {
-            if ($user->profile_photo_path) {
-                Storage::disk('public')->delete($user->profile_photo_path);
-            }
-            $user->profile_photo_path = $request->file('photo')->store('profile-photos', 'public');
-            $user->save();
-        }
-
-        // Handle cover photo upload if present
-        if ($request->hasFile('cover_photo')) {
-            if ($user->cover_photo_path) {
-                Storage::disk('public')->delete($user->cover_photo_path);
-            }
-            $user->cover_photo_path = $request->file('cover_photo')->store('cover-photos', 'public');
-            $user->save();
-        }
-
         return back()->with('success', 'Company profile updated!');
     }
+
     public function destroyPhoto(Request $request)
     {
+        // If you intend to remove company profile photo instead of user photo, adjust accordingly.
         $request->user()->deleteProfilePhoto();
         return back()->with('success', 'Profile photo removed.');
     }
@@ -162,7 +159,6 @@ class CompanyProfileController extends Controller
     {
         $user = Auth::user();
 
-        // Get all sectors and categories
         $sectors = \App\Models\Sector::all(['id', 'name']);
         $categories = \App\Models\Category::all(['id', 'name', 'sector_id']);
 
@@ -197,7 +193,10 @@ class CompanyProfileController extends Controller
             'dob' => 'required|date',
             'email' => 'required|email|max:255',
             'mobile_number' => 'required|string|max:20',
+            // Documents
             'verification_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'bir_tin' => ['required','string','max:30'],
+            'company_logo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         $verificationPath = null;
@@ -205,7 +204,12 @@ class CompanyProfileController extends Controller
             $verificationPath = $request->file('verification_file')->store('verification-documents', 'public');
         }
 
-        // Create company
+        $logoPath = null;
+        if ($request->hasFile('company_logo')) {
+            $logoPath = $request->file('company_logo')->store('company-logos', 'public');
+        }
+
+        // Create company; set company_profile_photo_path to the same logo
         $company = \App\Models\Company::create([
             'user_id' => $user->id,
             'company_name' => $validated['company_name'],
@@ -220,9 +224,11 @@ class CompanyProfileController extends Controller
             'category_id' => $validated['category_id'],
             'sector_id' => \App\Models\Category::find($validated['category_id'])->sector_id,
             'verification_file_path' => $verificationPath,
+            'bir_tin' => $validated['bir_tin'],
+            'company_logo_path' => $logoPath,
+            'company_profile_photo_path' => $logoPath, 
         ]);
 
-        // Create HR (human_resources)
         \App\Models\HumanResource::create([
             'user_id' => $user->id,
             'company_id' => $company->id,
@@ -233,7 +239,7 @@ class CompanyProfileController extends Controller
             'dob' => $validated['dob'],
             'email' => $validated['email'],
             'mobile_number' => $validated['mobile_number'],
-            'is_main_hr' => true, // Mark as main HR
+            'is_main_hr' => true,
         ]);
 
         $paddedCompanyId = str_pad($company->id, 3, '0', STR_PAD_LEFT);

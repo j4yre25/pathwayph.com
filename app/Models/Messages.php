@@ -13,17 +13,19 @@ class Messages extends Model
         'application_id',
         'sender_id',
         'receiver_id',
-        'message_type',   
+        'message_type',
         'content',
-        'status',         
-        'meta',           
+        'status',
+        'meta',
+        'read_at',
     ];
 
     protected $casts = [
         'meta' => 'array',
+        'read_at' => 'datetime',
     ];
 
-    // Request Info types (unchanged)
+    // Request Info types
     public const REQ_RESUME                 = 'resume';
     public const REQ_TOR                    = 'transcript_of_records';
     public const REQ_POLICE_CLEARANCE       = 'police_clearance';
@@ -44,28 +46,48 @@ class Messages extends Model
     public const STATUS_READ      = 'read';
     public const STATUS_COMPLETED = 'completed';
 
+    // Pipeline types
     public const TYPE_INTERVIEW_INVITE      = 'interview_invitation';
     public const TYPE_INTERVIEW_RESCHEDULE  = 'interview_reschedule';
-    public const TYPE_OFFER_LETTER = 'offer_letter';
-    public const TYPE_EXAM_INSTRUCTIONS = 'exam_instructions';
-    public const TYPE_EXAM_RESCHEDULE   = 'exam_reschedule';
+    public const TYPE_OFFER_LETTER          = 'offer_letter';
+    public const TYPE_EXAM_INSTRUCTIONS     = 'exam_instructions';
+    public const TYPE_EXAM_RESCHEDULE       = 'exam_reschedule';
+    public const TYPE_HIRED                 = 'hired';
+    public const TYPE_REJECTED              = 'rejected';
+    public const TYPE_REQUEST_INFO          = 'request_info';
 
     public static function template(string $type): string
     {
         return match ($type) {
-            self::REQ_RESUME => 'We kindly request you to upload your updated resume to complete the screening process.',
-            self::REQ_TOR => 'Please upload your Transcript of Records so we may continue the evaluation.',
-            self::REQ_POLICE_CLEARANCE => 'Kindly provide a recent Police Clearance document.',
-            self::REQ_PORTFOLIO => 'Please share your portfolio or sample works for further assessment.',
-            self::REQ_CERT_EMPLOYMENT => 'Kindly upload your Certificate of Employment for verification.',
-            default => 'Please provide the additional information requested to proceed with your application.',
+            self::TYPE_REQUEST_INFO       => 'Please provide the additional information requested to proceed with your application.',
+            self::TYPE_INTERVIEW_INVITE   => 'You have been invited to an interview. Please review the schedule and confirm.',
+            self::TYPE_INTERVIEW_RESCHEDULE => 'Your interview has been rescheduled. Please review the updated details.',
+            self::TYPE_EXAM_INSTRUCTIONS  => 'Assessment instructions have been sent. Please review and follow the steps.',
+            self::TYPE_EXAM_RESCHEDULE    => 'Your assessment schedule has been updated. Please check the new time.',
+            self::TYPE_OFFER_LETTER       => 'Congratulations! You have received a job offer. Please review the details.',
+            self::TYPE_HIRED              => 'You have been marked as Hired for this position. Welcome aboard!',
+            self::TYPE_REJECTED           => 'We appreciate your interest. Unfortunately, your application will not proceed.',
+            default => 'You have a new message regarding your application.',
         };
     }
 
     // Scopes
-    public function scopeRequestInfo($q){ return $q->where('message_type','request_info'); }
-    public function scopeExamInstructions($q){ return $q->where('message_type','exam_instructions'); }
-    public function scopeOfferLetters($q){ return $q->where('message_type', self::TYPE_OFFER_LETTER); }
+    public function scopeUnread($q) { return $q->whereNull('read_at'); }
+
+    // Relationships
+    public function sender()   { return $this->belongsTo(\App\Models\User::class, 'sender_id'); }
+    public function receiver() { return $this->belongsTo(\App\Models\User::class, 'receiver_id'); }
+    public function application() { return $this->belongsTo(\App\Models\JobApplication::class, 'application_id'); }
+
+    public function markRead(): bool
+    {
+        if (!$this->read_at) {
+            $this->read_at = now();
+            $this->status = self::STATUS_READ;
+            return $this->save();
+        }
+        return true;
+    }
 
     public function markCompleted(): bool
     {

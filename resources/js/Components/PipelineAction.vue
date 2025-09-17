@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
+import Modal from '@/Components/Modal.vue'
 
 const props = defineProps({
   applicationId: { type: Number, required: true },
@@ -147,6 +148,27 @@ watch(() => props.currentStage, () => {
   if (props.variant === 'panel') load(true)
   else if (open.value) load(true)
 })
+
+const requestInfoOpen = ref(false)
+const requestInfoAppId = ref(null)
+const requested = ref([]) // ['resume','transcript_of_records','other']
+const customMessage = ref('')
+
+function onRequestMoreInfo({ applicationId }) {
+  requestInfoAppId.value = applicationId
+  requested.value = []
+  customMessage.value = ''
+  requestInfoOpen.value = true
+}
+
+async function sendRequestInfo() {
+  await axios.post(route('applications.actions.perform', requestInfoAppId.value), {
+    action: 'request_more_info',
+    requested: requested.value,
+    custom_message: customMessage.value,
+  })
+  requestInfoOpen.value = false
+}
 </script>
 
 <template>
@@ -219,4 +241,31 @@ watch(() => props.currentStage, () => {
       </template>
     </div>
   </div>
+
+  <!-- Request More Info Modal -->
+  <Modal v-model="requestInfoOpen">
+    <template #header>Request Additional Information</template>
+    <template #body>
+      <div class="space-y-3">
+        <div class="text-sm text-gray-700">Select items to request:</div>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <label class="flex items-center gap-2"><input type="checkbox" value="resume" v-model="requested" /> Resume</label>
+          <label class="flex items-center gap-2"><input type="checkbox" value="transcript_of_records" v-model="requested" /> TOR</label>
+          <label class="flex items-center gap-2"><input type="checkbox" value="portfolio" v-model="requested" /> Portfolio</label>
+          <label class="flex items-center gap-2"><input type="checkbox" value="certificate_of_employment" v-model="requested" /> Certificate of Employment</label>
+          <label class="flex items-center gap-2"><input type="checkbox" value="police_clearance" v-model="requested" /> Police Clearance</label>
+          <label class="flex items-center gap-2"><input type="checkbox" value="other" v-model="requested" /> Other</label>
+        </div>
+
+        <div>
+          <div class="text-sm text-gray-700 mb-1">Optional note:</div>
+          <textarea v-model="customMessage" rows="3" class="w-full border rounded p-2 text-sm" placeholder="Add a note to the applicant..."></textarea>
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <button class="px-3 py-2 text-sm" @click="requestInfoOpen = false">Cancel</button>
+      <button class="px-3 py-2 text-sm bg-indigo-600 text-white rounded" @click="sendRequestInfo">Send Request</button>
+    </template>
+  </Modal>
 </template>

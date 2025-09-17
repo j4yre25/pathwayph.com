@@ -82,6 +82,51 @@ async function toggleNotifications() {
   }
 }
 
+const showMessages = ref(false)
+const msgBell = ref(null)
+const msgDropdown = ref(null)
+
+const rawMessages = computed(() => usePage().props.messages || [])
+
+// Track "read" threads locally so badge can drop instantly
+const localReadThreadIds = ref(new Set())
+
+const effectiveUnreadMessages = computed(() =>
+  rawMessages.value.filter(t => (t.unread_count > 0) && !localReadThreadIds.value.has(t.conversation_id))
+)
+const unreadMessagesDisplay = computed(() => effectiveUnreadMessages.value.length)
+
+async function markMessagesRead() {
+  try {
+    if (!unreadMessagesDisplay.value) return
+    await axios.post(route('messages.markAll'))
+    // Mark current thread ids as read locally
+    effectiveUnreadMessages.value.forEach(t => localReadThreadIds.value.add(t.conversation_id))
+  } catch (e) {
+    console.warn('Mark messages read failed', e)
+  }
+}
+
+async function toggleMessages() {
+  showMessages.value = !showMessages.value
+  if (showMessages.value && unreadMessagesDisplay.value > 0) {
+    await markMessagesRead()
+  }
+}
+
+async function openMessage(msg) {
+  try {
+    // Local mark so badge drops even if not navigating
+    localReadThreadIds.value.add(msg.conversation_id)
+    // Go to the conversation
+    if (msg.conversation_id) window.location.href = route('messages.show', msg.conversation_id)
+    else window.location.href = route('messages.index')
+  } catch (e) {
+    console.warn(e)
+  }
+}
+
+// Extend outside click handler to close messages dropdown too
 function handleClickOutside(e) {
   if (
     showNotifications.value &&
@@ -91,6 +136,15 @@ function handleClickOutside(e) {
     !notifBell.value.contains(e.target)
   ) {
     showNotifications.value = false
+  }
+  if (
+    showMessages.value &&
+    msgDropdown.value &&
+    !msgDropdown.value.contains(e.target) &&
+    msgBell.value &&
+    !msgBell.value.contains(e.target)
+  ) {
+    showMessages.value = false
   }
 }
 
@@ -240,11 +294,11 @@ console.log(page.props.notifications)
                   Dashboard
                 </NavLink>
 
-                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
+                <!-- <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
                   :active="route().current('job.inbox')"
                   :disabled="!page.props.auth.user.is_approved">
                   Job Inbox
-                </NavLink>
+                </NavLink> -->
 
                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
                   :active="route().current('job.search')"
@@ -535,6 +589,71 @@ console.log(page.props.notifications)
                           {{ unreadDisplay }}
                         </span>
                       </button>
+
+                      <!-- Messages (graduates only) -->
+                      <button
+                        v-if="['graduate','company'].includes(page.props.auth.user.role)"
+                        ref="msgBell"
+                        @click.stop="toggleMessages"
+                        class="relative focus:outline-none mr-3"
+                        aria-label="Messages">
+                        <i class="fas fa-comment-dots text-xl"></i>
+                        <span v-if="unreadMessagesDisplay"
+                          class="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full text-xs px-1">
+                          {{ unreadMessagesDisplay }}
+                        </span>
+                      </button>
+
+                      <!-- Messages Dropdown -->
+                      <div
+                        v-if="showMessages && ['graduate','company'].includes(page.props.auth.user.role)"
+                        ref="msgDropdown"
+                        class="absolute right-0 mt-2 w-96 bg-white shadow-lg rounded z-50"
+                        style="top: 2.5rem;">
+                        <div class="flex justify-between items-center px-3 pt-3 pb-1">
+                          <div class="text-xs font-semibold text-gray-600">Messages</div>
+                          <button
+                            class="text-[10px] text-indigo-600 hover:underline"
+                            @click.stop="() => { showMessages = false; window.location.href = route('messages.index') }">
+                            See all
+                          </button>
+                        </div>
+                        <div v-if="rawMessages.length" class="max-h-96 overflow-y-auto divide-y">
+                          <div
+                            v-for="msg in rawMessages"
+                            :key="msg.conversation_id || msg.id"
+                            class="p-3 cursor-pointer hover:bg-gray-50"
+                            @click.stop="openMessage(msg)"
+                          >
+                            <div class="flex items-start gap-3">
+                              <img
+                                :src="msg.sender_avatar_url || '/images/default-logo.png'"
+                                alt="avatar"
+                                class="w-10 h-10 rounded-full object-cover border" />
+                              <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                  <div class="font-semibold text-sm truncate"
+                                       :class="(msg.unread_count > 0 && !localReadThreadIds.has(msg.conversation_id)) ? 'text-gray-800' : 'text-gray-600'">
+                                    {{ msg.sender_name || '—' }}
+                                  </div>
+                                  <div class="text-[10px] text-gray-400 ml-2 shrink-0">
+                                    {{ msg.created_at }}
+                                  </div>
+                                </div>
+                                <div class="text-[11px] text-gray-500 truncate">
+                                  {{ msg.sender_company || '—' }}
+                                </div>
+                                <div class="text-xs text-gray-600 mt-0.5 line-clamp-2" v-html="msg.body_preview || msg.body"></div>
+                              </div>
+                              <span v-if="msg.unread_count > 0" class="ml-2 mt-1 inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] px-1">
+                                {{ msg.unread_count }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div v-else class="p-3 text-gray-500 text-center">No messages</div>
+                      </div>
+
                       <!-- Profile Photo -->
                       <button v-if="$page.props.jetstream.managesProfilePhotos"
                         class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">

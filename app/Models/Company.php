@@ -26,6 +26,10 @@ class Company extends Model
         'category_id', 
         'sector_id',
         'verification_file_path',
+        'company_logo_path',
+        'company_profile_photo_path',
+        'company_cover_photo_path',
+        'bir_tin',
         'company_id',
     ];
 
