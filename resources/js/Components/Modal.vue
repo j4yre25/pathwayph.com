@@ -63,7 +63,7 @@ const maxWidthClass = computed(() => {
 <template>
   <transition name="fade">
     <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
+      <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative" :class="maxWidthClass">
         <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" @click="close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -76,6 +76,7 @@ const maxWidthClass = computed(() => {
         <div v-if="$slots.footer">
           <slot name="footer" />
         </div>
+        <slot />
       </div>
     </div>
   </transition>

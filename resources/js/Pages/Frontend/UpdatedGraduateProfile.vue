@@ -54,10 +54,6 @@ const formatDate = (dateString) => {
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
-const formatUrl = (url) => {
-    if (!url) return '';
-    return url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
-};
 
 // Computed properties
 const fullName = computed(() => {

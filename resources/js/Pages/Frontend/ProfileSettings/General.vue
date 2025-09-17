@@ -6,6 +6,8 @@ import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 import './datepicker.css';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 
 
 // Define props
@@ -149,27 +151,26 @@ watch(() => profile.value.fullName, (newFullName) => {
 
 
 const saveProfile = () => {
+  console.log('saveProfile called');
+
   if (!validateForm()) {
     showErrorModal('Please correct the errors in the form.');
     return;
   }
 
   // Format birthdate
-  if (profile.value.graduate_birthdate) {
-    const date = new Date(profile.value.graduate_birthdate);
-    settingsForm.dob = date.toISOString().split('T')[0];
-  } else {
-    settingsForm.dob = null;
-  }
+  settingsForm.dob = profile.value.graduate_birthdate
+    ? new Date(profile.value.graduate_birthdate).toISOString().split('T')[0]
+    : null;
 
-  // Update form data from profile
+  // Map frontend fields to backend fields
   settingsForm.first_name = profile.value.first_name;
   settingsForm.middle_name = profile.value.middle_name;
   settingsForm.last_name = profile.value.last_name;
   settingsForm.email = profile.value.email;
   settingsForm.employment_status = profile.value.employment_status;
-  settingsForm.contact_number = profile.value.graduate_phone;
-  settingsForm.graduate_professional_title = profile.value.graduate_professional_title;
+  settingsForm.contact_number = profile.value.graduate_phone; // <-- Map to backend
+  settingsForm.current_job_title = profile.value.graduate_professional_title; // <-- Map to backend
   settingsForm.graduate_location = profile.value.graduate_location;
   settingsForm.gender = profile.value.graduate_gender;
   settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
@@ -184,54 +185,61 @@ const saveProfile = () => {
   settingsForm.other_social_links = profile.value.other_social_links;
   settingsForm.enable_contact_form = profile.value.enable_contact_form;
 
-  // Check if there are any changes
-  const hasChanges = Object.keys(settingsForm.data()).some(
-    (key) => settingsForm[key] !== profile.value[key]
-  );
+  // Only send changed fields
+  const initial = {
+    first_name: graduate.first_name || '',
+    middle_name: graduate.middle_name || '',
+    last_name: graduate.last_name || '',
+    current_job_title: graduate.current_job_title || '',
+    email: user.value.email || '',
+    contact_number: graduate.contact_number || '',
+    graduate_location: graduate.graduate_location || '',
+    dob: graduate.dob || '',
+    graduate_gender: graduate.gender || '',
+    employment_status: graduate.employment_status || '',
+    graduate_ethnicity: graduate.ethnicity || '',
+    graduate_address: graduate.address || '',
+    graduate_about_me: graduate.about_me || '',
+    graduate_school_graduated_from: graduate.institution?.institution_name || '',
+    graduate_program_completed: graduate.program?.name || '',
+    graduate_year_graduated: graduate.school_year?.school_year_range || '',
+    linkedin_url: graduate.linkedin_url || '',
+    github_url: graduate.github_url || '',
+    personal_website: graduate.personal_website || '',
+    other_social_links: graduate.other_social_links || '',
+    enable_contact_form: graduate.enable_contact_form || false,
+  };
 
-  if (!hasChanges) {
+  const changedFields = {};
+  Object.keys(settingsForm.data()).forEach(key => {
+    if (settingsForm[key] !== initial[key]) {
+      changedFields[key] = settingsForm[key];
+    }
+  });
+
+  if (Object.keys(changedFields).length === 0 && !settingsForm.graduate_picture) {
     isNoChangesModalOpen.value = true;
     return;
   }
 
-  console.log('Submitting form:', settingsForm);
-
+  // Remove empty file field if not set
   if (!settingsForm.graduate_picture) {
-    delete settingsForm.graduate_picture;
+    delete changedFields.graduate_picture;
+  } else {
+    changedFields.graduate_picture = settingsForm.graduate_picture;
   }
 
+  console.log('Submitting changed fields:', changedFields);
+
   // Submit form
-  settingsForm.post(route('profile.updateProfile'), {
+  settingsForm.post(route('profile.update'), {
+    data: changedFields,
     forceFormData: true,
     onSuccess: (response) => {
-      emit('close-all-modals');
-      
-      profile.value.first_name = settingsForm.first_name;
-      profile.value.middle_name = settingsForm.middle_name;
-      profile.value.last_name = settingsForm.last_name;
-      profile.value.graduate_professional_title = settingsForm.graduate_professional_title;
-      profile.value.email = settingsForm.email;
-      profile.value.graduate_phone = settingsForm.contact_number;
-      profile.value.graduate_location = settingsForm.graduate_location;
-      profile.value.graduate_gender = settingsForm.gender;
-      profile.value.graduate_ethnicity = settingsForm.graduate_ethnicity;
-      profile.value.graduate_address = settingsForm.graduate_address;
-      profile.value.graduate_about_me = settingsForm.graduate_about_me;
-      profile.value.graduate_school_graduated_from = settingsForm.graduate_school_graduated_from;
-      profile.value.graduate_program_completed = settingsForm.graduate_program_completed;
-      profile.value.graduate_year_graduated = settingsForm.graduate_year_graduated;
-      profile.value.linkedin_url = settingsForm.linkedin_url;
-      profile.value.github_url = settingsForm.github_url;
-      profile.value.personal_website = settingsForm.personal_website;
-      profile.value.other_social_links = settingsForm.other_social_links;
-      profile.value.enable_contact_form = settingsForm.enable_contact_form;
-      profile.value.fullName = `${profile.value.first_name} ${profile.value.middle_name} ${profile.value.last_name}`.trim();
-
-      // Reset form
-      settingsForm.reset();
-      settingsForm.clearErrors();
-
-      showSuccessModal(); // Show success modal
+      Object.keys(changedFields).forEach(key => {
+        profile.value[key] = changedFields[key];
+      });
+      showSuccessModal();
       console.log('Profile saved successfully on the backend:', response);
     },
     onError: (errors) => {
