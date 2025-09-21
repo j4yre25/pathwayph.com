@@ -38,9 +38,6 @@ class JobCreationService
 
         $job = Job::create($jobData);
 
-        $salary = $this->createSalary($validated, $job->id);
-
-        
 
         // Sync relationships if present
         if (!empty($validated['job_type'])) {
@@ -80,7 +77,8 @@ class JobCreationService
     }
 
     private function prepareJobData(array $validated, User $user, ?Salary $salary = null, $location): array
-    {
+    {   
+        $company = $user->company;
         return [
             'user_id' => $user->id,
             'posted_by' => $user->hr->full_name ?? ($validated['posted_by'] ?? null),
@@ -97,8 +95,6 @@ class JobCreationService
             'job_vacancies' => $validated['job_vacancies'] ?? null,
             'job_description' => $validated['job_description'] ?? null,
             'job_requirements' => $validated['job_requirements'] ?? null,
-            'sector_id' => $validated['sector'] ?? $validated['sector_id'] ?? null,
-            'category_id' => $validated['category'] ?? $validated['category_id'] ?? null,
             'department_id' => $validated['department_id'] ?? null,
             'job_deadline' => !empty($validated['job_deadline']) ? Carbon::parse($validated['job_deadline'])->format('Y-m-d') : null,
             'job_application_limit' => $validated['job_application_limit'] ?? null,
@@ -106,6 +102,8 @@ class JobCreationService
             'job_salary_type' => $validated['salary']['salary_type'] ?? $validated['job_salary_type'] ?? null,
             'job_min_salary' => !empty($validated['is_negotiable']) && $validated['is_negotiable'] ? null : ($validated['salary']['job_min_salary'] ?? $validated['job_min_salary'] ?? null),
             'job_max_salary' => !empty($validated['is_negotiable']) && $validated['is_negotiable'] ? null : ($validated['salary']['job_max_salary'] ?? $validated['job_max_salary'] ?? null),
+            'sector_id' => $company->sector_id ?? ($validated['sector_id'] ?? $validated['sector'] ?? null),
+            'category_id' => $company->category_id ?? ($validated['category_id'] ?? $validated['category'] ?? null),
         ];
     }
 

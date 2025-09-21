@@ -4,61 +4,88 @@ namespace App\Services;
 
 use App\Models\Job;
 use App\Models\Graduate;
-use App\Models\EmploymentPreference;
+use App\Models\JobType; // ADD
 
 class ApplicantScreeningService
 {
-    public function screen(Graduate $graduate, Job $job)
+    public function screen(Graduate $graduate, Job $job): array
     {
         $labels = [];
         $score = 0;
         $criteria = 0;
+
+        $jobReqs = strtolower(strip_tags((string)$job->job_requirements));
+        $jobDesc = strtolower(strip_tags((string)$job->job_description));
 
         // 1. Skills
         $criteria++;
         $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
         $skillMatch = false;
         foreach ($graduateSkills as $skill) {
-            if (stripos(json_encode($job->skills), $skill) !== false) {
-                $labels[] = 'Skills';
+            if (!$skill) continue;
+            $s = strtolower($skill);
+            if (str_contains($jobReqs, $s) || str_contains($jobDesc, $s)) {
                 $skillMatch = true;
                 break;
             }
         }
-        if ($skillMatch) $score++;
+        if ($skillMatch) {
+            $score++;
+            $labels[] = 'Skills';
+        }
 
         // 2. Education
         $criteria++;
         $education = $graduate->education->first();
-        $program = $education ? $education->program : null;
-        $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
+        $programName = null;
+        if ($education) {
+            if (!empty($education->program)) {
+                $programName = strtolower($education->program);
+            } elseif (method_exists($education, 'programRelation')) {
+                $programName = strtolower($education->programRelation?->name ?? '');
+            }
+        }
+        $educationMatch = $programName && (str_contains($jobReqs, $programName) || str_contains($jobDesc, $programName));
         if ($educationMatch) {
-            $labels[] = 'Education';
             $score++;
+            $labels[] = 'Education';
         }
 
         // 3. Experience
         $criteria++;
-        $experiences = $graduate->experience;
-        $experienceTitles = $experiences->pluck('job_title')->filter()->unique()->toArray();
         $experienceMatch = false;
+        $experienceTitles = $graduate->experience->pluck('job_title')->filter()->unique()->toArray();
         foreach ($experienceTitles as $title) {
-            if (stripos($job->job_title, $title) !== false) {
-                $labels[] = 'Experience';
+            if (!$title) continue;
+            $t = strtolower($title);
+            if (str_contains($jobReqs, $t) || str_contains($jobDesc, $t)) {
                 $experienceMatch = true;
                 break;
             }
         }
-        if ($experienceMatch) $score++;
+        if ($experienceMatch) {
+            $score++;
+            $labels[] = 'Experience';
+        }
 
-        // 4. Preferred Job Type
+        // 4. Preferred Job Type (FIX: job.job_type is an ID – resolve to name)
         $criteria++;
         $pref = $graduate->employmentPreference;
-        $preferredJobTypes = $pref && $pref->job_type ? explode(',', $pref->job_type) : [];
-        $jobTypeMatch = $job->job_type && in_array($job->job_type, $preferredJobTypes);
+        $preferredJobTypes = $pref && $pref->job_type
+            ? array_map('trim', explode(',', strtolower($pref->job_type)))
+            : [];
+
+        $jobTypeName = null;
+        if ($job->relationLoaded('jobTypes') && $job->jobTypes->count()) {
+            $jobTypeName = strtolower($job->jobTypes->first()->type);
+        } elseif ($job->job_type) {
+            $jt = JobType::find($job->job_type);
+            $jobTypeName = $jt ? strtolower($jt->type) : null;
+        }
+        $jobTypeMatch = $jobTypeName && in_array($jobTypeName, $preferredJobTypes);
         if ($jobTypeMatch) {
-            $labels[] = 'Preferred Job Type';
             $score++;
+            $labels[] = 'Preferred Job Type';
         }
 
         // 5. Preferred Location
@@ -104,6 +131,7 @@ class ApplicantScreeningService
         if ($salaryTypeMatch) {
             $labels[] = 'Preferred Salary Type';
             $score++;
+            $labels[] = 'Preferred Location';
         }
 
         // Calculate match percentage

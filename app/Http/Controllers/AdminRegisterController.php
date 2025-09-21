@@ -30,7 +30,6 @@ class AdminRegisterController extends Controller
     {
         $creator->create($request->all());
 
-        redirect()->back()->with('flash.banner', 'Registered Successfully!');
-
+        return redirect()->back()->with('flash.banner', 'Registered Successfully!');
     }
 }

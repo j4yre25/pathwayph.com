@@ -2,54 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Job;
-use App\Models\User;
+use App\Models\Category;
+use App\Models\Department;
 use App\Models\Graduate;
-use App\Models\Sector;
-use App\Models\Program;
+use App\Models\Job;
 use App\Models\JobInvitation;
+use App\Models\JobType;
 use App\Models\Location;
+use App\Models\Program;
 use App\Models\Salary;
+use App\Models\Sector;
 use App\Models\Skill;
+use App\Models\User;
+use App\Models\WorkEnvironment;
 use App\Notifications\JobInviteNotification;
 use App\Notifications\NewJobPostingNotification;
 use App\Services\JobCreationService;
+use App\Services\ApplicantScreeningService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Models\JobType;
-use App\Models\WorkEnvironment;
-use App\Models\Category;
-use App\Models\Department;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 
 class CompanyJobsController extends Controller
 {
     public function index(User $user)
     {
-
-         $jobs = Job::with([
-            'jobTypes:id,type',
-            'locations:id,address',
-            'workEnvironments:id,environment_type',
-            'salary'
-        ])
-        ->where('company_id', $user->hr->company_id)
-        ->orderByRaw('is_approved DESC') // prioritize approved jobs
-        ->orderBy('created_at', 'desc')            // then by latest
-        ->get();
+        $jobs = Job::with(['salary','locations','workEnvironments','jobTypes'])
+            ->where('company_id', $user->hr->company_id)
+            ->orderByRaw('is_approved DESC')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
-        
         ]);
     }
 
@@ -160,6 +155,7 @@ class CompanyJobsController extends Controller
             // 'category' => 'required|exists:categories,id',
             'program_id' => 'required|array|min:1',
             'program_id.*' => 'exists:programs,id',
+            'sector_'
         ]);
 
         $user->loadMissing('hr');
@@ -170,13 +166,15 @@ class CompanyJobsController extends Controller
         $new_job->status = 'open';
         $new_job->save();
 
+        $invitedCount = $this->autoScreenAndInvite($new_job, 30);
+
         // Notify graduates of the new job posting
         $this->notifyGraduates($new_job);
 
-        // Auto-invite qualified graduates based on skills/program
-        $this->autoInvite($new_job);
 
-        return redirect()->route('company.jobs', ['user' => $user->id])->with('flash.banner', 'Job posted successfully.');
+        return redirect()
+            ->route('company.jobs', ['user' => $user->id])
+            ->with('flash.banner', "Job posted successfully. {$invitedCount} graduates auto-invited.");
     }
 
     public function batchPage()
@@ -210,15 +208,19 @@ class CompanyJobsController extends Controller
             'csv_file' => 'required|file|mimes:csv,txt,xlsx,xls',
         ]);
 
+        // Resolve company once (for departments + sector/category)
+        $user = auth()->user();
+        $user->loadMissing('hr.company');
+        $company = $user->hr?->company;
+        $companyId = $company?->id;
+
         $extension = $request->file('csv_file')->getClientOriginalExtension();
 
         if (in_array($extension, ['xlsx', 'xls'])) {
-            // Parse Excel
             $rows = Excel::toArray(new \stdClass(), $request->file('csv_file'))[0];
             $header = array_map(fn($h) => strtolower(trim($h)), $rows[0]);
             $dataRows = array_slice($rows, 1);
         } else {
-            // Parse CSV as before
             $file = $request->file('csv_file');
             $handle = fopen($file, 'r');
             $header = fgetcsv($handle, 0, ',');
@@ -237,57 +239,51 @@ class CompanyJobsController extends Controller
         $validRows = [];
         $rowNum = 2;
 
+        // Does company already have departments? (affects required rule)
+        $hasExistingDepartments = $companyId
+            ? Department::where('company_id', $companyId)->exists()
+            : false;
+
         foreach ($dataRows as $data) {
             $row = array_combine($header, $data);
-            \Log::info('BatchUpload: Raw row', $row);
 
-            // Skip empty rows
             if (!$row || !is_array($row) || empty(array_filter($row))) {
                 $rowNum++;
                 continue;
             }
 
-            // --- Department ---
+            // Inject sector & category from company BEFORE validation
+            $row['sector_id']   = $company?->sector_id;
+            $row['category_id'] = $company?->category_id;
+
+            // --- Department (auto-create if missing) ---
+            $row['department_id'] = null;
             if (!empty($row['department_name'])) {
-                $department = $this->fuzzyFind(Department::class, 'department_name', $row['department_name']);
-                \Log::info('BatchUpload: Department Lookup', [
-                     'input_raw' => $row['department_name'],
-                        'input_trimmed' => trim($row['department_name']),
-                    ]);
-                $row['department_id'] = $department ? $department->id : null;
-            }
-
-            // --- Sector ---
-            if (!empty($row['sector_name'])) {
-                $sector = $this->fuzzyFind(Sector::class, 'name', $row['sector_name']);
-                \Log::info('BatchUpload: Sector Lookup', [
-                    'input' => $row['sector_name'],
-                    'found' => $sector ? $sector->name : null
-                ]);
-                $row['sector_id'] = $sector ? $sector->id : null;
-            }
-
-            // After category lookup
-            if (!empty($row['category_name']) && !empty($row['sector_id'])) {
-                $category = Category::where('sector_id', $row['sector_id'])
-                    ->whereRaw('LOWER(name) = ?', [strtolower(trim($row['category_name']))])
-                    ->first();
-                if (!$category) {
-                    // Try partial/fuzzy match within sector
-                    $category = Category::where('sector_id', $row['sector_id'])
-                        ->where('name', 'LIKE', '%' . trim($row['category_name']) . '%')
+                $deptName = trim($row['department_name']);
+                if ($deptName !== '' && $companyId) {
+                    // Try exact-case-insensitive match
+                    $dept = Department::where('company_id', $companyId)
+                        ->whereRaw('LOWER(department_name) = ?', [mb_strtolower($deptName)])
                         ->first();
+
+                    if (!$dept) {
+                        // Create if not exists
+                        $dept = Department::create([
+                            'company_id' => $companyId,
+                            'department_name' => $deptName,
+                        ]);
+                        \Log::info('BatchUpload: Department created', [
+                            'company_id' => $companyId,
+                            'department_id' => $dept->id,
+                            'name' => $deptName,
+                        ]);
+                    }
+                    $row['department_id'] = $dept->id;
                 }
-                \Log::info('BatchUpload: Category Lookup', [
-                    'input' => $row['category_name'],
-                    'sector_id' => $row['sector_id'],
-                    'found' => $category ? $category->name : null
-                ]);
-                $row['category_id'] = $category ? $category->id : null;
             }
 
             // --- Program ---
-            $row['program_id'] = []; // Always start as array
+            $row['program_id'] = []; 
             if (!empty($row['program_name'])) {
                 $programNames = array_map('trim', explode(',', $row['program_name']));
                 foreach ($programNames as $progName) {
@@ -319,21 +315,14 @@ class CompanyJobsController extends Controller
                 $typeNames = array_map('trim', explode(',', $row['job_types']));
                 foreach ($typeNames as $typeName) {
                     $jobType = $this->fuzzyFind(JobType::class, 'type', $typeName);
-                    if ($jobType) {
-                        $jobTypeIds[] = $jobType->id;
-                    }
+                    if ($jobType) $jobTypeIds[] = $jobType->id;
                 }
             }
             $row['job_type_ids'] = $jobTypeIds;
             $row['job_type'] = !empty($jobTypeIds) ? $jobTypeIds[0] : null;
 
-            // --- Job Experience Level (enum) ---
-            $allowed = [
-                'Entry-level',
-                'Intermediate',
-                'Mid-level',
-                'Senior/Executive'
-            ];
+            // --- Experience Level normalize ---
+            $allowed = ['Entry-level','Intermediate','Mid-level','Senior/Executive'];
             $input = strtolower(trim($row['job_experience_level'] ?? ''));
             $matched = collect($allowed)->first(function($level) use ($input) {
                 $levelLower = strtolower($level);
@@ -344,49 +333,48 @@ class CompanyJobsController extends Controller
             });
             $row['job_experience_level'] = $matched ?? $allowed[0];
 
-            // --- Skills as array ---
+            // --- Skills ---
             if (!empty($row['skills'])) {
                 $row['skills'] = array_map('trim', explode(',', $row['skills']));
             }
 
-            // --- job_application_limit ---
+            // --- job_application_limit (only optional column) ---
             $row['job_application_limit'] = isset($row['job_application_limit']) && $row['job_application_limit'] !== '' ? (int)$row['job_application_limit'] : null;
 
-            // --- Salary fields ---
+            // --- Salary fields + negotiable rule ---
             $row['job_min_salary'] = isset($row['job_min_salary']) && $row['job_min_salary'] !== '' ? $row['job_min_salary'] : null;
             $row['job_max_salary'] = isset($row['job_max_salary']) && $row['job_max_salary'] !== '' ? $row['job_max_salary'] : null;
 
             // --- Location ---
             $row['location'] = $row['location'] ?? null;
 
+            // --- Deadline (supports Excel serial) ---
             if (isset($row['job_deadline']) && trim($row['job_deadline']) !== '') {
                 if (is_numeric($row['job_deadline'])) {
-                    // Convert Excel serial to date
                     $row['job_deadline'] = $this->excelSerialToDate($row['job_deadline']);
                 } else {
                     $date = str_replace(['/', '.'], '-', $row['job_deadline']);
-                    try {
-                        $carbon = Carbon::createFromFormat('Y-m-d', $date);
-                    } catch (\Exception $e) {
-                        $carbon = null;
-                    }
+                    try { $carbon = Carbon::createFromFormat('Y-m-d', $date); } catch (\Exception $e) { $carbon = null; }
                     $row['job_deadline'] = $carbon ? $carbon->format('Y-m-d') : null;
                 }
             } else {
                 $row['job_deadline'] = null;
             }
 
-            // --- Is Negotiable ---
+            // --- Negotiable ---
             if (isset($row['is_negotiable']) && strtolower(trim($row['is_negotiable'])) === 'yes') {
                 $row['is_negotiable'] = 1;
+                // enforce no min/max when negotiable
+                $row['job_min_salary'] = null;
+                $row['job_max_salary'] = null;
             } else {
                 $row['is_negotiable'] = 0;
             }
 
-            // --- Status and Approval ---
+            // --- Status ---
             $row['status'] = $row['status'] ?? 'pending';
 
-            // --- Salary array for service ---
+            // --- Salary payload for service ---
             $row['salary'] = [
                 'job_min_salary' => $row['job_min_salary'],
                 'job_max_salary' => $row['job_max_salary'],
@@ -396,30 +384,39 @@ class CompanyJobsController extends Controller
             // --- Validation ---
             $validator = \Validator::make($row, [
                 'job_title' => 'required|string|max:255',
-                'department_id' => 'required|exists:departments,id',
+                // Department required only if company already maintains departments
+                'department_id' => [Rule::requiredIf($hasExistingDepartments), 'nullable', 'exists:departments,id'],
                 'job_description' => 'required|string',
                 'job_requirements' => 'required|string',
                 'job_min_salary' => 'nullable|numeric',
                 'job_max_salary' => 'nullable|numeric',
                 'location' => 'nullable|string|max:255',
                 'work_environment' => 'required|exists:work_environments,id',
-                'program_id' => 'required|array',
+                'program_id' => 'required|array|min:1',
                 'program_id.*' => 'exists:programs,id',
-                // 'category_id' => 'required|exists:categories,id',
-                // 'sector_id' => 'required|exists:sectors,id',
+                // sector/category now injected – no validation required here
                 'job_experience_level' => 'required|string|max:255',
                 'status' => 'nullable|string|max:255',
                 'is_approved' => 'nullable|boolean',
-                'skills' => 'required|array',
+                'skills' => 'required|array|min:1',
                 'job_deadline' => 'required|date|after:today',
                 'job_application_limit' => 'nullable|integer|min:1',
             ]);
 
+            // Extra check: if not negotiable, min/max must be present and valid
+            $validator->after(function($v) use ($row) {
+                if (empty($row['is_negotiable'])) {
+                    if ($row['job_min_salary'] === null) $v->errors()->add('job_min_salary', 'Min salary is required when not negotiable.');
+                    if ($row['job_max_salary'] === null) $v->errors()->add('job_max_salary', 'Max salary is required when not negotiable.');
+                    if ($row['job_min_salary'] !== null && $row['job_max_salary'] !== null
+                        && (float)$row['job_min_salary'] > (float)$row['job_max_salary']) {
+                        $v->errors()->add('job_min_salary', 'Min salary cannot exceed max salary.');
+                    }
+                }
+            });
+
             if ($validator->fails()) {
-                $errors[] = [
-                    'row' => $rowNum,
-                    'messages' => $validator->errors()->all(),
-                ];
+                $errors[] = ['row' => $rowNum, 'messages' => $validator->errors()->all()];
             } else {
                 $validRows[] = $row;
             }
@@ -434,34 +431,48 @@ class CompanyJobsController extends Controller
             ], 422);
         }
 
-        $user = auth()->user();
         $jobService = new JobCreationService();
-        
-        
-        foreach ($validRows as $row) {
-            // Map to expected keys for JobCreationService
-            $row['sector'] = $row['sector_id'] ?? null;
-            $row['category'] = $row['category_id'] ?? null;
 
-            // --- Duplicate Check ---
+        $totalInvited = 0;
+        $totalJobs = 0;
+
+        foreach ($validRows as $row) {
+            // Duplicate check
             $existingJob = Job::where('job_title', $row['job_title'])
                 ->where('user_id', $user->id)
                 ->where('location', $row['location'])
                 ->first();
             if ($existingJob) {
-                continue; 
+                continue;
             }
-            
+
+            // Ensure the company sector/category always applied
+            $row['sector_id']   = $company?->sector_id;
+            $row['category_id'] = $company?->category_id;
+
             $job = $jobService->createJob($row, $user);
-            // Attach all job types if multiple
+
             if (!empty($row['job_type_ids'])) {
                 $job->jobTypes()->sync($row['job_type_ids']);
             }
+            if (!empty($row['program_id'])) {
+                $job->programs()->sync($row['program_id']);
+            }
+
+            // Open/approve by default
+            $job->update(['is_approved' => 1, 'status' => 'open']);
+
+            // Auto-invite + general notification
+            $invited = $this->autoScreenAndInvite($job, 30);
+            $totalInvited += $invited;
+            $this->notifyGraduates($job);
+
+            $totalJobs++;
         }
 
         return redirect()
-            ->route('company.jobs', ['user' => auth()->id()])
-            ->with('flash.banner', 'Batch upload successful! All jobs have been posted.');
+            ->route('company.jobs', ['user' => $user->id])
+            ->with('flash.banner', "Batch upload successful. {$totalJobs} jobs posted; {$totalInvited} graduates auto‑invited.");
     }
 
 
@@ -695,40 +706,142 @@ class CompanyJobsController extends Controller
         return redirect()->route('company.jobs', ['user' => $job->user_id])->with('flash.banner', 'Job Archived successfully.');
     }
 
-    public function autoInvite(Job $job)
+    protected function autoScreenAndInvite(Job $job, int $threshold = 30): int
     {
-        $jobSkills = collect($job->skills)
-            ->map(fn($skill) => Str::lower($skill))
-            ->filter()
-            ->unique();
-        $jobProgramIds = $job->programs->pluck('id');
+        $service = new ApplicantScreeningService();
 
-        // Match graduates who have matching skills AND are from related programs
-        $qualifiedGraduates = Graduate::whereHas('user', function ($query) {
-            $query->where('role', 'graduate');
-        })
-            ->whereIn('program_id', $jobProgramIds)
-            ->whereHas('graduateSkills.skill', function ($query) use ($jobSkills) {
-                $query->whereIn(DB::raw('LOWER(name)'), $jobSkills);
-            })
-            ->get();
+        $job->loadMissing(['company','programs','jobTypes','locations']);
+        $companyIdForInvite = $job->company_id ?? $job->company->id ?? null;
 
-        foreach ($qualifiedGraduates as $graduate) {
-            JobInvitation::updateOrCreate([
-                'job_id' => $job->id,
-                'graduate_id' => $graduate->id,
-            ], [
-                'company_id' => Auth::user()->hr->company_id,
-                'status' => 'pending',
-                'title' => 'You have been invited to apply to this job opportunity.',
-            ]);
+        $programIds = $job->programs->pluck('id');
+        $programNames = $job->programs->pluck('name')->map(fn($n) => mb_strtolower($n))->filter()->values();
 
-            if ($graduate->user) {
-                $graduate->user->notify(new JobInviteNotification($job));
+        // Base query (unfiltered)
+        $baseQuery = Graduate::with([
+            'user',
+            'graduateSkills.skill',
+            'education',              // keep simple (avoid programRelation constraint if not reliable)
+            'experience',
+            'employmentPreference',
+        ]);
+
+        $usingFiltered = false;
+        $filteredQuery = null;
+
+        if ($programNames->isNotEmpty()) {
+            // Try string match against education.program column (since many educations store plain string)
+            $filteredQuery = (clone $baseQuery)->whereHas('education', function ($q) use ($programNames) {
+                $q->whereIn(DB::raw('LOWER(program)'), $programNames->toArray());
+            });
+
+            // Quick existence check
+            $hasAny = (clone $filteredQuery)->limit(1)->count();
+            if ($hasAny) {
+                $usingFiltered = true;
             }
         }
 
-        return back()->with('flash.banner', $qualifiedGraduates->count() . ' graduates invited based on skills and program.');
+        $query = $usingFiltered ? $filteredQuery : $baseQuery;
+
+        // Log which path we take
+        \Log::info('AutoScreen: graduate query prepared', [
+            'job_id' => $job->id,
+            'using_filtered' => $usingFiltered,
+            'program_names' => $programNames,
+            'total_graduates' => (clone $query)->count(),
+        ]);
+
+        // Already invited grads
+        $alreadyInvited = JobInvitation::where('job_id', $job->id)
+            ->pluck('graduate_id')
+            ->flip();
+
+        $attempted = 0;
+        $matched = 0;
+        $newInvites = 0;
+        $notifyUsers = [];
+
+        $query->chunk(150, function ($graduates) use (
+            $service,
+            $job,
+            $threshold,
+            $companyIdForInvite,
+            &$alreadyInvited,
+            &$notifyUsers,
+            &$newInvites,
+            &$attempted,
+            &$matched
+        ) {
+            foreach ($graduates as $graduate) {
+                if (!$graduate->user) continue;
+                if (isset($alreadyInvited[$graduate->id])) continue;
+
+                if (method_exists($graduate, 'jobApplications') &&
+                    $graduate->jobApplications()->where('job_id', $job->id)->exists()) {
+                    continue;
+                }
+
+                $attempted++;
+
+                $result = $service->screen($graduate, $job);
+                $match = (int)($result['match_percentage'] ?? 0);
+
+                if ($match >= $threshold) {
+                    $matched++;
+
+                    $invitationMessage = 'You have been invited to apply for "' .
+                        $job->job_title . '" at ' . ($job->company->company_name ?? 'the company') . '.';
+
+                    try {
+                        $invite = JobInvitation::updateOrCreate(
+                            [
+                                'job_id' => $job->id,
+                                'graduate_id' => $graduate->id,
+                            ],
+                            [
+                                'company_id' => $companyIdForInvite,
+                                'status' => 'pending',
+                                'message' => $invitationMessage,
+                            ]
+                        );
+
+                        $alreadyInvited[$graduate->id] = true;
+                        $notifyUsers[] = $graduate->user;
+                        $newInvites++;
+
+                        \Log::info('AutoScreen: invitation stored', [
+                            'job_id' => $job->id,
+                            'graduate_id' => $graduate->id,
+                            'invite_id' => $invite->id,
+                            'match' => $match
+                        ]);
+                    } catch (\Throwable $e) {
+                        \Log::error('AutoScreen: invitation insert failed', [
+                            'job_id' => $job->id,
+                            'graduate_id' => $graduate->id,
+                            'company_id_used' => $companyIdForInvite,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+        });
+
+        if ($newInvites > 0) {
+            Notification::send($notifyUsers, new JobInviteNotification($job));
+        }
+
+        \Log::info('AutoScreen summary', [
+            'job_id' => $job->id,
+            'threshold' => $threshold,
+            'attempted' => $attempted,
+            'matched' => $matched,
+            'new_invites_created' => $newInvites,
+            'using_filtered' => $usingFiltered,
+            'company_id_used' => $companyIdForInvite
+        ]);
+
+        return $newInvites;
     }
 
     

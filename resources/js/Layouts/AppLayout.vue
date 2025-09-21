@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import ApplicationMark from '@/Components/ApplicationMark.vue'
@@ -39,10 +39,18 @@ onMounted(() => {
 })
 
 const showNotifications = ref(false)
-const notifications = computed(() => usePage().props.notifications || [])
-const serverUnread = computed(() => usePage().props.notifications_count || 0)
+const rawNotifications = computed(() => usePage().props.notifications || [])
+const localNotifications = ref([])
 
-// Local override so we can instantly zero after marking read
+onMounted(() => {
+  localNotifications.value = JSON.parse(JSON.stringify(rawNotifications.value))
+})
+
+watch(rawNotifications, (nv) => {
+  localNotifications.value = JSON.parse(JSON.stringify(nv))
+})
+
+const serverUnread = computed(() => usePage().props.notifications_count || 0)
 const localUnread = ref(null)
 const unreadDisplay = computed(() =>
   localUnread.value !== null ? localUnread.value : serverUnread.value
@@ -53,12 +61,13 @@ const notifDropdown = ref(null)
 const marking = ref(false)
 
 async function markNotificationsRead() {
+  // Use the same endpoint as markAllNotifications (or keep if you add a separate route)
   if (marking.value) return
   marking.value = true
   try {
-    await axios.post(route('notifications.markAsRead'))
-    // Optimistically zero unread
+    await axios.post(route('notifications.markAll'))
     localUnread.value = 0
+    localNotifications.value = localNotifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }))
   } catch (e) {
     console.warn('Mark read failed', e)
   } finally {
@@ -73,6 +82,51 @@ async function toggleNotifications() {
   }
 }
 
+const showMessages = ref(false)
+const msgBell = ref(null)
+const msgDropdown = ref(null)
+
+const rawMessages = computed(() => usePage().props.messages || [])
+
+// Track "read" threads locally so badge can drop instantly
+const localReadThreadIds = ref(new Set())
+
+const effectiveUnreadMessages = computed(() =>
+  rawMessages.value.filter(t => (t.unread_count > 0) && !localReadThreadIds.value.has(t.conversation_id))
+)
+const unreadMessagesDisplay = computed(() => effectiveUnreadMessages.value.length)
+
+async function markMessagesRead() {
+  try {
+    if (!unreadMessagesDisplay.value) return
+    await axios.post(route('messages.markAll'))
+    // Mark current thread ids as read locally
+    effectiveUnreadMessages.value.forEach(t => localReadThreadIds.value.add(t.conversation_id))
+  } catch (e) {
+    console.warn('Mark messages read failed', e)
+  }
+}
+
+async function toggleMessages() {
+  showMessages.value = !showMessages.value
+  if (showMessages.value && unreadMessagesDisplay.value > 0) {
+    await markMessagesRead()
+  }
+}
+
+async function openMessage(msg) {
+  try {
+    // Local mark so badge drops even if not navigating
+    localReadThreadIds.value.add(msg.conversation_id)
+    // Go to the conversation
+    if (msg.conversation_id) window.location.href = route('messages.show', msg.conversation_id)
+    else window.location.href = route('messages.index')
+  } catch (e) {
+    console.warn(e)
+  }
+}
+
+// Extend outside click handler to close messages dropdown too
 function handleClickOutside(e) {
   if (
     showNotifications.value &&
@@ -82,6 +136,15 @@ function handleClickOutside(e) {
     !notifBell.value.contains(e.target)
   ) {
     showNotifications.value = false
+  }
+  if (
+    showMessages.value &&
+    msgDropdown.value &&
+    !msgDropdown.value.contains(e.target) &&
+    msgBell.value &&
+    !msgBell.value.contains(e.target)
+  ) {
+    showMessages.value = false
   }
 }
 
@@ -122,13 +185,35 @@ const logout = () => {
 }
 
 console.log(page.props.permissions.canManageInstitution)
+
+async function openNotification(notif) {
+  try {
+    if (!notif.read_at) {
+      await axios.post(route('notifications.markOne', notif.id))
+      const idx = localNotifications.value.findIndex(n => n.id === notif.id)
+      if (idx !== -1) localNotifications.value[idx].read_at = new Date().toISOString()
+      if (unreadDisplay.value > 0) localUnread.value = Math.max(0, unreadDisplay.value - 1)
+    }
+    if (notif.link) window.location.href = notif.link
+  } catch (e) {
+    console.warn(e)
+  }
+}
+
+async function markAllNotifications() {
+  await axios.post(route('notifications.markAll'))
+  localUnread.value = 0
+  localNotifications.value = localNotifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }))
+}
+
+console.log(page.props.notifications)
 </script>
 
 <template>
   <div>
-    <Head :title="title" />
-
     <Banner />
+    
+    <Head :title="title" />
 
     <Modal v-model="showApprovalModal">
       <template #header>
@@ -197,6 +282,7 @@ console.log(page.props.permissions.canManageInstitution)
                   :disabled="!page.props.auth.user.is_approved">
                   Reports
                 </NavLink>
+
               </div>
 
               <!-- Graduate Navigation Links -->
@@ -208,11 +294,11 @@ console.log(page.props.permissions.canManageInstitution)
                   Dashboard
                 </NavLink>
 
-                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
+                <!-- <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.inbox')"
                   :active="route().current('job.inbox')"
                   :disabled="!page.props.auth.user.is_approved">
                   Job Inbox
-                </NavLink>
+                </NavLink> -->
 
                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
                   :active="route().current('job.search')"
@@ -403,26 +489,49 @@ console.log(page.props.permissions.canManageInstitution)
                       <button ref="notifBell" @click.stop="toggleNotifications"
                         class="relative focus:outline-none mr-3" aria-label="Notifications">
                         <i class="fas fa-bell text-xl"></i>
-                        <span v-if="notificationsCount"
+                        <div class="font-semibold">Notification</div>
+                        <span v-if="unreadDisplay"
                           class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-                          {{ notificationsCount }}
+                          {{ unreadDisplay }}
                         </span>
                       </button>
                       <div v-if="showNotifications"
                         class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50">
-                        <div v-if="notifications.length">
-                          <div v-for="notif in notifications" :key="notif.id"
-                            class="p-3 border-b last:border-b-0">
-                            <div class="font-semibold">{{ notif.title }}</div>
-                            <div class="text-sm text-gray-600">{{ notif.body }}</div>
-                            <div v-if="notif.certificate_path">
-                              <a :href="route('certificates.download', { filename: notif.certificate_path.split('/').pop() })"
-                                target="_blank">
-                                Download Certificate
-                              </a>
+                        <div v-if="localNotifications.length">
+                          <div class="flex justify-between items-center px-3 pt-3 pb-1">
+                            <div class="text-xs font-semibold text-gray-600">Notifications</div>
+                            <button
+                              class="text-[10px] text-indigo-600 hover:underline"
+                              @click.stop="markAllNotifications"
+                              v-if="unreadDisplay > 0"
+                            >Mark all read</button>
+                          </div>
+                          <div class="max-h-96 overflow-y-auto divide-y">
+                            <div
+                              v-for="notif in localNotifications"
+                              :key="notif.id"
+                              class="p-3 cursor-pointer hover:bg-gray-50"
+                              @click.stop="openNotification(notif)"
+                            >
+                              <div class="flex justify-between items-start gap-2">
+                                <div class="flex-1">
+                                  <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                    {{ notif.title }}
+                                  </div>
+                                  <div class="text-xs text-gray-600 mt-0.5" v-html="notif.body"></div>
+                                </div>
+                                <span
+                                  v-if="!notif.read_at"
+                                  class="inline-block w-2 h-2 rounded-full bg-indigo-500 mt-1"
+                                ></span>
+                              </div>
+                              <div class="text-[10px] text-gray-400 mt-1">{{ notif.created_at }}</div>
+                              <div v-if="notif.status === 'job_invite'" class="mt-2">
+                                <span class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-medium">
+                                  Job Invite
+                                </span>
+                              </div>
                             </div>
-                            <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
-
                           </div>
                         </div>
                         <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
@@ -474,11 +583,77 @@ console.log(page.props.permissions.canManageInstitution)
                       <button ref="notifBell" @click.stop="toggleNotifications"
                         class="relative focus:outline-none mr-3" aria-label="Notifications">
                         <i class="fas fa-bell text-xl"></i>
-                        <span v-if="notifications.length"
+                        <!-- OLD: span v-if="notifications.length" -->
+                        <span v-if="unreadDisplay"
                           class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-                          {{ notifications.length }}
+                          {{ unreadDisplay }}
                         </span>
                       </button>
+
+                      <!-- Messages (graduates only) -->
+                      <button
+                        v-if="['graduate','company'].includes(page.props.auth.user.role)"
+                        ref="msgBell"
+                        @click.stop="toggleMessages"
+                        class="relative focus:outline-none mr-3"
+                        aria-label="Messages">
+                        <i class="fas fa-comment-dots text-xl"></i>
+                        <span v-if="unreadMessagesDisplay"
+                          class="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full text-xs px-1">
+                          {{ unreadMessagesDisplay }}
+                        </span>
+                      </button>
+
+                      <!-- Messages Dropdown -->
+                      <div
+                        v-if="showMessages && ['graduate','company'].includes(page.props.auth.user.role)"
+                        ref="msgDropdown"
+                        class="absolute right-0 mt-2 w-96 bg-white shadow-lg rounded z-50"
+                        style="top: 2.5rem;">
+                        <div class="flex justify-between items-center px-3 pt-3 pb-1">
+                          <div class="text-xs font-semibold text-gray-600">Messages</div>
+                          <button
+                            class="text-[10px] text-indigo-600 hover:underline"
+                            @click.stop="() => { showMessages = false; window.location.href = route('messages.index') }">
+                            See all
+                          </button>
+                        </div>
+                        <div v-if="rawMessages.length" class="max-h-96 overflow-y-auto divide-y">
+                          <div
+                            v-for="msg in rawMessages"
+                            :key="msg.conversation_id || msg.id"
+                            class="p-3 cursor-pointer hover:bg-gray-50"
+                            @click.stop="openMessage(msg)"
+                          >
+                            <div class="flex items-start gap-3">
+                              <img
+                                :src="msg.sender_avatar_url || '/images/default-logo.png'"
+                                alt="avatar"
+                                class="w-10 h-10 rounded-full object-cover border" />
+                              <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                  <div class="font-semibold text-sm truncate"
+                                       :class="(msg.unread_count > 0 && !localReadThreadIds.has(msg.conversation_id)) ? 'text-gray-800' : 'text-gray-600'">
+                                    {{ msg.sender_name || '—' }}
+                                  </div>
+                                  <div class="text-[10px] text-gray-400 ml-2 shrink-0">
+                                    {{ msg.created_at }}
+                                  </div>
+                                </div>
+                                <div class="text-[11px] text-gray-500 truncate">
+                                  {{ msg.sender_company || '—' }}
+                                </div>
+                                <div class="text-xs text-gray-600 mt-0.5 line-clamp-2" v-html="msg.body_preview || msg.body"></div>
+                              </div>
+                              <span v-if="msg.unread_count > 0" class="ml-2 mt-1 inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] px-1">
+                                {{ msg.unread_count }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div v-else class="p-3 text-gray-500 text-center">No messages</div>
+                      </div>
+
                       <!-- Profile Photo -->
                       <button v-if="$page.props.jetstream.managesProfilePhotos"
                         class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
@@ -512,23 +687,41 @@ console.log(page.props.permissions.canManageInstitution)
                       <div v-if="showNotifications" ref="notifDropdown"
                         class="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded z-50"
                         style="top: 2.5rem;">
-                        <div v-if="notifications.length">
-                          <div v-for="notif in notifications" :key="notif.id"
-                            class="p-3 border-b last:border-b-0">
-                            <div class="font-semibold">{{ notif.title }}</div>
-                            <div class="text-sm text-gray-600">{{ notif.body }}</div>
-                            <a v-if="notif.certificate_path"
-                              :href="route('certificates.download', { filename: notif.certificate_path.split('/').pop() })"
-                              target="_blank"
-                              class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
-                                stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M12 16v-8m0 8l-4-4m4 4l4-4M4 20h16"></path>
-                              </svg>
-                              Download Certificate
-                            </a>
-                            <div class="text-xs text-gray-400">{{ notif.created_at }}</div>
+                        <div v-if="localNotifications.length">
+                          <div class="flex justify-between items-center px-3 pt-3 pb-1">
+                            <div class="text-xs font-semibold text-gray-600">Notifications</div>
+                            <button
+                              class="text-[10px] text-indigo-600 hover:underline"
+                              @click.stop="markAllNotifications"
+                              v-if="unreadDisplay > 0"
+                            >Mark all read</button>
+                          </div>
+                          <div class="max-h-96 overflow-y-auto divide-y">
+                            <div
+                              v-for="notif in localNotifications"
+                              :key="notif.id"
+                              class="p-3 cursor-pointer hover:bg-gray-50"
+                              @click.stop="openNotification(notif)"
+                            >
+                              <div class="flex justify-between items-start gap-2">
+                                <div class="flex-1">
+                                  <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                    {{ notif.title }}
+                                  </div>
+                                  <div class="text-xs text-gray-600 mt-0.5" v-html="notif.body"></div>
+                                </div>
+                                <span
+                                  v-if="!notif.read_at"
+                                  class="inline-block w-2 h-2 rounded-full bg-indigo-500 mt-1"
+                                ></span>
+                              </div>
+                              <div class="text-[10px] text-gray-400 mt-1">{{ notif.created_at }}</div>
+                              <div v-if="notif.status === 'job_invite'" class="mt-2">
+                                <span class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-medium">
+                                  Job Invite
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <div v-else class="p-3 text-gray-500 text-center">No notifications</div>
@@ -558,11 +751,11 @@ console.log(page.props.permissions.canManageInstitution)
                       Profile
                     </DropdownLink>
 
-
-                    <DropdownLink v-if="page.props.auth.user.role === 'graduate'"
-                      :href="route('profile.index', { user: page.props.auth.user.id })"
-                      :active="route().current('profile.index')">
-                      Profile Settings </DropdownLink>
+                    <DropdownLink
+                      v-if="page.props.auth.user.role === 'institution'"
+                      :href="route('institution.profile.settings')">
+                      Profile Settings
+                    </DropdownLink>
 
                     <DropdownLink
                       v-if="page.props.auth.user.role === 'graduate' && page.props.graduate"
@@ -570,6 +763,11 @@ console.log(page.props.permissions.canManageInstitution)
                       :active="route().current('graduates.profile')">
                       View Profile
                     </DropdownLink>
+                    
+                    <DropdownLink v-if="page.props.auth.user.role === 'graduate'"
+                      :href="route('profile.index', { user: page.props.auth.user.id })"
+                      :active="route().current('profile.index')">
+                      Profile Settings </DropdownLink>
 
                     <DropdownLink v-if="page.props.auth.user.role === 'peso'"
                       :href="route('admin.register')">

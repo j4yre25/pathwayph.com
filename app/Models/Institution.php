@@ -12,16 +12,22 @@ class Institution extends Model
     protected $fillable = [
         'user_id',
         'institution_name',
-        'institution_type',
-        'institution_address',
-        'email',
-        'website',
+        'description',
         'contact_number',
-        'institution_contact_number',
+        'email',
+        'address',
+        'website',
+        'institution_address',
+        'institution_type',
         'telephone_number',
         'institution_president_first_name',
         'institution_president_last_name',
         'verification_file_path',
+        'social_links',
+    ];
+
+    protected $casts = [
+        'social_links' => 'array',
     ];
 
     public function user()

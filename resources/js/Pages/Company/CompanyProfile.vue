@@ -7,12 +7,8 @@ import { useFormattedTelephoneNumber } from "@/Composables/useFormattedTelephone
 
 const props = defineProps({
   company: Object,
-  userRole: {
-    type: String,
-    required: true, // 'company' or 'graduate'
-  },
+  userRole: { type: String, required: true },
 });
-console.log("address:", props.company);
 const isEditing = ref(false);
 const localDescription = ref(props.company.description || '');
 
@@ -24,27 +20,9 @@ const canEdit = computed(() => props.userRole === 'company');
 
 const saveDescription = () => {
   if (!canEdit.value) return;
-
-  const payload = {
-    company_name: props.company.company_name,
-    company_street_address: props.company.company_street_address,
-    company_brgy: props.company.company_brgy,
-    company_city: props.company.company_city,
-    company_province: props.company.company_province,
-    company_zip_code: props.company.company_zip_code,
-    company_contact_number: props.company.company_mobile_number,
-    company_email: props.company.company_email,
-    company_telephone_number: props.company.company_telephone_number,
-    company_description: localDescription.value,
-  };
-
-  router.post(route('company-profile.post'), payload, {
-    onSuccess: () => {
-      isEditing.value = false;
-    },
-    onError: (errors) => {
-      console.error(errors);
-    },
+  router.post(route('company-profile.post'), { company_description: localDescription.value }, {
+    onSuccess: () => { isEditing.value = false; },
+    onError: (errors) => console.error(errors),
   });
 };
 
@@ -57,7 +35,6 @@ const contactForm = reactive({
   contact: props.company?.mobile_phone || '',
   telephone: props.company?.telephone_number || '',
 });
-
 const { formattedMobileNumber } = useFormattedMobileNumber(contactForm, 'contact');
 const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 'telephone')
 
@@ -68,9 +45,9 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
     <!-- Cover Section -->
     <div class="relative h-52">
       <img
-        src="/images/company.png"
+        :src="company.cover_photo || '/images/company.png'"
         alt="Company Cover"
-        class="absolute inset-0 w-full h-full object-cover brightness-95"/>
+        class="absolute inset-0 w-full h-full object-cover brightness-95" />
       <div class="absolute inset-0 bg-white/30"></div>
     </div>
 
@@ -81,9 +58,9 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
         <div class="flex justify-center">
           <div class="relative -mt-20">
             <img
-              :src="company.profile_photo_path || '/images/default-logo.png'"
+              :src="company.profile_photo ||  '/images/default-logo.png'"
               alt="Company Logo"
-              class="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"/>
+              class="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover" />
           </div>
         </div>
 
@@ -223,29 +200,25 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
         <!-- Stat Cards -->
         <div class="flex space-x-6 mb-6">
           <div class="flex-1 bg-white rounded-xl shadow p-4 border border-gray-100 flex items-center">
-        <div class="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 mr-4">
-          <i class="fas fa-check-circle text-green-500 text-2xl"></i>
-        </div>
-        <div>
-          <div class="text-2xl font-bold text-gray-900">
-            {{
-          company.jobs
-            ? company.jobs.filter(job => job.status === 'open' || job.status === 'active').length
-            : 0
-            }}
-          </div>
-          <div class="text-xs text-gray-500">Available Jobs</div>
-        </div>
+            <div class="w-12 h-12 flex items-center justify-center rounded-full bg-green-100 mr-4">
+              <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-gray-900">
+                {{ company.job_post_count || 0 }}
+              </div>
+              <div class="text-xs text-gray-500">Available Jobs</div>
+            </div>
           </div>
         </div>
-        <!-- Job Opportunities -->
+
+        <!-- Job Opportunities (optional; requires jobs array in payload) -->
         <section class="bg-white rounded-2xl shadow-md p-6 border border-gray-100 flex-1">
           <h4 class="text-lg font-semibold text-gray-900 flex items-center pb-2 border-b border-gray-200">
-        <i class="fas fa-briefcase text-blue-500 mr-2"></i>
-        Jobs For You
+            <i class="fas fa-briefcase text-blue-500 mr-2"></i>
+            Jobs For You
           </h4>
 
-          <!-- Job Opportunities List -->
           <div
             v-if="company.jobs && company.jobs.length"
             v-for="job in company.jobs"
@@ -256,10 +229,7 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
             <p class="text-xs text-gray-400 mt-3">Posted {{ job.posted_at }}</p>
           </div>
 
-          <!-- Empty State -->
-          <div
-            v-if="!company.jobs || company.jobs.length === 0"
-            class="mt-6 text-center text-gray-400">
+          <div v-if="!company.jobs || company.jobs.length === 0" class="mt-6 text-center text-gray-400">
             <div class="w-16 h-16 mx-auto flex items-center justify-center rounded-full bg-gray-100 mb-4">
               <i class="fas fa-briefcase text-2xl text-gray-400"></i>
             </div>

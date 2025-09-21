@@ -384,6 +384,8 @@ onUnmounted(() => {
                 </div>
             </header>
 
+
+
             <main class="min-h-screen flex items-center px-4 z-20 relative">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-9 mb-9">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

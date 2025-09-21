@@ -2,31 +2,35 @@
 
 namespace App\Notifications;
 
+use App\Models\Job;
+use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\DatabaseMessage;
 
 class JobInviteNotification extends Notification
 {
-    protected $job;
+    use Queueable;
 
-    public function __construct($job)
+    public function __construct(public Job $job)
     {
-        $this->job = $job;
+        $this->job->loadMissing('company');
     }
 
     public function via($notifiable)
     {
-        return ['database']; // stores in notifications table
+        return ['database'];
     }
 
     public function toDatabase($notifiable)
     {
+        $company = $this->job->company->company_name ?? 'the company';
         return [
-            'job_id' => $this->job->id,
-            'title' => 'You have a new job invitation: ' . $this->job->job_title,
-            'company' => $this->job->company->company_name ?? 'Unknown Company',
-            'type' => 'invite',
+            'message' => 'You have been invited to apply for "' . $this->job->job_title . '" at ' . $company . '.',
         ];
+    }
+
+    public function toArray($notifiable)
+    {
+        return $this->toDatabase($notifiable);
     }
 }
 

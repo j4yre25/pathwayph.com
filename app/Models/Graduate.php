@@ -135,4 +135,11 @@ class Graduate extends Model
     {
         return $this->belongsTo(\App\Models\Company::class, 'company_id');
     }
+
+    public function referrals()
+    {
+        return $this->hasMany(\App\Models\Referral::class, 'graduate_id');
+    }
+    // (Optionally keep old relation name if used elsewhere)
+    // public function referralExports() { return $this->referrals()->whereNotNull('certificate_path'); }
 }

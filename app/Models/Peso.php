@@ -23,6 +23,7 @@ class Peso extends Model
         'contact_number',
         'telephone_number',
         'address',
+        'logo',
     ];
 
     /**

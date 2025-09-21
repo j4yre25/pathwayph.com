@@ -34,6 +34,6 @@ class JobInvitation extends Model
 
     public function company()
     {
-        return $this->belongsTo(User::class, 'company_id');
+        return $this->belongsTo(\App\Models\Company::class, 'company_id'); 
     }
 }

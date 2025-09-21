@@ -77,7 +77,7 @@ use App\Http\Controllers\PesoProfileController;
 use App\Http\Controllers\InstitutionProfileController;
 use App\Http\Controllers\Institution\InstitutionReportsController;
 use App\Http\Controllers\ResumeController;
-
+use App\Http\Controllers\MessageController;
 use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
@@ -110,13 +110,22 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/careerofficer/register', [CareerOfficerRegisterController::class, 'register'])->name('careerofficer.submit');
 });
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->post('/notifications/mark-as-read', function () {
-    $user = Auth::user();
-    if ($user) {
-        $user->unreadNotifications->markAsRead();
-    }
-    return response()->json(['success' => true]);
-})->name('notifications.markAsRead');
+Route::middleware(['auth'])->group(function () {
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAll'])
+        ->name('notifications.markAll');
+    Route::post('/notifications/{notification}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markOne'])
+        ->name('notifications.markOne');
+});
+
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/messages/mark-all', [MessageController::class, 'markAll'])->name('messages.markAll');
+    Route::post('/messages/{id}/mark-one', [MessageController::class, 'markOne'])->name('messages.markOne');
+
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/{conversation}', [MessageController::class, 'show'])->name('messages.show');
+     Route::post('/messages/{id}/respond', [MessageController::class, 'respond'])->name('messages.respond');
+});
 
 // PESO Jobs
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->get('peso/jobs/{user}', [PesoJobsController::class, 'index'])
@@ -386,6 +395,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // PESO Profile Settings
     Route::get('/admin/profile/settings', [PesoProfileController::class, 'settings'])->name('peso.profile.settings');
     Route::put('/admin/profile/settings', [PesoProfileController::class, 'update'])->name('peso.profile.update');
+    Route::post('/admin/peso-profile/update-logo', [PesoProfileController::class, 'updateLogo'])->name('peso.profile.updateLogo');
 });
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
@@ -397,6 +407,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/institution/information', [InstitutionProfileController::class, 'showInformationForm'])->name('institution.information');
     Route::post('/institution/information', [InstitutionProfileController::class, 'saveInformation'])->name('institution.information.save');
     Route::post('/institution/profile/description', [InstitutionProfileController::class, 'updateDescription'])->name('institution.profile.description.update');
+    Route::get('/institution/profile/settings', [InstitutionProfileController::class, 'settings'])->name('institution.profile.settings');
+    Route::post('/institution/profile/settings', [InstitutionProfileController::class, 'updateSettings'])->name('institution.profile.settings.update');
 });
 
 
@@ -525,9 +537,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/career', [InstitutionReportsController::class, 'career'])->name('institutions.reports.career');
     Route::get('/skill', [InstitutionReportsController::class, 'skill'])->name('institutions.reports.skill');
     Route::get('/graduate', [InstitutionReportsController::class, 'graduate'])->name('institutions.reports.graduate');
-    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])
-        ->get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])
-        ->name('institutions.reports.graduate.data');
+    Route::get('/institutions/reports/graduate/data', [InstitutionReportsController::class, 'graduateData'])->name('institutions.reports.graduate.data');
+    Route::get('/institution/reports/school-year/data', [InstitutionReportsController::class, 'schoolYearData'])->name('institutions.reports.schoolYear.data');
+    Route::get('/institutions/reports/school-year', [InstitutionReportsController::class, 'schoolYear'])->name('institutions.reports.schoolYear');
+    Route::get('/institutions/reports/degree/data', [InstitutionReportsController::class, 'degreeData'])->name('institutions.reports.degree.data');
+    Route::get('/institutions/reports/programs/data', [InstitutionReportsController::class, 'programsData'])->name('institutions.reports.programs.data');
+    Route::get('/institutions/reports/career/data', [InstitutionReportsController::class, 'careerData'])->name('institutions.reports.career.data');
 });
 
 //Internship Routes
@@ -664,7 +679,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
 //Institution Entries
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage institution'])->get(
-    '/institutions/entries',[InstitutionEntriesController::class, 'index'])->name('institutions.entries');
+    '/institutions/entries',
+    [InstitutionEntriesController::class, 'index']
+)->name('institutions.entries');
 
 
 Route::group(['middleware' => config('fortify.middleware', ['web'])], function () {
@@ -1017,7 +1034,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::post('/certificates/store', [ManageJobReferralsController::class, 'store'])->name('certificate.store');
-    Route::get('/certificates/download/{filename}', [\App\Http\Controllers\ManageJobReferralsController::class, 'download'])
+    Route::get('/certificates/download/{filename}', [ManageJobReferralsController::class, 'download'])
         ->name('certificates.download');
 });
 

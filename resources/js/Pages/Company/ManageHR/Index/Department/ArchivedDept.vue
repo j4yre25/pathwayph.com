@@ -1,27 +1,25 @@
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue';
-import Container from '@/Components/Container.vue';
-import { usePage } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Link } from '@inertiajs/vue3';
+import Container from '@/Components/Container.vue';
+import { ref } from 'vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import ConfirmationModal from '@/Components/ConfirmationModal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import { router } from '@inertiajs/vue3';
-import ConfirmationModal from '@/Components/ConfirmationModal.vue';
-import { ref, computed } from 'vue';
-
-const page = usePage();
 
 const props = defineProps({
-    archivedDepartments: Array,
+    archivedDepartments: Object,
     hr: Object
-})
+});
 
 const showModal = ref(false);
 const departmentToRestore = ref(null);
 
 const restoreDepartment = () => {
-    router.post(route('company.departments.restore', { 
-        id: departmentToRestore.value.id 
+    console.log(route('company.departments.restore', { id: departmentToRestore.value.id })); // Log the generated URL
+    router.post(route('company.departments.restore', {
+        id: departmentToRestore.value.id
     }), {}, {
         onSuccess: () => {
             console.log('Department restored successfully!');
@@ -35,6 +33,12 @@ const confirmRestore = (department) => {
     showModal.value = true;
 };
 
+const goTo = (url) => {
+    if (url) {
+        router.get(url);
+    }
+};
+
 
 
 
@@ -44,100 +48,52 @@ const confirmRestore = (department) => {
 <template>
     <AppLayout title="Archived Departments">
         <template #header>
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-xl font-semibold text-gray-800">Archived Departments</h2>
-                    <p class="text-sm text-gray-600 mt-1">Manage and restore archived departments</p>
-                </div>
-                <div class="flex space-x-3">
-                    <Link href="/company/departments" class="flex-shrink-0">
-                        <PrimaryButton class="flex items-center bg-gray-700 hover:bg-gray-800">
-                            <i class="fas fa-list mr-2"></i>
-                            All Departments
-                        </PrimaryButton>
-                    </Link>
-                    <Link href="/company/departments/manage" class="flex-shrink-0">
-                        <PrimaryButton class="flex items-center">
-                            <i class="fas fa-tasks mr-2"></i>
-                            Manage Departments
-                        </PrimaryButton>
-                    </Link>
-                </div>
-            </div>
+            Archived Departments
         </template>
 
-        <Container class="py-8">
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div class="p-4 border-b border-gray-200 flex items-center">
-                    <i class="fas fa-archive text-red-500 mr-2"></i>
-                    <div>
-                        <h3 class="font-medium text-gray-700">Archived Departments</h3>
-                        <p class="text-sm text-gray-500">Departments that have been archived and can be restored</p>
-                    </div>
-                </div>
+        <Container class="py-16">
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                            <th class="py-2 px-4 text-left border">Department Name</th>
+                            <th class="py-2 px-4 text-left border">Created By</th>
+                            <th class="py-2 px-4 text-left border">Date Created</th>
+                            <th class="py-2 px-4 text-left border">Status</th>
+                            <th class="py-2 px-4 text-left border">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600 text-sm font-light">
+                        <tr v-for="department in archivedDepartments.data" :key="department.id" class="border-b border-gray-200 hover:bg-gray-100">
+                            <td class="border border-gray-200 px-6 py-4">{{ department.department_name }}</td>
+                            <td class="border border-gray-200 px-6 py-4">{{ department.hr_name || 'N/A' }}</td>
+                            <td class="border border-gray-200 px-6 py-4">{{ new Date(department.created_at).toLocaleDateString() }}</td>
+                            <td class="border border-gray-200 px-6 py-4">
+                                <span class="text-red-600 font-semibold">Archived</span>
+                            </td>
+                            <td class="border border-gray-200 px-6 py-4">
+                                <DangerButton class="mr-2" @click="confirmRestore(department)">Restore Department</DangerButton>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-                <div v-if="archivedDepartments && archivedDepartments.length > 0" class="overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead class="bg-gradient-to-r from-red-50 to-pink-50 text-sm font-semibold text-gray-700">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department Name</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created By</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Created</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date Archived</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="department in archivedDepartments" :key="department.id" class="hover:bg-gray-50 transition-colors duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                                            <i class="fas fa-building text-red-600"></i>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-medium text-gray-900">{{ department.department_name }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">{{ department.hr_name || 'N/A' }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">{{ new Date(department.created_at).toLocaleDateString() }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">{{ new Date(department.deleted_at).toLocaleDateString() }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        <i class="fas fa-archive mr-1"></i>
-                                        Archived
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <button 
-                                        @click="confirmRestore(department)"
-                                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
-                                    >
-                                        <i class="fas fa-undo mr-2"></i>
-                                        Restore
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div v-else class="p-12 text-center">
-                    <div class="flex flex-col items-center">
-                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <i class="fas fa-archive text-gray-400 text-2xl"></i>
-                        </div>
-                        <p class="text-gray-500 text-lg font-medium">No archived departments found</p>
-                        <p class="text-gray-400 text-sm mt-1">All departments are currently active</p>
-                    </div>
-                </div>
+            <div class="mt-4">
+                <nav v-if="archivedDepartments.links && archivedDepartments.links.length > 1" aria-label="Page navigation">
+                    <ul class="inline-flex -space-x-px text-sm">
+                        <li v-for="link in archivedDepartments.links" :key="link.url" :class="{ 'active': link.active }">
+                            <a v-if="link.url" @click.prevent="goTo(link.url)"
+                                :class="link.active ? 'flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700' : 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700'">
+                                <span v-html="link.label"></span>
+                            </a>
+                            <span v-else
+                                class="flex items-center justify-center px-3 h-8 leading-tight text-gray-400 bg-gray-200 border border-gray-300">
+                                <span v-html="link.label"></span>
+                            </span>
+                        </li>
+                    </ul>
+                </nav>
             </div>
 
             <ConfirmationModal :show="showModal" @close="showModal = false" @confirm="restoreDepartment">

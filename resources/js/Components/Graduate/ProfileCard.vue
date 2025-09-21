@@ -30,10 +30,6 @@ const props = defineProps({
 
 const emit = defineEmits(['copy-to-clipboard']);
 
-const formatUrl = (url) => {
-    if (!url) return '';
-    return url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
-};
 
 const copyToClipboard = (text) => {
     emit('copy-to-clipboard', text);

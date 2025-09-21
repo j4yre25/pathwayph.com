@@ -74,8 +74,6 @@ function handleFileUpload(e) {
           job_title: row.job_title || '',
           department_name: row.department_name || '',
           job_types: row.job_types || '',
-          sector_name: row.sector_name || '',
-          category_name: row.category_name || '',
           program_name: row.program_name || '',
           location: row.location || '',
           work_environment_type: row.work_environment_type || '',
@@ -107,14 +105,12 @@ function handleFileUpload(e) {
           job_title: row.job_title || '',
           department_name: row.department_name || '',
           job_types: row.job_types || '',
-          sector_name: row.sector_name || '',
-          category_name: row.category_name || '',
           program_name: row.program_name || '',
           location: row.location || '',
           work_environment_type: row.work_environment_type || '',
           job_description: row.job_description || '',
           job_requirements: row.job_requirements || '',
-          is_negotiable: row.is_negotiable ? row.is_negotiable.toLowerCase() === 'yes' : false,
+          is_negotiable: row.is_negotiable ? String(row.is_negotiable).toLowerCase() === 'yes' : false,
           salary_type: row.salary_type || '',
           job_min_salary: row.job_min_salary || '',
           job_max_salary: row.job_max_salary || '',
@@ -143,8 +139,6 @@ function validateRows() {
     const rowErrors = []
 
     if (!row.job_title) rowErrors.push('Missing job title')
-    if (!row.sector_name) rowErrors.push('Missing sector')
-    if (!row.category_name) rowErrors.push('Missing category')
     if (!row.program_name) rowErrors.push('Missing program')
     if (!row.job_vacancies) rowErrors.push('Missing job vacancies')
     if (!row.job_description) rowErrors.push('Missing job description')
@@ -311,10 +305,7 @@ const goBack = () => {
                     <i class="fas fa-tag text-blue-500 mr-2"></i>Department
                   </th>
                   <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                    <i class="fas fa-tag text-blue-500 mr-2"></i>Sector
-                  </th>
-                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                    <i class="fas fa-tag text-blue-500 mr-2"></i>Category
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Job Types
                   </th>
                   <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
                     <i class="fas fa-tag text-blue-500 mr-2"></i>Programs
@@ -365,10 +356,8 @@ const goBack = () => {
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ idx + 1 }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.job_title }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.department_name }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.sector_name }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.category_name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.job_types }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.program_name }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.location }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.location }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.work_environment_type }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.job_description }}</td>

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Messages;
 
 class PipelineActionExecutor
 {
@@ -61,11 +62,41 @@ class PipelineActionExecutor
                     }
                 }
 
-                // (Temporarily skip notifications to isolate error)
+                // Send message based on new stage
+                try {
+                    $stageToType = [
+                        'interview'  => Messages::TYPE_INTERVIEW_INVITE,
+                        'assessment' => Messages::TYPE_EXAM_INSTRUCTIONS,
+                        'exam'       => Messages::TYPE_EXAM_INSTRUCTIONS,
+                        'offer'      => Messages::TYPE_OFFER_LETTER,
+                        'offered'    => Messages::TYPE_OFFER_LETTER,
+                        'hired'      => Messages::TYPE_HIRED,
+                        'rejected'   => Messages::TYPE_REJECTED,
+                        'request_info' => Messages::TYPE_REQUEST_INFO,
+                    ];
+                    if (isset($stageToType[$to])) {
+                        MessageService::sendPipelineMessage(
+                            $application,
+                            Auth::id(),
+                            $stageToType[$to],
+                            [
+                                'from_stage' => $from,
+                                'to_stage'   => $to,
+                                'note'       => $note,
+                                'application_id' => $application->id,
+                                'link' => url("/applications/{$application->id}"),
+                            ]
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Pipeline stage message failed (ignored)', ['err'=>$e->getMessage()]);
+                }
+
                 return "Stage moved to {$to}";
             }
 
-            if ($type === 'action') {
+            if (($action['type'] ?? null) === 'action') {
+                // Log action
                 if (Schema::hasTable('job_application_action_logs')) {
                     try {
                         DB::table('job_application_action_logs')->insert([
@@ -81,6 +112,50 @@ class PipelineActionExecutor
                         Log::warning('Action log failed (ignored)', ['err'=>$e->getMessage()]);
                     }
                 }
+
+                // Map action keys to message types
+                $keyToType = [
+                    'request_info'      => Messages::TYPE_REQUEST_INFO,
+                    'schedule_interview'     => Messages::TYPE_INTERVIEW_INVITE,
+                    'reschedule_interview'   => Messages::TYPE_INTERVIEW_RESCHEDULE,
+                    'send_exam_instructions' => Messages::TYPE_EXAM_INSTRUCTIONS,
+                    'reschedule_exam'        => Messages::TYPE_EXAM_RESCHEDULE,
+                    'send_offer'             => Messages::TYPE_OFFER_LETTER,
+                    'hire'                   => Messages::TYPE_HIRED,
+                    'reject'                 => Messages::TYPE_REJECTED,
+                    'reject_withdraw'        => Messages::TYPE_REJECTED,
+                ];
+
+                $key = $action['key'] ?? null;
+                if ($key && isset($keyToType[$key])) {
+                    $type = $keyToType[$key];
+
+                    // Build meta, include requested items for request_more_info
+                    $meta = [
+                        'action_key'     => $key,
+                        'application_id' => $application->id,
+                        'link'           => url("/applications/{$application->id}"),
+                    ];
+                    if ($type === Messages::TYPE_REQUEST_INFO && !empty($action['requested']) && is_array($action['requested'])) {
+                        $meta['requested'] = array_values(array_unique($action['requested']));
+                    }
+
+                    // Use custom note if provided; else use the template for that type
+                    $custom = trim((string)($action['custom_message'] ?? ''));
+                    $content = $custom !== '' ? $custom : Messages::template($type);
+
+                    // Create the message
+                    \App\Models\Messages::create([
+                        'application_id' => $application->id,
+                        'sender_id'      => Auth::id(),
+                        'receiver_id'    => $this->resolveApplicantUserId($application),
+                        'message_type'   => $type,
+                        'content'        => $content,
+                        'status'         => Messages::STATUS_UNREAD,
+                        'meta'           => $meta,
+                    ]);
+                }
+
                 return 'Action recorded';
             }
 
@@ -97,5 +172,14 @@ class PipelineActionExecutor
             ]);
             throw $e;
         }
+    }
+
+    private function resolveApplicantUserId(JobApplication $application): int
+    {
+        foreach (['user_id','applicant_user_id','graduate_user_id','applicant_id'] as $col) {
+            if (!empty($application->{$col})) return (int)$application->{$col};
+        }
+        if (method_exists($application, 'user') && $application->user) return (int)$application->user->id;
+        throw new \RuntimeException('Could not resolve applicant user id');
     }
 }

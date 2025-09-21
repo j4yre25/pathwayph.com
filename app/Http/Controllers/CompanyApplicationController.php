@@ -27,7 +27,7 @@ class CompanyApplicationController extends Controller
     {
             // Load related data (skills, portfolio, etc.)
         $application->load([
-                'graduate.user',       // Basic user info
+                'graduate.user',       
                 'graduate.graduateSkills.skill',    
                 'graduate.education',   
                 'graduate.experience',
@@ -36,13 +36,12 @@ class CompanyApplicationController extends Controller
                 'graduate.certifications',
                 'graduate.testimonials',
                 'graduate.employmentPreference',
-                'graduate.employmentPreference.jobTypes',
                 'graduate.employmentPreference.locations',
-                'graduate.employmentPreference.workEnvironments',
                 'graduate.employmentPreference.salary',
                 'graduate.careerGoals',
                 'graduate.resume',
-                'job',                 // Job applied for
+                'job',                 
+                'graduate.referrals', 
             ]);
 
         $graduate = $application->graduate;
@@ -52,26 +51,177 @@ class CompanyApplicationController extends Controller
             $resume->file_url = Storage::url('resumes/' . $resume->file_name); // or $resume->file_path
         }
 
+         // ===== Employment Preference Normalization (handles array / json / csv / relations) =====
+        $ep = $graduate?->employmentPreference;
+        $employmentPreferencesTransformed = null;
+
+        $decodeMulti = function($raw) {
+            if (is_null($raw) || $raw === '') return [];
+            if (is_array($raw)) return array_values(array_filter(array_map('trim', $raw)));
+            if (is_string($raw)) {
+                $t = trim($raw);
+                // Try JSON
+                if ((str_starts_with($t,'[') && str_ends_with($t,']')) ||
+                    (str_starts_with($t,'{') && str_ends_with($t,'}'))) {
+                    $decoded = json_decode($t, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        if (is_array($decoded)) {
+                            // If list of scalars or objects
+                            return array_values(array_filter(array_map(function($v){
+                                if (is_array($v) && isset($v['name'])) return trim($v['name']);
+                                if (is_string($v)) return trim($v);
+                                return null;
+                            }, $decoded)));
+                        }
+                    }
+                }
+                // CSV
+                return array_values(array_filter(array_map('trim', explode(',',$raw))));
+            }
+            return [];
+        };
+
+        if ($ep) {
+            // Job Types (relations OR raw column)
+            if ($ep->relationLoaded('jobTypes') && $ep->jobTypes?->count()) {
+                $jobTypes = $ep->jobTypes->pluck('name')->filter()->values();
+            } else {
+                $jobTypes = collect(
+                    $decodeMulti($ep->job_type ?? $ep->getRawOriginal('job_type'))
+                );
+            }
+
+            // Work Environments (relation OR work_environment / work_enviroment column)
+            if ($ep->relationLoaded('workEnvironments') && $ep->workEnvironments?->count()) {
+                $workEnvironments = $ep->workEnvironments->pluck('name')->filter()->values();
+            } else {
+                $workEnvironments = collect(
+                    $decodeMulti(
+                        $ep->work_environment ??
+                        $ep->getRawOriginal('work_environment')
+                    )
+                );
+            }
+
+            // Locations (relation OR fallback)
+            if ($ep->relationLoaded('locations') && $ep->locations?->count()) {
+                $locations = $ep->locations->map(fn($loc) => [
+                    'name' => $loc->name ?? null,
+                    'address' => $loc->address ?? ($loc->name ?? null),
+                ])->values();
+            } else {
+                $locationsRaw = $decodeMulti($ep->location ?? $ep->getRawOriginal('location'));
+                $locations = collect($locationsRaw)->map(fn($v) => [
+                    'name' => $v,
+                    'address' => $v,
+                ])->values();
+            }
+
+            // Salary
+            $minSalary = $ep->employment_min_salary ?? ($ep->salary->min_salary ?? null);
+            $maxSalary = $ep->employment_max_salary ?? ($ep->salary->max_salary ?? null);
+
+            $employmentPreferencesTransformed = [
+                'employment_min_salary' => $minSalary,
+                'employment_max_salary' => $maxSalary,
+                'job_types' => $jobTypes->map(fn($n) => ['name'=>$n])->values(),
+                'work_environments' => $workEnvironments->map(fn($n) => ['name'=>$n])->values(),
+                'locations' => $locations,
+                'additional_notes' => $ep->additional_notes ?? $ep->notes ?? null,
+            ];
+        }
+
+        // Ensure referrals relation loaded
+        $graduate?->loadMissing('referrals');
+
+        $referralCertificates = collect();
+
+        if ($graduate && $graduate->referrals?->count()) {
+            $referralCertificates = $graduate->referrals
+                ->whereNotNull('certificate_path')
+                ->filter(fn($r) => trim($r->certificate_path) !== '')
+                ->map(function ($r) {
+                    $path = $r->certificate_path;
+                    // If stored under private/ generate a download route (make sure route name exists)
+                    $isPrivate = str_starts_with($path, 'private/');
+                    $fileName = basename($path);
+                    $fileUrl = null;
+
+                    if ($isPrivate) {
+                        // Route should point to ManageJobReferralsController@download
+                        // Route example: Route::get('referrals/certificates/{filename}', ...)->name('referrals.certificates.download');
+                        if (function_exists('route')) {
+                            try {
+                                $fileUrl = route('referrals.certificates.download', ['filename' => $fileName]);
+                            } catch (\Throwable $e) {
+                                $fileUrl = null;
+                            }
+                        }
+                    } else {
+                        if (\Storage::exists($path)) {
+                            $fileUrl = \Storage::url($path);
+                        }
+                    }
+
+                    return [
+                        'id' => $r->id,
+                        'file_name' => $fileName,
+                        'file_url' => $fileUrl,
+                        'raw_path' => $path,
+                        'uploaded_at' => $r->created_at,
+                    ];
+                })
+                ->values();
+        }
+
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,
             'graduate' => $graduate,
             'skills' => $graduate?->graduateSkills?->map(function($gs) {
+                $skill = $gs->skill;
+                // Collect possible type/category sources
+                $candidates = [
+                    $gs->type           ?? null,
+                    
+                ];
+                $groupLabel = collect($candidates)
+                    ->filter(fn($v) => $v && is_string($v))
+                    ->map(fn($v) => trim($v))
+                    ->first() ?? 'Uncategorized';
+
                 return [
                     'id' => $gs->id,
                     'skill_id' => $gs->skill_id,
-                    'skill_name' => $gs->skill->name ?? null,
+                    'skill_name' => $skill->name ?? null,
                     'years_experience' => $gs->years_experience,
                     'proficiency_type' => $gs->proficiency_type,
-                    // add other fields if needed
+                    'type' => $skill->type ?? null,
+                    'category' => $skill->category ?? null,
+                    'skill_type' => $skill->skill_type ?? null,
+                    'group' => $skill->group ?? null,
+                    'group_label' => $groupLabel,
                 ];
             }) ?? [],
             'experiences' => $graduate?->experience ?? [],
-            'education' => $graduate?->education ?? [],
+            // FIX: provide an array for education (previous line was broken)
+            'education' => $graduate?->education?->map(function($e){
+                return [
+                    'id' => $e->id,
+                    'education' => $e->education ?? $e->degree ?? $e->degree_level ?? $e->level,
+                    'program' => $e->program ?? $e->field_of_study,
+                    'field_of_study' => $e->field_of_study ?? $e->program,
+                    'institution' => $e->institution ?? $e->school,
+                    'graduation_year' => $e->graduation_year ?? $e->end_year,
+                    'start_date' => $e->start_date,
+                    'end_date' => $e->end_date,
+                    'school_year' => $e->school_year,
+                ];
+            })?->values() ?? [],
             'projects' => $graduate?->projects ?? [],
             'achievements' => $graduate?->achievements ?? [],
             'certifications' => $graduate?->certifications ?? [],
             'testimonials' => $graduate?->testimonials ?? [],
-            'employmentPreferences' => $graduate?->employmentPreference,
+            'employmentPreferences' => $employmentPreferencesTransformed,
             'careerGoals' => $graduate?->careerGoals,
             'resume' => ($resume = $graduate?->resume) ? [
                 'file_url' => Storage::url($resume->file_path),
@@ -79,6 +229,7 @@ class CompanyApplicationController extends Controller
                 'file_name' => $resume->file_name,
             ] : null,
             'job' => $application->job,
+            'referralCertificates' => $referralCertificates,
         ]);
     }
 
@@ -129,63 +280,63 @@ class CompanyApplicationController extends Controller
         return back()->with('success', 'Updated: '.implode(', ',$changed));
     }
 
-    public function scheduleInterview(Request $request, JobApplication $application)
-    {
-        $request->validate([
-            'scheduled_at' => 'required|date|after:now',
-            'location' => 'nullable|string|max:255',
-        ]);
+    // public function scheduleInterview(Request $request, JobApplication $application)
+    // {
+    //     $request->validate([
+    //         'scheduled_at' => 'required|date|after:now',
+    //         'location' => 'nullable|string|max:255',
+    //     ]);
 
-        $interview = Interview::create([
-            'job_application_id' => $application->id,
-            'scheduled_at' => $request->scheduled_at,
-            'location' => $request->location,
-        ]);
+    //     $interview = Interview::create([
+    //         'job_application_id' => $application->id,
+    //         'scheduled_at' => $request->scheduled_at,
+    //         'location' => $request->location,
+    //     ]);
 
-        $interview->load('jobApplication.job.company');
+    //     $interview->load('jobApplication.job.company');
         
-        // Send notification to graduate/user
-        if ($application->graduate && $application->graduate->user) {
-        $application->graduate->user->notify(new InterviewScheduledNotification($interview));
-        }
+    //     // Send notification to graduate/user
+    //     if ($application->graduate && $application->graduate->user) {
+    //     $application->graduate->user->notify(new InterviewScheduledNotification($interview));
+    //     }
 
 
-        // (Optional) Integrate with Google/Outlook Calendar here and save event ID
+    //     // (Optional) Integrate with Google/Outlook Calendar here and save event ID
 
-        return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
-    }
+    //     return redirect()->back()->with('success', 'Interview scheduled and notification sent.');
+    // }
 
-    public function storeOffer(Request $request, JobApplication $application)
-    {
-        $request->validate([
-            'offered_salary' => 'required|numeric|min:0',
-            'start_date' => 'required|date|after:today',
-            'offer_letter' => 'nullable|file|mimes:pdf|max:2048',
-        ]);
+    // public function storeOffer(Request $request, JobApplication $application)
+    // {
+    //     $request->validate([
+    //         'offered_salary' => 'required|numeric|min:0',
+    //         'start_date' => 'required|date|after:today',
+    //         'offer_letter' => 'nullable|file|mimes:pdf|max:2048',
+    //     ]);
 
-        $offerData = [
-            'job_application_id' => $application->id,
-            'offered_salary' => $request->offered_salary,
-            'start_date' => $request->start_date,
-        ];
+    //     $offerData = [
+    //         'job_application_id' => $application->id,
+    //         'offered_salary' => $request->offered_salary,
+    //         'start_date' => $request->start_date,
+    //     ];
 
-        if ($request->hasFile('offer_letter')) {
-            $offerData['offer_letter_path'] = $request->file('offer_letter')->store('offer_letters', 'public');
-        }
+    //     if ($request->hasFile('offer_letter')) {
+    //         $offerData['offer_letter_path'] = $request->file('offer_letter')->store('offer_letters', 'public');
+    //     }
 
-        $offer = JobOffer::create($offerData);
+    //     $offer = JobOffer::create($offerData);
 
-        // Update application status
-        $application->status = 'offer_sent';
-        $application->save();
+    //     // Update application status
+    //     $application->status = 'offer_sent';
+    //     $application->save();
 
-        // Notify applicant
-        if ($application->graduate && $application->graduate->user) {
-            $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->status));
-        }
+    //     // Notify applicant
+    //     if ($application->graduate && $application->graduate->user) {
+    //         $application->graduate->user->notify(new ApplicationStatusUpdated($application, $application->status));
+    //     }
 
-        return redirect()->back()->with('success', 'Job offer sent successfully.');
-    }
+    //     return redirect()->back()->with('success', 'Job offer sent successfully.');
+    // }
 
     public function updateStatus(Request $request, JobApplication $application)
     {

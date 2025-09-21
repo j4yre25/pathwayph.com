@@ -412,7 +412,7 @@ const goBack = () => {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span class="text-sm text-gray-700">
-                    {{ job.no_of_vacancies !== undefined ? job.no_of_vacancies : '—' }}
+                    {{ job.job_vacancies !== undefined ? job.job_vacancies : '—' }}
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
