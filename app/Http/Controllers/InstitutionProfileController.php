@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class InstitutionProfileController extends Controller
@@ -97,15 +98,100 @@ class InstitutionProfileController extends Controller
     public function updateDescription(Request $request)
     {
         $user = Auth::user();
-        $institution = \App\Models\Institution::where('user_id', $user->id)->firstOrFail();
+        $institution = $user->institution;
 
         $validated = $request->validate([
-            'description' => 'nullable|string|max:2000',
+            'institution_description' => 'nullable|string|max:5000',
         ]);
 
-        $institution->description = $validated['description'];
-        $institution->save();
+        if ($institution) {
+            $institution->institution_description = $validated['institution_description'];
+            $institution->save();
+        }
 
-        return back()->with('success', 'Description updated!');
+        return back()->with('success', 'Institution description updated successfully!');
+    }
+
+    public function settings()
+    {
+        $user = Auth::user();
+        $institution = $user->institution;
+        
+        // Get institution social links if they exist
+        $socialLinks = $institution->social_links ?? [];
+        
+        return Inertia::render('Institutions/Profile/InstitutionProfileSettings', [
+            'institution' => [
+                'institution_name' => $institution->institution_name ?? 'N/A',
+                'institution_email' => $institution->institution_email ?? 'N/A',
+                'mobile_number' => $institution->institution_mobile_phone ?? 'N/A',
+                'telephone_number' => $institution->institution_tel_phone ?? 'N/A',
+                'address' => implode(', ', array_filter([
+                    $institution->institution_street_address,
+                    $institution->institution_brgy,
+                    $institution->institution_city,
+                    $institution->institution_province,
+                    $institution->institution_zip_code
+                ])),
+                'description' => $institution->institution_description ?? null,
+                'social_links' => $socialLinks,
+                'profile_photo_path' => $user->profile_photo_path ? Storage::url($user->profile_photo_path) : null,
+            ],
+        ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $user = Auth::user();
+        $institution = $user->institution;
+        
+        // Validate the request
+        $validated = $request->validate([
+            'institution_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'contact_number' => 'required|string|max:20',
+            'telephone_number' => 'nullable|string|max:20',
+            'description' => 'nullable|string|max:5000',
+            'website' => 'nullable|string|max:255',
+            'indeed_profile' => 'nullable|string|max:255',
+            'facebook' => 'nullable|string|max:255',
+            'twitter' => 'nullable|string|max:255',
+            'linkedin' => 'nullable|string|max:255',
+            'instagram' => 'nullable|string|max:255',
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
+        ]);
+        
+        // Update institution information
+        if ($institution) {
+            $institution->institution_name = $validated['institution_name'];
+            $institution->email = $validated['email'];
+            $institution->contact_number = $validated['contact_number'];
+            $institution->telephone_number = $validated['telephone_number'] ?? $institution->telephone_number;
+            $institution->description = $validated['description'] ?? $institution->description;
+            
+            // Update website and social links
+            $institution->website = $validated['website'] ?? $institution->website;
+            
+            $institution->social_links = [
+                'indeed_profile' => $validated['indeed_profile'] ?? null,
+                'facebook' => $validated['facebook'] ?? null,
+                'twitter' => $validated['twitter'] ?? null,
+                'linkedin' => $validated['linkedin'] ?? null,
+                'instagram' => $validated['instagram'] ?? null,
+            ];
+            
+            $institution->save();
+        }
+        
+        // Handle logo upload if present
+        if ($request->hasFile('logo')) {
+            if ($user->profile_photo_path) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+            $user->profile_photo_path = $request->file('logo')->store('profile-photos', 'public');
+            $user->save();
+        }
+        
+        return back()->with('success', 'Institution profile settings updated successfully!');
     }
 }

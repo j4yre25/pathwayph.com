@@ -362,15 +362,19 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/company/departments/batch-upload', [CompanyDepartmentController::class, 'batchUpload'])->name('company.departments.batch.upload');
     Route::get('/company/departments/batch-template', [CompanyDepartmentController::class, 'downloadTemplate'])->name('company.departments.batch.template');
     Route::get('/company/departments/manage', [CompanyDepartmentController::class, 'manage'])->name('company.departments.manage');
+    Route::get('/company/departments/archived', [CompanyDepartmentController::class, 'archived'])->name('company.departments.archived');
+    Route::post('/company/departments/restore/{id}', [CompanyDepartmentController::class, 'restore'])->name('company.departments.restore');
     Route::put('/company/departments/{department}', [CompanyDepartmentController::class, 'update'])->name('company.departments.update');
     Route::delete('/company/departments/{department}', [CompanyDepartmentController::class, 'destroy'])->name('company.departments.destroy');
 });
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
-    Route::get('/company/profile', [CompanyProfileController::class, 'profile'])->name('company.profile');
-    Route::post('/company/profile', [CompanyProfileController::class, 'post'])->name('company-profile.post');
-    Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+Route::get('/company/profile', [CompanyProfileController::class, 'profile'])->name('company.profile');
+Route::get('/company/profile/settings', [CompanyProfileController::class, 'settings'])->name('company.profile.settings');
+Route::post('/company/profile/settings', [CompanyProfileController::class, 'updateSettings'])->name('company.profile.settings.update');
+Route::post('/company/profile', [CompanyProfileController::class, 'post'])->name('company-profile.post');
+Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
 
@@ -403,6 +407,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/institution/information', [InstitutionProfileController::class, 'showInformationForm'])->name('institution.information');
     Route::post('/institution/information', [InstitutionProfileController::class, 'saveInformation'])->name('institution.information.save');
     Route::post('/institution/profile/description', [InstitutionProfileController::class, 'updateDescription'])->name('institution.profile.description.update');
+    Route::get('/institution/profile/settings', [InstitutionProfileController::class, 'settings'])->name('institution.profile.settings');
+    Route::post('/institution/profile/settings', [InstitutionProfileController::class, 'updateSettings'])->name('institution.profile.settings.update');
 });
 
 

@@ -121,15 +121,15 @@ function saveBatchDepartments() {
         </div>
 
         <!-- Add Department Modal (Batch Add) -->
-        <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+        <!-- <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
         <div class="bg-white rounded shadow-lg p-6 w-full max-w-sm" style="max-height: 90vh; overflow-y: auto;">
           <h3 class="text-lg font-semibold mb-4">Add Departments</h3>
           <form @submit.prevent="addToBatch" class="flex gap-2 mb-4">
             <input v-model="newDepartment" class="border rounded px-2 py-1 flex-1" placeholder="Department Name" />
             <button type="submit" class="px-3 py-1 rounded bg-blue-600 text-white">Add</button>
-          </form>
+          </form> -->
           <!-- Batch Upload Section -->
-          <div class="mb-2">
+          <!-- <div class="mb-2">
             <label class="block font-medium mb-1">Batch Upload (CSV/XLSX):</label>
             <a
               v-if="!uploadFile"
@@ -158,7 +158,7 @@ function saveBatchDepartments() {
             </button>
           </div>
         </div>
-      </div>
+      </div> -->
 
 
       <h2 class="text-2xl font-bold mb-4">Departments</h2>

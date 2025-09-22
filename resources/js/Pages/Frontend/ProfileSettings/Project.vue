@@ -64,6 +64,7 @@ const successMessage = ref('');
 const errorMessage = ref('');
 const noProjectUrl = ref(false);
 const showArchivedProjects = ref(false);
+const currentProjectFile = ref(null);
 
 
 const toggleArchivedProjects = () => {
@@ -124,11 +125,13 @@ const openUpdateProjectModal = (entry) => {
   form.graduate_projects_key_accomplishments = entry.graduate_projects_key_accomplishments || '';
   form.graduate_project_file = null;
   form.is_current = entry.is_current;
+  currentProjectFile.value = entry.graduate_project_file || null;
   noProjectUrl.value = !entry.graduate_projects_url;
   isUpdateProjectModalOpen.value = true;
 };
 const closeUpdateProjectModal = () => {
   isUpdateProjectModalOpen.value = false;
+  currentProjectFile.value = null;
   resetForm();
 };
 const closeSuccessModal = () => { isSuccessModalOpen.value = false; };
@@ -468,6 +471,103 @@ watch(
         </div>
       </div>
 
+  <!-- Add Project Modal -->
+    <div v-if="isAddProjectModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Add Project</h2>
+          <SecondaryButton @click="closeAddProjectModal">
+            <i class="fas fa-times mr-1"></i> Cancel
+          </SecondaryButton>
+        </div>
+        <div class="max-h-96 overflow-y-auto">
+          <form @submit.prevent="addProject">
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Project Title <span
+                  class="text-red-500">*</span></label>
+              <input type="text" v-model="form.graduate_projects_title"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="e.g. E-commerce Platform" required />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Description</label>
+              <textarea v-model="form.graduate_projects_description"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                rows="3" placeholder="Describe your project..."></textarea>
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Role <span class="text-red-500">*</span></label>
+              <input type="text" v-model="form.graduate_projects_role"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="Your role in the project" required />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
+              <Datepicker v-model="form.graduate_projects_start_date"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="Select start date" required />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">End Date</label>
+              <Datepicker v-model="form.graduate_projects_end_date"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="Select end date" :disabled="form.is_current" />
+              <div class="mt-2">
+                <input type="checkbox" v-model="form.is_current" id="isCurrentProject" />
+                <label for="isCurrentProject" class="text-sm text-gray-700 ml-2">This is an ongoing project</label>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Project URL</label>
+              <input type="url" v-model="form.graduate_projects_url"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="e.g. https://yourproject.com" :disabled="noProjectUrl" />
+            </div>
+            <div class="mb-4">
+              <input type="checkbox" v-model="noProjectUrl" id="noProjectUrl" />
+              <label for="noProjectUrl" class="text-sm text-gray-700 ml-2">No Project URL</label>
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 font-medium mb-2">Key Accomplishments</label>
+              <textarea v-model="form.graduate_projects_key_accomplishments"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                rows="3" placeholder="What did you achieve?"></textarea>
+            </div>
+            <div class="mb-4">
+              <label for="project-file" class="block text-sm font-medium text-gray-700">Upload File</label>
+              <!-- Show existing file if available -->
+              <div v-if="currentProjectFile" class="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <i class="fas fa-file text-gray-500 mr-2"></i>
+                    <span class="text-sm font-medium text-gray-700">Current File:</span>
+                  </div>
+                  <div class="flex space-x-2">
+                    <a :href="`/storage/${currentProjectFile}`" 
+                       target="_blank" 
+                       class="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline">
+                      <i class="fas fa-eye mr-1"></i>View
+                    </a>
+                    <a :href="`/storage/${currentProjectFile}`" 
+                       download 
+                       class="text-green-600 hover:text-green-800 text-sm font-medium hover:underline">
+                      <i class="fas fa-download mr-1"></i>Download
+                    </a>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <span class="text-xs text-gray-500">{{ currentProjectFile.split('/').pop() }}</span>
+                </div>
+              </div>
+              <input type="file" id="project-file" @change="handleFileUpload"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+              <p class="mt-1 text-xs text-gray-500">Upload a new file to replace the current one (optional)</p>
+            </div>
+            <PrimaryButton type="submit" class="w-full justify-center">Add Project</PrimaryButton>
+          </form>
+        </div>
+      </div>
+    </div>
       <!-- Add Project Modal -->
       <div v-if="isAddProjectModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
         <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">

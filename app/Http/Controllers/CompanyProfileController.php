@@ -131,6 +131,24 @@ class CompanyProfileController extends Controller
         $user->company_contact_number = $validated['company_contact_number'];
         $user->save();
 
+        // Handle profile photo upload if present
+        if ($request->hasFile('photo')) {
+            if ($user->profile_photo_path) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+            $user->profile_photo_path = $request->file('photo')->store('profile-photos', 'public');
+            $user->save();
+        }
+
+        // Handle cover photo upload if present
+        // if ($request->hasFile('cover_photo')) {
+        //     if ($user->cover_photo_path) {
+        //         Storage::disk('public')->delete($user->cover_photo_path);
+        //     }
+        //     $user->cover_photo_path = $request->file('cover_photo')->store('cover-photos', 'public');
+        //     $user->save();
+        // }
+
         return back()->with('success', 'Company profile updated!');
     }
 
@@ -153,6 +171,89 @@ class CompanyProfileController extends Controller
         return inertia('Frontend/CompanyProfile', [
             'company' => $company,
         ]);
+    }
+    
+    public function settings()
+    {
+        $user = Auth::user();
+        $company = $user->company;
+        
+        // Get company social links if they exist
+        $socialLinks = $company->social_links ?? [];
+        
+        return Inertia::render('Company/CompanyProfileSettings', [
+            'company' => [
+                'company_name' => $company->company_name ?? 'N/A',
+                'company_email' => $company->company_email ?? 'N/A',
+                'mobile_number' => $company->company_mobile_phone ?? 'N/A',
+                'telephone_number' => $company->company_tel_phone ?? 'N/A',
+                'address' => implode(', ', array_filter([
+                    $company->company_street_address,
+                    $company->company_brgy,
+                    $company->company_city,
+                    $company->company_province,
+                    $company->company_zip_code
+                ])),
+                'sector' => $user->sector->name ?? null,
+                'description' => $company->company_description ?? null,
+                'social_links' => $socialLinks,
+                'profile_photo_path' => $user->profile_photo_path ? Storage::url($user->profile_photo_path) : null,
+            ],
+        ]);
+    }
+    
+    public function updateSettings(Request $request)
+    {
+        $user = Auth::user();
+        $company = $user->company;
+        
+        // Validate the request
+        $validated = $request->validate([
+            'company_name' => 'required|string|max:255',
+            'company_email' => 'required|email|max:255',
+            'mobile_number' => 'required|string|max:20',
+            'telephone_number' => 'nullable|string|max:20',
+            'description' => 'nullable|string|max:5000',
+            'indeed_profile' => 'nullable|string|max:255',
+            'facebook' => 'nullable|string|max:255',
+            'twitter' => 'nullable|string|max:255',
+            'linkedin' => 'nullable|string|max:255',
+            'instagram' => 'nullable|string|max:255',
+            'website' => 'nullable|string|max:255',
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
+        ]);
+        
+        // Update company information
+        if ($company) {
+            $company->company_name = $validated['company_name'];
+            $company->company_email = $validated['company_email'];
+            $company->company_mobile_phone = $validated['mobile_number'];
+            $company->company_tel_phone = $validated['telephone_number'] ?? $company->company_tel_phone;
+            $company->company_description = $validated['description'] ?? $company->company_description;
+            
+            // Update social links
+            $company->social_links = [
+                'indeed' => $validated['indeed_profile'] ?? '',
+                'facebook' => $validated['facebook'] ?? '',
+                'twitter' => $validated['twitter'] ?? '',
+                'linkedin' => $validated['linkedin'] ?? '',
+                'instagram' => $validated['instagram'] ?? '',
+                'website' => $validated['website'] ?? '',
+            ];
+            
+            $company->save();
+        }
+        
+        // Handle logo upload if present
+        if ($request->hasFile('logo')) {
+            if ($user->profile_photo_path) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+            $user->profile_photo_path = $request->file('logo')->store('profile-photos', 'public');
+            $user->save();
+        }
+        
+        return back()->with('success', 'Company profile settings updated successfully!');
     }
 
     public function showInformationForm()

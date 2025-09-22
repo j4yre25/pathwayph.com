@@ -426,7 +426,7 @@ onUnmounted(() => {
                         <div class="order-1 lg:order-2 flex justify-center lg:justify-end">
                             <div class="relative max-w-full">
                                 <img 
-                                    src="/images/vector_home.png" 
+                                    src="/images/pathway_new.png" 
                                     alt="Pathway Platform Illustration" 
                                     class="w-full h-auto max-w-lg lg:max-w-xl xl:max-w-2xl object-contain"
                                 />

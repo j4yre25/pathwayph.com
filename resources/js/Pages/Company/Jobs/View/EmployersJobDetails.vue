@@ -187,7 +187,7 @@ const goBack = () => {
                                              Salary Range
                                             </h4>
                                         <div class="flex items-center">
-                                            <i class="fas fa-dollar-sign text-white-400 mr-2"></i>
+                                            <i class="fas fa-peso-sign text-white-400 mr-2"></i>
                                             <span class="text-white-800">
                                                 {{ job.salary_range || 'Negotiable' }}
                                             </span>
@@ -311,6 +311,13 @@ const goBack = () => {
                                     </div>
                                 </div>
                                 <div class="bg-white p-4 rounded-lg border border-white-200">
+                                    <h4 class="text-sm font-medium text-white-500 mb-1">Application Deadline</h4>
+                                    <div class="flex items-center">
+                                        <i class="far fa-calendar-times text-white-400 mr-2"></i>
+                                        <span>{{ formatDate(job.job_deadline) }}</span>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg border border-white-200">
                                     <h4 class="text-sm font-medium text-white-500 mb-1">Posted Date</h4>
                                     <div class="flex items-center">
                                         <i class="far fa-calendar-plus text-white-400 mr-2"></i>
@@ -322,13 +329,6 @@ const goBack = () => {
                                     <div class="flex items-center">
                                         <i class="far fa-calendar-check text-white-400 mr-2"></i>
                                         <span>{{ formatDate(job.updated_at)}}</span>
-                                    </div>
-                                </div>
-                                <div class="bg-white p-4 rounded-lg border border-white-200">
-                                    <h4 class="text-sm font-medium text-white-500 mb-1">Application Deadline</h4>
-                                    <div class="flex items-center">
-                                        <i class="far fa-calendar-times text-white-400 mr-2"></i>
-                                        <span>{{ formatDate(job.job_deadline) }}</span>
                                     </div>
                                 </div>
                             </div>
