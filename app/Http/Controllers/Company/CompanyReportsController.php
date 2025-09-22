@@ -54,51 +54,143 @@ class CompanyReportsController extends Controller
     public function overview(Request $request)
     {
         $user = auth()->user();
+        $companyId = $user->hr->company_id;
 
-        // Get the company_id of the logged-in user via HR account
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
+        $datePreset      = $request->query('date_preset','last_30');
+        $dateFromInput   = $request->query('date_from');
+        $dateToInput     = $request->query('date_to');
+        $experienceLevel = $request->query('experience_level');
+        $vacancyMin      = $request->query('vacancy_min');
+        $vacancyMax      = $request->query('vacancy_max');
+        $workEnvironment = $request->query('work_environment'); 
 
-        $jobTypes = JobType::select('id', 'type')->get();
-
-        $allJobs = Job::where('company_id', $companyId)
-            ->select(['id', 'job_title', 'job_type', 'status'])
-            ->with('jobTypes:id,type')
-            ->get();
-
-
-        // KPI Metrics for jobs posted by this company
-        $totalOpenings = $allJobs->count();
-        $activeListings = $allJobs->where('status', 'open')->count();
-        $rolesFilled = $allJobs->where('status', 'filled')->count();
-
-        // Job types for pie chart
-
-        $typeCounts = [];
-        foreach ($jobTypes as $type) {
-            $typeCounts[$type->type] =
-                // Count jobs where job_type string matches
-                $allJobs->where('job_type', $type->type)->count()
-                // Plus jobs where jobTypes relation contains this type
-                + $allJobs->filter(function ($job) use ($type) {
-                    return $job->jobTypes->contains('type', $type->type);
-                })->count();
+        $now = \Carbon\Carbon::now();
+        $dateFrom = null; $dateTo = null;
+        if ($datePreset !== 'custom') {
+            switch ($datePreset) {
+                case 'last_7':     $dateFrom = $now->copy()->subDays(7)->startOfDay();  $dateTo = $now; break;
+                case 'last_30':    $dateFrom = $now->copy()->subDays(30)->startOfDay(); $dateTo = $now; break;
+                case 'this_month': $dateFrom = $now->copy()->startOfMonth(); $dateTo = $now->copy()->endOfMonth(); break;
+                case 'last_month': $dateFrom = $now->copy()->subMonth()->startOfMonth(); $dateTo = $now->copy()->subMonth()->endOfMonth(); break;
+                case 'overall': default: $dateFrom = null; $dateTo = null;
+            }
+        } else {
+            $dateFrom = $dateFromInput ? \Carbon\Carbon::parse($dateFromInput)->startOfDay() : null;
+            $dateTo   = $dateToInput ? \Carbon\Carbon::parse($dateToInput)->endOfDay()   : null;
         }
 
-        $jobs = Job::where('company_id', $companyId)
-            ->select(['id', 'job_title', 'job_type', 'status'])
-            ->with('jobTypes:id,type')
-            ->paginate(10);
+        // Dynamic select (avoid non-existent columns)
+        $select = [
+            'id','job_title','job_type','status',
+            'job_experience_level','job_vacancies','created_at'
+        ];
+        if (\Schema::hasColumn('jobs','work_environment')) {
+            $select[] = 'work_environment';
+        }
+
+        $jobsQuery = Job::where('company_id',$companyId)
+            ->select($select)
+            ->with(['jobTypes:id,type','workEnvironments:id,environment_type'])
+            ->when($dateFrom, fn($q)=>$q->where('created_at','>=',$dateFrom))
+            ->when($dateTo, fn($q)=>$q->where('created_at','<=',$dateTo))
+            ->when($experienceLevel, fn($q,$lvl)=>$q->where('job_experience_level',$lvl))
+            ->when(is_numeric($vacancyMin), fn($q)=>$q->where('job_vacancies','>=',(int)$vacancyMin))
+            ->when(is_numeric($vacancyMax), fn($q)=>$q->where('job_vacancies','<=',(int)$vacancyMax))
+            ->withWorkEnvironment($workEnvironment);
+
+        $filteredJobs = $jobsQuery->get();
+
+        $allJobs = Job::where('company_id',$companyId)
+            ->select($select)
+            ->with(['jobTypes:id,type','workEnvironments:id,environment_type'])
+            ->get();
+
+        $experienceLevels = $allJobs->pluck('job_experience_level')
+            ->filter()->unique()->sort()->values()->toArray();
+
+        // Distinct work environments: pivot + legacy
+        $workEnvSet = collect();
+        if (\Schema::hasTable('work_environments')) {
+            $workEnvSet = \App\Models\WorkEnvironment::pluck('environment_type');
+        }
+        if (\Schema::hasColumn('jobs','work_environment')) {
+            $workEnvSet = $workEnvSet->merge($allJobs->pluck('work_environment'));
+        }
+        $workEnvironments = $workEnvSet->filter()->unique()->sort()->values()->toArray();
+
+        $vacancyMinActual = (int)($allJobs->min('job_vacancies') ?? 0);
+        $vacancyMaxActual = (int)($allJobs->max('job_vacancies') ?? 0);
+
+        $jobTypes = JobType::select('id','type')->get();
+
+        $totalOpeningsFiltered   = $filteredJobs->count();
+        $activeListingsFiltered  = $filteredJobs->where('status','open')->count();
+        $rolesFilledFiltered     = $filteredJobs->where('status','filled')->count();
+
+        $typeCounts = [];
+        foreach ($jobTypes as $jt) {
+            $typeCounts[$jt->type] =
+                $filteredJobs->where('job_type',$jt->type)->count()
+                + $filteredJobs->filter(fn($j)=>$j->jobTypes->contains('type',$jt->type))->count();
+        }
+
+        $jobsPaginated = $filteredJobs->sortByDesc('created_at')->values();
+
+        $overallTotal  = $allJobs->count();
+        $overallActive = $allJobs->where('status','open')->count();
+        $overallFilled = $allJobs->where('status','filled')->count();
+
+        $dateRangeLabel = $datePreset === 'custom'
+            ? (($dateFrom?->format('Y-m-d') ?? '—').' to '.($dateTo?->format('Y-m-d') ?? '—'))
+            : ucfirst(str_replace('_',' ',$datePreset));
+
+        $filtersActive = (bool)(
+            ($datePreset && $datePreset!=='last_30') ||
+            $experienceLevel ||
+            $workEnvironment ||
+            is_numeric($vacancyMin) ||
+            is_numeric($vacancyMax) ||
+            $datePreset === 'custom'
+        );
+
+        // Normalize work_environment param to array for return
+        $workEnvFilterArray = is_array($workEnvironment)
+            ? array_filter($workEnvironment)
+            : ($workEnvironment ? [$workEnvironment] : []);
 
         return Inertia::render('Company/Reports/JobOverview', [
-            'totalOpenings' => $totalOpenings,
-            'activeListings' => $activeListings,
-            'rolesFilled' => $rolesFilled,
-            'typeCounts' => $typeCounts,
-            'jobTypes' => $jobTypes,
-            'jobs' => $jobs,
-            'allJobs' => $allJobs,
-
+            'totalOpenings' => $totalOpeningsFiltered,
+            'activeListings'=> $activeListingsFiltered,
+            'rolesFilled'   => $rolesFilledFiltered,
+            'typeCounts'    => $typeCounts,
+            'jobTypes'      => $jobTypes,
+            'jobs' => [
+                'data' => $jobsPaginated->take(10)->values(),
+                'total'=> $jobsPaginated->count()
+            ],
+            'allJobs' => $filteredJobs,
+            'filters' => [
+                'date_preset' => $datePreset,
+                'date_from' => $dateFromInput,
+                'date_to' => $dateToInput,
+                'experience_level' => $experienceLevel,
+                'vacancy_min' => $vacancyMin,
+                'vacancy_max' => $vacancyMax,
+                'work_environment' => $workEnvFilterArray,
+                'date_range_label' => $dateRangeLabel,
+                'filters_active' => $filtersActive,
+            ],
+            'filterOptions' => [
+                'experience_levels' => $experienceLevels,
+                'work_environments' => $workEnvironments,
+                'vacancy_min_actual' => $vacancyMinActual,
+                'vacancy_max_actual' => $vacancyMaxActual,
+            ],
+            'overall' => [
+                'total' => $overallTotal,
+                'active'=> $overallActive,
+                'filled'=> $overallFilled,
+            ],
         ]);
     }
 
