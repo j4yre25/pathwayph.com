@@ -36,16 +36,17 @@ class GraduateProfileController extends Controller
         // Get year graduated and term
         $yearGraduated = null;
         $term = null;
-        if ($graduate->institutionSchoolYear) {
-            $yearGraduated = optional($graduate->institutionSchoolYear->schoolYear)->school_year_range;
-            $term = $graduate->institutionSchoolYear->term;
+        if ($graduate->institutionSchoolYear && $graduate->institutionSchoolYear->schoolYear) {
+            $yearGraduated = $graduate->institutionSchoolYear->schoolYear->school_year_range;
         }
 
         // Get the authenticated user
         $user = Auth::user();
+        $graduateArray = $graduate->toArray();
+        $graduateArray['year_graduated'] = $yearGraduated;
 
         return inertia('Frontend/UpdatedGraduateProfile', [
-            'graduate' => $graduate,
+            'graduate' => $graduateArray,
             'originalInstitution' => [
                 'name' => optional($graduate->institution)->institution_name,
                 'program' => optional($graduate->program)->name,

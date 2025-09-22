@@ -178,10 +178,9 @@ class ProfileController extends Controller
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:1',
             'last_name' => 'required|string|max:255',
-            'current_job_title' => 'required|string|max:255',
-            'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
             'current_job_title' => 'nullable|string|max:255',
-            'graduate_location' => 'nullable|string|max:255',
+            'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
+            'graduate_location' => 'nullable|string|max:255', // Accept from frontend
             'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
             'contact_number' => 'nullable|string|max:15',
             'dob' => 'nullable|date',
@@ -190,56 +189,57 @@ class ProfileController extends Controller
             'graduate_address' => 'nullable|string|max:255',
             'graduate_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'graduate_about_me' => 'nullable|string|max:1000',
+            'linkedin_url' => 'nullable|string|max:255',
+            'github_url' => 'nullable|string|max:255',
+            'personal_website' => 'nullable|string|max:255',
+            'other_social_links' => 'nullable|string|max:1000',
         ]);
         /** @var \App\Models\User $user */
 
         $user = Auth::user();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
+        $user->update([
+            'email' => $validated['email'],
+        ]);
 
+        $employmentStatus = $validated['employment_status'];
+        $currentJobTitle = $employmentStatus === 'Unemployed' ? '' : $validated['current_job_title'];
+        
+        $graduate->update([
+            'first_name' => $validated['first_name'],
+            'middle_name' => $validated['middle_name'],
+            'last_name' => $validated['last_name'],
+            'current_job_title' => $currentJobTitle,
+            'employment_status' => $employmentStatus,
+            'location' => $validated['graduate_location'] ?? $graduate->location, // Map to DB column
+            'contact_number' => $validated['contact_number'] ?? $graduate->contact_number,
+            'dob' => $validated['dob'] ?? null,
+            'gender' => array_key_exists('gender', $validated) ? $validated['gender'] : $graduate->gender,
+            'ethnicity' => $validated['graduate_ethnicity'] ?? null,
+            'address' => $validated['graduate_address'] ?? null,
+            'about_me' => $validated['graduate_about_me'] ?? null,
+            // Add other graduate fields if needed
+            'linkedin_url' => $validated['linkedin_url'] ?? $graduate->linkedin_url,
+            'github_url' => $validated['github_url'] ?? $graduate->github_url,
+            'personal_website' => $validated['personal_website'] ?? $graduate->personal_website,
+            'other_social_links' => $validated['other_social_links'] ?? $graduate->other_social_links,
+        ]);
 
         // Handle profile picture upload
-        if ($request->hasFile('graduate_picture')&& $request->file('graduate_picture')->isValid()) {
+        if ($request->hasFile('graduate_picture') && $request->file('graduate_picture')->isValid()) {
             $file = $request->file('graduate_picture');
-if (!$file->getRealPath()) {
-        return back()->withErrors(['graduate_picture' => 'File upload failed. Please try again.']);
-    }
-            $originalName = $file->getClientOriginalName();
-            if (!$originalName) {
-                $originalName = uniqid('profile_', true) . '.' . $file->getClientOriginalExtension();
-            }
-            $filename = time() . '_' . $originalName;
+            $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('profile_pictures', $filename, 'public');
             $user->profile_picture = $path;
+            $user->save();
 
-            // Also update graduates table with the picture path
-            DB::table('graduates')
-                ->where('user_id', $user->id)
-                ->update([
-                    'graduate_picture' => $path,
-                ]);
+            $graduate->graduate_picture = $path;
+            $graduate->save();
         }
 
-        $user->save();
 
-        // Sync to graduates table
-        DB::table('graduates')
-            ->where('user_id', $user->id)
-            ->update([
-                'first_name' => $request->first_name,
-                'middle_name' => $request->middle_name,
-                'last_name' => $request->last_name,
-                'dob' => $request->dob,
-                'current_job_title' => $request->graduate_professional_title,
-                'employment_status' => $request->employment_status,
-                'location' => $request->graduate_location,
-                'ethnicity' => $request->graduate_ethnicity,
-                'address' => $request->graduate_address,
-                'about_me' => $request->graduate_about_me,
-                'linkedin_url' => $request->linkedin_url,
-                'github_url' => $request->github_url,
-                'personal_website' => $request->personal_website,
-                'other_social_links' => $request->other_social_links,
-            ]);
+        return redirect()->back()->with('flash.banner', 'Profile updated successfully!');
     }
 
 
@@ -1061,7 +1061,7 @@ if (!$file->getRealPath()) {
     }
 
     // Save employment preferences
-     function saveEmploymentReference(Request $request)
+    function saveEmploymentReference(Request $request)
     {
         $request->validate([
             'job_types' => 'nullable|string',
@@ -1377,11 +1377,11 @@ if (!$file->getRealPath()) {
         ]);
 
         $alumniStory = \App\Models\AlumniStory::findOrFail($id);
-        
+
         // Check if the story belongs to the authenticated user
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        
+
         if ($alumniStory->graduate_id !== $graduate->id) {
             return back()->with('error', 'Unauthorized action.');
         }
@@ -1397,7 +1397,7 @@ if (!$file->getRealPath()) {
             if ($alumniStory->image) {
                 Storage::disk('public')->delete($alumniStory->image);
             }
-            
+
             $file = $request->file('image');
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('alumni_stories', $filename, 'public');
@@ -1412,11 +1412,11 @@ if (!$file->getRealPath()) {
     public function deleteAlumniStory($id)
     {
         $alumniStory = \App\Models\AlumniStory::findOrFail($id);
-        
+
         // Check if the story belongs to the authenticated user
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        
+
         if ($alumniStory->graduate_id !== $graduate->id) {
             return back()->with('error', 'Unauthorized action.');
         }
@@ -1430,11 +1430,11 @@ if (!$file->getRealPath()) {
     public function restoreAlumniStory($id)
     {
         $alumniStory = \App\Models\AlumniStory::withTrashed()->findOrFail($id);
-        
+
         // Check if the story belongs to the authenticated user
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        
+
         if ($alumniStory->graduate_id !== $graduate->id) {
             return back()->with('error', 'Unauthorized action.');
         }
@@ -1444,7 +1444,7 @@ if (!$file->getRealPath()) {
 
         return back()->with('success', 'Alumni story restored successfully!');
     }
-    
+
     /**
      * Show the batch upload form
      */
@@ -1452,35 +1452,35 @@ if (!$file->getRealPath()) {
     {
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        
+
         // Get degree codes for validation
         $degreeCodes = \App\Models\Degree::pluck('code')->toArray();
-        
+
         // Get program codes for validation
         $programCodes = \App\Models\Program::pluck('code')->toArray();
-        
+
         // Get company names for validation
         $companyNames = \App\Models\Company::pluck('company_name')->toArray();
-        
+
         // Create a map of normalized company names to actual company names
         $companyNamesMap = \App\Models\Company::all()
             ->mapWithKeys(function ($company) {
                 return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
             })
             ->toArray();
-        
+
         // Get institution school years for validation
         $institutionId = $graduate->institution_id;
         $institutionSchoolYears = \App\Models\InstitutionSchoolYear::where('institution_id', $institutionId)
             ->with('schoolYear')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'school_year_range' => $item->schoolYear->school_year_range,
                     'term' => $item->term,
                 ];
             });
-        
+
         return Inertia::render('Frontend/ProfileSettings/BatchUpload', [
             'degreeCodes' => $degreeCodes,
             'programCodes' => $programCodes,
@@ -1489,7 +1489,7 @@ if (!$file->getRealPath()) {
             'institutionSchoolYears' => $institutionSchoolYears,
         ]);
     }
-    
+
     /**
      * Handle batch upload of graduate profiles
      */
@@ -1498,22 +1498,22 @@ if (!$file->getRealPath()) {
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt',
         ]);
-        
+
         $file = $request->file('csv_file');
         $errors = [];
         $successCount = 0;
         $errorCount = 0;
-        
+
         // Parse CSV file
         $handle = fopen($file, 'r');
         if (!$handle) {
             return response()->json(['status' => 'error', 'message' => 'Unable to read the CSV file.'], 400);
         }
-        
+
         // Read header row
         $header = fgetcsv($handle);
         $requiredHeaders = ['EMAIL', 'FIRST_NAME', 'LAST_NAME', 'DEGREE_CODE', 'PROGRAM_CODE', 'YEAR_GRADUATED', 'TERM', 'DOB', 'GENDER', 'CONTACT_NUMBER', 'EMPLOYMENT_STATUS', 'COMPANY_NAME', 'CURRENT_JOB_TITLE'];
-        
+
         // Validate headers
         $missingHeaders = array_diff($requiredHeaders, $header);
         if (!empty($missingHeaders)) {
@@ -1522,50 +1522,50 @@ if (!$file->getRealPath()) {
                 'message' => 'CSV file is missing required headers: ' . implode(', ', $missingHeaders)
             ], 400);
         }
-        
+
         // Get current user's institution ID
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
         $institutionId = $graduate->institution_id;
-        
+
         // Get validation data
         $degreeCodes = \App\Models\Degree::pluck('code')->toArray();
         $programCodes = \App\Models\InstitutionProgram::pluck('program_code')->toArray();
         $companyNames = \App\Models\Company::pluck('company_name')->toArray();
-        
+
         // Create a map of normalized company names to actual company names
         $companyNamesMap = \App\Models\Company::all()
             ->mapWithKeys(function ($company) {
                 return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
             })
             ->toArray();
-        
+
         // Get institution school years for validation
         $institutionSchoolYears = \App\Models\InstitutionSchoolYear::where('institution_id', $institutionId)
             ->with('schoolYear')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'school_year_range' => $item->schoolYear->school_year_range,
                     'term' => $item->term,
                 ];
             })
             ->toArray();
-        
+
         // Process each row
         $rowNumber = 1; // Start from 1 to account for header row
         while (($row = fgetcsv($handle)) !== false) {
             $rowNumber++;
-            
+
             // Skip empty rows
             if (empty(array_filter($row))) {
                 continue;
             }
-            
+
             // Map CSV columns to data array
             $data = array_combine($header, $row);
             $rowErrors = [];
-            
+
             // Validate required fields
             $requiredFields = ['EMAIL', 'FIRST_NAME', 'LAST_NAME', 'DEGREE_CODE', 'PROGRAM_CODE', 'YEAR_GRADUATED', 'TERM', 'DOB', 'GENDER', 'CONTACT_NUMBER', 'EMPLOYMENT_STATUS'];
             foreach ($requiredFields as $field) {
@@ -1573,17 +1573,17 @@ if (!$file->getRealPath()) {
                     $rowErrors[] = "$field is required";
                 }
             }
-            
+
             // Validate email format
             if (!empty($data['EMAIL']) && !filter_var($data['EMAIL'], FILTER_VALIDATE_EMAIL)) {
                 $rowErrors[] = "Invalid email format";
             }
-            
+
             // Validate if email already exists
             if (!empty($data['EMAIL']) && \App\Models\User::where('email', $data['EMAIL'])->exists()) {
                 $rowErrors[] = "Email already exists";
             }
-            
+
             // Validate DOB format
             if (!empty($data['DOB'])) {
                 try {
@@ -1592,47 +1592,49 @@ if (!$file->getRealPath()) {
                     $rowErrors[] = "Invalid date format for DOB. Use YYYY-MM-DD";
                 }
             }
-            
+
             // Validate degree code
             if (!empty($data['DEGREE_CODE']) && !in_array($data['DEGREE_CODE'], $degreeCodes)) {
                 $rowErrors[] = "Invalid degree code";
             }
-            
+
             // Validate program code
             if (!empty($data['PROGRAM_CODE']) && !in_array($data['PROGRAM_CODE'], $programCodes)) {
                 $rowErrors[] = "Invalid program code";
             }
-            
+
             // Validate year and term combination
             if (!empty($data['YEAR_GRADUATED']) && !empty($data['TERM'])) {
                 $validYearTerm = false;
                 foreach ($institutionSchoolYears as $schoolYear) {
-                    if ($schoolYear['school_year_range'] == $data['YEAR_GRADUATED'] && 
-                        strtolower($schoolYear['term']) == strtolower($data['TERM'])) {
+                    if (
+                        $schoolYear['school_year_range'] == $data['YEAR_GRADUATED'] &&
+                        strtolower($schoolYear['term']) == strtolower($data['TERM'])
+                    ) {
                         $validYearTerm = true;
                         break;
                     }
                 }
-                
+
                 if (!$validYearTerm) {
                     $rowErrors[] = "Invalid year and term combination";
                 }
             }
-            
+
             // Validate gender
             if (!empty($data['GENDER']) && !in_array(strtolower($data['GENDER']), ['male', 'female', 'other'])) {
                 $rowErrors[] = "Gender must be Male, Female, or Other";
             }
-            
+
             // Validate employment status
             if (!empty($data['EMPLOYMENT_STATUS']) && !in_array(ucfirst(strtolower($data['EMPLOYMENT_STATUS'])), ['Employed', 'Underemployed', 'Unemployed'])) {
                 $rowErrors[] = "Employment status must be Employed, Underemployed, or Unemployed";
             }
-            
+
             // Validate company name based on employment status
             if (!empty($data['EMPLOYMENT_STATUS'])) {
                 $employmentStatus = ucfirst(strtolower($data['EMPLOYMENT_STATUS']));
-                
+
                 if ($employmentStatus == 'Employed' || $employmentStatus == 'Underemployed') {
                     // For employed/underemployed, company name is required and must exist
                     if (empty($data['COMPANY_NAME'])) {
@@ -1651,7 +1653,7 @@ if (!$file->getRealPath()) {
                     }
                 }
             }
-            
+
             // If there are errors, add them to the errors array and continue to the next row
             if (!empty($rowErrors)) {
                 $errors[] = [
@@ -1661,11 +1663,11 @@ if (!$file->getRealPath()) {
                 $errorCount++;
                 continue;
             }
-            
+
             // Process valid row
             try {
                 DB::beginTransaction();
-                
+
                 // Create user
                 $user = new \App\Models\User();
                 $user->name = $this->toTitleCase($data['FIRST_NAME']) . ' ' . $this->toTitleCase($data['LAST_NAME']);
@@ -1673,12 +1675,12 @@ if (!$file->getRealPath()) {
                 $user->password = Hash::make($this->generatePassword());
                 $user->role = 'graduate';
                 $user->save();
-                
+
                 // Get degree and program IDs
                 $degreeId = $this->getDegreeId($data['DEGREE_CODE']);
                 $programId = $this->getProgramId($data['PROGRAM_CODE'], $degreeId);
                 $institutionSchoolYearId = $this->getInstitutionSchoolYearId($data['YEAR_GRADUATED'], $data['TERM'], $institutionId);
-                
+
                 // Create graduate
                 $graduate = new \App\Models\Graduate();
                 $graduate->user_id = $user->id;
@@ -1692,7 +1694,7 @@ if (!$file->getRealPath()) {
                 $graduate->gender = ucfirst(strtolower($data['GENDER']));
                 $graduate->contact_number = $data['CONTACT_NUMBER'];
                 $graduate->employment_status = ucfirst(strtolower($data['EMPLOYMENT_STATUS']));
-                
+
                 // Set company name and job title based on employment status
                 if ($graduate->employment_status == 'Employed' || $graduate->employment_status == 'Underemployed') {
                     $normalizedCompanyName = strtolower(preg_replace('/\s+/', ' ', trim($data['COMPANY_NAME'])));
@@ -1702,9 +1704,9 @@ if (!$file->getRealPath()) {
                     $graduate->company_name = null;
                     $graduate->current_job_title = null;
                 }
-                
+
                 $graduate->save();
-                
+
                 DB::commit();
                 $successCount++;
             } catch (\Exception $e) {
@@ -1716,9 +1718,9 @@ if (!$file->getRealPath()) {
                 $errorCount++;
             }
         }
-        
+
         fclose($handle);
-        
+
         return response()->json([
             'status' => 'success',
             'message' => "Processed $successCount graduates successfully with $errorCount errors",
@@ -1727,7 +1729,7 @@ if (!$file->getRealPath()) {
             'errors' => $errors
         ]);
     }
-    
+
     /**
      * Generate a random password
      */
@@ -1735,7 +1737,7 @@ if (!$file->getRealPath()) {
     {
         return 'Password' . rand(100000, 999999);
     }
-    
+
     /**
      * Convert a string to title case
      */
@@ -1743,14 +1745,14 @@ if (!$file->getRealPath()) {
     {
         return ucwords(strtolower($string));
     }
-    
+
     /**
      * Get degree ID from code
      */
     private function getDegreeId($code)
     {
         $degree = \App\Models\Degree::where('code', $code)->first();
-        
+
         if (!$degree) {
             // If degree doesn't exist, create a new one with the code
             $degree = new \App\Models\Degree();
@@ -1758,10 +1760,10 @@ if (!$file->getRealPath()) {
             $degree->code = $code;
             $degree->save();
         }
-        
+
         return $degree->id;
     }
-    
+
     /**
      * Get program ID from code and degree ID
      */
@@ -1772,7 +1774,7 @@ if (!$file->getRealPath()) {
             ->first();
         return $institutionProgram ? $institutionProgram->program_id : null;
     }
-    
+
     /**
      * Get institution school year ID from year, term, and institution ID
      */
@@ -1782,15 +1784,15 @@ if (!$file->getRealPath()) {
         if (!$schoolYear) {
             return null;
         }
-        
+
         $institutionSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $institutionId)
             ->where('school_year_id', $schoolYear->id)
             ->where('term', $term)
             ->first();
-        
+
         return $institutionSchoolYear ? $institutionSchoolYear->id : null;
     }
-    
+
     /**
      * Download CSV template
      */
@@ -1801,7 +1803,7 @@ if (!$file->getRealPath()) {
             'Content-Type' => 'text/csv',
         ]);
     }
-    
+
     /**
      * Handle batch upload of graduate profiles from text format
      */
@@ -1810,49 +1812,49 @@ if (!$file->getRealPath()) {
         $request->validate([
             'text_data' => 'required|string',
         ]);
-        
+
         $textData = $request->input('text_data');
         $errors = [];
         $successCount = 0;
         $errorCount = 0;
-        
+
         // Get current user's institution ID
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
         $institutionId = $graduate->institution_id;
-        
+
         // Get validation data
         $degreeCodes = \App\Models\Degree::pluck('code')->toArray();
         $programCodes = \App\Models\Program::pluck('code')->toArray();
         $companyNames = \App\Models\Company::pluck('company_name')->toArray();
-        
+
         // Create a map of normalized company names to actual company names
         $companyNamesMap = \App\Models\Company::all()
             ->mapWithKeys(function ($company) {
                 return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
             })
             ->toArray();
-        
+
         // Get institution school years for validation
         $institutionSchoolYears = \App\Models\InstitutionSchoolYear::where('institution_id', $institutionId)
             ->with('schoolYear')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'school_year_range' => $item->schoolYear->school_year_range,
                     'term' => $item->term,
                 ];
             })
             ->toArray();
-        
+
         // Parse text data into structured format
         $profiles = $this->parseTextToProfiles($textData);
-        
+
         // Process each profile
         foreach ($profiles as $index => $profile) {
             $rowNumber = $index + 1;
             $rowErrors = [];
-            
+
             // Validate required fields
             $requiredFields = ['email', 'first_name', 'last_name', 'degree_code', 'program_code', 'year_graduated', 'term', 'dob', 'gender', 'contact_number', 'employment_status'];
             foreach ($requiredFields as $field) {
@@ -1860,17 +1862,17 @@ if (!$file->getRealPath()) {
                     $rowErrors[] = strtoupper($field) . " is required";
                 }
             }
-            
+
             // Validate email format
             if (!empty($profile['email']) && !filter_var($profile['email'], FILTER_VALIDATE_EMAIL)) {
                 $rowErrors[] = "Invalid email format";
             }
-            
+
             // Validate if email already exists
             if (!empty($profile['email']) && \App\Models\User::where('email', $profile['email'])->exists()) {
                 $rowErrors[] = "Email already exists";
             }
-            
+
             // Validate DOB format
             if (!empty($profile['dob'])) {
                 try {
@@ -1879,47 +1881,49 @@ if (!$file->getRealPath()) {
                     $rowErrors[] = "Invalid date format for DOB. Use YYYY-MM-DD";
                 }
             }
-            
+
             // Validate degree code
             if (!empty($profile['degree_code']) && !in_array($profile['degree_code'], $degreeCodes)) {
                 $rowErrors[] = "Invalid degree code";
             }
-            
+
             // Validate program code
             if (!empty($profile['program_code']) && !in_array($profile['program_code'], $programCodes)) {
                 $rowErrors[] = "Invalid program code";
             }
-            
+
             // Validate year and term combination
             if (!empty($profile['year_graduated']) && !empty($profile['term'])) {
                 $validYearTerm = false;
                 foreach ($institutionSchoolYears as $schoolYear) {
-                    if ($schoolYear['school_year_range'] == $profile['year_graduated'] && 
-                        strtolower($schoolYear['term']) == strtolower($profile['term'])) {
+                    if (
+                        $schoolYear['school_year_range'] == $profile['year_graduated'] &&
+                        strtolower($schoolYear['term']) == strtolower($profile['term'])
+                    ) {
                         $validYearTerm = true;
                         break;
                     }
                 }
-                
+
                 if (!$validYearTerm) {
                     $rowErrors[] = "Invalid year and term combination";
                 }
             }
-            
+
             // Validate gender
             if (!empty($profile['gender']) && !in_array(strtolower($profile['gender']), ['male', 'female', 'other'])) {
                 $rowErrors[] = "Gender must be Male, Female, or Other";
             }
-            
+
             // Validate employment status
             if (!empty($profile['employment_status']) && !in_array(ucfirst(strtolower($profile['employment_status'])), ['Employed', 'Underemployed', 'Unemployed'])) {
                 $rowErrors[] = "Employment status must be Employed, Underemployed, or Unemployed";
             }
-            
+
             // Validate company name based on employment status
             if (!empty($profile['employment_status'])) {
                 $employmentStatus = ucfirst(strtolower($profile['employment_status']));
-                
+
                 if ($employmentStatus == 'Employed' || $employmentStatus == 'Underemployed') {
                     // For employed/underemployed, company name is required and must exist
                     if (empty($profile['company_name'])) {
@@ -1938,7 +1942,7 @@ if (!$file->getRealPath()) {
                     }
                 }
             }
-            
+
             // If there are errors, add them to the errors array and continue to the next row
             if (!empty($rowErrors)) {
                 $errors[] = [
@@ -1948,11 +1952,11 @@ if (!$file->getRealPath()) {
                 $errorCount++;
                 continue;
             }
-            
+
             // Process valid row
             try {
                 DB::beginTransaction();
-                
+
                 // Create user
                 $user = new \App\Models\User();
                 $user->name = $this->toTitleCase($profile['first_name']) . ' ' . $this->toTitleCase($profile['last_name']);
@@ -1960,12 +1964,12 @@ if (!$file->getRealPath()) {
                 $user->password = Hash::make($this->generatePassword());
                 $user->role = 'graduate';
                 $user->save();
-                
+
                 // Get degree and program IDs
                 $degreeId = $this->getDegreeId($profile['degree_code']);
                 $programId = $this->getProgramId($profile['program_code'], $degreeId);
                 $institutionSchoolYearId = $this->getInstitutionSchoolYearId($profile['year_graduated'], $profile['term'], $institutionId);
-                
+
                 // Create graduate
                 $graduate = new \App\Models\Graduate();
                 $graduate->user_id = $user->id;
@@ -1979,7 +1983,7 @@ if (!$file->getRealPath()) {
                 $graduate->gender = ucfirst(strtolower($profile['gender']));
                 $graduate->contact_number = $profile['contact_number'];
                 $graduate->employment_status = ucfirst(strtolower($profile['employment_status']));
-                
+
                 // Set company name and job title based on employment status
                 if ($graduate->employment_status == 'Employed' || $graduate->employment_status == 'Underemployed') {
                     $normalizedCompanyName = strtolower(preg_replace('/\s+/', ' ', trim($profile['company_name'])));
@@ -1989,12 +1993,12 @@ if (!$file->getRealPath()) {
                     $graduate->company_name = null;
                     $graduate->current_job_title = null;
                 }
-                
+
                 $graduate->save();
-                
+
                 // Process additional profile data
                 $this->processAdditionalProfileData($user->id, $profile);
-                
+
                 DB::commit();
                 $successCount++;
             } catch (\Exception $e) {
@@ -2006,7 +2010,7 @@ if (!$file->getRealPath()) {
                 $errorCount++;
             }
         }
-        
+
         return response()->json([
             'status' => 'success',
             'message' => "Processed $successCount graduates successfully with $errorCount errors",
@@ -2015,7 +2019,7 @@ if (!$file->getRealPath()) {
             'errors' => $errors
         ]);
     }
-    
+
     /**
      * Parse text data into structured profile data
      */
@@ -2023,32 +2027,32 @@ if (!$file->getRealPath()) {
     {
         $profiles = [];
         $currentProfile = [];
-        
+
         // Split text into lines
         $lines = explode("\n", $textData);
-        
+
         foreach ($lines as $line) {
             $line = trim($line);
             if (empty($line)) continue;
-            
+
             // Check if this is a new profile (starts with "Name:")
             if (preg_match('/^Name:\s+(.+)$/i', $line, $matches)) {
                 // If we have a current profile, add it to the profiles array
                 if (!empty($currentProfile)) {
                     $profiles[] = $this->normalizeProfileData($currentProfile);
                 }
-                
+
                 // Start a new profile
                 $currentProfile = [];
-                
+
                 // Parse the name
                 $fullName = trim($matches[1]);
                 $nameParts = explode(' ', $fullName);
-                
+
                 if (count($nameParts) >= 2) {
                     $currentProfile['first_name'] = $nameParts[0];
                     $currentProfile['last_name'] = end($nameParts);
-                    
+
                     // If there are more than 2 parts, assume middle name(s)
                     if (count($nameParts) > 2) {
                         $middleNames = array_slice($nameParts, 1, -1);
@@ -2059,15 +2063,15 @@ if (!$file->getRealPath()) {
                     $currentProfile['first_name'] = $fullName;
                     $currentProfile['last_name'] = '';
                 }
-                
+
                 continue;
             }
-            
+
             // Parse other fields
             if (preg_match('/^([^:]+):\s*(.*)$/i', $line, $matches)) {
                 $key = trim($matches[1]);
                 $value = trim($matches[2]);
-                
+
                 switch (strtolower($key)) {
                     case 'short-term goals':
                         $currentProfile['short_term_goals'] = $value;
@@ -2213,15 +2217,15 @@ if (!$file->getRealPath()) {
                 }
             }
         }
-        
+
         // Add the last profile if it exists
         if (!empty($currentProfile)) {
             $profiles[] = $this->normalizeProfileData($currentProfile);
         }
-        
+
         return $profiles;
     }
-    
+
     /**
      * Normalize profile data to match required fields
      */
@@ -2233,7 +2237,7 @@ if (!$file->getRealPath()) {
             $lastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $profile['last_name']));
             $profile['email'] = $firstName . '.' . $lastName . '@example.com';
         }
-        
+
         // Set default values for required fields
         $defaults = [
             'degree_code' => 'BS-001',  // Default degree code
@@ -2246,14 +2250,14 @@ if (!$file->getRealPath()) {
             'company_name' => 'N/A',  // Default company name
             'current_job_title' => 'N/A',  // Default job title
         ];
-        
+
         // Apply defaults for missing fields
         foreach ($defaults as $key => $value) {
             if (!isset($profile[$key]) || empty($profile[$key])) {
                 $profile[$key] = $value;
             }
         }
-        
+
         // Map employment type to employment status
         if (isset($profile['employment_status'])) {
             $status = strtolower($profile['employment_status']);
@@ -2267,17 +2271,17 @@ if (!$file->getRealPath()) {
                 $profile['employment_status'] = 'Employed';  // Default to employed
             }
         }
-        
+
         return $profile;
     }
-    
+
     /**
      * Process additional profile data (skills, projects, certifications, etc.)
      */
     private function processAdditionalProfileData($userId, $profile)
     {
         $graduate = \App\Models\Graduate::where('user_id', $userId)->first();
-        
+
         // Process career goals
         if (!empty($profile['short_term_goals']) || !empty($profile['long_term_goals'])) {
             $careerGoal = new \App\Models\CareerGoal();
@@ -2288,7 +2292,7 @@ if (!$file->getRealPath()) {
             $careerGoal->career_path = $profile['career_path'] ?? null;
             $careerGoal->save();
         }
-        
+
         // Process employment preferences
         if (!empty($profile['job_types']) || !empty($profile['salary_expectations']) || !empty($profile['preferred_locations']) || !empty($profile['work_environment'])) {
             $employmentPreference = new \App\Models\EmploymentPreference();
@@ -2299,7 +2303,7 @@ if (!$file->getRealPath()) {
             $employmentPreference->work_environment = $profile['work_environment'] ?? null;
             $employmentPreference->save();
         }
-        
+
         // Process project
         if (!empty($profile['project_title'])) {
             $project = new \App\Models\Project();
@@ -2307,7 +2311,7 @@ if (!$file->getRealPath()) {
             $project->title = $profile['project_title'];
             $project->description = $profile['project_description'] ?? null;
             $project->role = $profile['project_role'] ?? null;
-            
+
             // Parse dates
             if (!empty($profile['project_start_date'])) {
                 try {
@@ -2317,7 +2321,7 @@ if (!$file->getRealPath()) {
                     $project->start_date = now()->format('Y-m-d');
                 }
             }
-            
+
             if (!empty($profile['project_end_date'])) {
                 try {
                     $project->end_date = \Carbon\Carbon::parse($profile['project_end_date'])->format('Y-m-d');
@@ -2326,18 +2330,18 @@ if (!$file->getRealPath()) {
                     $project->end_date = now()->format('Y-m-d');
                 }
             }
-            
+
             $project->key_accomplishments = $profile['project_accomplishments'] ?? null;
             $project->save();
         }
-        
+
         // Process experience
         if (!empty($profile['experience_title'])) {
             $experience = new \App\Models\Experience();
             $experience->graduate_id = $graduate->id;
             $experience->title = $profile['experience_title'];
             $experience->company_name = $profile['experience_company'] ?? null;
-            
+
             // Parse start date
             if (!empty($profile['experience_start_date'])) {
                 try {
@@ -2347,7 +2351,7 @@ if (!$file->getRealPath()) {
                     $experience->start_date = now()->format('Y-m-d');
                 }
             }
-            
+
             // Parse end date or set is_current if "Present"
             if (!empty($profile['experience_end_date'])) {
                 if (strtolower($profile['experience_end_date']) === 'present') {
@@ -2364,20 +2368,20 @@ if (!$file->getRealPath()) {
                     }
                 }
             }
-            
+
             $experience->address = $profile['experience_address'] ?? null;
             $experience->description = $profile['experience_description'] ?? null;
             $experience->employment_type = $profile['employment_type'] ?? 'Full-time';
             $experience->save();
         }
-        
+
         // Process certification
         if (!empty($profile['certification_name'])) {
             $certification = new \App\Models\Certification();
             $certification->graduate_id = $graduate->id;
             $certification->name = $profile['certification_name'];
             $certification->issuer = $profile['certification_issuer'] ?? null;
-            
+
             // Parse dates
             if (!empty($profile['certification_issue_date'])) {
                 try {
@@ -2387,7 +2391,7 @@ if (!$file->getRealPath()) {
                     $certification->issue_date = now()->format('Y-m-d');
                 }
             }
-            
+
             if (!empty($profile['certification_expiry_date'])) {
                 try {
                     $certification->expiry_date = \Carbon\Carbon::parse($profile['certification_expiry_date'])->format('Y-m-d');
@@ -2396,19 +2400,19 @@ if (!$file->getRealPath()) {
                     $certification->expiry_date = now()->format('Y-m-d');
                 }
             }
-            
+
             $certification->credential_url = $profile['certification_url'] ?? null;
             $certification->credential_id = $profile['certification_id'] ?? null;
             $certification->save();
         }
-        
+
         // Process achievement
         if (!empty($profile['achievement_title'])) {
             $achievement = new \App\Models\Achievement();
             $achievement->graduate_id = $graduate->id;
             $achievement->title = $profile['achievement_title'];
             $achievement->type = $profile['achievement_type'] ?? 'Academic';
-            
+
             // Parse date
             if (!empty($profile['achievement_date'])) {
                 try {
@@ -2418,11 +2422,11 @@ if (!$file->getRealPath()) {
                     $achievement->date = now()->format('Y-m-d');
                 }
             }
-            
+
             $achievement->url = $profile['achievement_url'] ?? null;
             $achievement->save();
         }
-        
+
         // Process testimonial
         if (!empty($profile['testimonial_from'])) {
             $testimonial = new \App\Models\Testimonial();
@@ -2432,7 +2436,7 @@ if (!$file->getRealPath()) {
             $testimonial->testimonial = $profile['testimonial_content'] ?? null;
             $testimonial->save();
         }
-        
+
         // Process skills
         for ($i = 1; $i <= 3; $i++) {
             if (!empty($profile['skill_' . $i . '_name'])) {

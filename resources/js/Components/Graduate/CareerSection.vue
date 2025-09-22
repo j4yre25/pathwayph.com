@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 
+
 const props = defineProps({
     experiences: {
         type: Array,
@@ -91,7 +92,7 @@ const formatDate = (dateString) => {
                         <div class="absolute top-0 left-2 h-full w-0.5 bg-indigo-100"></div>
                         
                         <div 
-                            v-for="experience in experiences" 
+                            v-for="experience in sortedExperiences" 
                             :key="experience.id" 
                             class="relative"
                         >

@@ -751,11 +751,11 @@ console.log(page.props.notifications)
                       Profile
                     </DropdownLink>
 
-
-                    <DropdownLink v-if="page.props.auth.user.role === 'graduate'"
-                      :href="route('profile.index', { user: page.props.auth.user.id })"
-                      :active="route().current('profile.index')">
-                      Profile Settings </DropdownLink>
+                    <DropdownLink
+                      v-if="page.props.auth.user.role === 'institution'"
+                      :href="route('institution.profile.settings')">
+                      Profile Settings
+                    </DropdownLink>
 
                     <DropdownLink
                       v-if="page.props.auth.user.role === 'graduate' && page.props.graduate"
@@ -763,6 +763,11 @@ console.log(page.props.notifications)
                       :active="route().current('graduates.profile')">
                       View Profile
                     </DropdownLink>
+                    
+                    <DropdownLink v-if="page.props.auth.user.role === 'graduate'"
+                      :href="route('profile.index', { user: page.props.auth.user.id })"
+                      :active="route().current('profile.index')">
+                      Profile Settings </DropdownLink>
 
                     <DropdownLink v-if="page.props.auth.user.role === 'peso'"
                       :href="route('admin.register')">
@@ -774,9 +779,15 @@ console.log(page.props.notifications)
                       Career Officer Registration
                     </DropdownLink>
 
-                    <DropdownLink v-if="page.props.auth.user.role === 'company'"
+                    <DropdownLink v-if="page.props.auth.user.role === 'company'" 
                       :href="route('company.profile')">
                       Profile
+                    </DropdownLink>
+                    
+                    <DropdownLink
+                      v-if="page.props.auth.user.role === 'company'"
+                      :href="route('company.profile.settings')">
+                      Profile Settings
                     </DropdownLink>
 
                     <DropdownLink

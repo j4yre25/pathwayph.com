@@ -466,51 +466,31 @@ const goBack = () => {
             </h2>
             <ol class="list-decimal pl-6 space-y-2 text-sm text-gray-800">
               <li>
-                <span class="font-semibold">Download the Excel Template:</span>
-                <br>
-                Click the <span class="font-mono bg-green-100 px-2 py-1 rounded">Download Excel Template</span> button below.
+                <span class="font-semibold">Download the Excel Template.</span><br>
+                Click the
+                <span class="font-mono bg-green-100 px-2 py-0.5 rounded">Download Excel Template</span>
+                button.
               </li>
               <li>
-                <span class="font-semibold">Fill Out the Template:</span>
-                <ul class="list-disc pl-6 mt-1">
-                  <li>
-                    Open the downloaded file. You will see <span class="font-semibold">four sheets</span> at the bottom:
-                    <ul class="list-disc pl-6">
-                      <li><span class="font-mono">job_template</span> – Enter the job details here.</li>
-                      <li><span class="font-mono">sector</span> – Reference list of sector codes and sector names.</li>
-                      <li><span class="font-mono">categories</span> – Detailed list of categories (division names) and their sectors.</li>
-                      <li><span class="font-mono">other_info</span> – Explains what to write in each column of <span class="font-mono">job_template</span>.</li>
-                    </ul>
-                  </li>
-                  <li>
-                    In the <span class="font-mono">job_template</span> sheet, go to the <span class="font-mono">category_name</span> column.
-                  </li>
-                  <li>
-                    Copy a <span class="font-mono">division_name</span> from the <span class="font-mono">categories</span> sheet and paste it here.
-                  </li>
-                  <li>
-                    The corresponding <span class="font-mono">sector_name</span> will be filled in automatically.
-                  </li>
-                </ul>
+                <span class="font-semibold">Fill out the <code>job_template</code> sheet.</span><br>
+                Enter data under the columns exactly as shown in the preview.<br>
+                ➤ For detailed guidance, check the <code>other_info</code> sheet.<br>
+                ➤ For an example format, refer to the <code>example</code> sheet included in the template.<br>
+                ⚠️ <strong>Do not rename or remove any column headers</strong>.<br>
+                <span class="text-xs text-gray-600">
+                  Only optional column: <code>job_application_limit</code>. If <code>is_negotiable</code> = yes, leave min/max salary blank.
+                </span>
               </li>
               <li>
-                <span class="font-semibold">Save the File:</span>
-                <br>
-                Save your filled-out file as <span class="font-mono">.xlsx</span> or <span class="font-mono">.csv</span>.
+                <span class="font-semibold">Save the file</span> as <code>.xlsx</code> or <code>.csv</code>.
               </li>
               <li>
-                <span class="font-semibold">Upload the File:</span>
-                <br>
-                Go back to this page and upload your Excel file below.
-                <br>
-                A preview will appear—<span class="font-semibold">check carefully</span> that all information is correct.
-                <br>
-                <span class="text-yellow-700 font-semibold">⚠️ Note:</span> You cannot edit the data in the preview. If you find any mistakes, update your Excel file and re-upload it.
+                <span class="font-semibold">Upload the file.</span><br>
+                A preview will be displayed. If you see errors, correct your file and re-upload.
               </li>
               <li>
-                <span class="font-semibold">Submit the Data:</span>
-                <br>
-                Once everything looks correct in the preview, click <span class="font-mono bg-blue-100 px-2 py-1 rounded">Submit Data</span> to complete the upload.
+                <span class="font-semibold">Submit.</span><br>
+                Only valid rows will be saved. You will receive a summary of jobs posted and graduates invited.
               </li>
             </ol>
           </div>

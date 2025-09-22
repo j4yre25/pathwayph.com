@@ -136,4 +136,29 @@ class CompanyDepartmentController extends Controller
         $department->delete();
         return redirect()->back()->with('success', 'Department deleted!');
     }
+
+    public function archived()
+    {
+        $hr = HumanResource::where('user_id', auth()->id())->first();
+        $archivedDepartments = Department::onlyTrashed()
+            ->where('company_id', $hr->company_id)
+            ->with('hr')
+            ->get()
+            ->map(function ($dep) {
+                $dep->hr_name = $dep->hr ? $dep->hr->first_name . ' ' . $dep->hr->last_name : '';
+                return $dep;
+            });
+        
+        return inertia('Company/ManageHR/Index/Department/ArchivedDept', [
+            'archivedDepartments' => $archivedDepartments,
+            'hr' => $hr,
+        ]);
+    }
+
+    public function restore($id)
+    {
+        $department = Department::onlyTrashed()->findOrFail($id);
+        $department->restore();
+        return redirect()->back()->with('success', 'Department restored successfully!');
+    }
 }

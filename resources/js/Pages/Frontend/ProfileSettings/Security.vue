@@ -200,7 +200,7 @@ const showErrorModal = (message) => {
 <template>
   <div v-if="activeSection === 'security'" class="flex flex-col lg:flex-row">
     <!-- Success Modal -->
-    <Modal :show="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+    <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-emerald-100 rounded-full p-3">
