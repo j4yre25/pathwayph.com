@@ -19,6 +19,9 @@ const props = defineProps({
     type: Object,
     required: true
   },
+
+  schoolYears: { type: Array, default: () => [] }, // [{ id: 1, school_year_range: "2024-2025" }, ...]
+
   experiences: {
     type: Array,
     default: () => []
@@ -35,27 +38,125 @@ const props = defineProps({
 
 });
 
+console.log('Graduate:', props);
+
+
+function formatUrl(url) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+  return 'https://' + url;
+}
+
+const mapEducationEntry = (entry) => ({
+  degree: entry.degree || entry.program || entry.graduate_education_program || '',
+  institution: entry.institution || entry.education || entry.graduate_education_institution_id || '',
+  location: entry.location || entry.city || entry.graduate_education_location || '',
+  level: entry.level || entry.field_of_study || entry.graduate_education_field_of_study || '',
+  start_date: entry.start_date || entry.graduate_education_start_date,
+  end_date: entry.end_date || entry.graduate_education_end_date,
+  is_current: entry.is_current,
+  description: entry.description,
+  achievements: Array.isArray(entry.achievements)
+    ? entry.achievements
+    : entry.achievements
+      ? [entry.achievements]
+      : [],
+});
+
+
+const highestEducation = computed(() => {
+  if (!props.education || props.education.length === 0) return null;
+  const mapped = props.education.map(mapEducationEntry);
+  return mapped.sort((a, b) => new Date(b.end_date || b.start_date) - new Date(a.end_date || a.start_date))[0];
+});
+
+const mappedYearGraduated = computed(() => {
+  // Try nested objects first
+  if (props.graduate.institution_school_year?.school_year_range?.school_year_range) {
+    return props.graduate.institution_school_year.school_year_range.school_year_range;
+  }
+  // Try direct value
+  if (props.graduate.school_year?.school_year_range) {
+    return props.graduate.school_year.school_year_range;
+  }
+  // Map school_year_id to school_year_range
+  if (props.graduate.school_year_id && props.schoolYears.length > 0) {
+    const found = props.schoolYears.find(
+      sy => sy.id === props.graduate.school_year_id
+    );
+    if (found) return found.school_year_range;
+  }
+  // Fallbacks
+  return (
+    props.graduate.graduate_year_graduated ||
+    props.graduate.year_graduated ||
+    'Not provided'
+  );
+});
+const sortedEducation = computed(() => {
+  if (!props.education || props.education.length === 0) return [];
+  return props.education.map(mapEducationEntry)
+    .sort((a, b) => new Date(b.end_date || b.start_date) - new Date(a.end_date || a.start_date));
+});
+
+const mapExperienceEntry = (entry) => ({
+  id: entry.id,
+  title: entry.title || entry.graduate_experience_title || '',
+  company: entry.company || entry.graduate_experience_company || '',
+  start_date: entry.start_date || entry.graduate_experience_start_date || '',
+  end_date: entry.end_date || entry.graduate_experience_end_date || '',
+  address: entry.address || entry.graduate_experience_address || '',
+  description: entry.description || entry.graduate_experience_description || '',
+  employment_type: entry.employment_type || entry.graduate_experience_employment_type || '',
+  is_current: entry.is_current || false,
+  ongoing: entry.is_current || false,
+  skills: entry.skills || [],
+});
+
+const sortedExperiences = computed(() => {
+  if (!props.experiences || props.experiences.length === 0) return [];
+  return props.experiences.map(mapExperienceEntry)
+    .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+});
+
 // Compute grouped skills by category
-const groupedSkillsByCategory = computed(() => {
+const mappedGroupedSkills = computed(() => {
   const grouped = {};
   if (!props.skills || !Array.isArray(props.skills)) return grouped;
 
   props.skills.forEach(skill => {
-    if (!skill || !skill.category) return;
-
-    if (!grouped[skill.category]) {
-      grouped[skill.category] = [];
+    // Use 'type' for grouping (e.g., 'Technical Skills', 'Soft Skills')
+    const groupKey = skill.type || 'Other';
+    if (!grouped[groupKey]) {
+      grouped[groupKey] = [];
     }
-    grouped[skill.category].push(skill);
-
+    grouped[groupKey].push({
+      ...skill,
+      name: skill.name || skill.skill_name || skill.proficiency_type || 'Skill',
+      percentage: typeof skill.percentage === 'number'
+        ? skill.percentage
+        : skill.proficiency_type === 'Expert' ? 100
+          : skill.proficiency_type === 'Advanced' ? 80
+            : skill.proficiency_type === 'Intermediate' ? 60
+              : skill.proficiency_type === 'Elementary' ? 40
+                : skill.proficiency_type === 'Beginner' ? 20
+                  : 0,
+    });
   });
+
   return grouped;
 });
+
+
 
 const showAllSkills = ref(false);
 const SKILLS_LIMIT = 5;
 const activeTab = ref('skills');
-
+const totalSkillsCount = computed(() => {
+  return Object.values(mappedGroupedSkills.value).reduce((acc, arr) => acc + arr.length, 0);
+});
 
 
 const formatDate = (dateString) => {
@@ -120,8 +221,7 @@ const visibleEducation = computed(() => {
             ? 'border-blue-600 text-blue-700 border-b-2 font-medium'
             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
           'px-4 py-3 text-sm flex items-center transition-all duration-200 focus:outline-none'
-        ]" aria-current="page" role="tab" aria-selected="true" aria-controls="tab-resume"
-          id="tab-button-resume">
+        ]" aria-current="page" role="tab" aria-selected="true" aria-controls="tab-resume" id="tab-button-resume">
           <i class="far fa-file-alt mr-2 text-gray-500"></i>
           Resume
         </button>
@@ -286,7 +386,7 @@ const visibleEducation = computed(() => {
                   </div>
 
                   <div class="text-sm text-gray-600 mb-3">
-                    {{ experience.location || 'Location' }}
+                    {{ experience.address || 'Location' }}
                   </div>
 
                   <div class="text-sm text-gray-700 mb-3 whitespace-pre-line">
@@ -348,56 +448,41 @@ const visibleEducation = computed(() => {
                     formatDate(highestEducation.end_date) }}
                 </div>
               </div>
-
               <div class="text-sm font-medium text-blue-600 mb-2">
                 {{ highestEducation.institution || 'Institution' }}
               </div>
 
-              <div class="text-sm text-gray-600 mb-3">
-                {{ highestEducation.location || 'Location' }}
-              </div>
             </div>
           </div>
 
           <div v-if="sortedEducation.length > 0" class="space-y-6">
-            <!-- Timeline Layout -->
             <div class="relative border-l-2 border-gray-200 pl-6 ml-3">
               <div
                 v-for="(edu, index) in showAllEducation ? sortedEducation : sortedEducation.slice(0, maxEducationToShow)"
                 :key="index" class="mb-8 relative transform transition-all duration-200 hover:translate-x-1">
-                <!-- Timeline Dot -->
                 <div
                   class="absolute -left-[31px] mt-1.5 w-5 h-5 rounded-full border-4 border-white bg-blue-500 shadow-sm">
                 </div>
-
-                <!-- Education Card -->
                 <div
                   class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow transition-all duration-200">
                   <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
                     <h4 class="text-base font-medium text-gray-900 mb-1 sm:mb-0">
-                      {{ edu.degree || edu.graduate_education_program || 'Degree' }}
+                      {{ edu.degree || 'Degree' }}
                       <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                        {{ edu.level || edu.graduate_education_field_of_study || 'Level' }}
+                        {{ edu.level || 'Level' }}
                       </span>
                     </h4>
                     <div class="text-sm text-gray-500">
-                      {{ formatDate(edu.start_date || edu.graduate_education_start_date) }} - {{ edu.is_current ?
-                        'Present' : formatDate(edu.end_date || edu.graduate_education_end_date) }}
+                      {{ formatDate(edu.start_date) }} - {{ edu.is_current ? 'Present' : formatDate(edu.end_date) }}
                     </div>
                   </div>
-
                   <div class="text-sm font-medium text-blue-600 mb-2">
-                    {{ edu.institution || edu.graduate_education_institution_id || 'Institution' }}
-                  </div>
-
-                  <div class="text-sm text-gray-600 mb-3">
-                    {{ edu.location || 'Location' }}
+                    {{ edu.institution || 'Institution' }}
                   </div>
 
                   <div class="text-sm text-gray-700 mb-3 whitespace-pre-line">
                     {{ edu.description || 'No description provided' }}
                   </div>
-
                   <div v-if="edu.achievements && edu.achievements.length > 0" class="mt-3">
                     <h5 class="text-sm font-medium text-gray-800 mb-2">Achievements</h5>
                     <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
@@ -554,13 +639,7 @@ const visibleEducation = computed(() => {
               <span v-if="skills && skills.length > 0" class="text-xs text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                 {{ skills.length }} {{ skills.length === 1 ? 'skill' : 'skills' }}
               </span>
-              <button
-                v-if="Object.keys(groupedSkillsByCategory).length > 0 && Object.values(groupedSkillsByCategory).flat().length > SKILLS_LIMIT"
-                @click="showAllSkills = !showAllSkills"
-                class="text-blue-500 text-xs hover:text-blue-700 bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors duration-200 flex items-center">
-                <i :class="[showAllSkills ? 'fa-chevron-up' : 'fa-chevron-down', 'fas mr-1']"></i>
-                {{ showAllSkills ? 'Show Less' : 'Show All' }}
-              </button>
+
             </div>
           </div>
 
@@ -574,7 +653,7 @@ const visibleEducation = computed(() => {
 
             <!-- Skills grid with 2 columns -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-              <template v-for="(categorySkills, category) in groupedSkillsByCategory" :key="category">
+              <template v-for="(categorySkills, category) in mappedGroupedSkills" :key="category">
                 <!-- Category heading -->
                 <div class="md:col-span-2 mt-2 mb-4 first:mt-0">
                   <h4 class="font-medium text-gray-700 border-b border-gray-200 pb-2 flex items-center">
@@ -619,7 +698,6 @@ const visibleEducation = computed(() => {
           </div>
         </div>
       </div>
-
       <!-- Personal Details Section -->
       <div v-else-if="activeTab === 'details'" class="mb-8">
         <div class="bg-white rounded-lg shadow-sm p-6 transition-all duration-200 border border-gray-200">
@@ -641,7 +719,7 @@ const visibleEducation = computed(() => {
                   <div class="w-1/3 text-sm font-medium text-gray-500">Full Name</div>
                   <div class="w-2/3 text-sm text-gray-800">
                     {{ graduate.first_name }} {{ graduate.middle_name ? graduate.middle_name + ' ' : '' }}{{
-                    graduate.last_name }}
+                      graduate.last_name }}
                   </div>
                 </div>
 
@@ -659,17 +737,12 @@ const visibleEducation = computed(() => {
                   </div>
                 </div>
 
-                <div class="flex">
-                  <div class="w-1/3 text-sm font-medium text-gray-500">Nationality</div>
-                  <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.nationality || 'Not provided' }}
-                  </div>
-                </div>
+
 
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Ethnicity</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.graduate_ethnicity || 'Not provided' }}
+                    {{ graduate.ethnicity || graduate.graduate_ethnicity || 'Not provided' }}
                   </div>
                 </div>
               </div>
@@ -686,37 +759,17 @@ const visibleEducation = computed(() => {
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Address</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.graduate_address || 'Not provided' }}
+                    {{ graduate.address || graduate.graduate_address || 'Not provided' }}
                   </div>
                 </div>
 
                 <div class="flex">
-                  <div class="w-1/3 text-sm font-medium text-gray-500">City</div>
+                  <div class="w-1/3 text-sm font-medium text-gray-500">Location</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.city || 'Not provided' }}
+                    {{ graduate.location || graduate.graduate_location || 'Not provided' }}
                   </div>
                 </div>
 
-                <div class="flex">
-                  <div class="w-1/3 text-sm font-medium text-gray-500">State/Province</div>
-                  <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.state || 'Not provided' }}
-                  </div>
-                </div>
-
-                <div class="flex">
-                  <div class="w-1/3 text-sm font-medium text-gray-500">Country</div>
-                  <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.country || 'Not provided' }}
-                  </div>
-                </div>
-
-                <div class="flex">
-                  <div class="w-1/3 text-sm font-medium text-gray-500">Postal Code</div>
-                  <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.postal_code || 'Not provided' }}
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -731,14 +784,14 @@ const visibleEducation = computed(() => {
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Email</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.email || 'Not provided' }}
+                    {{ graduate.user.email || 'Not provided' }}
                   </div>
                 </div>
 
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Phone</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.contact_number || graduate.phone || 'Not provided' }}
+                    {{ graduate.contact_number || graduate.graduate_phone || 'Not provided' }}
                   </div>
                 </div>
 
@@ -788,21 +841,24 @@ const visibleEducation = computed(() => {
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Institution</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.institution_name || 'Not provided' }}
+                    {{ graduate.institution?.institution_name || graduate.graduate_school_graduated_from ||
+                      graduate.institution_name || 'Not provided' }}
                   </div>
                 </div>
 
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Program</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.program_name || 'Not provided' }}
+                    {{ graduate.program?.name || graduate.graduate_program_completed || graduate.program_name ||
+                      'Notprovided'
+                    }}
                   </div>
                 </div>
 
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Year Graduated</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.year_graduated || 'Not provided' }}
+                    {{ mappedYearGraduated }}
                   </div>
                 </div>
 
@@ -816,7 +872,7 @@ const visibleEducation = computed(() => {
                 <div class="flex">
                   <div class="w-1/3 text-sm font-medium text-gray-500">Current Job</div>
                   <div class="w-2/3 text-sm text-gray-800">
-                    {{ graduate.current_job_title || 'Not provided' }}
+                    {{ graduate.current_job_title || 'No Job' }}
                   </div>
                 </div>
               </div>

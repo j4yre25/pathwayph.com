@@ -178,7 +178,7 @@ class ProfileController extends Controller
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:1',
             'last_name' => 'required|string|max:255',
-            'current_job_title' => 'required|string|max:255',
+            'current_job_title' => 'nullable|string|max:255',
             'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
             'graduate_location' => 'nullable|string|max:255', // Accept from frontend
             'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
@@ -189,6 +189,10 @@ class ProfileController extends Controller
             'graduate_address' => 'nullable|string|max:255',
             'graduate_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'graduate_about_me' => 'nullable|string|max:1000',
+            'linkedin_url' => 'nullable|string|max:255',
+            'github_url' => 'nullable|string|max:255',
+            'personal_website' => 'nullable|string|max:255',
+            'other_social_links' => 'nullable|string|max:1000',
         ]);
         /** @var \App\Models\User $user */
 
@@ -199,20 +203,27 @@ class ProfileController extends Controller
             'email' => $validated['email'],
         ]);
 
+        $employmentStatus = $validated['employment_status'];
+        $currentJobTitle = $employmentStatus === 'Unemployed' ? '' : $validated['current_job_title'];
+        
         $graduate->update([
             'first_name' => $validated['first_name'],
             'middle_name' => $validated['middle_name'],
             'last_name' => $validated['last_name'],
-            'current_job_title' => $validated['current_job_title'],
-            'employment_status' => $validated['employment_status'],
+            'current_job_title' => $currentJobTitle,
+            'employment_status' => $employmentStatus,
             'location' => $validated['graduate_location'] ?? $graduate->location, // Map to DB column
             'contact_number' => $validated['contact_number'] ?? $graduate->contact_number,
             'dob' => $validated['dob'] ?? null,
-            'gender' => $validated['gender'] ?? null,
+            'gender' => array_key_exists('gender', $validated) ? $validated['gender'] : $graduate->gender,
             'ethnicity' => $validated['graduate_ethnicity'] ?? null,
             'address' => $validated['graduate_address'] ?? null,
             'about_me' => $validated['graduate_about_me'] ?? null,
             // Add other graduate fields if needed
+            'linkedin_url' => $validated['linkedin_url'] ?? $graduate->linkedin_url,
+            'github_url' => $validated['github_url'] ?? $graduate->github_url,
+            'personal_website' => $validated['personal_website'] ?? $graduate->personal_website,
+            'other_social_links' => $validated['other_social_links'] ?? $graduate->other_social_links,
         ]);
 
         // Handle profile picture upload

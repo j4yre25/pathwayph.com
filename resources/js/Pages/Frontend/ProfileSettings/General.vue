@@ -75,7 +75,7 @@ const profile = ref({
   current_job_title: pageProps.graduate?.current_job_title || '',
   email: pageProps.user?.email || '',
   graduate_phone: pageProps.graduate?.contact_number || '',
-  graduate_location: pageProps.graduate?.graduate_location || '',
+  graduate_location: pageProps.graduate?.location || '',
   graduate_birthdate: pageProps.graduate?.dob ? new Date(pageProps.graduate.dob) : null,
   graduate_gender: pageProps.graduate?.gender || '',
   graduate_ethnicity: pageProps.graduate?.ethnicity || '',
@@ -149,6 +149,12 @@ watch(() => profile.value.fullName, (newFullName) => {
   profile.value.middle_name = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
 });
 
+watch(() => profile.value.employment_status, (newStatus) => {
+  if (newStatus === 'Unemployed') {
+    profile.value.current_job_title = '';
+  }
+});
+
 
 const saveProfile = () => {
   console.log('saveProfile called');
@@ -169,8 +175,8 @@ const saveProfile = () => {
   settingsForm.last_name = profile.value.last_name;
   settingsForm.email = profile.value.email;
   settingsForm.employment_status = profile.value.employment_status;
+  settingsForm.current_job_title = profile.value.current_job_title;
   settingsForm.contact_number = profile.value.graduate_phone; // <-- Map to backend
-  settingsForm.current_job_title = profile.value.current_job_title; // <-- Map to backend
   settingsForm.graduate_location = profile.value.graduate_location;
   settingsForm.gender = profile.value.graduate_gender;
   settingsForm.graduate_ethnicity = profile.value.graduate_ethnicity;
@@ -195,8 +201,9 @@ const saveProfile = () => {
     contact_number: pageProps.graduate?.contact_number || '',
     graduate_location: pageProps.graduate?.graduate_location || '',
     dob: pageProps.graduate?.dob || '',
-    graduate_gender: pageProps.graduate?.gender || '',
+    gender: pageProps.graduate?.gender || '',
     employment_status: pageProps.graduate?.employment_status || '',
+    current_job_title: pageProps.graduate?.current_job_title || '',
     graduate_ethnicity: pageProps.graduate?.ethnicity || '',
     graduate_address: pageProps.graduate?.address || '',
     graduate_about_me: pageProps.graduate?.about_me || '',
@@ -239,6 +246,7 @@ const saveProfile = () => {
       Object.keys(changedFields).forEach(key => {
         profile.value[key] = changedFields[key];
       });
+      window.location.reload();
       showSuccessModal();
       console.log('Profile saved successfully on the backend:', response);
     },
@@ -308,10 +316,15 @@ const validateForm = () => {
   }
 
   // Validate professional title if required by backend
-  if (!profile.value.current_job_title) {
-    errors.current_job_title = 'Professional title is required';
-    isValid = false;
-  }
+
+
+  if (
+  profile.value.employment_status !== 'Unemployed' &&
+  !profile.value.current_job_title
+) {
+  errors.current_job_title = 'Professional title is required';
+  isValid = false;
+}
 
   // Validate location if required by backend
   if (!profile.value.graduate_location) {
@@ -350,7 +363,7 @@ const showSuccessModal = () => {
   isSuccessModalOpen.value = true;
   setTimeout(() => {
     isSuccessModalOpen.value = false;
-  }, 3000);
+  }, 5000);
 };
 
 const showErrorModal = (message) => {
@@ -360,12 +373,13 @@ const showErrorModal = (message) => {
 
 // Validate URL format
 const isValidUrl = (url) => {
-  try {
-    new URL(url);
-    return true;
-  } catch (e) {
-    return false;
-  }
+  // Accept if empty
+  if (!url) return true;
+  // Accept if starts with http:// or https://
+  if (/^https?:\/\/.+/.test(url)) return true;
+  // Accept if looks like a domain (e.g. linkedin.com/in/username)
+  if (/^[\w\-]+\.[\w\-]+.*$/.test(url)) return true;
+  return false;
 };
 
 const initializeData = () => {
@@ -449,7 +463,7 @@ form div {
 
 <template>
   <div v-if="activeSection === 'general'" class="flex flex-col">
-    <Modal :show="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+    <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-3">
@@ -540,7 +554,7 @@ form div {
               <label for="linkedin-url" class="block text-gray-700 font-medium mb-1">LinkedIn Profile</label>
               <div class="relative">
                 <i class="fab fa-linkedin absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="url" id="linkedin-url"
+                <input type="text" id="linkedin-url"
                   class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.linkedin_url }"
                   v-model="profile.linkedin_url" placeholder="https://linkedin.com/in/yourprofile" />
@@ -555,7 +569,7 @@ form div {
               <label for="github-url" class="block text-gray-700 font-medium mb-1">GitHub Profile</label>
               <div class="relative">
                 <i class="fab fa-github absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="url" id="github-url"
+                <input type="text" id="github-url"
                   class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.github_url }"
                   v-model="profile.github_url" placeholder="https://github.com/yourusername" />
@@ -570,7 +584,7 @@ form div {
               <label for="personal-website" class="block text-gray-700 font-medium mb-1">Personal Website</label>
               <div class="relative">
                 <i class="fas fa-globe absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="url" id="personal-website"
+                <input type="text" id="personal-website"
                   class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.personal_website }"
                   v-model="profile.personal_website" placeholder="https://yourwebsite.com" />
@@ -620,6 +634,20 @@ form div {
                 </div>
                 <div v-if="settingsForm.errors.last_name" class="text-red-500 text-sm mt-1">
                   {{ settingsForm.errors.last_name }}
+                </div>
+              </div>
+              <div class="relative">
+                <label for="employment-status" class="block text-gray-700 font-medium mb-1">Employment Status</label>
+                <div class="relative">
+                  <i class="fas fa-user-tie absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  <select id="employment-status"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all appearance-none bg-white"
+                    v-model="profile.employment_status">
+                    <option value="" disabled>Select employment status</option>
+                    <option value="Employed">Employed</option>
+                    <option value="Unemployed">Unemployed</option>
+                    <option value="Underemployed">Underemployed</option>
+                  </select>
                 </div>
               </div>
 
