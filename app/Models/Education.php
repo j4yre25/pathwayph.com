@@ -16,19 +16,10 @@ class Education extends Model
      * @var array
      */
 
-    protected $table = 'graduate_educations';
 
     protected $fillable = [
-        'user_id',
-        'education', 
-        'program',
-        'field_of_study',
-        'start_date',
-        'end_date',
-        'school_year',
-        'achievements',
-        'is_current',
-        'description',
+        'name',
+        'order_rank',
     ];
 
     /**
@@ -36,26 +27,10 @@ class Education extends Model
      *
      * @var array
      */
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'graduate_education_start_date' => 'date',
-        'graduate_education_end_date' => 'date',
-    ];
 
     /**
      * Get the user that owns the education record.
      */
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    
-    public function graduate()
-    {
-        return $this->belongsTo(Graduate::class);
-    }
 
     /**
      * Get the institution associated with the education record.
@@ -67,5 +42,10 @@ class Education extends Model
     public function programRelation()
     {
         return $this->belongsTo(\App\Models\Program::class, 'program', 'name'); // or use program_id if available
+    }
+
+    public function graduateEducations()
+    {
+        return $this->hasMany(GraduateEducation::class, 'education_id');
     }
 }

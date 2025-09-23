@@ -64,7 +64,7 @@ class CompanyReportsController extends Controller
         $vacancyMax      = $request->query('vacancy_max');
         $workEnvironment = $request->query('work_environment'); 
 
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         $dateFrom = null; $dateTo = null;
         if ($datePreset !== 'custom') {
             switch ($datePreset) {
@@ -75,8 +75,8 @@ class CompanyReportsController extends Controller
                 case 'overall': default: $dateFrom = null; $dateTo = null;
             }
         } else {
-            $dateFrom = $dateFromInput ? \Carbon\Carbon::parse($dateFromInput)->startOfDay() : null;
-            $dateTo   = $dateToInput ? \Carbon\Carbon::parse($dateToInput)->endOfDay()   : null;
+            $dateFrom = $dateFromInput ? Carbon::parse($dateFromInput)->startOfDay() : null;
+            $dateTo   = $dateToInput ? Carbon::parse($dateToInput)->endOfDay()   : null;
         }
 
         // Dynamic select (avoid non-existent columns)

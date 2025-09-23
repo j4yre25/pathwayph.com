@@ -11,10 +11,170 @@ import { isValid } from 'date-fns';
 const props = defineProps({
   activeSection: { type: String, default: 'education' },
   user: { type: Object, default: () => ({}) },
-  graduate: { type: Object, default: () => ({}) }, // <-- add this
-  educationEntries: Array,
+  graduate: { type: Object, default: () => ({}) },
+  educationEntries: { type: Array, default: () => [] },
+  institutions: { type: Array, default: () => [] },
+  educationLevels: { type: Array, default: () => [] }, // [{id,name,order_rank}]
+})
 
-});
+// Combo-box local state (unchanged labels but mapped to new columns)
+const institutionInput = ref('') // -> school_name
+const degreeInput = ref('')      // -> level_of_education
+const fieldInput = ref('')       // -> program
+const levelInput = ref('')            // -> level_of_education (text)
+
+const showInstSug = ref(false)
+const showDegSug = ref(false)
+const showProgSug = ref(false)
+const showLevelSug = ref(false)
+
+const selectedInstitution = ref(null) // {id,name}
+const selectedDegree = ref(null)      // {id,type}
+const selectedLevel = ref(null)       // -> sets education_id
+
+// Helpers
+const norm = s => (s || '').toString().toLowerCase().trim()
+
+// Filtered suggestions
+const filteredInstitutions = computed(() => {
+  const q = norm(institutionInput.value)
+  const list = props.institutions || []
+  if (!q) return list.slice(0, 8)
+  return list.filter(i => norm(i.name).includes(q)).slice(0, 8)
+})
+
+const filteredDegrees = computed(() => {
+  if (!selectedInstitution.value) return []
+  const q = norm(degreeInput.value)
+  const degs = selectedInstitution.value.degrees || []
+  const out = q ? degs.filter(d => norm(d.type).includes(q) || norm(d.code).includes(q)) : degs
+  return out.slice(0, 8)
+})
+
+const filteredPrograms = computed(() => {
+  if (!selectedInstitution.value || !selectedDegree.value) return []
+  const q = norm(fieldInput.value)
+  const progs = (selectedInstitution.value.programs || []).filter(p => p.degree_id === selectedDegree.value.id)
+  const out = q ? progs.filter(p => norm(p.name).includes(q)) : progs
+  return out.slice(0, 10)
+})
+
+const filteredLevels = computed(() => {
+  const q = norm(levelInput.value)
+  const list = props.educationLevels || []
+  if (!q) return list.slice(0, 10)
+  return list.filter(l => norm(l.name).includes(q)).slice(0, 10)
+})
+
+// Keep form fields in sync with combo inputs (UPDATED mappings)
+watch(institutionInput, (val) => {
+  education.value.school_name = val || ''              // was education
+  // clear dependant selections if text no longer matches selected
+  const sel = selectedInstitution.value
+  if (!sel || norm(sel.name) !== norm(val)) {
+    selectedInstitution.value = null
+    degreeInput.value = ''
+    fieldInput.value = ''
+    selectedDegree.value = null
+    education.value.level_of_education = ''            // was program
+    education.value.program = ''                       // was field_of_study
+  }
+})
+
+watch(degreeInput, (val) => {
+  education.value.level_of_education = val || ''       // was program
+  const sel = selectedDegree.value
+  if (!sel || norm(sel.type) !== norm(val)) {
+    selectedDegree.value = null
+    fieldInput.value = ''
+    education.value.program = ''                       // was field_of_study
+  }
+})
+
+watch(fieldInput, (val) => {
+  education.value.program = val || ''                  // was field_of_study
+})
+
+watch(levelInput, (val) => {
+  education.value.level_of_education = val || ''
+  const sel = selectedLevel.value
+  if (!sel || norm(sel.name) !== norm(val)) {
+    selectedLevel.value = null
+    education.value.education_id = null
+  }
+})
+
+// Selection handlers (update mapped fields)
+function selectInstitution(inst) {
+  selectedInstitution.value = inst
+  institutionInput.value = inst.name
+  selectedDegree.value = null
+  degreeInput.value = ''
+  fieldInput.value = ''
+  education.value.level_of_education = ''
+  education.value.program = ''
+  showInstSug.value = false
+}
+
+function selectDegree(deg) {
+  selectedDegree.value = deg
+  degreeInput.value = deg.type           // stored as level_of_education text
+  fieldInput.value = ''
+  education.value.program = ''
+  showDegSug.value = false
+}
+
+function selectProgram(prog) {
+  fieldInput.value = prog.name           // stored as program
+  education.value.program = prog.name
+  showProgSug.value = false
+}
+
+function selectLevel(lvl) {
+  selectedLevel.value = lvl
+  levelInput.value = lvl.name
+  education.value.level_of_education = lvl.name
+  education.value.education_id = lvl.id
+  showLevelSug.value = false
+}
+
+// Initialize inputs when opening modals
+const openAddEducationModal = () => {
+  resetEducation()
+  isAddEducationModalOpen.value = true
+  levelInput.value = ''
+  selectedLevel.value = null
+  institutionInput.value = ''
+  degreeInput.value = ''
+  fieldInput.value = ''
+  selectedInstitution.value = null
+  selectedDegree.value = null
+}
+
+const openUpdateEducationModal = (entry) => {
+  education.value = {
+    id: entry.id,
+    education_id: entry.education_id || null,
+    school_name: entry.school_name || '',               // UPDATED
+    level_of_education: entry.level_of_education || '', // UPDATED
+    program: entry.program || '',                       // UPDATED
+    start_date: entry.start_date ? new Date(entry.start_date) : null,
+    end_date: entry.end_date ? new Date(entry.end_date) : null,
+    description: entry.description || '',
+    is_current: !entry.end_date ? true : !!entry.is_current,
+    achievement: entry.achievement || '',               // UPDATED (singular)
+    noAchievements: !entry.achievement
+  }
+  levelInput.value = education.value.level_of_education
+  selectedLevel.value = null
+  institutionInput.value = education.value.school_name
+  degreeInput.value = ''   // UI helper only
+  fieldInput.value = education.value.program
+  selectedInstitution.value = null
+  selectedDegree.value = null
+  isUpdateEducationModalOpen.value = true
+}
+
 const emit = defineEmits(['close-all-modals', 'reset-all-states', 'refresh-education']);
 
 const modals = reactive({
@@ -94,17 +254,19 @@ watch(() => props.activeSection, (newValue) => {
   }
 });
 
+// State for form (UPDATED keys)
 const education = ref({
-  education: '', // institution name
-  program: '',
-  field_of_study: '',
+  education_id: null,            // optional FK to educations.id (levels), keep null if not used
+  school_name: '',               // from Institution combo
+  level_of_education: '',        // from Degree combo
+  program: '',                   // from Field of Study combo
   start_date: null,
   end_date: null,
   description: '',
   is_current: false,
-  achievements: '',
+  achievement: '',               // singular
   noAchievements: false,
-});
+})
 
 const isAddEducationModalOpen = ref(false);
 const isUpdateEducationModalOpen = ref(false);
@@ -129,217 +291,174 @@ watch(() => education.value.end_date, (newValue) => {
   }
 });
 
+// Add Education (UPDATED payload and validation)
 const addEducation = () => {
-  // Validate all required fields
   if (
-    !education.value.education ||
-    education.value.education.trim() === '' ||
-    !education.value.program ||
-    education.value.program.trim() === '' ||
-    !education.value.field_of_study ||
-    education.value.field_of_study.trim() === '' ||
+    !education.value.school_name?.trim() ||
+    !education.value.level_of_education?.trim() ||
+    !education.value.program?.trim() ||
     !education.value.start_date
   ) {
-    errorMessage.value = 'Please fill in all required fields.';
-    modals.isErrorOpen = true;
-    return;
+    errorMessage.value = 'Please fill in all required fields.'
+    modals.isErrorOpen = true
+    return
   }
 
-  // Validate start date
   const startDate = education.value.start_date instanceof Date
     ? education.value.start_date
-    : new Date(education.value.start_date);
-
+    : new Date(education.value.start_date)
   if (isNaN(startDate.getTime())) {
-    errorMessage.value = 'Please enter a valid start date.';
-    modals.isErrorOpen = true;
-    return;
+    errorMessage.value = 'Please enter a valid start date.'
+    modals.isErrorOpen = true
+    return
   }
 
-  // Validate end date if not current education
   if (!education.value.is_current && education.value.end_date) {
     const endDate = education.value.end_date instanceof Date
       ? education.value.end_date
-      : new Date(education.value.end_date);
-
-    if (isNaN(endDate.getTime())) {
-      errorMessage.value = 'Please enter a valid end date.';
-      modals.isErrorOpen = true;
-      return;
-    }
-
-    // Check if end date is after start date
-    if (endDate < startDate) {
-      errorMessage.value = 'End date must be after start date.';
-      modals.isErrorOpen = true;
-      return;
+      : new Date(education.value.end_date)
+    if (isNaN(endDate.getTime()) || endDate < startDate) {
+      errorMessage.value = 'End date must be a valid date and not before start date.'
+      modals.isErrorOpen = true
+      return
     }
   }
 
-  // Check for duplicates - only check non-archived entries
+  // Duplicate check with new fields
   const isDuplicate = educationEntries.value.some(entry =>
-    entry.education === education.value.education &&
-    entry.program === education.value.program &&
-    entry.field_of_study === education.value.field_of_study
-  );
-
+    (entry.school_name || '').trim().toLowerCase() === education.value.school_name.trim().toLowerCase() &&
+    (entry.level_of_education || '').trim().toLowerCase() === education.value.level_of_education.trim().toLowerCase() &&
+    (entry.program || '').trim().toLowerCase() === education.value.program.trim().toLowerCase()
+  )
   if (isDuplicate) {
-    modals.isDuplicateOpen = true;
-    return;
-  }
-
-  // Format dates properly for submission
-  const formattedStartDate = formatDate(education.value.start_date);
-  const formattedEndDate = education.value.is_current ? null : formatDate(education.value.end_date);
-
-  const educationForm = useForm({
-    education: education.value.education.trim(),
-    program: education.value.program.trim(),
-    field_of_study: education.value.field_of_study.trim(),
-    start_date: formattedStartDate,
-    end_date: formattedEndDate,
-    description: education.value.description,
-    is_current: education.value.is_current,
-    achievements: education.value.noAchievements ? null : education.value.achievements,
-  });
-
-  educationForm.post(route('profile.education.add'), {
-    onSuccess: () => {
-      emit('refresh-education');
-      isAddEducationModalOpen.value = false;
-      resetEducation();
-      errorMessage.value = 'Education added successfully!';
-      modals.isSuccessOpen = true;
-    },
-    onError: (errors) => {
-      if (errors.duplicate) {
-        modals.isDuplicateOpen = true;
-      } else {
-        errorMessage.value = errors.message || 'An error occurred while adding education. Please try again.';
-        modals.isErrorOpen = true;
-      }
-    },
-  });
-};
-
-const updateEducation = () => {
-  if (!education.value.id) {
-    errorMessage.value = 'Education ID is missing. Please try again.';
-    modals.isErrorOpen = true;
-    return;
-  }
-
-  // Validate all required fields
-  if (
-    !education.value.education ||
-    education.value.education.trim() === '' ||
-    !education.value.program ||
-    education.value.program.trim() === '' ||
-    !education.value.field_of_study ||
-    education.value.field_of_study.trim() === '' ||
-    !education.value.start_date
-  ) {
-    errorMessage.value = 'Please fill in all required fields.';
-    modals.isErrorOpen = true;
-    return;
-  }
-
-  // Validate start date
-  const startDate = education.value.start_date instanceof Date
-    ? education.value.start_date
-    : new Date(education.value.start_date);
-
-  if (isNaN(startDate.getTime())) {
-    errorMessage.value = 'Please enter a valid start date.';
-    modals.isErrorOpen = true;
-    return;
-  }
-
-  // Validate end date if not current education
-  if (!education.value.is_current && education.value.end_date) {
-    const endDate = education.value.end_date instanceof Date
-      ? education.value.end_date
-      : new Date(education.value.end_date);
-
-    if (isNaN(endDate.getTime())) {
-      errorMessage.value = 'Please enter a valid end date.';
-      modals.isErrorOpen = true;
-      return;
-    }
-
-    // Check if end date is after start date
-    if (endDate < startDate) {
-      errorMessage.value = 'End date must be after start date.';
-      modals.isErrorOpen = true;
-      return;
-    }
-  }
-
-  // Check for duplicates - only check non-archived entries, excluding the current entry
-  const isDuplicate = educationEntries.value.some(entry =>
-    entry.id !== education.value.id &&
-    entry.education === education.value.education &&
-    entry.program === education.value.program &&
-    entry.field_of_study === education.value.field_of_study
-  );
-
-  if (isDuplicate) {
-    modals.isDuplicateOpen = true;
-    return;
+    modals.isDuplicateOpen = true
+    return
   }
 
   const educationForm = useForm({
-    education: education.value.education.trim(),
+    education_id: education.value.education_id, // optional; keep null if not selecting from levels
+    school_name: education.value.school_name.trim(),
+    level_of_education: education.value.level_of_education.trim(),
     program: education.value.program.trim(),
-    field_of_study: education.value.field_of_study.trim(),
     start_date: formatDate(education.value.start_date),
     end_date: education.value.is_current ? null : formatDate(education.value.end_date),
     description: education.value.description,
     is_current: education.value.is_current,
-    achievements: education.value.noAchievements ? null : education.value.achievements,
-    no_achievements: education.value.noAchievements,
-  });
+    achievement: education.value.noAchievements ? null : education.value.achievement,
+  })
+
+  educationForm.post(route('profile.education.add'), {
+    onSuccess: () => {
+      emit('refresh-education')
+      isAddEducationModalOpen.value = false
+      resetEducation()
+      errorMessage.value = 'Education added successfully!'
+      modals.isSuccessOpen = true
+    },
+    onError: (errors) => {
+      errorMessage.value = errors.message || 'An error occurred while adding education. Please try again.'
+      modals.isErrorOpen = true
+    },
+  })
+}
+
+// Update Education (UPDATED payload and validation)
+const updateEducation = () => {
+  if (!education.value.id) {
+    errorMessage.value = 'Education ID is missing. Please try again.'
+    modals.isErrorOpen = true
+    return
+  }
+
+  if (
+    !education.value.school_name?.trim() ||
+    !education.value.level_of_education?.trim() ||
+    !education.value.program?.trim() ||
+    !education.value.start_date
+  ) {
+    errorMessage.value = 'Please fill in all required fields.'
+    modals.isErrorOpen = true
+    return
+  }
+
+  const startDate = education.value.start_date instanceof Date
+    ? education.value.start_date
+    : new Date(education.value.start_date)
+  if (isNaN(startDate.getTime())) {
+    errorMessage.value = 'Please enter a valid start date.'
+    modals.isErrorOpen = true
+    return
+  }
+
+  if (!education.value.is_current && education.value.end_date) {
+    const endDate = education.value.end_date instanceof Date
+      ? education.value.end_date
+      : new Date(education.value.end_date)
+    if (isNaN(endDate.getTime()) || endDate < startDate) {
+      errorMessage.value = 'End date must be a valid date and not before start date.'
+      modals.isErrorOpen = true
+      return
+    }
+  }
+
+  const isDuplicate = educationEntries.value.some(entry =>
+    entry.id !== education.value.id &&
+    (entry.school_name || '').trim().toLowerCase() === education.value.school_name.trim().toLowerCase() &&
+    (entry.level_of_education || '').trim().toLowerCase() === education.value.level_of_education.trim().toLowerCase() &&
+    (entry.program || '').trim().toLowerCase() === education.value.program.trim().toLowerCase()
+  )
+  if (isDuplicate) {
+    modals.isDuplicateOpen = true
+    return
+  }
+
+  const educationForm = useForm({
+    education_id: education.value.education_id,
+    school_name: education.value.school_name.trim(),
+    level_of_education: education.value.level_of_education.trim(),
+    program: education.value.program.trim(),
+    start_date: formatDate(education.value.start_date),
+    end_date: education.value.is_current ? null : formatDate(education.value.end_date),
+    description: education.value.description,
+    is_current: education.value.is_current,
+    achievement: education.value.noAchievements ? null : education.value.achievement,
+  })
 
   educationForm.put(route('profile.education.update', { id: education.value.id }), {
     onSuccess: () => {
-      emit('refresh-education');
-      closeUpdateEducationModal();
-      errorMessage.value = 'Education updated successfully!';
-      modals.isSuccessOpen = true;
+      emit('refresh-education')
+      closeUpdateEducationModal()
+      errorMessage.value = 'Education updated successfully!'
+      modals.isSuccessOpen = true
     },
     onError: (errors) => {
-      if (errors.duplicate) {
-        modals.isDuplicateOpen = true;
-      } else {
-        errorMessage.value = errors.message || 'An error occurred while updating the education entry. Please try again.';
-        modals.isErrorOpen = true;
-      }
+      errorMessage.value = errors.message || 'An error occurred while updating the education entry. Please try again.'
+      modals.isErrorOpen = true
     },
-  });
-};
+  })
+}
 
-const handleIsCurrent = () => {
-  if (education.value.is_current) {
-    education.value.end_date = null;
-  } else {
-    education.value.end_date = '';
-  }
-};
-
+// Reset (UPDATED keys)
 const resetEducation = () => {
   education.value = {
-    education: '',
+    education_id: null,
+    school_name: '',
+    level_of_education: '',
     program: '',
-    field_of_study: '',
     start_date: null,
     end_date: null,
     description: '',
     is_current: false,
-    achievements: '',
+    achievement: '',
     noAchievements: false,
-  };
-};
+  }
+  institutionInput.value = ''
+  degreeInput.value = ''
+  fieldInput.value = ''
+  levelInput.value = ''
+}
 
+// Close handlers
 const closeAddEducationModal = () => {
   isAddEducationModalOpen.value = false;
   resetEducation();
@@ -350,45 +469,15 @@ const closeUpdateEducationModal = () => {
   resetEducation();
 };
 
-const closeEducationAddedModal = () => {
-  isEducationAddedModalOpen.value = false;
-};
-
-const closeEducationUpdatedModal = () => {
-  isEducationUpdatedModalOpen.value = false;
-};
-
-const openAddEducationModal = () => {
-  resetEducation();
-  isAddEducationModalOpen.value = true;
-};
-
+// Open update modal
 const openUpdateModal = (entry) => {
   openUpdateEducationModal(entry);
 };
 
-const openUpdateEducationModal = (entry) => {
-  education.value = {
-    id: entry.id,
-    education: entry.education,
-    program: entry.program,
-    field_of_study: entry.field_of_study,
-    start_date: new Date(entry.start_date),
-    end_date: entry.end_date ? new Date(entry.end_date) : null,
-    description: entry.description || '',
-    is_current: !entry.end_date,
-    achievements: entry.achievements || '',
-    noAchievements: !entry.achievements
-  };
-  isUpdateEducationModalOpen.value = true;
-};
-
-
-
-
+// Handle achievements toggle
 const handleNoAchievements = () => {
   if (education.value.noAchievements) {
-    education.value.achievements = '';
+    education.value.achievement = '';
   }
 };
 </script>
@@ -477,10 +566,12 @@ const handleNoAchievements = () => {
           <div v-if="educationEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
               <div class="space-y-2">
+                <!-- Replace title and subtitle block: -->
                 <div class="border-b pb-2">
-                  <h2 class="text-xl font-bold text-blue-900">{{ entry.education || 'Unknown Institution' }}</h2>
+                  <h2 class="text-xl font-bold text-blue-900">{{ entry.school_name || 'Unknown Institution' }}</h2>
                   <p class="text-gray-700">
-                    <span class="font-medium">{{ entry.program }}</span> in <span class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">{{ entry.field_of_study }}</span>
+                    <span class="font-medium">{{ entry.level_of_education || '—' }}</span>
+                    <span v-if="entry.program"> — <span class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">{{ entry.program }}</span></span>
                   </p>
                 </div>
                 <div class="flex items-center text-gray-600 mt-2">
@@ -490,6 +581,7 @@ const handleNoAchievements = () => {
                       formatDisplayDate(entry.end_date) : 'present' }}
                   </span>
                 </div>
+                <!-- Description and Achievements updated -->
                 <div class="mt-3">
                   <strong>
                     <i class="fas fa-info-circle text-blue-500 mr-2"></i> Description:
@@ -500,15 +592,15 @@ const handleNoAchievements = () => {
                   <strong>
                     <i class="fas fa-trophy text-blue-500 mr-2"></i> Achievements:
                   </strong>
-                  <span v-if="entry.achievements && entry.achievements.includes(',')">
+                  <span v-if="entry.achievement && entry.achievement.includes(',')">
                     <ul class="list-disc list-inside mt-1">
-                      <li v-for="(achievement, index) in entry.achievements.split(',')" :key="index" class="text-gray-700">
-                        {{ achievement.trim() }}
+                      <li v-for="(a, idx) in entry.achievement.split(',')" :key="idx" class="text-gray-700">
+                        {{ a.trim() }}
                       </li>
                     </ul>
                   </span>
                   <span v-else class="block bg-gray-50 p-2 rounded mt-1">
-                    {{ entry.achievements || 'None' }}
+                    {{ entry.achievement || 'None' }}
                   </span>
                 </div>
               </div>
@@ -538,26 +630,120 @@ const handleNoAchievements = () => {
         <p class="text-gray-600 mb-4">Add details about your educational background</p>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="addEducation">
-            <div class="mb-4">
-              <label class="block text-gray-700 font-medium mb-2">Institution <span
-                  class="text-red-500">*</span></label>
-              <input type="text" v-model="education.education"
+            <!-- Level of Education: new combo box -->
+            <div class="mb-4 relative">
+              <label class="block text-gray-700 font-medium mb-2">Level of Education <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                v-model="levelInput"
+                @focus="showLevelSug = true"
+                @blur="() => setTimeout(() => showLevelSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Harvard University" required>
+                placeholder="Select or type level (e.g., Bachelor's, Master's)"
+                required
+              />
+              <ul
+                v-if="showLevelSug && filteredLevels.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="lvl in filteredLevels"
+                  :key="lvl.id"
+                  @mousedown.prevent="selectLevel(lvl)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ lvl.name }}
+                </li>
+              </ul>
+              <div v-if="showLevelSug && !filteredLevels.length" class="text-xs text-gray-400 mt-1">
+                No matches. Press Enter to use “{{ levelInput }}”.
+              </div>
             </div>
-            <div class="mb-4">
+
+            <!-- Institution: suggestive dropdown -->
+            <div class="mb-4 relative">
+              <label class="block text-gray-700 font-medium mb-2">Institution <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                v-model="institutionInput"
+                @focus="showInstSug = true"
+                @blur="() => setTimeout(() => showInstSug = false, 150)"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="Type to search or enter a new institution"
+                required
+              />
+              <ul
+                v-if="showInstSug && filteredInstitutions.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="i in filteredInstitutions"
+                  :key="i.id"
+                  @mousedown.prevent="selectInstitution(i)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ i.name }}
+                </li>
+              </ul>
+              <div v-if="showInstSug && !filteredInstitutions.length" class="text-xs text-gray-400 mt-1">
+                No matches. Press Enter to use “{{ institutionInput }}”.
+              </div>
+            </div>
+
+            <!-- Degree: suggestive dropdown filtered by institution (or free text) -->
+            <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
-              <input type="text" v-model="education.program"
+              <input
+                type="text"
+                v-model="degreeInput"
+                @focus="showDegSug = true"
+                @blur="() => setTimeout(() => showDegSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Bachelor of Science" required>
+                :placeholder="selectedInstitution ? 'Type to search degree' : 'Type a degree (select institution to see suggestions)'"
+                required
+              />
+              <ul
+                v-if="showDegSug && filteredDegrees.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="d in filteredDegrees"
+                  :key="d.id"
+                  @mousedown.prevent="selectDegree(d)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ d.type }}
+                </li>
+              </ul>
             </div>
-            <div class="mb-4">
-              <label class="block text-gray-700 font-medium mb-2">Field of Study <span
-                  class="text-red-500">*</span></label>
-              <input type="text" v-model="education.field_of_study"
+
+            <!-- Field of Study: suggestive dropdown filtered by degree (or free text) -->
+            <div class="mb-4 relative">
+              <label class="block text-gray-700 font-medium mb-2">Field of Study <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                v-model="fieldInput"
+                @focus="showProgSug = true"
+                @blur="() => setTimeout(() => showProgSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Computer Science" required>
+                :placeholder="selectedDegree ? 'Type to search program' : 'Type a field (select degree to see suggestions)'"
+                required
+              />
+              <ul
+                v-if="showProgSug && filteredPrograms.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="p in filteredPrograms"
+                  :key="p.id"
+                  @mousedown.prevent="selectProgram(p)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ p.name }}
+                </li>
+              </ul>
             </div>
+
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="education.start_date"
@@ -584,7 +770,7 @@ const handleNoAchievements = () => {
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Achievements</label>
-              <textarea v-model="education.achievements"
+              <textarea v-model="education.achievement"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="List honors, awards, and scholarships..."
                 :disabled="education.noAchievements"></textarea>
@@ -619,26 +805,120 @@ const handleNoAchievements = () => {
         <p class="text-gray-600 mb-4">Update details about your educational background</p>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="updateEducation">
-            <div class="mb-4">
-              <label class="block text-gray-700 font-medium mb-2">Institution <span
-                  class="text-red-500">*</span></label>
-              <input type="text" v-model="education.education"
+            <!-- Institution: suggestive dropdown -->
+            <div class="mb-4 relative">
+              <label class="block text-gray-700 font-medium mb-2">Institution <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                v-model="institutionInput"
+                @focus="showInstSug = true"
+                @blur="() => setTimeout(() => showInstSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Harvard University" required>
+                placeholder="Type to search or enter a new institution"
+                required
+              />
+              <ul
+                v-if="showInstSug && filteredInstitutions.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="i in filteredInstitutions"
+                  :key="i.id"
+                  @mousedown.prevent="selectInstitution(i)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ i.name }}
+                </li>
+              </ul>
+              <div v-if="showInstSug && !filteredInstitutions.length" class="text-xs text-gray-400 mt-1">
+                No matches. Press Enter to use “{{ institutionInput }}”.
+              </div>
             </div>
-            <div class="mb-4">
+
+            <!-- Degree: suggestive dropdown filtered by institution (or free text) -->
+            <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
-              <input type="text" v-model="education.program"
+              <input
+                type="text"
+                v-model="degreeInput"
+                @focus="showDegSug = true"
+                @blur="() => setTimeout(() => showDegSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Bachelor of Science" required>
+                :placeholder="selectedInstitution ? 'Type to search degree' : 'Type a degree (select institution to see suggestions)'"
+                required
+              />
+              <ul
+                v-if="showDegSug && filteredDegrees.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="d in filteredDegrees"
+                  :key="d.id"
+                  @mousedown.prevent="selectDegree(d)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ d.type }}
+                </li>
+              </ul>
             </div>
-            <div class="mb-4">
-              <label class="block text-gray-700 font-medium mb-2">Field of Study <span
-                  class="text-red-500">*</span></label>
-              <input type="text" v-model="education.field_of_study"
+
+            <!-- Field of Study: suggestive dropdown filtered by degree (or free text) -->
+            <div class="mb-4 relative">
+              <label class="block text-gray-700 font-medium mb-2">Field of Study <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                v-model="fieldInput"
+                @focus="showProgSug = true"
+                @blur="() => setTimeout(() => showProgSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Computer Science" required>
+                :placeholder="selectedDegree ? 'Type to search program' : 'Type a field (select degree to see suggestions)'"
+                required
+              />
+              <ul
+                v-if="showProgSug && filteredPrograms.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="p in filteredPrograms"
+                  :key="p.id"
+                  @mousedown.prevent="selectProgram(p)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ p.name }}
+                </li>
+              </ul>
             </div>
+
+            <!-- Level of Education: new combo box -->
+            <div class="mb-4 relative">
+              <label class="block text-gray-700 font-medium mb-2">Level of Education <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                v-model="levelInput"
+                @focus="showLevelSug = true"
+                @blur="() => setTimeout(() => showLevelSug = false, 150)"
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="Select or type level (e.g., Bachelor's, Master's)"
+                required
+              />
+              <ul
+                v-if="showLevelSug && filteredLevels.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="lvl in filteredLevels"
+                  :key="lvl.id"
+                  @mousedown.prevent="selectLevel(lvl)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ lvl.name }}
+                </li>
+              </ul>
+              <div v-if="showLevelSug && !filteredLevels.length" class="text-xs text-gray-400 mt-1">
+                No matches. Press Enter to use “{{ levelInput }}”.
+              </div>
+            </div>
+
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Start Date <span class="text-red-500">*</span></label>
               <Datepicker v-model="education.start_date"
@@ -668,7 +948,7 @@ const handleNoAchievements = () => {
 
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Achievements</label>
-              <textarea v-model="education.achievements"
+              <textarea v-model="education.achievement"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 rows="3" placeholder="List honors, awards, and scholarships..."
                 :disabled="education.noAchievements"></textarea>
