@@ -308,7 +308,7 @@ const reloadPage = () => {
         </template>
     </FormSection>
 
-    <Modal :show="showModal" @close="reloadPage()">
+    <Modal :modelValue="showModal" @close="reloadPage()">
         <template #title>
             {{ modalTitle }}
         </template>

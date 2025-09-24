@@ -12,8 +12,7 @@ const tabs = [
     { label: 'Unemployment Rate', value: 'unemployment' },
     { label: 'Demand-Supply Career Gap Map', value: 'demandSupply' },
     { label: 'School-wise Employability', value: 'schoolwise' },
-    { label: 'Skills and Roles Analysis', value: 'skillsroles' },
-    { label: 'Skills Gap Analysis', value: 'skillsgap' },
+
 ]
 const activeTab = ref('overview')
 

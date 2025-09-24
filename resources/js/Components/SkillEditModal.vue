@@ -53,7 +53,7 @@ function closeModal() {
 </script>
 
 <template>
-  <Modal :show="show" max-width="md" @close="closeModal">
+  <Modal :modelValue="show" max-width="md" @close="closeModal">
     <div class="p-6">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center">

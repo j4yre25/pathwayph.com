@@ -173,7 +173,7 @@ const removeAchievement = (id) => {
 <template>
     <div v-if="activeSection === 'achievements'" class="flex flex-col lg:flex-row">
         <!-- Success Modal -->
-        <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+        <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
             <div class="p-6">
                 <div class="flex items-center justify-center mb-4">
                     <div class="bg-blue-100 rounded-full p-2">
@@ -195,7 +195,7 @@ const removeAchievement = (id) => {
         </Modal>
 
         <!-- Error Modal -->
-        <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+        <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
             <div class="p-6">
                 <div class="flex items-center justify-center mb-4">
                     <div class="bg-red-100 rounded-full p-2">
@@ -217,7 +217,7 @@ const removeAchievement = (id) => {
         </Modal>
 
         <!-- Duplicate Modal -->
-        <Modal :show="isDuplicateModalOpen" @close="closeDuplicateModal">
+        <Modal :modelValue="isDuplicateModalOpen" @close="closeDuplicateModal">
             <div class="p-6">
                 <div class="flex items-center justify-center mb-4">
                     <div class="bg-yellow-100 rounded-full p-2">

@@ -151,10 +151,10 @@ const updateCertification = () => {
   form.issue_date = formatDate(form.issue_date);
   form.expiry_date = form.noExpiryDate ? null : formatDate(form.expiry_date);
   form.credential_url = form.noCredentialUrl ? '' : form.credential_url;
-  form.put(route('profile.certifications.update', form.id), {
+  form.post(route('profile.certifications.update', form.id), {
     forceFormData: true,
+    _method: 'PUT',
     onSuccess: (response) => {
-
       isUpdateCertificationModalOpen.value = false;
       successMessage.value = 'Certification updated successfully!';
       isSuccessModalOpen.value = true;
@@ -166,8 +166,13 @@ const updateCertification = () => {
       } else {
         errorMessage.value = 'Failed to update certification. Please check the form and try again.';
         isErrorModalOpen.value = true;
+        isUpdateCertificationModalOpen.value = false; // <-- Ensure modal closes on error
       }
     },
+    onFinish: () => {
+      // Always close modal after request finishes
+      isUpdateCertificationModalOpen.value = false;
+    }
   });
 };
 
@@ -190,7 +195,7 @@ const removeCertification = (entry) => {
 
 <template>
   <!-- Success Modal -->
-  <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+  <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
     <div class="p-6">
       <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-16 h-16 mx-auto">
         <i class="fas fa-check text-2xl text-green-600"></i>
@@ -207,7 +212,7 @@ const removeCertification = (entry) => {
   </Modal>
 
   <!-- Error Modal -->
-  <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+  <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
     <div class="p-6">
       <div class="flex items-center justify-center mb-4 bg-red-100 rounded-full w-16 h-16 mx-auto">
         <i class="fas fa-times text-2xl text-red-600"></i>
@@ -224,7 +229,7 @@ const removeCertification = (entry) => {
   </Modal>
 
   <!-- Duplicate Modal -->
-  <Modal :show="isDuplicateModalOpen" @close="closeDuplicateModal">
+  <Modal :modelValue="isDuplicateModalOpen" @close="closeDuplicateModal">
     <div class="p-6">
       <div class="flex items-center justify-center mb-4 bg-amber-100 rounded-full w-16 h-16 mx-auto">
         <i class="fas fa-exclamation-triangle text-2xl text-amber-600"></i>
@@ -243,9 +248,11 @@ const removeCertification = (entry) => {
   <div v-if="activeSection === 'certifications'" class="flex flex-col lg:flex-row">
     <div class="w-full mb-6">
       <!-- Active Certifications Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
+      <div
+        class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
         <!-- Card Header -->
-        <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 text-white">
+        <div
+          class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100 text-white">
           <div class="flex items-center">
             <div class="bg-white/20 p-2 rounded-full mr-3">
               <i class="fas fa-certificate"></i>
@@ -265,11 +272,11 @@ const removeCertification = (entry) => {
             </button>
           </div>
         </div>
-        
+
         <!-- Card Body -->
         <div class="p-6 transition-all duration-300">
           <p class="text-gray-600 mb-6">Showcase your certifications</p>
-          
+
           <!-- Certification Entries -->
           <div v-if="filteredCertificationsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="entry in filteredCertificationsEntries" :key="entry?.id"
@@ -277,7 +284,8 @@ const removeCertification = (entry) => {
               <div class="space-y-2 w-full">
                 <div class="border-b border-blue-100 pb-2">
                   <h2 class="text-xl font-bold text-blue-900">{{ entry.name }}</h2>
-                  <p class="text-sm text-gray-600"><i class="fas fa-certificate text-blue-600 mr-2"></i>{{ entry.issuer }}</p>
+                  <p class="text-sm text-gray-600"><i class="fas fa-certificate text-blue-600 mr-2"></i>{{ entry.issuer
+                  }}</p>
                 </div>
                 <div class="flex items-center text-gray-600 mt-2 bg-blue-50 px-3 py-1 rounded-full inline-block">
                   <i class="far fa-calendar-alt mr-2 text-blue-600"></i>
@@ -305,16 +313,21 @@ const removeCertification = (entry) => {
                   <span class="font-mono">{{ entry.credential_id || 'No credential ID provided' }}</span>
                 </p>
                 <div v-if="entry.file_path" class="mt-3">
-                  <a :href="`/storage/${entry.file_path}`" target="_blank" class="text-blue-600 hover:underline bg-gray-50 p-2 rounded-md border border-blue-100 inline-block">
+                  <a :href="`/storage/${entry.file_path}`" target="_blank"
+                    class="text-blue-600 hover:underline bg-gray-50 p-2 rounded-md border border-blue-100 inline-block">
                     <i class="fas fa-file-pdf mr-2"></i> View Certificate
                   </a>
                 </div>
               </div>
               <div class="absolute top-6 right-4 flex space-x-4">
-                <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150" @click="openUpdateCertificationModal(entry)">
+                <button
+                  class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150"
+                  @click="openUpdateCertificationModal(entry)">
                   <i class="fas fa-edit"></i>
                 </button>
-                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="removeCertification(entry)">
+                <button
+                  class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
+                  @click="removeCertification(entry)">
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
@@ -336,7 +349,8 @@ const removeCertification = (entry) => {
       <div v-if="showArchivedCertifications" class="mb-6">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300">
           <!-- Card Header -->
-          <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white border-b border-gray-200">
+          <div
+            class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white border-b border-gray-200">
             <div class="flex items-center">
               <div class="bg-gray-100 p-2 rounded-full mr-3">
                 <i class="fas fa-archive text-gray-600"></i>
@@ -344,7 +358,7 @@ const removeCertification = (entry) => {
               <h3 class="text-lg font-semibold text-gray-800">Archived Certifications</h3>
             </div>
           </div>
-          
+
           <!-- Card Body -->
           <div class="p-6 transition-all duration-300">
             <div v-if="filteredArchivedCertificationsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -381,18 +395,23 @@ const removeCertification = (entry) => {
                     <span class="font-mono">{{ entry.credential_id || 'No credential ID provided' }}</span>
                   </p>
                   <div v-if="entry.file_path" class="mt-3">
-                    <a :href="`/storage/${entry.file_path}`" target="_blank" class="text-blue-600 hover:underline bg-gray-100 p-2 rounded-md border border-gray-200 inline-block">
+                    <a :href="`/storage/${entry.file_path}`" target="_blank"
+                      class="text-blue-600 hover:underline bg-gray-100 p-2 rounded-md border border-gray-200 inline-block">
                       <i class="fas fa-file-pdf mr-2"></i> View Certificate
                     </a>
                   </div>
                 </div>
                 <div class="absolute top-6 right-4 flex space-x-4">
-                  <button class="inline-flex items-center px-2 py-1 bg-green-100 border border-green-300 rounded-md font-semibold text-xs text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150" @click="unarchiveCertification(entry)">
-                  <i class="fas fa-undo"></i>
-                </button>
-                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="removeCertification(entry)">
-                  <i class="fas fa-trash"></i>
-                </button>
+                  <button
+                    class="inline-flex items-center px-2 py-1 bg-green-100 border border-green-300 rounded-md font-semibold text-xs text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150"
+                    @click="unarchiveCertification(entry)">
+                    <i class="fas fa-undo"></i>
+                  </button>
+                  <button
+                    class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
+                    @click="removeCertification(entry)">
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </div>
                 <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
                   Archived
@@ -472,7 +491,7 @@ const removeCertification = (entry) => {
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
             <PrimaryButton type="submit" class="w-full">Add
-               Certification</PrimaryButton>
+              Certification</PrimaryButton>
           </form>
         </div>
       </div>
@@ -542,8 +561,8 @@ const removeCertification = (entry) => {
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
             <PrimaryButton type="submit" class="w-full">Update
-               Certification
-             </PrimaryButton>
+              Certification
+            </PrimaryButton>
           </form>
         </div>
       </div>
@@ -557,9 +576,11 @@ const removeCertification = (entry) => {
   0% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
   }
@@ -570,6 +591,7 @@ const removeCertification = (entry) => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

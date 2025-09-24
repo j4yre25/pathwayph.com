@@ -167,7 +167,7 @@ const closeModal = () => {
   </div>
   
   <!-- Portfolio Modal -->  
-  <Modal :show="isViewDetailsModalOpen" @close="closeModal" max-width="6xl">
+  <Modal :modelValue="isViewDetailsModalOpen" @close="closeModal" max-width="6xl">
     <div class="p-6">
       <div v-if="isLoading" class="flex justify-center items-center py-8">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>

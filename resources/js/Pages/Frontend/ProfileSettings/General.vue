@@ -137,6 +137,7 @@ const profile = ref({
     : (pageProps.user?.profile_picture ? `/storage/${pageProps.user.profile_picture}` : 'path/to/default/image.jpg'),
   employment_status: pageProps.graduate?.employment_status || '',
   current_job_title: pageProps.graduate?.current_job_title || '',
+  profession: pageProps.graduate?.profession || '',
   email: pageProps.user?.email || '',
   graduate_phone: pageProps.graduate?.contact_number || '',
   graduate_location: pageProps.graduate?.location || '',
@@ -166,6 +167,7 @@ const settingsForm = useForm({
   middle_name: profile.value.middle_name,
   last_name: profile.value.last_name,
   current_job_title: profile.value.current_job_title,
+  profession: profile.value.profession,
   email: profile.value.email,
   graduate_phone: profile.value.graduate_phone,
   graduate_location: profile.value.graduate_location,
@@ -238,6 +240,7 @@ const saveProfile = () => {
   settingsForm.last_name = profile.value.last_name;
   settingsForm.email = profile.value.email;
   settingsForm.employment_status = profile.value.employment_status;
+  settingsForm.profession = profile.value.profession;
   settingsForm.current_job_title = profile.value.current_job_title;
   settingsForm.contact_number = profile.value.graduate_phone; // <-- Map to backend
   settingsForm.graduate_location = profile.value.graduate_location;
@@ -260,6 +263,7 @@ const saveProfile = () => {
     middle_name: pageProps.graduate?.middle_name || '',
     last_name: pageProps.graduate?.last_name || '',
     current_job_title: pageProps.graduate?.current_job_title || '',
+    profession: pageProps.graduate?.profession || '',
     email: user.value.email || '',
     contact_number: pageProps.graduate?.contact_number || '',
     graduate_location: pageProps.graduate?.graduate_location || '',
@@ -382,12 +386,12 @@ const validateForm = () => {
 
 
   if (
-  profile.value.employment_status !== 'Unemployed' &&
-  !profile.value.current_job_title
-) {
-  errors.current_job_title = 'Professional title is required';
-  isValid = false;
-}
+    profile.value.employment_status !== 'Unemployed' &&
+    !profile.value.current_job_title
+  ) {
+    errors.current_job_title = 'Professional title is required';
+    isValid = false;
+  }
 
   // Validate location if required by backend
   if (!profile.value.graduate_location) {
@@ -546,7 +550,7 @@ form div {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="isErrorModalOpen" @close="isErrorModalOpen = false">
+    <Modal :modelValue="isErrorModalOpen" @close="isErrorModalOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-3">
@@ -564,7 +568,7 @@ form div {
     </Modal>
 
     <!-- No Changes Modal -->
-    <Modal :show="isNoChangesModalOpen" @close="isNoChangesModalOpen = false">
+    <Modal :modelValue="isNoChangesModalOpen" @close="isNoChangesModalOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-blue-100 rounded-full p-3">
@@ -714,15 +718,24 @@ form div {
                 </div>
               </div>
 
-              <!-- Professional Title -->
+              <!-- Current Job -->
               <div class="relative">
-                <label for="professional-title" class="block text-gray-700 font-medium mb-1">Professional Title</label>
+                <label for="professional-title" class="block text-gray-700 font-medium mb-1">Current Job</label>
                 <div class="relative">
                   <i class="fas fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                   <input type="text" id="current_job_title"
                     class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                    v-model="profile.current_job_title" placeholder="Enter your professional title" />
+                    v-model="profile.current_job_title" placeholder="Enter your current job" />
                 </div>
+              </div>
+
+              <div class="mb-4">
+                <label for="profession" class="block text-gray-700 font-medium mb-1">Profession</label>
+                 <div class="relative">
+                  <i class="fas fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                id="profession" v-model="profile.profession" placeholder="Enter your profession" />
+                  </div>
               </div>
 
               <!-- Gender -->

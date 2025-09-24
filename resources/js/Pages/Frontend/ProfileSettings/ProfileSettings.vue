@@ -305,7 +305,7 @@ const { props } = usePage();
                 </div>
 
                 <!-- Alumni Stories Section - Least Important -->
-                <div
+                <!-- <div
                   class="bg-white p-6 rounded-lg border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-300">
                   <div class="flex items-center mb-4 border-b pb-3">
                     <div class="bg-indigo-100 p-2 rounded-full mr-3">
@@ -317,7 +317,7 @@ const { props } = usePage();
                     :alumniStoriesEntries="props.alumniStoriesEntries"
                     :archivedAlumniStoriesEntries="props.archivedAlumniStoriesEntries"
                     @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
-                </div>
+                </div> -->
               </div>
 
               <!-- Career Profile Settings -->

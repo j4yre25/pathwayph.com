@@ -240,7 +240,7 @@ onMounted(() => {
 <template>
   <div v-if="activeSection === 'testimonials'" class="flex flex-col lg:flex-row">
     <!-- Success Modal -->
-    <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+    <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-2">
@@ -261,7 +261,7 @@ onMounted(() => {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+    <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-2">
@@ -282,7 +282,7 @@ onMounted(() => {
     </Modal>
 
     <!-- Duplicate Modal -->
-    <Modal :show="isDuplicateModalOpen" @close="closeDuplicateModal">
+    <Modal :modelValue="isDuplicateModalOpen" @close="closeDuplicateModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-yellow-100 rounded-full p-2">
@@ -471,7 +471,7 @@ onMounted(() => {
     </div>
 
     <!-- Success Modal -->
-    <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+    <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-2">
@@ -492,7 +492,7 @@ onMounted(() => {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+    <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-2">
@@ -513,7 +513,7 @@ onMounted(() => {
     </Modal>
 
     <!-- Duplicate Modal -->
-    <Modal :show="isDuplicateModalOpen" @close="closeDuplicateModal">
+    <Modal :modelValue="isDuplicateModalOpen" @close="closeDuplicateModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-yellow-100 rounded-full p-2">

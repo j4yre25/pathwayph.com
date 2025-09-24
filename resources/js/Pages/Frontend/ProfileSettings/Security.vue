@@ -221,7 +221,7 @@ const showErrorModal = (message) => {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="isErrorModalOpen" @close="isErrorModalOpen = false">
+    <Modal :modelValue="isErrorModalOpen" @close="isErrorModalOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-rose-100 rounded-full p-3">
