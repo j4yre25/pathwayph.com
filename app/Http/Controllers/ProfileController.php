@@ -8,6 +8,7 @@ use App\Http\Requests\SkillUpdateRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use App\Models\Education;
+use App\Models\GraduateEducation;
 use App\Models\Skill;
 use App\Models\GraduateSkill;
 use Illuminate\Http\Request;
@@ -49,13 +50,20 @@ class ProfileController extends Controller
         $experienceEntries = Experience::with('company')
             ->where('graduate_id', $graduate->id)
             ->get();
+    
+        $archivedExperienceEntries = Experience::onlyTrashed()
+            ->where('graduate_id', $graduate->id)
+            ->get();
 
         // Fetch all institution users (adjust as needed)
         $instiUsers = User::where('role', 'institution')->get();
 
-        // Remove with('institution') here
-        $educationEntries = Education::where('graduate_id', $graduate->id)
+        $educationEntries = GraduateEducation::where('graduate_id', $graduate->id)
             ->whereNull('deleted_at')
+            ->get();
+
+        $archivedEducationEntries = GraduateEducation::onlyTrashed()
+            ->where('graduate_id', $graduate->id)
             ->get();
 
         $internships = [];
@@ -65,16 +73,45 @@ class ProfileController extends Controller
                 ->get();
         }
 
-        // Add these lines:
+        $institutionsRaw = Institution::with([
+            'institutionDegrees.degree:id,type,code',
+            'institutionPrograms.program:id,name,degree_id',
+        ])->get(['id', 'institution_name']);
+
+        $institutions = $institutionsRaw->map(function ($inst) {
+            return [
+                'id' => $inst->id,
+                'name' => $inst->institution_name,
+                'degrees' => $inst->institutionDegrees
+                    ->filter(fn($idg) => $idg->degree)
+                    ->map(fn($idg) => [
+                        'id' => $idg->degree->id,
+                        'type' => $idg->degree->type,
+                        'code' => $idg->degree->code ?? null,
+                    ])->unique('id')->values(),
+                'programs' => $inst->institutionPrograms
+                    ->filter(fn($ip) => $ip->program)
+                    ->map(fn($ip) => [
+                        'id' => $ip->program->id,
+                        'name' => $ip->program->name,
+                        'degree_id' => $ip->program->degree_id,
+                    ])->values(),
+            ];
+        })->values();
+
+        $educationLevels = Education::orderBy('order_rank')->get(['id','name','order_rank']);
+        $locations = Location::select('id', 'address as name')->orderBy('address')->get();
         $companies = Company::select('id', 'company_name as name')->orderBy('company_name')->get();
         $sectors = Sector::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Frontend/ProfileSettings/ProfileSettings', [
             'user' => $user,
-            'graduate' => $graduate, // <-- pass this!
+            'graduate' => $graduate, 
             'instiUsers' => $instiUsers,
             'educationEntries' => $educationEntries,
+            'archivedEducationEntries' => $archivedEducationEntries,
             'experienceEntries' => $experienceEntries,
+            'archivedExperienceEntries' => $archivedExperienceEntries,
             'skillEntries' => GraduateSkill::with('skill')
                 ->where('graduate_id', $graduate->id)
                 ->get()
@@ -95,7 +132,10 @@ class ProfileController extends Controller
             'careerGoals' => CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
             'internships' => $internships,
+            'institutions' => $institutions,
+            'educationLevels' => $educationLevels,
             'companies' => $companies,
+            'locations' => $locations,
             'sectors' => $sectors,
         ]);
     }
@@ -105,23 +145,50 @@ class ProfileController extends Controller
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        // Remove with('institution') here
-        $educationEntries = Education::where('graduate_id', $graduate->id)
+        $educationEntries = GraduateEducation::where('graduate_id', $graduate->id)
             ->whereNull('deleted_at')
             ->get();
 
-        $archivedEducationEntries = Education::where('graduate_id', $graduate->id)
+        $archivedEducationEntries = GraduateEducation::where('graduate_id', $graduate->id)
             ->whereNotNull('deleted_at')
             ->get();
 
-        $institutions = Institution::select('id', 'institution_name')->get();
+        // Load institutions with degrees and programs
+        $institutions = Institution::with([
+            'institutionDegrees.degree:id,type,code',
+            'institutionPrograms.program:id,name,degree_id' // code optional; remove if not present
+        ])->get(['id', 'institution_name']);
+
+        // Shape data for the front-end
+        $institutions = $institutions->map(function ($inst) {
+            return [
+                'id' => $inst->id,
+                'name' => $inst->institution_name,
+                'degrees' => $inst->institutionDegrees
+                    ->filter(fn($idg) => $idg->degree)
+                    ->map(fn($idg) => [
+                        'id' => $idg->degree->id,
+                        'type' => $idg->degree->type,
+                        'code' => $idg->degree->code ?? null,
+                    ])
+                    ->unique('id')
+                    ->values(),
+                'programs' => $inst->institutionPrograms
+                    ->filter(fn($ip) => $ip->program)
+                    ->map(fn($ip) => [
+                        'id' => $ip->program->id,
+                        'name' => $ip->program->name,
+                        'degree_id' => $ip->program->degree_id,
+                    ])
+                    ->values(),
+            ];
+        })->values();
 
         return Inertia::render('Frontend/ProfileSettings/Education', [
             'user' => $user,
             'educationEntries' => $educationEntries,
             'archivedEducationEntries' => $archivedEducationEntries,
-            'institutions' => $institutions,
-            // Add other props as needed
+            'institutions' => $institutions, // <- pass structured list
         ]);
     }
 
@@ -131,20 +198,26 @@ class ProfileController extends Controller
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
         // Fetch all experience entries for this graduate
-        $experienceEntries = Experience::where('graduate_id', $graduate->id)
-            ->whereNull('deleted_at') // if you use soft deletes
+        $experienceEntries = Experience::with('company')
+        ->where('graduate_id', $graduate->id)
+        ->whereNull('deleted_at')
+        ->get();
+
+        $archivedExperienceEntries = Experience::with('company')
+            ->where('graduate_id', $graduate->id)
+            ->whereNotNull('deleted_at')
             ->get();
 
-        // Optionally, fetch archived experience entries if you support archiving
-        $archivedExperienceEntries = Experience::where('graduate_id', $graduate->id)
-            ->whereNotNull('deleted_at')
+        // Suggestion source
+        $companies = Company::select('id', 'company_name as name')
+            ->orderBy('company_name')
             ->get();
 
         return Inertia::render('Frontend/ProfileSettings/Experience', [
             'user' => $user,
             'experienceEntries' => $experienceEntries,
             'archivedExperienceEntries' => $archivedExperienceEntries,
-            // Add other props as needed
+            'companies' => $companies, 
         ]);
     }
 
@@ -167,7 +240,6 @@ class ProfileController extends Controller
             'user' => $user,
             'projectsEntries' => $projectsEntries,
             'archivedProjectsEntries' => $archivedProjectsEntries,
-            // Add other props as needed
         ]);
     }
 
@@ -243,46 +315,42 @@ class ProfileController extends Controller
     }
 
 
-
     // Add education
     public function addEducation(Request $request)
     {
-        $user = Auth::user();
-
-        $graduates = \App\Models\Graduate::where('user_id', $user->id)->first();
-
-
         $request->validate([
-            'program' => 'required|string|max:255',
-            'field_of_study' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date',
-            'description' => 'nullable|string',
-            'is_current' => 'boolean',
-            'achievements' => 'nullable|string',
-            'no_achievements' => 'nullable|boolean',
+        'education_id'        => 'nullable|exists:educations,id',
+        'level_of_education'  => 'nullable|string|max:100',
+        'program'             => 'nullable|string|max:255',
+        'school_name'         => 'required|string|max:255',
+        'start_date'          => 'required|date',
+        'end_date'            => 'nullable|date|after_or_equal:start_date',
+        'is_current'          => 'boolean',
+        'description'         => 'nullable|string',
+        'achievement'         => 'nullable|string',
         ]);
 
-        $graduates = \App\Models\Graduate::where('user_id', Auth::id())->first();
+        $graduateId = auth()->user()->graduate->id;
 
-
-        $data = $request->all();
-        if ($request->is_current) {
-            $data['end_date'] = null;
+        // If this record is current, unset others
+        if ($request->boolean('is_current')) {
+            GraduateEducation::where('graduate_id', $graduateId)->update(['is_current' => false]);
         }
 
-        $education = new Education();
-        $education->graduate_id = $graduates->id;
-        $education->education = $request->input('education');
-        $education->program = $request->input('program'); // <-- add this line
-        $education->field_of_study = $request->input('field_of_study');
-        $education->start_date = $request->input('start_date');
-        $education->end_date = $request->input('end_date');
-        $education->description = $request->input('description');
-        $education->is_current = $request->input('is_current', false);
-        $education->achievements = $request->input('achievements');
-        $education->save();
-
+        GraduateEducation::create([
+            'graduate_id'        => $graduateId,
+            'education_id'       => $request->education_id,
+            'level_of_education' => $request->level_of_education,
+            'program'            => $request->program,
+            'school_name'        => $request->school_name,
+            'start_date'         => Carbon::parse($request->start_date)->format('Y-m-d'),
+            'end_date'           => $request->boolean('is_current')
+                                    ? null
+                                    : ($request->end_date ? Carbon::parse($request->end_date)->format('Y-m-d') : null),
+            'is_current'         => $request->boolean('is_current'),
+            'description'        => $request->description,
+            'achievement'        => $request->achievement,
+        ]);
         return redirect()->back()->with('flash.banner', 'Education added successfully.');
     }
 
@@ -290,35 +358,63 @@ class ProfileController extends Controller
     public function updateEducation(Request $request, $id)
     {
         $request->validate([
-            'program' => 'required|string|max:255',
-            'field_of_study' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date',
-            'description' => 'nullable|string',
-            'is_current' => 'boolean',
-            'achievements' => 'nullable|string',
-            'no_achievements' => 'nullable|boolean',
+            'education_id'        => 'nullable|exists:educations,id',
+            'level_of_education'  => 'nullable|string|max:100',
+            'program'             => 'nullable|string|max:255',
+            'school_name'         => 'required|string|max:255',
+            'start_date'          => 'required|date',
+            'end_date'            => 'nullable|date|after_or_equal:start_date',
+            'is_current'          => 'boolean',
+            'description'         => 'nullable|string',
+            'achievement'         => 'nullable|string',
         ]);
 
-        $data = $request->all();
+        $edu = GraduateEducation::findOrFail($id);
 
-        if ($request->is_current) {
-            $data['end_date'] = null;
-        } elseif (isset($data['end_date'])) {
-            $data['end_date'] = Carbon::parse($data['end_date'])->format('Y-m-d');
+        if ($request->boolean('is_current')) {
+            GraduateEducation::where('graduate_id', $edu->graduate_id)
+                ->where('id', '!=', $edu->id)
+                ->update(['is_current' => false]);
         }
 
-        $education = Education::findOrFail($id);
-        $education->update($data);
+        $edu->update([
+            'education_id'       => $request->education_id,
+            'level_of_education' => $request->level_of_education,
+            'program'            => $request->program,
+            'school_name'        => $request->school_name,
+            'start_date'         => \Carbon\Carbon::parse($request->start_date)->format('Y-m-d'),
+            'end_date'           => $request->boolean('is_current')
+                                    ? null
+                                    : ($request->end_date ? \Carbon\Carbon::parse($request->end_date)->format('Y-m-d') : null),
+            'is_current'         => $request->boolean('is_current'),
+            'description'        => $request->description,
+            'achievement'        => $request->achievement,
+        ]);
 
         return redirect()->back()->with('flash.banner', 'Education updated successfully.');
     }
 
-    // Remove education
-    public function removeEducation($id)
+    public function archiveEducation($id)
     {
-        $education = Education::findOrFail($id);
-        $education->delete();
+        $edu = GraduateEducation::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $edu->delete(); // soft delete
+        return back()->with('flash.banner', 'Education archived.');
+    }
+
+    public function unarchiveEducation($id)
+    {
+        $edu = GraduateEducation::withTrashed()->where('id', $id)->firstOrFail();
+        if ($edu->trashed()) {
+            $edu->restore();
+        }
+        return back()->with('flash.banner', 'Education restored.');
+    }
+
+    // Remove education
+    public function deleteEducation($id)
+    {
+       $education = GraduateEducation::withTrashed()->findOrFail($id);
+        $education->forceDelete();
 
         return redirect()->back()->with('flash.banner', 'Education removed successfully.');
     }
@@ -328,31 +424,29 @@ class ProfileController extends Controller
     {
         $request->validate([
             'graduate_experience_title' => 'required|string|max:255',
-            'graduate_experience_start_date' => 'required|date',
-            'graduate_experience_end_date' => 'nullable|date',
+            'graduate_experience_start_date' => 'required|string',
+            'graduate_experience_end_date' => 'nullable|string',
             'graduate_experience_address' => 'nullable|string|max:255',
             'graduate_experience_description' => 'nullable|string',
             'graduate_experience_employment_type' => 'nullable|string|max:255',
             'is_current' => 'boolean',
-            // For normalized company/sector
-            'company_id' => 'nullable|exists:companies,id',
-            'not_company' => 'nullable|string|max:255',
-            'sector_id' => 'nullable|exists:sectors,id',
+            'graduate_experience_company' => 'required|string|max:255',
         ]);
 
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
+         // Convert ISO8601 to Y-m-d
         $startDate = $request->graduate_experience_start_date
-            ? \Carbon\Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
+            ? Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
             : null;
         $endDate = $request->is_current
             ? null
             : ($request->graduate_experience_end_date
-                ? \Carbon\Carbon::parse($request->graduate_experience_end_date)->format('Y-m-d')
+                ? Carbon::parse($request->graduate_experience_end_date)->format('Y-m-d')
                 : null);
 
-        $experience = new \App\Models\Experience();
+        $experience = new Experience();
         $experience->graduate_id = $graduate->id;
         $experience->title = $request->graduate_experience_title;
         $experience->start_date = $startDate;
@@ -360,22 +454,8 @@ class ProfileController extends Controller
         $experience->address = $request->graduate_experience_address;
         $experience->description = $request->graduate_experience_description ?? 'No description provided';
         $experience->employment_type = $request->graduate_experience_employment_type;
-
-        // Company logic
-        if ($request->company_id) {
-            $experience->company_id = $request->company_id;
-            $experience->not_company = null;
-            $experience->sector_id = null;
-        } elseif ($request->not_company) {
-            $experience->company_id = null;
-            $experience->not_company = $request->not_company;
-            $experience->sector_id = $request->sector_id;
-        } else {
-            $experience->company_id = null;
-            $experience->not_company = null;
-            $experience->sector_id = null;
-        }
-
+        $experience->company_name = $request->graduate_experience_company;
+        $experience->is_current = filter_var($request->is_current, FILTER_VALIDATE_BOOLEAN);
         $experience->save();
 
         // Update current job title in graduates table if this is the current experience
@@ -390,60 +470,69 @@ class ProfileController extends Controller
     // Update experience
     public function updateExperience(Request $request, $id)
     {
-        $request->validate([
+            $request->validate([
             'graduate_experience_title' => 'required|string|max:255',
-            'graduate_experience_start_date' => 'required|date',
-            'graduate_experience_end_date' => 'nullable|date',
+            'graduate_experience_start_date' => 'required|string',
+            'graduate_experience_end_date' => 'nullable|string',
             'graduate_experience_address' => 'nullable|string|max:255',
             'graduate_experience_description' => 'nullable|string',
             'graduate_experience_employment_type' => 'nullable|string|max:255',
             'is_current' => 'boolean',
-            // For normalized company/sector
-            'company_id' => 'nullable|exists:companies,id',
-            'not_company' => 'nullable|string|max:255',
-            'sector_id' => 'nullable|exists:sectors,id',
+            'graduate_experience_company' => 'required|string|max:255',
         ]);
 
         $experience = Experience::findOrFail($id);
 
-        $experience->title = $request->graduate_experience_title;
-        $experience->start_date = $request->graduate_experience_start_date
-            ? \Carbon\Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
+        // Convert ISO8601 to Y-m-d
+        $startDate = $request->graduate_experience_start_date
+            ? Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
             : null;
-        $experience->end_date = $request->is_current
+        $endDate = $request->is_current
             ? null
             : ($request->graduate_experience_end_date
-                ? \Carbon\Carbon::parse($request->graduate_experience_end_date)->format('Y-m-d')
+                ? Carbon::parse($request->graduate_experience_end_date)->format('Y-m-d')
                 : null);
+
+        $experience->title = $request->graduate_experience_title;
+        $experience->start_date = $startDate;
+        $experience->end_date = $endDate;
         $experience->address = $request->graduate_experience_address;
         $experience->description = $request->graduate_experience_description ?? 'No description provided';
         $experience->employment_type = $request->graduate_experience_employment_type;
-
-        // Company logic
-        if ($request->company_id) {
-            $experience->company_id = $request->company_id;
-            $experience->not_company = null;
-            $experience->sector_id = null;
-        } elseif ($request->not_company) {
-            $experience->company_id = null;
-            $experience->not_company = $request->not_company;
-            $experience->sector_id = $request->sector_id;
-        } else {
-            $experience->company_id = null;
-            $experience->not_company = null;
-            $experience->sector_id = null;
-        }
-
+        $experience->company_name = $request->graduate_experience_company;
+        $experience->is_current = filter_var($request->is_current, FILTER_VALIDATE_BOOLEAN);
         $experience->save();
 
+        // Update current job title in graduates table if this is the current experience
+        if ($request->is_current && $request->graduate_experience_title) {
+            \App\Models\Graduate::where('id', $experience->graduate_id)
+                ->update(['current_job_title' => $request->graduate_experience_title]);
+        }
+
         return redirect()->back()->with('flash.banner', 'Experience updated successfully.');
+    }
+
+    public function archiveExperience($id)
+    {
+        $exp = Experience::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $exp->delete(); // soft delete
+        return back();
+    }
+
+    public function unarchiveExperience($id)
+    {
+        $exp = Experience::withTrashed()->findOrFail($id);
+        if ($exp->trashed()) {
+            $exp->restore();
+        }
+        return back();
     }
 
     // Remove experience
     public function removeExperience($id)
     {
-        $experience = Experience::findOrFail($id);
-        $experience->delete();
+        $experience = Experience::withTrashed()->findOrFail($id);
+        $experience->forceDelete();
 
         return redirect()->back()->with('flash.banner', 'Experience removed successfully.');
     }

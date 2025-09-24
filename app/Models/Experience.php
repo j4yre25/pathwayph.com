@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 
 class Experience extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
 
     protected $table = 'graduate_experiences';
@@ -18,21 +19,14 @@ class Experience extends Model
      * @var array
      */
     protected $fillable = [
-        'user_id',
-        'role_title',
-        'company_name',
-        'start_month',
-        'start_year',
-        'still_in_role',
-        'end_month',
-        'end_year',
-        'job_description',
         'title',
-        'company',
+        'company_name',
+        'description',
         'start_date',
         'end_date',
+        'is_current',
         'address',
-        'achievements',
+        'employment_type'
     ];
 
     /**
@@ -41,7 +35,7 @@ class Experience extends Model
      * @var array
      */
     protected $casts = [
-        'still_in_role' => 'boolean',
+        'is_current' => 'boolean',
     ];
 
     /**

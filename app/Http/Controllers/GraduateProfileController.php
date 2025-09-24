@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Achievement;
 use App\Models\Certification;
-use App\Models\Education;
+use App\Models\GraduateEducation;
 use App\Models\Experience;
 use App\Models\Graduate;
 use App\Models\GraduateSkill;
@@ -28,6 +28,7 @@ class GraduateProfileController extends Controller
     {
         $graduate = Graduate::with([
             'user',
+            'education',
             'institution',
             'program',
             'institutionSchoolYear.schoolYear'
@@ -45,6 +46,77 @@ class GraduateProfileController extends Controller
         $graduateArray = $graduate->toArray();
         $graduateArray['year_graduated'] = $yearGraduated;
 
+        $educationQuery = GraduateEducation::with([
+            'education:id,name',
+            'institution:institution_name'
+        ])->where('graduate_id', $graduate->id);
+
+        $educationCollection = $educationQuery->get();
+
+        // Compute highest education (rank + recency)
+        $rankMap = [
+            'phd' => 1, 'doctor' => 1, 'doctorate' => 1,
+            "master's" => 2, 'masters' => 2, 'master' => 2,
+            "bachelor's" => 3, 'bachelors' => 3, 'bachelor' => 3,
+            'associate' => 4,
+            'certificate' => 5,
+            'vocational' => 6,
+            'senior high' => 7, 'high school' => 7,
+        ];
+
+        $normalize = fn ($v) => strtolower(trim($v ?? ''));
+
+        $highestEducationModel = $educationCollection
+            ->map(function ($e) {
+                return [
+                    'id' => $e->id,
+                    'school_name' => $e->school_name
+                        ?: optional($e->institution)->institution_name
+                        ?: null,
+                    'program' => $e->program,
+                    'level_of_education' => $e->level_of_education
+                        ?: optional($e->education)->name,
+                    'start_date' => $e->start_date,
+                    'end_date' => $e->is_current ? null : $e->end_date,
+                    'is_current' => (bool)$e->is_current,
+                    'description' => $e->description,
+                    'achievement' => $e->achievement,
+                ];
+            })
+            ->sort(function ($a, $b) use ($rankMap, $normalize) {
+                $ra = $rankMap[$normalize($a['level_of_education'])] ?? 999;
+                $rb = $rankMap[$normalize($b['level_of_education'])] ?? 999;
+                if ($ra !== $rb) return $ra <=> $rb;
+
+                // Current first
+                if ($a['is_current'] && !$b['is_current']) return -1;
+                if (!$a['is_current'] && $b['is_current']) return 1;
+
+                // Later end_date (or start_date) wins
+                $aEnd = $a['end_date'] ?? $a['start_date'];
+                $bEnd = $b['end_date'] ?? $b['start_date'];
+                return strcmp((string)$bEnd, (string)$aEnd);
+            })
+            ->first();
+
+        $educationTransformed = $educationCollection->map(function ($e) {
+            return [
+                'id' => $e->id,
+                'school_name' => $e->school_name
+                    ?: optional($e->institution)->institution_name
+                    ?: null,
+                'program' => $e->program,
+                'level_of_education' => $e->level_of_education
+                    ?: optional($e->education)->name,
+                'start_date' => $e->start_date,
+                'end_date' => $e->is_current ? null : $e->end_date,
+                'is_current' => (bool)$e->is_current,
+                'description' => $e->description,
+                'achievement' => $e->achievement,
+                'deleted_at' => $e->deleted_at,
+            ];
+        });
+
         return inertia('Frontend/UpdatedGraduateProfile', [
             'graduate' => $graduateArray,
             'originalInstitution' => [
@@ -58,9 +130,8 @@ class GraduateProfileController extends Controller
                 ->select('graduate_skills.*', 'skills.name as skill_name')
                 ->get(),
             'experiences' => Experience::where('graduate_id', $graduate->id)->get(),
-            'education' => Education::with('institution')
-                ->where('graduate_id', $graduate->id)
-                ->get(),
+            'education' => $educationTransformed,
+            'highestEducation' => $highestEducationModel,
             'projects' => Project::where('graduate_id', $graduate->id)->get(),
             'achievements' => Achievement::where('graduate_id', $graduate->id)->get(),
             'certifications' => Certification::where('graduate_id', $graduate->id)->get(),

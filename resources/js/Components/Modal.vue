@@ -1,45 +1,51 @@
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, watch } from 'vue';
 
 const props = defineProps({
-    modelValue: {
-        type: Boolean,
-        default: false,
-    },
-    maxWidth: {
-        type: String,
-        default: '2xl',
-    },
-    closeable: {
-        type: Boolean,
-        default: true,
-    },
+  // Support both API styles
+  show: { type: Boolean, default: false },        // used everywhere now
+  modelValue: { type: Boolean, default: undefined }, // legacy (optional)
+  maxWidth: { type: String, default: '2xl' },
+  closeable: { type: Boolean, default: true },
+  lockScroll: { type: Boolean, default: true },
+  zIndex: { type: [Number, String], default: 180 },
 });
 
-const emit = defineEmits(['close', 'update:modelValue']);
+const emit = defineEmits(['close', 'update:modelValue', 'update:show']);
 
-const close = () => {
-    if (props.closeable) {
-        emit('close');
-        emit('update:modelValue', false);
-    }
-};
+const isVisible = computed(() =>
+  typeof props.modelValue === 'boolean'
+    ? props.modelValue
+    : props.show
+);
 
-const closeOnEscape = (e) => {
-    if (e.key === 'Escape' && props.modelValue) {
-        e.preventDefault();
-        close();
-    }
-};
+function close() {
+  if (!props.closeable) return;
+  emit('close');
+  emit('update:modelValue', false);
+  emit('update:show', false);
+}
 
-onMounted(() => {
-    document.addEventListener('keydown', closeOnEscape);
-    if (props.modelValue) document.body.style.overflow = 'hidden';
-});
-onUnmounted(() => {
-    document.removeEventListener('keydown', closeOnEscape);
-    document.body.style.overflow = null;
-});
+function onEscape(e) {
+  if (e.key === 'Escape' && isVisible.value) {
+    e.preventDefault();
+    close();
+  }
+}
+
+watch(isVisible, (val) => {
+  if (!props.lockScroll) return;
+  if (val) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}, { immediate: true });
+
+window.addEventListener('keydown', onEscape);
+watch(() => false, () => {}, { flush: 'post', onInvalidate: () => {
+  window.removeEventListener('keydown', onEscape);
+}});
 
 const maxWidthClass = computed(() => {
     return {
@@ -58,35 +64,46 @@ const maxWidthClass = computed(() => {
         'screen-xl': 'sm:max-w-screen-xl',
     }[props.maxWidth];
 });
+
 </script>
 
 <template>
-  <transition name="fade">
-    <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative" :class="maxWidthClass">
-        <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" @click="close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-        <div v-if="$slots.header" class="mb-4">
-          <slot name="header" />
+  <Teleport to="body">
+    <transition name="fade">
+      <div
+        v-if="isVisible"
+        :style="{ zIndex: zIndex }"
+        class="fixed inset-0 flex items-center justify-center"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="closeable && close()"
+        ></div>
+        <div
+          class="relative z-[calc(var(--z,190))] bg-white rounded-lg shadow-xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+          :class="maxWidthClass"
+        >
+          <button
+            v-if="closeable"
+            type="button"
+            class="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+            @click="close"
+            aria-label="Close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+          <slot />
         </div>
-        <div v-if="$slots.body" class="mb-4">
-          <slot name="body" />
-        </div>
-        <div v-if="$slots.footer">
-          <slot name="footer" />
-        </div>
-        <slot />
       </div>
-    </div>
-  </transition>
+    </transition>
+  </Teleport>
 </template>
 
 <style scoped>
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.2s;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
+.fade-enter-active,
+.fade-leave-active { transition: opacity .18s ease; }
+.fade-enter-from,
+.fade-leave-to { opacity: 0; }
 </style>

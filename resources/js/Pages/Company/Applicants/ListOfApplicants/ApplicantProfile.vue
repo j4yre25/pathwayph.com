@@ -318,6 +318,69 @@ const groupedSkills = computed(() => {
 
 // referralCerts computed
 const referralCerts = computed(() => props.referralCertificates || [])
+
+// New education normalization logic
+const eduRank = {
+  'phd':1,'doctor':1,'doctorate':1,
+  "master's":2,'masters':2,'master':2,
+  "bachelor's":3,'bachelors':3,'bachelor':3,
+  'associate':4,'certificate':5,'senior high':6,'high school':6,'vocational':7
+};
+const normEdu = s => (s || '').toLowerCase();
+
+const normalizedEducation = computed(() =>
+  (props.education || [])
+    .filter(e => !e.deleted_at)
+    .map(e => ({
+      id: e.id,
+      school_name: e.school_name || e.institution || e.education || '—',
+      program: e.program || e.field_of_study || e.level_of_education || '—',
+      level_of_education: e.level_of_education || e.education || null,
+      start_date: e.start_date,
+      end_date: e.is_current ? null : e.end_date,
+      is_current: !!e.is_current,
+      description: e.description,
+      achievement: e.achievement
+    }))
+);
+
+const highestEducation = computed(() => {
+  // server provided?
+  if (props.highestEducation && (props.highestEducation.program || props.highestEducation.school_name)) {
+    return props.highestEducation;
+  }
+  if (!normalizedEducation.value.length) return null;
+  return [...normalizedEducation.value].sort((a,b)=>{
+    const ra = eduRank[normEdu(a.level_of_education)] ?? 999;
+    const rb = eduRank[normEdu(b.level_of_education)] ?? 999;
+    if (ra !== rb) return ra - rb;
+    if (a.is_current && !b.is_current) return -1;
+    if (!a.is_current && b.is_current) return 1;
+    const aDate = a.end_date || a.start_date || '0000-00-00';
+    const bDate = b.end_date || b.start_date || '0000-00-00';
+    return aDate < bDate ? 1 : (aDate > bDate ? -1 : 0);
+  })[0];
+});
+
+const highestEducationYear = computed(() => {
+  if (!highestEducation.value) return null
+  if (highestEducation.value.is_current) return 'Present'
+  if (highestEducation.value.end_date) {
+    const y = new Date(highestEducation.value.end_date)
+    if (!isNaN(y)) return y.getFullYear()
+  }
+  if (highestEducation.value.start_date) {
+    const y = new Date(highestEducation.value.start_date)
+    if (!isNaN(y)) return y.getFullYear()
+  }
+  return null
+})
+
+const otherEducation = computed(() =>
+  highestEducation.value
+    ? normalizedEducation.value.filter(e => e.id !== highestEducation.value.id)
+    : normalizedEducation.value
+);
 </script>
 
 <template>
@@ -369,8 +432,6 @@ const referralCerts = computed(() => props.referralCertificates || [])
               <div class="text-lg font-semibold text-gray-900">{{ applicant.graduate.first_name }} {{ applicant.graduate.last_name }}</div>
               <div class="text-sm text-gray-500 mb-2">{{ applicant.graduate.current_job_title || ' ' }}</div>
               <div class="flex items-center text-xs text-gray-500 space-x-2 mb-2">
-                <span>{{ totalYearsExperience }}</span>
-                <span>|</span>
                 <span>{{ applicant.graduate.address || 'Not Specified' }}</span>
               </div>
               <div class="flex items-center text-xs text-gray-500 space-x-2">
@@ -388,11 +449,21 @@ const referralCerts = computed(() => props.referralCertificates || [])
             <div class="w-full flex justify-between text-sm text-gray-700 mb-2">
               <div>
                 <div class="font-semibold">Year Graduated</div>
-                <div>{{ applicant.graduate.notice_period || 'Not Specified' }}</div>
+                <div>{{ highestEducationYear || 'Not Specified' }}</div>
               </div>
               <div>
                 <div class="font-semibold">Highest Education</div>
-                <div>{{ education[0]?.education || 'Not Specified' }}</div>
+                <div class="flex flex-col items-end">
+                  <span>
+                    {{ highestEducation?.program || highestEducation?.level_of_education || 'Not Specified' }}
+                  </span>
+                  <span
+                    v-if="highestEducation?.level_of_education && highestEducation?.level_of_education !== highestEducation?.program"
+                    class="mt-0.5 inline-block text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium"
+                  >
+                    {{ highestEducation.level_of_education }}
+                  </span>
+                </div>
               </div>
             </div>
             <hr class="my-2 w-full border-gray-200" />
@@ -627,38 +698,121 @@ const referralCerts = computed(() => props.referralCertificates || [])
 
             <!-- Education -->
             <div v-if="activeTab === 'education'">
-              <h4 class="text-base font-semibold text-gray-800 mb-3">Education</h4>
-              <div v-if="education.length" class="space-y-4">
-                <div
-                  v-for="ed in education"
-                  :key="ed.id"
-                  class="border border-gray-100 rounded-lg p-4 bg-gray-50"
-                >
-                  <div class="flex justify-between items-start gap-4 flex-wrap">
-                    <div>
-                      <div class="text-sm font-semibold text-gray-800">
-                        {{ ed.education || ed.degree || 'Education' }}
-                      </div>
-                      <div class="text-xs text-gray-600">
-                        {{ ed.field_of_study || ed.program || '' }}
-                      </div>
-                      <div class="text-xs text-gray-500">
-                        {{ ed.institution || 'Institution N/A' }}
-                      </div>
-                    </div>
-                    <div class="text-xs text-gray-500 text-right">
-                      <div v-if="ed.school_year">{{ ed.school_year }}</div>
-                      <div v-else>
-                        {{ ed.start_date ? formatDate(ed.start_date) : 'N/A' }} -
-                        {{ ed.end_date ? formatDate(ed.end_date) : 'N/A' }}
-                      </div>
-                      <div v-if="ed.graduation_year">Grad: {{ ed.graduation_year }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="text-sm text-gray-500 italic">No education records.</div>
+  <h4 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+    <i class="fas fa-graduation-cap text-gray-500 mr-2"></i>
+    Education
+    <span v-if="normalizedEducation.length"
+          class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+      {{ normalizedEducation.length }}
+    </span>
+  </h4>
+
+  <div v-if="!normalizedEducation.length" class="text-sm text-gray-500 italic">
+    No education records.
+  </div>
+
+  <template v-else>
+    <!-- Highest -->
+    <div v-if="highestEducation"
+         class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-5 border border-indigo-100 shadow-sm">
+      <div class="flex justify-between items-start mb-2">
+        <h5 class="text-base font-semibold text-gray-800 flex items-center">
+          <i class="fas fa-award text-indigo-500 mr-2"></i>
+          Highest Education
+        </h5>
+        <span v-if="highestEducation.is_current"
+              class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+          Current
+        </span>
+      </div>
+      <div class="bg-white rounded-lg border border-indigo-200 p-4 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
+          <div class="text-base font-medium text-gray-900">
+            {{ highestEducation.program }}
+            <span v-if="highestEducation.level_of_education && highestEducation.level_of_education !== highestEducation.program"
+                  class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
+              {{ highestEducation.level_of_education }}
+            </span>
+          </div>
+          <div class="text-sm text-gray-500">
+            {{ formatDate(highestEducation.start_date) }} -
+            {{ highestEducation.is_current ? 'Present' : formatDate(highestEducation.end_date) }}
+          </div>
+        </div>
+        <div class="text-sm font-medium text-blue-600 mb-2">
+          {{ highestEducation.school_name }}
+        </div>
+        <div v-if="highestEducation.description"
+             class="text-sm text-gray-700 mb-3 whitespace-pre-line">
+          {{ highestEducation.description }}
+        </div>
+        <div v-if="highestEducation.achievement"
+             class="mt-2 text-sm text-gray-700">
+          <strong>Achievements:</strong>
+          <ul class="list-disc list-inside">
+            <li v-for="(ach, idx) in highestEducation.achievement.split(',')" :key="idx">
+              {{ ach.trim() }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- All Education -->
+    <div>
+      <h5 class="text-sm font-semibold text-gray-600 flex items-center mb-3">
+        <i class="fas fa-layer-group mr-2 text-indigo-400"></i>
+        All Education
+      </h5>
+      <div class="grid md:grid-cols-2 gap-5">
+        <div v-for="edu in normalizedEducation"
+             :key="edu.id"
+             class="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition hover:border-indigo-200">
+          <div class="flex justify-between items-start">
+            <div class="font-semibold text-gray-800">
+              {{ edu.program }}
             </div>
+            <span v-if="edu.is_current"
+                  class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+              Current
+            </span>
+          </div>
+          <p class="text-gray-600 text-sm mt-1">
+            {{ edu.school_name }}
+          </p>
+            <p v-if="edu.level_of_education && edu.level_of_education !== edu.program"
+               class="text-xs text-indigo-600 mt-1">
+              {{ edu.level_of_education }}
+            </p>
+          <div class="mt-2 text-gray-500 flex items-center text-xs">
+            <i class="far fa-calendar-alt mr-1 text-indigo-300"></i>
+            <span>
+              {{ formatDate(edu.start_date) }} -
+              {{ edu.is_current ? 'Present' : formatDate(edu.end_date) }}
+            </span>
+          </div>
+          <div v-if="edu.description"
+               class="mt-2 text-gray-600 text-xs line-clamp-5 whitespace-pre-line">
+            {{ edu.description }}
+          </div>
+          <div v-if="edu.achievement"
+               class="mt-2 text-gray-600 text-xs">
+            <strong>Achievements:</strong>
+            <ul class="list-disc list-inside">
+              <li v-for="(ach, idx) in edu.achievement.split(',')" :key="idx">
+                {{ ach.trim() }}
+              </li>
+            </ul>
+          </div>
+          <div v-if="highestEducation && edu.id === highestEducation.id"
+               class="absolute top-2 left-2 text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase font-semibold tracking-wide">
+            Highest
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
 
             <!-- Work Experience -->
             <div v-else-if="activeTab === 'experience'">

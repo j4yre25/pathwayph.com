@@ -38,6 +38,70 @@ const degreeCompleted = computed(() =>
   'Not specified'
 );
 
+// NEW: Highest Education (from educationEntries or fallback to graduate base data)
+const highestEducation = computed(() => {
+  const entries = props.educationEntries || [];
+  if (!entries.length) {
+    return {
+      school: profile.value.graduate_school_graduated_from || 'Not specified',
+      program: profile.value.graduate_program_completed || 'Not specified',
+      degree: degreeCompleted.value || 'Not specified',
+      start: null,
+      end: null,
+      year: profile.value.graduate_year_graduated || 'Not specified',
+      is_current: false,
+    };
+  }
+
+  // Rank map (lower number = higher)
+  const rankMap = {
+    'phd': 1, 'doctor': 1, 'doctorate': 1,
+    "master's": 2, 'masters': 2, 'master': 2,
+    "bachelor's": 3, 'bachelors': 3, 'bachelor': 3,
+    'associate': 4,
+    'senior high': 5,
+    'high school': 6,
+    'vocational': 7
+  };
+
+  const norm = s => (s || '').toString().trim().toLowerCase();
+
+  const sorted = [...entries].sort((a, b) => {
+    const la = norm(a.level_of_education || a.education);
+    const lb = norm(b.level_of_education || b.education);
+    const ra = rankMap[la] ?? 999;
+    const rb = rankMap[lb] ?? 999;
+    if (ra !== rb) return ra - rb;
+
+    // Prefer completed (non-current) higher end year, then current
+    const aIsCurrent = a.is_current ? 1 : 0;
+    const bIsCurrent = b.is_current ? 1 : 0;
+    if (aIsCurrent !== bIsCurrent) return aIsCurrent - bIsCurrent; // non-current first
+
+    const aEnd = a.end_date || a.year_graduated || '';
+    const bEnd = b.end_date || b.year_graduated || '';
+    return (bEnd || '').localeCompare(aEnd || '');
+  });
+
+  const top = sorted[0];
+
+  const endLabel = top.is_current
+    ? 'Present'
+    : (top.end_date
+        ? new Date(top.end_date).getFullYear()
+        : (top.year_graduated || null));
+
+  return {
+    school: top.school_name || top.education || 'Not specified',
+    program: top.program || top.field_of_study || 'Not specified',
+    degree: top.level_of_education || top.education || degreeCompleted.value || 'Not specified',
+    start: top.start_date ? new Date(top.start_date).getFullYear() : null,
+    end: endLabel,
+    year: endLabel || 'Not specified',
+    is_current: !!top.is_current,
+  };
+});
+
 const formatDate = (date) => {
   if (!date) return '';
   const parsedDate = new Date(date);
@@ -94,7 +158,6 @@ const profile = ref({
 });
 
 console.log('pageProps.user:', pageProps.graduate);
-
 
 
 // Initialize form with profile data
@@ -666,7 +729,7 @@ form div {
               <div class="relative">
                 <label for="gender" class="block text-gray-700 font-medium mb-1">Gender</label>
                 <div class="relative">
-                  <i class="fas fa-venus-mars absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  <i class="fas fa-venus-mars absolute left-3 top-1/2 -translateY(-1/2) text-gray-400"></i>
                   <select id="gender"
                     class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all appearance-none bg-white"
                     :class="{ 'border-red-500 focus:ring-red-500': settingsForm.errors.gender }"
@@ -732,81 +795,33 @@ form div {
                 <div>
                   <label class="block text-black font-medium mb-1">School Graduated From</label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                    {{ profile.graduate_school_graduated_from || 'Not specified' }}
+                    {{ highestEducation.school }}
                   </div>
                 </div>
 
-                <!-- Year Graduated -->
+                <!-- Year Graduated / Status -->
                 <div>
-                  <label class="block text-black font-medium mb-1">Year Graduated</label>
+                  <label class="block text-black font-medium mb-1">
+                    {{ highestEducation.is_current ? 'Expected Completion' : 'Year Graduated' }}
+                  </label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                    {{ profile.graduate_year_graduated || 'Not specified' }}
+                    {{ highestEducation.year }}
                   </div>
                 </div>
 
                 <!-- Program Completed -->
                 <div>
-                  <label class="block text-black font-medium mb-1">Program Completed</label>
+                  <label class="block text-black font-medium mb-1">Program</label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                    {{ profile.graduate_program_completed || 'Not specified' }}
+                    {{ highestEducation.program }}
                   </div>
                 </div>
 
                 <!-- Degree Completed -->
                 <div>
-                  <label class="block text-black font-medium mb-1">Degree Completed</label>
+                  <label class="block text-black font-medium mb-1">Level / Degree</label>
                   <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                    {{ degreeCompleted }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Other Education Entries - Only show if entries exist -->
-            <div v-if="props.educationEntries && props.educationEntries.length > 0" class="mt-6">
-              <div class="flex justify-between items-center p-4 border-b border-blue-100 bg-white rounded-t-lg">
-                <div>
-                  <h3 class="text-lg font-semibold text-black">Additional Education</h3>
-                  <p class="text-sm text-gray-600 mt-1">Other schools, programs, or certifications</p>
-                </div>
-              </div>
-              <div class="grid grid-cols-1 gap-6 p-4">
-                <div v-for="entry in props.educationEntries" :key="entry.id">
-                  <div class="absolute top-4 right-4 flex space-x-2">
-                  </div>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <!-- Institution -->
-                    <div>
-                      <label class="text-black font-medium mb-1">School Graduated From</label>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                        {{ entry.education || 'Not specified' }}
-                      </div>
-                    </div>
-
-                    <!-- Duration -->
-                    <div class="relative">
-                      <label class="text-black font-medium mb-1">Year Graduated</label>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                        {{ entry.start_date ? new Date(entry.start_date).getFullYear() : '' }} - {{ entry.end_date ? new
-                          Date(entry.end_date).getFullYear() : 'Present' }}
-                      </div>
-                    </div>
-
-                    <!-- Program -->
-                    <div>
-                      <label class="text-black font-medium mb-1">Program Completed</label>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                        {{ entry.program || 'Not specified' }}
-                      </div>
-                    </div>
-
-                    <!-- Field of Study -->
-                    <div>
-                      <label class="text-black font-medium mb-1">Degree Completed</label>
-                      <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-black">
-                        {{ entry.field_of_study || 'Not specified' }}
-                      </div>
-                    </div>
+                    {{ highestEducation.degree }}
                   </div>
                 </div>
               </div>

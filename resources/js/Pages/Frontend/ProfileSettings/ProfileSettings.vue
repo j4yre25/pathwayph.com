@@ -180,8 +180,11 @@ const { props } = usePage();
                     </div>
                     <h3 class="text-xl font-semibold text-gray-800">Education</h3>
                   </div>
-                  <EducationSection :activeSection="'education'" :educationEntries="props.educationEntries"
-                    :archivedEducationEntries="props.archivedEducationEntries" :institutions="props.institutions"
+                  <EducationSection :activeSection="'education'" 
+                    :educationEntries="props.educationEntries"
+                    :archivedEducationEntries="props.archivedEducationEntries" 
+                    :institutions="props.institutions"
+                    :educationLevels="props.educationLevels" 
                     :graduate="props.graduate" @close-all-modals="closeAllModals" @reset-all-states="resetAllStates"
                     @refresh-education="refreshEducation" />
                 </div>
@@ -195,8 +198,12 @@ const { props } = usePage();
                     </div>
                     <h3 class="text-xl font-semibold text-gray-800">Work Experience</h3>
                   </div>
-                  <ExperienceSection :activeSection="'experience'" :experienceEntries="props.experienceEntries"
-                    :archivedExperienceEntries="props.archivedExperienceEntries" @close-all-modals="closeAllModals"
+                  <ExperienceSection :activeSection="'experience'" 
+                    :experienceEntries="props.experienceEntries"
+                    :archivedExperienceEntries="props.archivedExperienceEntries" 
+                    :companies="props.companies"  
+                    :locations="props.locations"
+                    @close-all-modals="closeAllModals"
                     @reset-all-states="resetAllStates" />
                 </div>
 

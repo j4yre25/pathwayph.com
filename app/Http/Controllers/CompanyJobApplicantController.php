@@ -125,3 +125,4 @@ class CompanyJobApplicantController extends Controller
         ]);
     }
 }
+

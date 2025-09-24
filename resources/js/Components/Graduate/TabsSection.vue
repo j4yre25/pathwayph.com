@@ -197,6 +197,60 @@ const visibleEducation = computed(() => {
   return props.education.slice(0, maxEducationToShow);
 
 });
+
+// ADD (after existing education-related computed like sortedEducation) -------------
+const normalizeEduEntry = (e) => ({
+  id: e.id,
+  school_name: e.school_name || e.institution || e.education || e.graduate_education_institution_id || '—',
+  program: e.program || e.degree || e.graduate_education_program || e.level || '—',
+  level_of_education: e.level_of_education || e.level || e.field_of_study || e.graduate_education_field_of_study || e.degree || null,
+  start_date: e.start_date || e.graduate_education_start_date || null,
+  end_date: e.is_current ? null : (e.end_date || e.graduate_education_end_date || null),
+  is_current: !!(e.is_current || e.ongoing),
+  description: e.description || e.graduate_education_description || '',
+  achievement: Array.isArray(e.achievements)
+    ? e.achievements.join(', ')
+    : (e.achievement || e.achievements || ''),
+  deleted_at: e.deleted_at || null,
+});
+
+const normalizedEducation = computed(() =>
+  (props.education || [])
+    .filter(e => !e.deleted_at)
+    .map(normalizeEduEntry)
+);
+
+// Ranking similar to CareerSection
+const eduRankMap = {
+  'phd': 1, 'doctor': 1, 'doctorate': 1,
+  "master's": 2, 'masters': 2, 'master': 2,
+  "bachelor's": 3, 'bachelors': 3, 'bachelor': 3,
+  'associate': 4,
+  'certificate': 5,
+  'vocational': 6,
+  'senior high': 7, 'high school': 7,
+};
+
+const derivedHighest = computed(() => {
+  if (!normalizedEducation.value.length) return null;
+  const norm = s => (s || '').toLowerCase();
+  return [...normalizedEducation.value].sort((a, b) => {
+    const ra = eduRankMap[norm(a.level_of_education)] ?? 999;
+    const rb = eduRankMap[norm(b.level_of_education)] ?? 999;
+    if (ra !== rb) return ra - rb;
+    if (a.is_current && !b.is_current) return -1;
+    if (!a.is_current && b.is_current) return 1;
+    const aEnd = a.end_date || a.start_date || '';
+    const bEnd = b.end_date || b.start_date || '';
+    return (bEnd || '').localeCompare(aEnd || '');
+  })[0];
+});
+
+// For the list we include all (including highest, which we badge)
+const allEducation = computed(() => normalizedEducation.value);
+
+// (Optional) Remove old showAllEducation / maxEducationToShow usage in template
+// ...existing code...
 </script>
 
 <template>
@@ -382,7 +436,7 @@ const visibleEducation = computed(() => {
                   </div>
 
                   <div class="text-sm font-medium text-blue-600 mb-2">
-                    {{ experience.company || experience.company_name || 'Company' }}
+                    {{  experience.company_name || 'Company' }}
                   </div>
 
                   <div class="text-sm text-gray-600 mb-3">
@@ -413,97 +467,131 @@ const visibleEducation = computed(() => {
           </div>
         </div>
 
-        <!-- Education Section -->
-        <div>
+        <!-- Education Section (REPLACED) -->
+        <div class="mt-12">
           <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
             <i class="fas fa-graduation-cap text-gray-500 mr-2"></i>
             Education
+            <span v-if="allEducation.length"
+                  class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+              {{ allEducation.length }}
+            </span>
           </h3>
 
-          <div v-if="education && education.length > maxEducationToShow">
-            <button @click="showAllEducation = !showAllEducation"
-              class="text-blue-600 text-sm hover:text-blue-800 transition-all duration-200 flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-md px-2 py-1">
-              <i :class="[showAllEducation ? 'fa-chevron-up' : 'fa-chevron-down', 'fas mr-1']"></i>
-              {{ showAllEducation ? 'Show Less' : 'Show All' }}
-            </button>
-          </div>
-
-          <!-- Highest Education Highlight -->
-          <div v-if="highestEducation"
-            class="mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-sm transition-all duration-200">
-            <h4 class="font-medium text-gray-800 mb-3 flex items-center">
-              <i class="fas fa-award mr-2 text-gray-500"></i>
-              Highest Education
-            </h4>
-            <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm transition-all duration-200">
-              <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
-                <h5 class="text-base font-medium text-gray-900 mb-1 sm:mb-0">
-                  {{ highestEducation.degree || 'Degree' }}
-                  <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                    {{ highestEducation.level || 'Level' }}
-                  </span>
-                </h5>
-                <div class="text-sm text-gray-500">
-                  {{ formatDate(highestEducation.start_date) }} - {{ highestEducation.is_current ? 'Present' :
-                    formatDate(highestEducation.end_date) }}
-                </div>
-              </div>
-              <div class="text-sm font-medium text-blue-600 mb-2">
-                {{ highestEducation.institution || 'Institution' }}
-              </div>
-
-            </div>
-          </div>
-
-          <div v-if="sortedEducation.length > 0" class="space-y-6">
-            <div class="relative border-l-2 border-gray-200 pl-6 ml-3">
-              <div
-                v-for="(edu, index) in showAllEducation ? sortedEducation : sortedEducation.slice(0, maxEducationToShow)"
-                :key="index" class="mb-8 relative transform transition-all duration-200 hover:translate-x-1">
-                <div
-                  class="absolute -left-[31px] mt-1.5 w-5 h-5 rounded-full border-4 border-white bg-blue-500 shadow-sm">
-                </div>
-                <div
-                  class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow transition-all duration-200">
-                  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
-                    <h4 class="text-base font-medium text-gray-900 mb-1 sm:mb-0">
-                      {{ edu.degree || 'Degree' }}
-                      <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                        {{ edu.level || 'Level' }}
-                      </span>
-                    </h4>
-                    <div class="text-sm text-gray-500">
-                      {{ formatDate(edu.start_date) }} - {{ edu.is_current ? 'Present' : formatDate(edu.end_date) }}
-                    </div>
-                  </div>
-                  <div class="text-sm font-medium text-blue-600 mb-2">
-                    {{ edu.institution || 'Institution' }}
-                  </div>
-
-                  <div class="text-sm text-gray-700 mb-3 whitespace-pre-line">
-                    {{ edu.description || 'No description provided' }}
-                  </div>
-                  <div v-if="edu.achievements && edu.achievements.length > 0" class="mt-3">
-                    <h5 class="text-sm font-medium text-gray-800 mb-2">Achievements</h5>
-                    <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
-                      <li v-for="(achievement, achievementIndex) in edu.achievements" :key="achievementIndex">
-                        {{ achievement }}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-else
-            class="text-center py-6 bg-gray-50 rounded-lg border border-gray-200 transition-all duration-300 hover:border-indigo-100 hover:bg-gray-100">
+          <div v-if="!allEducation.length"
+               class="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
             <div class="text-gray-400 mb-2">
               <i class="fas fa-graduation-cap text-4xl"></i>
             </div>
             <h4 class="text-base font-medium text-gray-800 mb-1">No Education</h4>
             <p class="text-sm text-gray-500">The graduate has not added any education yet.</p>
           </div>
+
+          <template v-else>
+            <!-- Highest Highlight -->
+            <div v-if="derivedHighest"
+                 class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-5 border border-indigo-100 shadow-sm">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                  <i class="fas fa-award text-indigo-500 mr-2"></i>
+                  Highest Education
+                </h4>
+                <span v-if="derivedHighest.is_current"
+                      class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                  Current
+                </span>
+              </div>
+              <div class="bg-white rounded-lg border border-indigo-200 p-4 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
+                  <h5 class="text-base font-medium text-gray-900">
+                    {{ derivedHighest.program }}
+                    <span v-if="derivedHighest.level_of_education && derivedHighest.level_of_education !== derivedHighest.program"
+                          class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
+                      {{ derivedHighest.level_of_education }}
+                    </span>
+                  </h5>
+                  <div class="text-sm text-gray-500">
+                    {{ formatDate(derivedHighest.start_date) }} -
+                    {{ derivedHighest.is_current ? 'Present' : formatDate(derivedHighest.end_date) }}
+                  </div>
+                </div>
+                <div class="text-sm font-medium text-blue-600 mb-2">
+                  {{ derivedHighest.school_name }}
+                </div>
+                <div v-if="derivedHighest.description"
+                     class="text-sm text-gray-700 mb-3 whitespace-pre-line">
+                  {{ derivedHighest.description }}
+                </div>
+                <div v-if="derivedHighest.achievement"
+                     class="mt-2 text-sm text-gray-700">
+                  <strong>Achievements:</strong>
+                  <ul class="list-disc list-inside">
+                    <li v-for="(ach, idx) in derivedHighest.achievement.split(',')" :key="idx">
+                      {{ ach.trim() }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- All Education Entries -->
+            <div>
+              <h4 class="text-sm font-semibold text-gray-600 flex items-center mb-3">
+                <i class="fas fa-layer-group mr-2 text-indigo-400"></i>
+                All Education
+              </h4>
+              <div class="grid md:grid-cols-2 gap-5">
+                <div
+                  v-for="edu in allEducation"
+                  :key="edu.id"
+                  class="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition hover:border-indigo-200"
+                >
+                  <div class="flex justify-between items-start">
+                    <div class="font-semibold text-gray-800">
+                      {{ edu.program }}
+                    </div>
+                    <span
+                      v-if="edu.is_current"
+                      class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      Current
+                    </span>
+                  </div>
+                  <p class="text-gray-600 text-sm mt-1">
+                    {{ edu.school_name }}
+                  </p>
+                  <p v-if="edu.level_of_education && edu.level_of_education !== edu.program"
+                     class="text-xs text-indigo-600 mt-1">
+                    {{ edu.level_of_education }}
+                  </p>
+                  <div class="mt-2 text-gray-500 flex items-center text-xs">
+                    <i class="far fa-calendar-alt mr-1 text-indigo-300"></i>
+                    <span>
+                      {{ formatDate(edu.start_date) }} -
+                      {{ edu.is_current ? 'Present' : formatDate(edu.end_date) }}
+                    </span>
+                  </div>
+                  <div v-if="edu.description"
+                       class="mt-2 text-gray-600 text-xs line-clamp-5 whitespace-pre-line">
+                    {{ edu.description }}
+                  </div>
+                  <div v-if="edu.achievement"
+                       class="mt-2 text-gray-600 text-xs">
+                    <strong>Achievements:</strong>
+                    <ul class="list-disc list-inside">
+                      <li v-for="(ach, idx) in edu.achievement.split(',')" :key="idx">
+                        {{ ach.trim() }}
+                      </li>
+                    </ul>
+                  </div>
+                  <div
+                    v-if="derivedHighest && edu.id === derivedHighest.id"
+                    class="absolute top-2 left-2 text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase font-semibold tracking-wide">
+                    Highest
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
 

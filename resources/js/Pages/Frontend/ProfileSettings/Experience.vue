@@ -1,33 +1,31 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, reactive } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
-import TextArea from '@/Components/TextArea.vue';
-import SelectInput from '@/Components/SelectInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 // Define props
 const props = defineProps({
-  activeSection: {
-    type: String,
-    default: 'experience'
-  },
-
+  activeSection: { type: String, default: 'experience' },
   experienceEntries: Array,
-});
+  archivedExperienceEntries: { type: Array, default: () => [] },
+  companies: { type: Array, default: () => [] }, 
+  locations: { type: Array, default: () => [] },
+})
+
 const isSuccessModalOpen = ref(false);
 const isErrorModalOpen = ref(false);
 const isDuplicateModalOpen = ref(false);
 const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 const experienceForm = useForm({
   graduate_experience_title: '',
-  graduate_experience_company: '',
+  graduate_experience_company: '', // for UI only (display)
   graduate_experience_start_date: null,
   graduate_experience_end_date: null,
   graduate_experience_address: '',
@@ -36,7 +34,6 @@ const experienceForm = useForm({
   is_current: false,
 });
 
-console.log(props.experienceEntries);
 const datepickerConfig = {
   format: 'YYYY-MM-DD',
   enableTime: false,
@@ -100,10 +97,152 @@ const experience = ref({
   id: null
 });
 
+const showAddSuggestions = ref(false)
+const showUpdateSuggestions = ref(false)
+const companySearchAdd = ref('')    // input text for Add modal
+const companySearchUpdate = ref('') // input text for Update modal
+
+const filteredCompaniesAdd = computed(() => {
+  const q = (companySearchAdd.value || '').toLowerCase().trim()
+  if (!q) return props.companies.slice(0, 8)
+  return props.companies.filter(c => c.name.toLowerCase().includes(q)).slice(0, 8)
+})
+const filteredCompaniesUpdate = computed(() => {
+  const q = (companySearchUpdate.value || '').toLowerCase().trim()
+  if (!q) return props.companies.slice(0, 8)
+  return props.companies.filter(c => c.name.toLowerCase().includes(q)).slice(0, 8)
+})
+
+// Keep form.company_id / not_company in sync for Add modal
+watch(companySearchAdd, (val) => {
+  const match = props.companies.find(c => c.name.toLowerCase() === (val || '').toLowerCase().trim())
+  if (match) {
+    experienceForm.company_id = match.id
+    experienceForm.not_company = ''
+  } else {
+    experienceForm.company_id = null
+    experienceForm.not_company = (val || '').trim()
+  }
+  experienceForm.graduate_experience_company = val || ''
+})
+
+// For Update modal, we set these right before submit to avoid overwriting while user edits
+function selectCompanyForAdd(c) {
+  companySearchAdd.value = c.name
+  experienceForm.company_id = c.id
+  experienceForm.not_company = ''
+  showAddSuggestions.value = false
+}
+function selectCompanyForUpdate(c) {
+  companySearchUpdate.value = c.name
+  showUpdateSuggestions.value = false
+}
+
+// When opening Add modal, clear search/ids
 const openAddExperienceModal = () => {
-  console.log('openAddExperienceModal called');
-  resetExperience();
-  isAddExperienceModalOpen.value = true;
+  resetExperience()
+  isAddExperienceModalOpen.value = true
+  companySearchAdd.value = ''
+  experienceForm.company_id = null
+  experienceForm.not_company = ''
+}
+
+// When opening Update modal, seed the input with displayed company
+const openUpdateExperienceModal = (experienceEntry) => {
+  resetExperience()
+  experience.value = {
+    id: experienceEntry.id,
+    title: experienceEntry.title,
+    company: experienceEntry.company, // display string
+    start_date: experienceEntry.start_date ? formatDate(experienceEntry.start_date) : null,
+    end_date: experienceEntry.is_current ? null : (experienceEntry.end_date ? formatDate(experienceEntry.end_date) : null),
+    address: experienceEntry.address || '',
+    description: experienceEntry.description || 'No description provided',
+    employment_type: experienceEntry.employment_type || '',
+    is_current: experienceEntry.is_current
+  }
+  companySearchUpdate.value = experienceEntry.company || ''
+  stillInRole.value = experienceEntry.is_current
+  isUpdateExperienceModalOpen.value = true
+}
+
+const locationSearchAdd = ref('');
+const showLocationSuggestionsAdd = ref(false);
+const filteredLocationsAdd = computed(() => {
+  const q = (locationSearchAdd.value || '').toLowerCase().trim();
+  if (!q) return props.locations.slice(0, 8);
+  return props.locations.filter(l => l.name.toLowerCase().includes(q)).slice(0, 8);
+});
+watch(locationSearchAdd, (val) => {
+  const match = props.locations.find(l => l.name.toLowerCase() === (val || '').toLowerCase().trim());
+  experienceForm.location_id = match ? match.id : null;
+  experienceForm.graduate_experience_address = val || '';
+});
+function selectLocationForAdd(l) {
+  locationSearchAdd.value = l.name;
+  experienceForm.location_id = l.id;
+  experienceForm.graduate_experience_address = l.name;
+  showLocationSuggestionsAdd.value = false;
+}
+
+// Keep is_current synced with checkbox and clear end date when current
+watch(stillInRole, (val) => {
+  experienceForm.is_current = !!val
+  if (val) {
+    experienceForm.graduate_experience_end_date = null
+  }
+})
+
+// Submit handlers updated to include company fields
+const addExperience = () => {
+  // map current flag before submit
+  experienceForm.is_current = !!stillInRole.value
+
+  // Safety: ensure company fields reflect the input
+  const match = props.companies.find(c => c.name.toLowerCase() === (companySearchAdd.value || '').toLowerCase().trim())
+  experienceForm.company_id = match ? match.id : null
+  experienceForm.not_company = match ? '' : (companySearchAdd.value || '').trim()
+
+  experienceForm.post(route('profile.experience.add'), {
+    onSuccess: () => {
+      experienceForm.reset()
+      companySearchAdd.value = ''
+      isAddExperienceModalOpen.value = false
+      isSuccessModalOpen.value = true
+    },
+    onError: () => {
+      isErrorModalOpen.value = true
+      alert('An error occurred while adding the experience. Please check the form and try again.')
+    },
+  })
+}
+
+const updateExperience = () => {
+  // Map fields
+  experienceForm.graduate_experience_title = experience.value.title?.trim() || ''
+  experienceForm.graduate_experience_company = companySearchUpdate.value?.trim() || ''
+  experienceForm.graduate_experience_start_date = formatDate(experience.value.start_date)
+  experienceForm.graduate_experience_end_date = stillInRole.value ? null : formatDate(experience.value.end_date)
+  experienceForm.graduate_experience_address = experience.value.address?.trim() || ''
+  experienceForm.graduate_experience_description = experience.value.description?.trim() || 'No description provided'
+  experienceForm.graduate_experience_employment_type = experience.value.employment_type?.trim() || ''
+  experienceForm.is_current = stillInRole.value
+
+  // Normalize company fields for backend
+  const match = props.companies.find(c => c.name.toLowerCase() === (companySearchUpdate.value || '').toLowerCase().trim())
+  experienceForm.company_id = match ? match.id : null
+  experienceForm.not_company = match ? '' : (companySearchUpdate.value || '').trim()
+
+  experienceForm.put(route('profile.experience.update', experience.value.id), {
+    onSuccess: () => {
+      resetExperience()
+      companySearchUpdate.value = ''
+      isUpdateExperienceModalOpen.value = false
+    },
+    onError: (errors) => {
+      console.error('Error updating experience:', errors)
+    },
+  })
 };
 
 const closeAddExperienceModal = () => {
@@ -111,157 +250,70 @@ const closeAddExperienceModal = () => {
   resetExperience();
 };
 
-const resetExperience = () => {
-  experience.value = {
-    title: '',
-    company: '',
-    start_date: null,
-    end_date: null,
-    address: '',
-    description: '',
-    employment_type: '',
-    is_current: false,
-    id: null
-  };
-  stillInRole.value = false;
-  console.log('Experience reset.');
-};
-
-
-
-
-const openUpdateExperienceModal = (experienceEntry) => {
-  resetExperience();
-  experience.value = {
-    id: experienceEntry.id,
-    title: experienceEntry.title,
-    company: experienceEntry.company,
-    start_date: experienceEntry.start_date ? formatDate(experienceEntry.start_date) : null,
-    end_date: experienceEntry.is_current ? null : (experienceEntry.end_date ? formatDate(experienceEntry.end_date) : null),
-    address: experienceEntry.address || '',
-    description: experienceEntry.description || 'No description provided',
-    employment_type: experienceEntry.employment_type || '',
-    is_current: experienceEntry.is_current
-  };
-  stillInRole.value = experienceEntry.is_current;
-  isUpdateExperienceModalOpen.value = true;
-};
-
-const addExperience = () => {
-  // Log the form data for debugging
-  console.log('Submitting experience form:', { ...experienceForm });
-
-  experienceForm.post(route('profile.experience.add'), {
-    onSuccess: (response) => {
-      emit('close-all-modals');      // Optionally update local experience entries if needed
-      if (response?.props?.experienceEntries) {
-        experienceEntries.value = response.props.experienceEntries;
-      }
-      // Reset the form fields
-      experienceForm.reset();
-      // Close the modal
-      isAddExperienceModalOpen.value = false;
-      // Optionally show a success message/modal
-      isSuccessModalOpen.value = true;
-    },
-    onError: (errors) => {
-      // Log errors for debugging
-      console.error('Error adding experience:', errors);
-      // Optionally show an error message/modal
-      isErrorModalOpen.value = true;
-      // Or use alert for quick feedback
-      alert('An error occurred while adding the experience. Please check the form and try again.');
-    },
-  });
-};
-
-const updateExperience = () => {
-  experienceForm.graduate_experience_title = experience.value.title?.trim() || '';
-  experienceForm.graduate_experience_company = experience.value.company?.trim() || '';
-  experienceForm.graduate_experience_start_date = formatDate(experience.value.start_date);
-  experienceForm.graduate_experience_end_date = stillInRole.value ? null : formatDate(experience.value.end_date);
-  experienceForm.graduate_experience_address = experience.value.address?.trim() || '';
-  experienceForm.graduate_experience_description = experience.value.description?.trim() || 'No description provided';
-  experienceForm.graduate_experience_employment_type = experience.value.employment_type?.trim() || '';
-  experienceForm.is_current = stillInRole.value;
-
-  experienceForm.put(route('profile.experience.update', experience.value.id), {
-    onSuccess: () => {
-      resetExperience();
-      isUpdateExperienceModalOpen.value = false;
-    },
-    onError: (errors) => {
-      console.error('Error updating experience:', errors);
-    },
-  });
-};
-
 const closeUpdateExperienceModal = () => {
   isUpdateExperienceModalOpen.value = false;
   resetExperience();
 };
 
-const deleteExperience = (experienceId) => {
-  itemToDelete.value = { id: experienceId, type: 'experience' };
-  isDeleteConfirmationModalOpen.value = true;
-};
-
-const formattedExperienceStartDate = computed(() => {
-  return experience.start_date
-    ? new Date(experience.start_date).toISOString().split('T')[0]
-    : null;
+// Confirmation Modal Logic
+const confirmModal = reactive({
+  show: false,
+  type: '',      // 'archive' | 'unarchive' | 'delete'
+  entry: null,
+  message: '',
+  confirmLabel: '',
+  confirmAction: null,
 });
 
-const formattedExperienceEndDate = computed(() => {
-  if (experience.is_current) return null;
-  return experience.end_date
-    ? new Date(experience.end_date).toISOString().split('T')[0]
-    : null;
-});
-
-watch(() => experience.is_current, (newValue) => {
-  stillInRole.value = newValue;
-  if (newValue) {
-    experience.end_date = null;
-  } else {
-    experience.end_date = '';
+function openConfirm(type, entry) {
+  confirmModal.type = type;
+  confirmModal.entry = entry;
+  confirmModal.show = true;
+  if (type === 'archive') {
+    confirmModal.message = 'Archive this experience entry?';
+    confirmModal.confirmLabel = 'Archive';
+    confirmModal.confirmAction = () => doArchive(entry);
+  } else if (type === 'unarchive') {
+    confirmModal.message = 'Restore this archived experience entry?';
+    confirmModal.confirmLabel = 'Restore';
+    confirmModal.confirmAction = () => doUnarchive(entry);
+  } else if (type === 'delete') {
+    confirmModal.message = 'Permanently delete this experience entry? This cannot be undone.';
+    confirmModal.confirmLabel = 'Delete';
+    confirmModal.confirmAction = () => doDelete(entry);
   }
-}, { immediate: true });
+}
 
-watch(() => experience.end_date, (newValue) => {
-  if (newValue && isNaN(new Date(newValue).getTime())) {
-    experience.end_date = null;
-  }
-});
+function closeConfirm() {
+  confirmModal.show = false;
+  confirmModal.type = '';
+  confirmModal.entry = null;
+  confirmModal.message = '';
+  confirmModal.confirmLabel = '';
+  confirmModal.confirmAction = null;
+}
+
+// Actual server actions
+function doArchive(entry) {
+  closeConfirm();
+  useForm({}).put(route('profile.experience.archive', entry.id), { preserveScroll: true });
+}
+function doUnarchive(entry) {
+  closeConfirm();
+  useForm({}).put(route('profile.experience.unarchive', entry.id), { preserveScroll: true });
+}
+function doDelete(entry) {
+  closeConfirm();
+  // Uses remove route (DELETE) which soft-deletes first time, force-deletes if already archived
+  useForm({}).delete(route('profile.experience.remove', entry.id), { preserveScroll: true });
+}
+
+// Button handlers (used in template)
+function archiveExperience(entry) { openConfirm('archive', entry); }
+function unarchiveExperience(entry) { openConfirm('unarchive', entry); }
+function deleteExperience(entry) { openConfirm('delete', entry); }
 
 
-// Modal State
-let currentExperienceIndex = ref(null);
-
-const removeExperience = (experience) => {
-  if (confirm(`Are you sure you want to remove this experience entry: ${experience.title}?`)) {
-    deleteForm.delete(route('experience.remove', experience.id), {
-      onSuccess: () => {
-        const index = experienceEntries.findIndex(e => e.id === experience.id);
-        if (index !== -1) {
-          experienceEntries.splice(index, 1);
-        }
-      }
-    });
-  }
-};
-
-// Function to archive an experience entry
-const archiveExperience = (experience) => {
-  // Implementation would go here
-  console.log('Archiving experience:', experience.title);
-};
-
-// Function to unarchive an experience entry
-const unarchiveExperience = (experience) => {
-  // Implementation would go here
-  console.log('Unarchiving experience:', experience.title);
-};
 
 // Function to toggle archived experience visibility
 const toggleArchivedExperience = () => {
@@ -278,6 +330,56 @@ const initializeData = () => {
 onMounted(() => {
   initializeData();
 });
+
+function resetExperience() {
+  experienceForm.reset()
+  experience.value = {
+    title: '',
+    company: '',
+    start_date: null,
+    end_date: null,
+    address: '',
+    description: '',
+    employment_type: '',
+    is_current: false,
+    id: null
+  }
+  companySearchAdd.value = ''
+  companySearchUpdate.value = ''
+  stillInRole.value = false
+}
+
+function calculateYears(start, end, isCurrent) {
+  if (!start) return '';
+  const startDate = new Date(start);
+  const endDate = isCurrent ? new Date() : (end ? new Date(end) : new Date());
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return '';
+  let years = endDate.getFullYear() - startDate.getFullYear();
+  let months = endDate.getMonth() - startDate.getMonth();
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  // Show as "X years", "X years Y months", or "Less than 1 year"
+  if (years < 1 && months < 1) return 'Less than 1 month';
+  if (years < 1) return `${months} month${months > 1 ? 's' : ''}`;
+  if (months === 0) return `${years} year${years > 1 ? 's' : ''}`;
+  return `${years} year${years > 1 ? 's' : ''} ${months} month${months > 1 ? 's' : ''}`;
+}
+
+// Before submit (addExperience/updateExperience)
+experienceForm.is_current = !!stillInRole.value;
+
+// Selected company and location handling
+const selectedCompany = props.companies.find(c => c.id === experienceForm.company_id);
+experienceForm.graduate_experience_company = selectedCompany
+  ? selectedCompany.name
+  : (companySearchAdd.value || experienceForm.not_company || '');
+
+const selectedLocation = props.locations.find(l => l.id === experienceForm.location_id);
+experienceForm.graduate_experience_address = selectedLocation
+  ? selectedLocation.name
+  : (locationSearchAdd.value || experienceForm.graduate_experience_address || '');
 </script>
 
 <template>
@@ -323,7 +425,39 @@ onMounted(() => {
     </div>
   </Modal>
 
-
+  <!-- Confirmation Modal -->
+  <Modal :show="confirmModal.show" @close="closeConfirm">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4">
+        <div :class="{
+          'bg-amber-100': confirmModal.type === 'archive' || confirmModal.type === 'unarchive',
+          'bg-red-100': confirmModal.type === 'delete'
+        }" class="rounded-full p-3">
+          <i v-if="confirmModal.type === 'archive'" class="fas fa-archive text-amber-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'unarchive'" class="fas fa-undo text-green-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'delete'" class="fas fa-trash text-red-500 text-xl"></i>
+        </div>
+      </div>
+      <h3 class="text-lg font-medium text-center text-gray-900 mb-2">
+        {{ confirmModal.confirmLabel }} Experience
+      </h3>
+      <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
+      <div class="mt-6 flex justify-center space-x-2">
+        <SecondaryButton type="button" @click="closeConfirm">Cancel</SecondaryButton>
+        <DangerButton
+          v-if="confirmModal.type === 'delete'"
+          type="button"
+          @click="confirmModal.confirmAction"
+        >Delete</DangerButton>
+        <PrimaryButton
+          v-else
+          type="button"
+          :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
+          @click="confirmModal.confirmAction"
+        >{{ confirmModal.confirmLabel }}</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
 
   <div v-if="activeSection === 'experience'" class="flex flex-col lg:flex-row">
     <div class="w-full mb-6">
@@ -364,20 +498,29 @@ onMounted(() => {
                 <h2 class="text-xl font-bold text-blue-900">{{ experienceEntry.title }}</h2>
                 <div class="flex items-center text-gray-700 mt-1">
                   <i class="fas fa-building text-blue-600 mr-2"></i>
-                  <span class="font-medium">{{ experienceEntry.company }}</span>
+                  <span class="font-medium">
+                    {{experienceEntry.company_name}}
+                  </span>
                 </div>
               </div>
               <div class="flex items-center text-gray-600 mt-2">
                 <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
                 <span>{{ experienceEntry.address }}</span>
               </div>
+              <!-- Experience Card Date & Duration Block -->
               <div class="flex items-center text-gray-600 mt-2">
                 <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
                 <span>
-                  {{ formatDate(experienceEntry.start_date) }} - {{ experienceEntry.is_current ? 'Present' :
-                    formatDate(experienceEntry.end_date) }}
+                  {{ formatDate(experienceEntry.start_date) }}
+                  -
+                  {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.end_date) }}
                 </span>
               </div>
+              <p v-if="!experienceEntry.is_current" class="text-gray-600 mt-2 flex items-center">
+                <i class="fas fa-hourglass-half text-blue-600 mr-2"></i>
+                <strong class="text-blue-900">Experience:</strong>
+                <span class="ml-1">{{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false) }}</span>
+              </p>
               <p class="text-gray-600 mt-2 flex items-center">
                 <i class="fas fa-briefcase text-blue-600 mr-2"></i>
                 <strong class="text-blue-900">Employment Type:</strong> {{ experienceEntry.employment_type }}
@@ -393,15 +536,21 @@ onMounted(() => {
               </div>
             </div>
             <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200" @click="openUpdateExperienceModal(experienceEntry)">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200" @click="archiveExperience(experienceEntry)">
-                  <i class="fas fa-archive"></i>
-                </button>
-                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="deleteExperience(experienceEntry.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
+              <button type="button"
+                class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200"
+                @click="openUpdateExperienceModal(experienceEntry)">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button"
+                class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200"
+                @click="archiveExperience(experienceEntry)">
+                <i class="fas fa-archive"></i>
+              </button>
+              <button type="button"
+                class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200"
+                @click="deleteExperience(experienceEntry)">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
           </div>
           </div>
@@ -429,50 +578,58 @@ onMounted(() => {
         <div class="p-6 transition-all duration-300">
           <div v-if="archivedExperienceEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="experienceEntry in archivedExperienceEntries" :key="experienceEntry.id"
-              class="bg-gray-50 p-6 rounded-lg shadow-md space-y-3 relative border border-gray-200 hover:shadow-lg transition-all duration-300 group opacity-85">
-              <div class="opacity-75">
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
-                <p class="text-gray-600">
-                  {{ experienceEntry.company }}
+              class="bg-gray-50 p-5 rounded-lg border border-gray-200 relative opacity-90 hover:opacity-100 transition">
+              <div class="space-y-2">
+                <div class="border-b pb-2">
+                  <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
+                  <p class="text-gray-600">
+                    {{ experienceEntry.company }}
+                  </p>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="fas fa-map-marker-alt mr-2"></i>
+                  <span>
+                    {{ experienceEntry.address }}
+                  </span>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
+                  <span>
+                    {{ formatDate(experienceEntry.start_date) }}
+                    -
+                    {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.end_date) }}
+                  </span>
+                </div>
+                <p v-if="!experienceEntry.is_current" class="text-gray-600 mt-2 flex items-center">
+                  <i class="fas fa-hourglass-half text-blue-600 mr-2"></i>
+                  <strong class="text-blue-900">Experience:</strong>
+                  <span class="ml-1">{{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false) }}</span>
+                </p>
+                <p class="text-gray-600 mt-2 flex items-center">
+                  <i class="fas fa-briefcase text-gray-500 mr-2"></i>
+                  <strong>Employment Type:</strong> {{ experienceEntry.employment_type }}
+                </p>
+                <p class="mt-2">
+                  <strong>
+                    <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
+                  </strong>
+                  {{ experienceEntry.description || 'No description provided' }}
                 </p>
               </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="fas fa-map-marker-alt mr-2"></i>
-                <span>
-                  {{ experienceEntry.address }}
-                </span>
+              <div class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wide">
+                Archived
               </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt mr-2"></i>
-                <span>
-                  {{ formatDate(experienceEntry.start_date) }} - {{ experienceEntry.is_current ? 'Present' :
-                    formatDate(experienceEntry.end_date) }}
-                </span>
+              <div class="absolute top-2 right-2 flex space-x-2">
+                <button type="button"
+                  class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200" @click="unarchiveExperience(experienceEntry)">
+                    <i class="fas fa-undo"></i>
+                  </button>
+                  <button type="button"
+                    class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="deleteExperience(experienceEntry)">
+                    <i class="fas fa-trash"></i>
+                  </button>
               </div>
-              <p class="text-gray-600 mt-2 flex items-center">
-                <i class="fas fa-briefcase text-gray-500 mr-2"></i>
-                <strong>Employment Type:</strong> {{ experienceEntry.employment_type }}
-              </p>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                </strong>
-                {{ experienceEntry.description || 'No description provided' }}
-              </p>
             </div>
-            <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200" @click="unarchiveExperience(experienceEntry)">
-                  <i class="fas fa-undo"></i>
-                </button>
-                <button class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="deleteExperience(experienceEntry.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
-            </div>
-            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-md font-medium">
-              Archived
-            </div>
-          </div>
           </div>
 
           <!-- If no archived experience entries exist -->
@@ -490,8 +647,8 @@ onMounted(() => {
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Add Experience</h2>
           <SecondaryButton @click="closeAddExperienceModal">
-                <i class="fas fa-times mr-1"></i> Cancel
-              </SecondaryButton>
+            <i class="fas fa-times mr-1"></i> Cancel
+          </SecondaryButton>
         </div>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="addExperience">
@@ -502,22 +659,68 @@ onMounted(() => {
                 placeholder="e.g. Software Engineer" required />
               <InputError :message="experienceForm.errors.graduate_experience_title" class="mt-2" />
             </div>
-            <div class="mb-4">
-              <label class="block text-gray-700 font-medium  mb-2">Company <span class="text-red-500">*</span></label>
-              <input type="text" v-model="experienceForm.graduate_experience_company"
+
+            <!-- Company: suggestive dropdown -->
+            <div class="mb-4 relative">
+              <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                v-model="companySearchAdd"
+                @focus="showAddSuggestions = true"
+                @blur="() => setTimeout(() => showAddSuggestions = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Tech Corp" required />
-              <InputError :message="experienceForm.errors.graduate_experience_company" class="mt-2" />
+                placeholder="Type to search or enter a new company"
+                required
+              />
+              <ul
+                v-if="showAddSuggestions && filteredCompaniesAdd.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="c in filteredCompaniesAdd"
+                  :key="c.id"
+                  @mousedown.prevent="selectCompanyForAdd(c)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ c.name }}
+                </li>
+              </ul>
+              <div v-if="showAddSuggestions && !filteredCompaniesAdd.length" class="text-xs text-gray-400 mt-1">
+                No matches. Press Enter to use “{{ companySearchAdd }}”.
+              </div>
             </div>
-            <div class="mb-4">
+
+            <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
-              <input type="text" v-model="experienceForm.graduate_experience_address"
+              <input
+                type="text"
+                v-model="locationSearchAdd"
+                @focus="showLocationSuggestionsAdd = true"
+                @blur="() => setTimeout(() => showLocationSuggestionsAdd = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Manila, Philippines" />
+                placeholder="Type to search or enter a new location"
+                required
+              />
+              <ul
+                v-if="showLocationSuggestionsAdd && filteredLocationsAdd.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="l in filteredLocationsAdd"
+                  :key="l.id"
+                  @mousedown.prevent="selectLocationForAdd(l)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ l.name }}
+                </li>
+              </ul>
+              <div v-if="showLocationSuggestionsAdd && !filteredLocationsAdd.length" class="text-xs text-gray-400 mt-1">
+                No matches. Press Enter to use “{{ locationSearchAdd }}”.
+              </div>
               <InputError :message="experienceForm.errors.graduate_experience_address" class="mt-2" />
             </div>
             <div class="mb-4">
-              <label class="block text-gray-700 font-medium mb-2">Employment Type <span
+              <label class="block text-gray-700 font-medium  mb-2">Employment Type <span
                   class="text-red-500">*</span></label>
               <select v-model="experienceForm.graduate_experience_employment_type"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -547,7 +750,7 @@ onMounted(() => {
                 :preview-format="'yyyy-MM-dd'" />
               <div class="mt-2">
                 <input type="checkbox" id="still-in-role" v-model="stillInRole"
-                  @change="experience.end_date = stillInRole ? null : experience.end_date"
+                  @change="experienceForm.graduate_experience_end_date = stillInRole ? null : experienceForm.graduate_experience_end_date"
                   class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
                 <label for="still-in-role" class="text-sm text-gray-700 ml-2">I currently work here</label>
               </div>
@@ -573,15 +776,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- UpdateExperience Modal -->
-    <div v-if="isUpdateExperienceModalOpen"
-      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <!-- Update Experience Modal -->
+    <div v-if="isUpdateExperienceModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Update Experience</h2>
           <SecondaryButton @click="closeUpdateExperienceModal">
-                <i class="fas fa-times mr-1"></i> Cancel
-              </SecondaryButton>
+            <i class="fas fa-times mr-1"></i> Cancel
+          </SecondaryButton>
         </div>
         <div class="max-h-96 overflow-y-auto">
           <form @submit.prevent="updateExperience">
@@ -592,13 +794,37 @@ onMounted(() => {
                 placeholder="e.g. Software Engineer" required />
               <InputError :message="experienceForm.errors.graduate_experience_title" class="mt-2" />
             </div>
-            <div class="mb-4">
+
+            <!-- Company: suggestive dropdown -->
+            <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
-              <input type="text" v-model="experience.company"
+              <input
+                type="text"
+                v-model="companySearchUpdate"
+                @focus="showUpdateSuggestions = true"
+                @blur="setTimeout(() => showUpdateSuggestions = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="e.g. Tech Corp" required />
-              <InputError :message="experienceForm.errors.graduate_experience_company" class="mt-2" />
+                placeholder="Type to search or enter a new company"
+                required
+              />
+              <ul
+                v-if="showUpdateSuggestions && filteredCompaniesUpdate.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
+              >
+                <li
+                  v-for="c in filteredCompaniesUpdate"
+                  :key="c.id"
+                  @mousedown.prevent="selectCompanyForUpdate(c)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                >
+                  {{ c.name }}
+                </li>
+              </ul>
+              <div v-if="showUpdateSuggestions && !filteredCompaniesUpdate.length" class="text-xs text-gray-400 mt-1">
+                No matches. Press Enter to use “{{ companySearchUpdate }}”.
+              </div>
             </div>
+
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
               <input type="text" v-model="experience.address"

@@ -148,8 +148,6 @@ class CompanyApplicationController extends Controller
                     $fileUrl = null;
 
                     if ($isPrivate) {
-                        // Route should point to ManageJobReferralsController@download
-                        // Route example: Route::get('referrals/certificates/{filename}', ...)->name('referrals.certificates.download');
                         if (function_exists('route')) {
                             try {
                                 $fileUrl = route('referrals.certificates.download', ['filename' => $fileName]);
@@ -173,6 +171,48 @@ class CompanyApplicationController extends Controller
                 })
                 ->values();
         }
+
+        $educationRank = [
+            'phd' => 1,'doctor'=>'1','doctorate'=>1,
+            "master's"=>2,'masters'=>2,'master'=>2,
+            "bachelor's"=>3,'bachelors'=>3,'bachelor'=>3,
+            'associate'=>4,'certificate'=>5,
+            'vocational'=>6,
+            'senior high'=>7,'high school'=>7,
+        ];
+        $norm = fn($v) => strtolower(trim($v ?? ''));
+
+        $educationCollection = $graduate?->education ?? collect();
+
+        $education = $educationCollection->map(function($e){
+            return [
+                'id' => $e->id,
+                'school_name' => $e->school_name,
+                'program' => $e->program,
+                'level_of_education' => $e->level_of_education,
+                'start_date' => $e->start_date,
+                'end_date' => $e->is_current ? null : $e->end_date,
+                'is_current' => (bool)$e->is_current,
+                'description' => $e->description,
+                'achievement' => $e->achievement,
+                'deleted_at' => $e->deleted_at,
+            ];
+        })->values();
+
+        $highestEducation = $education
+            ->sort(function($a,$b) use($educationRank,$norm){
+                $ra = $educationRank[$norm($a['level_of_education'])] ?? 999;
+                $rb = $educationRank[$norm($b['level_of_education'])] ?? 999;
+                if ($ra !== $rb) return $ra <=> $rb;
+                // current first
+                if ($a['is_current'] && !$b['is_current']) return -1;
+                if (!$a['is_current'] && $b['is_current']) return 1;
+                // most recent end (or start) date
+                $aDate = $a['end_date'] ?? $a['start_date'] ?? '0000-00-00';
+                $bDate = $b['end_date'] ?? $b['start_date'] ?? '0000-00-00';
+                return strcmp($bDate,$aDate);
+            })
+            ->first();
 
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,
@@ -203,20 +243,8 @@ class CompanyApplicationController extends Controller
                 ];
             }) ?? [],
             'experiences' => $graduate?->experience ?? [],
-            // FIX: provide an array for education (previous line was broken)
-            'education' => $graduate?->education?->map(function($e){
-                return [
-                    'id' => $e->id,
-                    'education' => $e->education ?? $e->degree ?? $e->degree_level ?? $e->level,
-                    'program' => $e->program ?? $e->field_of_study,
-                    'field_of_study' => $e->field_of_study ?? $e->program,
-                    'institution' => $e->institution ?? $e->school,
-                    'graduation_year' => $e->graduation_year ?? $e->end_year,
-                    'start_date' => $e->start_date,
-                    'end_date' => $e->end_date,
-                    'school_year' => $e->school_year,
-                ];
-            })?->values() ?? [],
+            'education' => $education,
+            'highestEducation' => $highestEducation,
             'projects' => $graduate?->projects ?? [],
             'achievements' => $graduate?->achievements ?? [],
             'certifications' => $graduate?->certifications ?? [],

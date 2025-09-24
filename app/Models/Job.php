@@ -41,8 +41,6 @@ class Job extends Model
         'posted_by',
         'job_code',
         'job_id',
-        'sector_id',
-        'category_id',
     ];
 
 
@@ -205,7 +203,7 @@ class Job extends Model
 
     public function workEnvironments()
     {
-        return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment');
+        return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment', 'job_id', 'work_environment_id');
     }
 
     /**
