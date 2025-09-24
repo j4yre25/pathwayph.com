@@ -398,57 +398,57 @@ class GraduateJobsController extends Controller
         return response()->json(['recommendations' => $recommendations]);
     }
 
-    public function oneClickApply(Request $request)
-    {
-        if (!Auth::check()) {
-            return response()->json(['error' => 'Unauthenticated'], 401);
-        }
-        $user = Auth::user();
-        $graduate = $user->graduate;
+    // public function oneClickApply(Request $request)
+    // {
+    //     if (!Auth::check()) {
+    //         return response()->json(['error' => 'Unauthenticated'], 401);
+    //     }
+    //     $user = Auth::user();
+    //     $graduate = $user->graduate;
 
-        // Get latest resume 
-        $resume = \App\Models\Resume::where('graduate_id', $graduate->id)->latest()->first();
-        $coverLetter = $graduate->cover_letter ?? '';
+    //     // Get latest resume 
+    //     $resume = \App\Models\Resume::where('graduate_id', $graduate->id)->latest()->first();
+    //     $coverLetter = $graduate->cover_letter ?? '';
 
-        $application = \App\Models\JobApplication::create([
-            'user_id' => auth()->id(),
-            'graduate_id' => $graduate->id,
-            'job_id' => $request->job_id,
-            'status' => 'applied',
-            'stage' => 'screening',
-            'applied_at' => now(),
-            'resume_id' => $resume ? $resume->id : null,
-            'cover_letter' => $coverLetter,
-        ]);
+    //     $application = \App\Models\JobApplication::create([
+    //         'user_id' => auth()->id(),
+    //         'graduate_id' => $graduate->id,
+    //         'job_id' => $request->job_id,
+    //         'status' => 'applied',
+    //         'stage' => 'screening',
+    //         'applied_at' => now(),
+    //         'resume_id' => $resume ? $resume->id : null,
+    //         'cover_letter' => $coverLetter,
+    //     ]);
 
-        // Eager load relationships for screening
-        $application->load([
-            'graduate.education',
-            'graduate.experience',
-            'graduate.graduateSkills.skill',
-            'graduate.employmentPreference'
-        ]);
+    //     // Eager load relationships for screening
+    //     $application->load([
+    //         'graduate.education',
+    //         'graduate.experience',
+    //         'graduate.graduateSkills.skill',
+    //         'graduate.employmentPreference'
+    //     ]);
 
-        $job = $application->job;
-        $graduate = $application->graduate;
+    //     $job = $application->job;
+    //     $graduate = $application->graduate;
 
-        $screening = (new \App\Services\ApplicantScreeningService())->screen($graduate, $job);
+    //     $screening = (new \App\Services\ApplicantScreeningService())->screen($graduate, $job);
 
-        $application->screening_label = $screening['screening_label'];
-        $application->is_shortlisted = $screening['is_shortlisted'];
-        $application->status = $screening['status'];
-        $application->stage = 'Screening';
-        $application->screening_feedback = $screening['screening_feedback'];
-        $application->match_percentage = $screening['match_percentage'];
-        $application->save();
+    //     $application->screening_label = $screening['screening_label'];
+    //     $application->is_shortlisted = $screening['is_shortlisted'];
+    //     $application->status = $screening['status'];
+    //     $application->stage = 'Screening';
+    //     $application->screening_feedback = $screening['screening_feedback'];
+    //     $application->match_percentage = $screening['match_percentage'];
+    //     $application->save();
 
-        // Notify applicant if rejected
-        if (in_array($application->status, ['rejected', 'shortlisted']) && $graduate->user) {
-            $graduate->user->notify(new \App\Notifications\ApplicationStatusUpdated($application, $application->status));
-        }
+    //     // Notify applicant if rejected
+    //     if (in_array($application->status, ['rejected', 'shortlisted']) && $graduate->user) {
+    //         $graduate->user->notify(new \App\Notifications\ApplicationStatusUpdated($application, $application->status));
+    //     }
 
-        return response()->json(['success' => true, 'message' => 'Applied with your latest resume and cover letter!']);
-    }
+    //     return response()->json(['success' => true, 'message' => 'Applied with your latest resume and cover letter!']);
+    // }
 
     public function applyForJob(Request $request)
     {

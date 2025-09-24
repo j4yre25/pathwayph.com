@@ -207,7 +207,7 @@ function reloadPage() {
     <slot name="actions"></slot>
 
     <!-- Success Modal -->
-    <Modal :show="showModal" @close="reloadPage">
+    <Modal :modelValue="showModal" @close="reloadPage">
       <template #title>
         Profile Updated
       </template>

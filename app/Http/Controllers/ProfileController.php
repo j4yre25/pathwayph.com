@@ -180,6 +180,7 @@ class ProfileController extends Controller
             'last_name' => 'required|string|max:255',
             'current_job_title' => 'nullable|string|max:255',
             'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
+            'profession' => 'nullable|string|max:255', // <-- add this line
             'graduate_location' => 'nullable|string|max:255', // Accept from frontend
             'email' => 'required|email|max:255|unique:users,email,' . Auth::id(),
             'contact_number' => 'nullable|string|max:15',
@@ -205,13 +206,15 @@ class ProfileController extends Controller
 
         $employmentStatus = $validated['employment_status'];
         $currentJobTitle = $employmentStatus === 'Unemployed' ? '' : $validated['current_job_title'];
-        
+
         $graduate->update([
             'first_name' => $validated['first_name'],
             'middle_name' => $validated['middle_name'],
             'last_name' => $validated['last_name'],
             'current_job_title' => $currentJobTitle,
             'employment_status' => $employmentStatus,
+            'profession' => $validated['profession'] ?? $graduate->profession,
+
             'location' => $validated['graduate_location'] ?? $graduate->location, // Map to DB column
             'contact_number' => $validated['contact_number'] ?? $graduate->contact_number,
             'dob' => $validated['dob'] ?? null,
@@ -587,61 +590,42 @@ class ProfileController extends Controller
 
     public function updateProject(Request $request, $id)
     {
-        try {
-            $project = Project::findOrFail($id);
+        \Log::info('Request all:', $request->all());
 
+        $validated = $request->validate([
+            'graduate_projects_title' => 'required|string|max:255',
+            'graduate_projects_description' => 'nullable|string',
+            'graduate_projects_role' => 'required|string|max:255',
+            'graduate_projects_start_date' => 'required|date',
+            'graduate_projects_end_date' => 'nullable|date',
+            'graduate_projects_url' => 'nullable|string|max:255',
+            'graduate_projects_key_accomplishments' => 'nullable|string',
+            'graduate_project_file' => 'nullable|file|max:2048',
+            'is_current' => 'boolean',
 
-            $request->validate([
-                'graduate_projects_title' => 'required|string|max:255',
-                'graduate_projects_description' => 'nullable|string',
-                'graduate_projects_role' => 'required|string|max:255',
-                'graduate_projects_start_date' => 'required|date',
-                'graduate_projects_end_date' => 'nullable|date',
-                'graduate_projects_url' => 'nullable|string|max:255',
-                'graduate_projects_key_accomplishments' => 'nullable|string',
-                'graduate_project_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048', // <-- add this line
-                'is_current' => 'boolean'
-            ]);
+        ]);
 
-            $data = $request->all();
+        $project = Project::findOrFail($id);
 
-            if ($request->is_current) {
-                $data['graduate_projects_end_date'] = null;
-            }
+        // Map frontend fields to DB columns
+        $project->title = $validated['graduate_projects_title'];
+        $project->description = $validated['graduate_projects_description'];
+        $project->role = $validated['graduate_projects_role'];
+        $project->start_date = $validated['graduate_projects_start_date'];
+        $project->end_date = $validated['is_current'] ? null : $validated['graduate_projects_end_date'];
+        $project->url = $validated['graduate_projects_url'];
+        $project->key_accomplishments = $validated['graduate_projects_key_accomplishments'];
 
-            if (isset($data['graduate_projects_start_date'])) {
-                $data['graduate_projects_start_date'] = Carbon::parse($data['graduate_projects_start_date'])->format('Y-m-d');
-            }
-
-            if (isset($data['graduate_projects_end_date'])) {
-                $data['graduate_projects_end_date'] = Carbon::parse($data['graduate_projects_end_date'])->format('Y-m-d');
-            }
-
-            $data['graduate_projects_description'] = $data['graduate_projects_description'] ?? 'No description provided';
-
-            // Handle file upload
-            if ($request->hasFile('graduate_project_file')) {
-                // Optionally delete old file
-                if ($project->graduate_project_file) {
-                    Storage::disk('public')->delete($project->graduate_project_file);
-                }
-                $file = $request->file('graduate_project_file');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('project_files', $filename, 'public');
-                $data['graduate_project_file'] = $path;
-            }
-
-            $user = Auth::user();
-            $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-            $data['graduate_id'] = $graduate->id;
-
-            $project->update($data);
-
-            return redirect()->back()->with('flash.banner', 'Project updated successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error updating project: ' . $e->getMessage());
-            return redirect()->back()->with('flash.banner', 'Failed to update project. Please try again.');
+        // Handle file upload
+        if ($request->hasFile('graduate_project_file')) {
+            $filePath = $request->file('graduate_project_file')->store('project_files', 'public');
+            $project->file = $filePath;
         }
+
+        $project->save();
+
+        // Return updated projects list
+        return redirect()->back()->with('projectsEntries', Project::where('graduate_id', $project->graduate_id)->whereNull('deleted_at')->get());
     }
 
     public function removeProject($id)

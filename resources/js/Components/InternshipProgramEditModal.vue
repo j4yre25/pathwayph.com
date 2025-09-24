@@ -52,7 +52,7 @@ function closeModal() {
 </script>
 
 <template>
-  <Modal :show="show" max-width="4xl" @close="closeModal">
+  <Modal :modelValue="show" max-width="4xl" @close="closeModal">
     <div class="p-6">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-semibold text-gray-800">Edit Internship Program</h2>

@@ -396,7 +396,7 @@ const handleNoAchievements = () => {
 <template>
   <div v-if="activeSection === 'education'" class="w-full">
     <!-- Success Modal -->
-    <Modal :show="modals.isSuccessOpen" @close="modals.isSuccessOpen = false">
+    <Modal :modelValue="modals.isSuccessOpen" @close="modals.isSuccessOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-3">
@@ -416,7 +416,7 @@ const handleNoAchievements = () => {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="modals.isErrorOpen" @close="modals.isErrorOpen = false">
+    <Modal :modelValue="modals.isErrorOpen" @close="modals.isErrorOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-3">
@@ -435,7 +435,7 @@ const handleNoAchievements = () => {
     </Modal>
 
     <!-- Duplicate Modal -->
-    <Modal :show="modals.isDuplicateOpen" @close="modals.isDuplicateOpen = false">
+    <Modal :modelValue="modals.isDuplicateOpen" @close="modals.isDuplicateOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-yellow-100 rounded-full p-3">

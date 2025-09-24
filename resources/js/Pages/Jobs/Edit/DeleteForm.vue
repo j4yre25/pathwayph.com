@@ -90,7 +90,7 @@ const closeModal = () => {
         </div>
 
         <!-- Delete Job Confirmation Modal -->
-        <Modal :show="confirmingJobDeletion" @close="closeModal">
+        <Modal :modelValue="confirmingJobDeletion" @close="closeModal">
             <div class="p-6">
                 <h2 class="text-lg font-medium text-gray-900 flex items-center">
                     <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>

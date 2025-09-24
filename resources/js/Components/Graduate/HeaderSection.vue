@@ -24,8 +24,8 @@ const formatSocialMediaUrl = (url) => {
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-4 md:mb-0">
                     <h1 class="text-2xl md:text-3xl font-bold">{{ fullName }}</h1>
-                    <p v-if="graduate.current_job" class="text-indigo-100 mt-1">
-                        {{ graduate.current_job }}
+                    <p v-if="graduate.profession" class="text-indigo-100 mt-1">
+                        {{ graduate.profession }}
                     </p>
                 </div>
                 

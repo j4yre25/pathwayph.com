@@ -780,7 +780,7 @@ const closeErrorModal = () => {
       </div>
 
     <!-- Password Success Modal -->
-    <Modal :show="showPasswordSuccessModal" @close="closePasswordSuccessModal">
+    <Modal :modelValue="showPasswordSuccessModal" @close="closePasswordSuccessModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-3">
@@ -798,7 +798,7 @@ const closeErrorModal = () => {
     </Modal>
 
     <!-- Password Error Modal -->
-    <Modal :show="showPasswordErrorModal" @close="closePasswordErrorModal">
+    <Modal :modelValue="showPasswordErrorModal" @close="closePasswordErrorModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-3">
@@ -816,7 +816,7 @@ const closeErrorModal = () => {
     </Modal>
 
     <!-- Success Modal -->
-    <Modal :show="showSuccessModal" @close="closeSuccessModal">
+    <Modal :modelValue="showSuccessModal" @close="closeSuccessModal">
         <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-3">
@@ -834,7 +834,7 @@ const closeErrorModal = () => {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="showErrorModal" @close="closeErrorModal">
+    <Modal :modelValue="showErrorModal" @close="closeErrorModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-3">
