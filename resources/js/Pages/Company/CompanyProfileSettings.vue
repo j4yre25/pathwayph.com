@@ -806,7 +806,7 @@ const showPasswordErrorModal = (message) => {
       </div>
 
     <!-- Password Success Modal -->
-    <Modal :show="isPasswordSuccessModalOpen" @close="isPasswordSuccessModalOpen = false">
+    <Modal :modelValue="isPasswordSuccessModalOpen" @close="isPasswordSuccessModalOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-emerald-100 rounded-full p-3">
@@ -827,7 +827,7 @@ const showPasswordErrorModal = (message) => {
     </Modal>
 
     <!-- Password Error Modal -->
-    <Modal :show="isPasswordErrorModalOpen" @close="isPasswordErrorModalOpen = false">
+    <Modal :modelValue="isPasswordErrorModalOpen" @close="isPasswordErrorModalOpen = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-rose-100 rounded-full p-3">
@@ -848,7 +848,7 @@ const showPasswordErrorModal = (message) => {
     </Modal>
 
     <!-- Success Modal -->
-    <Modal :show="showSuccessModal" @close="closeSuccessModal">
+    <Modal :modelValue="showSuccessModal" @close="closeSuccessModal">
         <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-3">
@@ -866,7 +866,7 @@ const showPasswordErrorModal = (message) => {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="showErrorModal" @close="closeErrorModal">
+    <Modal :modelValue="showErrorModal" @close="closeErrorModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-3">

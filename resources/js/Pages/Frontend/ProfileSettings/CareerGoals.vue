@@ -198,7 +198,7 @@ const closeErrorModal = () => {
 <template>
   <div v-if="activeSection === 'career-goals'">
     <!-- Success Modal -->
-    <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+    <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-2">
@@ -218,7 +218,7 @@ const closeErrorModal = () => {
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+    <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-2">

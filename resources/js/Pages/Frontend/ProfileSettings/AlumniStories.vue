@@ -263,7 +263,7 @@ onMounted(() => {
 
 <template>
   <!-- Success Modal -->
-  <Modal :show="isSuccessModalOpen" @close="closeSuccessModal">
+  <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
     <div class="p-6">
       <div class="flex items-center mb-5">
         <div class="bg-green-50 rounded-full p-3 mr-3">
@@ -281,7 +281,7 @@ onMounted(() => {
   </Modal>
 
   <!-- Error Modal -->
-  <Modal :show="isErrorModalOpen" @close="closeErrorModal">
+  <Modal :modelValue="isErrorModalOpen" @close="closeErrorModal">
     <div class="p-6">
       <div class="flex items-center mb-5">
         <div class="bg-red-50 rounded-full p-3 mr-3">
@@ -299,7 +299,7 @@ onMounted(() => {
   </Modal>
 
   <!-- Add Story Modal -->
-  <Modal :show="isAddStoryModalOpen" @close="closeAddStoryModal" maxWidth="2xl">
+  <Modal :modelValue="isAddStoryModalOpen" @close="closeAddStoryModal" maxWidth="2xl">
     <div class="p-6">
       <div class="flex items-center mb-6">
         <div class="bg-indigo-50 rounded-full p-3 mr-3">
@@ -407,7 +407,7 @@ onMounted(() => {
   </Modal>
 
   <!-- Update Story Modal -->
-  <Modal :show="isUpdateStoryModalOpen" @close="closeUpdateStoryModal" maxWidth="2xl">
+  <Modal :modelValue="isUpdateStoryModalOpen" @close="closeUpdateStoryModal" maxWidth="2xl">
     <div class="p-6">
       <div class="flex items-center mb-6">
         <div class="bg-indigo-50 rounded-full p-3 mr-3">
@@ -515,7 +515,7 @@ onMounted(() => {
   </Modal>
 
   <!-- Delete Confirmation Modal -->
-  <Modal :show="isDeleteModalOpen" @close="closeDeleteModal" maxWidth="md">
+  <Modal :modelValue="isDeleteModalOpen" @close="closeDeleteModal" maxWidth="md">
     <div class="p-6">
       <div class="flex items-center mb-5">
         <div class="bg-red-50 rounded-full p-3 mr-3">

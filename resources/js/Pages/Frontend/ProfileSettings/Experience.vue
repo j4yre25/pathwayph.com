@@ -384,7 +384,7 @@ experienceForm.graduate_experience_address = selectedLocation
 
 <template>
   <!-- Success Modal -->
-  <Modal :show="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+  <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
     <div class="p-6">
       <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
         <i class="fas fa-check text-green-500 text-xl"></i>
@@ -398,7 +398,7 @@ experienceForm.graduate_experience_address = selectedLocation
   </Modal>
 
   <!-- Error Modal -->
-  <Modal :show="isErrorModalOpen" @close="isErrorModalOpen = false">
+  <Modal :modelValue="isErrorModalOpen" @close="isErrorModalOpen = false">
     <div class="p-6">
       <div class="flex items-center justify-center mb-4 bg-red-100 rounded-full w-12 h-12 mx-auto">
         <i class="fas fa-times text-red-500 text-xl"></i>
@@ -412,7 +412,7 @@ experienceForm.graduate_experience_address = selectedLocation
   </Modal>
 
   <!-- Duplicate Modal -->
-  <Modal :show="isDuplicateModalOpen" @close="isDuplicateModalOpen = false">
+  <Modal :modelValue="isDuplicateModalOpen" @close="isDuplicateModalOpen = false">
     <div class="p-6">
       <div class="flex items-center justify-center mb-4 bg-yellow-100 rounded-full w-12 h-12 mx-auto">
         <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>

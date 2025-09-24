@@ -268,7 +268,7 @@ Long-term Goals: Become a senior specialist or manager in Cybersecurity.
     </div>
 
     <!-- Success Modal -->
-    <Modal :show="showSuccessModal" @close="showSuccessModal = false">
+    <Modal :modelValue="showSuccessModal" @close="showSuccessModal = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-green-100 rounded-full p-3">
@@ -286,7 +286,7 @@ Long-term Goals: Become a senior specialist or manager in Cybersecurity.
     </Modal>
 
     <!-- Error Modal -->
-    <Modal :show="showErrorModal" @close="showErrorModal = false">
+    <Modal :modelValue="showErrorModal" @close="showErrorModal = false">
       <div class="p-6">
         <div class="flex items-center justify-center mb-4">
           <div class="bg-red-100 rounded-full p-3">

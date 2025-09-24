@@ -30,6 +30,8 @@ const filteredCompanies = computed(() =>
     )
 );
 
+
+
 const dateFrom = ref('');
 const dateTo = ref('');
 
@@ -210,7 +212,7 @@ function submitReferral() {
     <AppLayout title="Dashboard">
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Dashboard
+                Welcome to Pathway!
             </h2>
         </template>
 
@@ -265,7 +267,8 @@ function submitReferral() {
             <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-9 mb-9">
                 <div class="grid grid-cols-8 gap-4">
                     <!-- Employees Card -->
-                    <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-users text-white"></i>
                         </div>
@@ -274,7 +277,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Clients Card -->
-                    <div class="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-briefcase text-white"></i>
                         </div>
@@ -283,7 +287,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Projects Card -->
-                    <div class="bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-project-diagram text-white"></i>
                         </div>
@@ -292,7 +297,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Events Card -->
-                    <div class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-calendar-alt text-white"></i>
                         </div>
@@ -301,7 +307,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Reports Card -->
-                    <div class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-chart-bar text-white"></i>
                         </div>
@@ -310,7 +317,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Unemployed Card -->
-                    <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-user-times text-white"></i>
                         </div>
@@ -319,7 +327,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Underemployed Card -->
-                    <div class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-user-clock text-white"></i>
                         </div>
@@ -328,7 +337,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Employed Card -->
-                    <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div
+                        class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
                         <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-user-check text-white"></i>
                         </div>
@@ -485,11 +495,20 @@ function submitReferral() {
         </div>
 
 
+        <div v-else-if="page.props.roles?.isGraduate" class="py-12">
+            <GraduateDashboard :summary="page.props.summary" :kpi="page.props.kpi"
+                :recommendedJobs="page.props.recommendedJobs" :graduate="page.props.graduate"
+                :aboutMe="page.props.aboutMe" :currentJob="page.props.currentJob"
+                :highestEducation="page.props.highestEducation"
+                :featuredCompanies="page.props.featuredCompanies"
+                :careerGoals="page.props.careerGoals" />
+        </div>
 
 
 
 
-        <div class="py-12">
+
+        <div class=" py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                     <!-- Account Not Approved Modal -->
@@ -508,213 +527,8 @@ function submitReferral() {
                         </template>
                     </Modal>
 
-                    <!-- Job Referral Letter Modal -->
-                    <Modal v-if="showReferralModal" :show="showReferralModal" @close="showReferralModal = false"
-                        max-width="2xl">
-                        <template #title> Job Referral Letter </template>
-                        <template #content>
-                            <form @submit.prevent="submitReferral" id="referralForm">
-                                <!-- Personal Info -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="surname" class="block text-sm font-medium text-gray-700">
-                                            Surname
-                                        </label>
-                                        <input v-model="referralForm.surname" type="text" id="surname" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="first_name" class="block text-sm font-medium text-gray-700">
-                                            First Name
-                                        </label>
-                                        <input v-model="referralForm.first_name" type="text" id="first_name" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="middle_name" class="block text-sm font-medium text-gray-700">
-                                            Middle Name
-                                        </label>
-                                        <input v-model="referralForm.middle_name" type="text" id="middle_name"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="suffix" class="block text-sm font-medium text-gray-700">
-                                            Suffix
-                                        </label>
-                                        <input v-model="referralForm.suffix" type="text" id="suffix"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="dob" class="block text-sm font-medium text-gray-700">
-                                            Date of Birth
-                                        </label>
-                                        <input v-model="referralForm.dob" type="date" id="dob" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="sex" class="block text-sm font-medium text-gray-700">
-                                            Sex
-                                        </label>
-                                        <select v-model="referralForm.sex" id="sex" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                                            <option value="">Select Sex</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label for="civil_status" class="block text-sm font-medium text-gray-700">
-                                            Civil Status
-                                        </label>
-                                        <select v-model="referralForm.civil_status" id="civil_status" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                                            <option value="">Select Civil Status</option>
-                                            <option value="Single">Single</option>
-                                            <option value="Married">Married</option>
-                                            <option value="Divorced">Divorced</option>
-                                            <option value="Widowed">Widowed</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label for="religion" class="block text-sm font-medium text-gray-700">
-                                            Religion
-                                        </label>
-                                        <input v-model="referralForm.religion" type="text" id="religion"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="address" class="block text-sm font-medium text-gray-700">
-                                            Address
-                                        </label>
-                                        <input v-model="referralForm.address" type="text" id="address" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="contact" class="block text-sm font-medium text-gray-700">
-                                            Contact Number
-                                        </label>
-                                        <input v-model="referralForm.contact" type="text" id="contact" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="email" class="block text-sm font-medium text-gray-700">
-                                            Email
-                                        </label>
-                                        <input v-model="referralForm.email" type="email" id="email" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="position" class="block text-sm font-medium text-gray-700">
-                                            Position
-                                        </label>
-                                        <input v-model="referralForm.position" type="text" id="position" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label for="company" class="block text-sm font-medium text-gray-700">
-                                            Company
-                                        </label>
-                                        <input v-model="referralForm.company" type="text" id="company" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">TIN Number</label>
-                                        <input v-model="referralForm.tin" type="text"
-                                            class="w-full border rounded px-3 py-2" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">Disability</label>
-                                        <select v-model="referralForm.disability"
-                                            class="w-full border rounded px-3 py-2">
-                                            <option value="">None</option>
-                                            <option value="Visual">Visual</option>
-                                            <option value="Hearing">Hearing</option>
-                                            <option value="Speech">Speech</option>
-                                            <option value="Physical">Physical</option>
-                                            <option value="Mental">Mental</option>
-                                            <option value="Others">Others</option>
-                                        </select>
-                                    </div>
 
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">Preferred Work Location</label>
-                                        <input v-model="referralForm.preferred_location" type="text"
-                                            class="w-full border rounded px-3 py-2" />
-                                    </div>
-                                </div>
 
-                                <!-- Language/Dialect Proficiency -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium mb-1">Language/Dialect Proficiency</label>
-                                    <input v-model="referralForm.language" type="text"
-                                        class="w-full border rounded px-3 py-2" placeholder="e.g. English, Filipino" />
-                                </div>
-
-                                <!-- Educational Background -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium mb-1">Educational Background</label>
-                                    <textarea v-model="referralForm.educational_background"
-                                        class="w-full border rounded px-3 py-2" rows="2"
-                                        placeholder="e.g. BSIT, 2023, University Name"></textarea>
-                                </div>
-
-                                <!-- Technical/Vocational and Other Training -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium mb-1">Technical/Vocational and Other
-                                        Training</label>
-                                    <textarea v-model="referralForm.training" class="w-full border rounded px-3 py-2"
-                                        rows="2"></textarea>
-                                </div>
-
-                                <!-- Eligibility/Professional License -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium mb-1">Eligibility/Professional
-                                        License</label>
-                                    <input v-model="referralForm.eligibility" type="text"
-                                        class="w-full border rounded px-3 py-2" />
-                                </div>
-
-                                <!-- Work Experience -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium mb-1">Work Experience</label>
-                                    <textarea v-model="referralForm.work_experience"
-                                        class="w-full border rounded px-3 py-2" rows="2"></textarea>
-                                </div>
-
-                                <!-- Other Skills Without Certificate -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium mb-1">Other Skills Without
-                                        Certificate</label>
-                                    <input v-model="referralForm.other_skills" type="text"
-                                        class="w-full border rounded px-3 py-2" />
-                                </div>
-
-                                <!-- Message -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium mb-1">Message</label>
-                                    <textarea v-model="referralForm.message" class="w-full border rounded px-3 py-2"
-                                        rows="3"></textarea>
-                                </div>
-                            </form>
-                        </template>
-                        <template #footer>
-                            <button type="button" class="bg-gray-300 text-gray-700 px-4 py-2 rounded"
-                                @click="showReferralModal = false">
-                                Cancel
-                            </button>
-                            <button type="submit" form="referralForm" class="bg-blue-500 text-white px-4 py-2 rounded">
-                                Submit Referral
-                            </button>
-                        </template>
-                    </Modal>
-
-                    <!-- Only show if graduate, approved, and has not filled up the referral letter -->
-                    <!-- <button
-                        v-if="page.props.auth.user.role === 'graduate' && !userNotApproved.value && !hasFilledReferral"
-                        class="mt-4 px-4 py-2 bg-green-600 text-white rounded" @click="showReferralModal = true">
-                        Create Job Referral Letter
-                    </button> -->
                 </div>
             </div>
         </div>

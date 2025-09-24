@@ -124,7 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{conversation}', [MessageController::class, 'show'])->name('messages.show');
-     Route::post('/messages/{id}/respond', [MessageController::class, 'respond'])->name('messages.respond');
+    Route::post('/messages/{id}/respond', [MessageController::class, 'respond'])->name('messages.respond');
 });
 
 // PESO Jobs
@@ -370,11 +370,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
-Route::get('/company/profile', [CompanyProfileController::class, 'profile'])->name('company.profile');
-Route::get('/company/profile/settings', [CompanyProfileController::class, 'settings'])->name('company.profile.settings');
-Route::post('/company/profile/settings', [CompanyProfileController::class, 'updateSettings'])->name('company.profile.settings.update');
-Route::post('/company/profile', [CompanyProfileController::class, 'post'])->name('company-profile.post');
-Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
+    Route::get('/company/profile', [CompanyProfileController::class, 'profile'])->name('company.profile');
+    Route::get('/company/profile/settings', [CompanyProfileController::class, 'settings'])->name('company.profile.settings');
+    Route::post('/company/profile/settings', [CompanyProfileController::class, 'updateSettings'])->name('company.profile.settings.update');
+    Route::post('/company/profile', [CompanyProfileController::class, 'post'])->name('company-profile.post');
+    Route::put('/company/profile', [CompanyProfileController::class, 'update'])->name('company-profile.update');
     Route::delete('/current-user-photo', [CompanyProfileController::class, 'destroyPhoto'])->name('current-user-photo.destroy');
     Route::delete('/current-user-cover-photo', [CompanyProfileController::class, 'destroyCoverPhoto'])->name('current-user-cover-photo.destroy');
 
@@ -949,7 +949,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // Project Routes
     Route::post('/profile/projects', [ProfileController::class, 'addProject'])->name('profile.projects.add');
-    Route::put('/profile/projects/{id}', [ProfileController::class, 'updateProject'])->name('profile.projects.update');
+    Route::match(['put', 'post'], '/profile/projects/{id}', [ProfileController::class, 'updateProject'])->name('profile.projects.update');
     Route::delete('/profile/projects/{id}', [ProfileController::class, 'removeProject'])->name('profile.projects.remove');
     Route::put('/profile/projects/{id}/archive', [ProfileController::class, 'archiveProject'])->name('profile.projects.archive');
     Route::post('/profile/projects/{id}/unarchive', [ProfileController::class, 'unarchiveProject'])->name('profile.projects.unarchive');
@@ -957,7 +957,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // Certification Routes
     Route::post('/profile/certifications', [ProfileController::class, 'addCertification'])->name('profile.certifications.add');
-    Route::put('/profile/certifications/{id}', [ProfileController::class, 'updateCertification'])->name('profile.certifications.update');
+    Route::match(['put', 'post'], '/profile/certifications/{id}', [ProfileController::class, 'updateCertification'])->name('profile.certifications.update');
     Route::delete('/profile/certifications/{id}', [ProfileController::class, 'removeCertification'])->name('profile.certifications.remove');
     Route::put('/profile/certifications/{id}/archive', [ProfileController::class, 'archiveCertification'])->name('profile.certifications.archive');
     Route::post('/profile/certifications/{id}/unarchive', [ProfileController::class, 'unarchiveCertification'])->name('profile.certifications.unarchive');

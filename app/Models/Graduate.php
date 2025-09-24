@@ -18,6 +18,7 @@ class Graduate extends Model
         'gender',
         'current_job_title',
         'employment_status',
+        'profession',
         'contact_number',
         'location',
         'ethnicity',
@@ -83,10 +84,10 @@ class Graduate extends Model
     }
 
     public function graduateEducations()
-    {   
+    {
         return $this->hasMany(GraduateEducation::class, 'graduate_id');
     }
-    
+
 
     public function jobApplications()
     {
