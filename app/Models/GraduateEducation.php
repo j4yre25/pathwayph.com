@@ -39,4 +39,9 @@ class GraduateEducation extends Model
         return $this->belongsTo(\App\Models\Graduate::class);
     }
 
+    public function institution()
+    {
+        return $this->belongsTo(\App\Models\Institution::class, 'school_name', 'institution_name');
+    }
+
 }

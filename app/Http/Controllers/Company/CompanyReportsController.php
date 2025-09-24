@@ -96,7 +96,21 @@ class CompanyReportsController extends Controller
             ->when($experienceLevel, fn($q,$lvl)=>$q->where('job_experience_level',$lvl))
             ->when(is_numeric($vacancyMin), fn($q)=>$q->where('job_vacancies','>=',(int)$vacancyMin))
             ->when(is_numeric($vacancyMax), fn($q)=>$q->where('job_vacancies','<=',(int)$vacancyMax))
-            ->withWorkEnvironment($workEnvironment);
+            ->when($workEnvironment, function($q) use ($workEnvironment) {
+                // Accept string or array
+                $vals = is_array($workEnvironment) ? array_filter($workEnvironment) : [$workEnvironment];
+                if (!count($vals)) return;
+                // 1) If jobs table has a direct column
+                if (\Schema::hasColumn('jobs','work_environment')) {
+                    $q->where(function($qq) use ($vals) {
+                        $qq->whereIn('work_environment', $vals);
+                    });
+                }
+                // 2) Also check many‑to‑many / pivot relation if it exists
+                $q->orWhereHas('workEnvironments', function($wq) use ($vals) {
+                    $wq->whereIn('environment_type', $vals);
+                });
+            });
 
         $filteredJobs = $jobsQuery->get();
 

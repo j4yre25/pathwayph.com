@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Job extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
 
 
@@ -41,8 +41,6 @@ class Job extends Model
         'posted_by',
         'job_code',
         'job_id',
-        'sector_id',
-        'category_id',
     ];
 
 
@@ -205,37 +203,21 @@ class Job extends Model
 
     public function workEnvironments()
     {
-        return $this->belongsToMany(\App\Models\WorkEnvironment::class, 'job_work_environment');
+        return $this->belongsToMany(WorkEnvironment::class, 'job_work_environment', 'job_id', 'work_environment_id');
     }
 
-    public function getWorkEnvironmentLabelsAttribute(): array
+    /**
+     * Get all interviews for this job through job applications.
+     */
+    public function interviews()
     {
-        $labels = $this->relationLoaded('workEnvironments')
-            ? $this->workEnvironments->pluck('environment_type')
-            : $this->workEnvironments()->pluck('work_environments.environment_type');
-        $labels = $labels->filter()->unique()->values()->all();
-
-        if (!count($labels) && isset($this->work_environment) && $this->work_environment) {
-            return [$this->work_environment]; // legacy single column fallback
-        }
-        return $labels;
+        return $this->hasManyThrough(
+            \App\Models\Interview::class,      // The related model
+            \App\Models\JobApplication::class, // The intermediate model
+            'job_id',                          // Foreign key on JobApplication table...
+            'job_application_id',              // Foreign key on Interview table...
+            'id',                              // Local key on Job table...
+            'id'                               // Local key on JobApplication table...
+        );
     }
-
-    public function scopeWithWorkEnvironment($q, $env)
-    {
-        if (!$env) return $q;
-        $values = is_array($env) ? array_filter($env) : [$env];
-        if (!count($values)) return $q;
-
-        return $q->where(function($qq) use ($values) {
-            $qq->whereIn('work_environment', $values);
-            if (\Illuminate\Support\Facades\Schema::hasTable('job_work_environment')) {
-                $qq->orWhereHas('workEnvironments', function($wq) use ($values) {
-                    $wq->whereIn('environment_type', $values);
-                });
-            }
-        });
-    }
-
-    protected $appends = ['work_environment_labels'];
 }

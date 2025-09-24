@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, reactive } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue'
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
@@ -254,67 +255,65 @@ const closeUpdateExperienceModal = () => {
   resetExperience();
 };
 
-const deleteExperience = (experienceId) => {
-  itemToDelete.value = { id: experienceId, type: 'experience' };
-  isDeleteConfirmationModalOpen.value = true;
-};
-
-const formattedExperienceStartDate = computed(() => {
-  return experience.start_date
-    ? new Date(experience.start_date).toISOString().split('T')[0]
-    : null;
+// Confirmation Modal Logic
+const confirmModal = reactive({
+  show: false,
+  type: '',      // 'archive' | 'unarchive' | 'delete'
+  entry: null,
+  message: '',
+  confirmLabel: '',
+  confirmAction: null,
 });
 
-const formattedExperienceEndDate = computed(() => {
-  if (experience.is_current) return null;
-  return experience.end_date
-    ? new Date(experience.end_date).toISOString().split('T')[0]
-    : null;
-});
-
-watch(() => experience.is_current, (newValue) => {
-  stillInRole.value = newValue;
-  if (newValue) {
-    experience.end_date = null;
-  } else {
-    experience.end_date = '';
+function openConfirm(type, entry) {
+  confirmModal.type = type;
+  confirmModal.entry = entry;
+  confirmModal.show = true;
+  if (type === 'archive') {
+    confirmModal.message = 'Archive this experience entry?';
+    confirmModal.confirmLabel = 'Archive';
+    confirmModal.confirmAction = () => doArchive(entry);
+  } else if (type === 'unarchive') {
+    confirmModal.message = 'Restore this archived experience entry?';
+    confirmModal.confirmLabel = 'Restore';
+    confirmModal.confirmAction = () => doUnarchive(entry);
+  } else if (type === 'delete') {
+    confirmModal.message = 'Permanently delete this experience entry? This cannot be undone.';
+    confirmModal.confirmLabel = 'Delete';
+    confirmModal.confirmAction = () => doDelete(entry);
   }
-}, { immediate: true });
+}
 
-watch(() => experience.end_date, (newValue) => {
-  if (newValue && isNaN(new Date(newValue).getTime())) {
-    experience.end_date = null;
-  }
-});
+function closeConfirm() {
+  confirmModal.show = false;
+  confirmModal.type = '';
+  confirmModal.entry = null;
+  confirmModal.message = '';
+  confirmModal.confirmLabel = '';
+  confirmModal.confirmAction = null;
+}
+
+// Actual server actions
+function doArchive(entry) {
+  closeConfirm();
+  useForm({}).put(route('profile.experience.archive', entry.id), { preserveScroll: true });
+}
+function doUnarchive(entry) {
+  closeConfirm();
+  useForm({}).put(route('profile.experience.unarchive', entry.id), { preserveScroll: true });
+}
+function doDelete(entry) {
+  closeConfirm();
+  // Uses remove route (DELETE) which soft-deletes first time, force-deletes if already archived
+  useForm({}).delete(route('profile.experience.remove', entry.id), { preserveScroll: true });
+}
+
+// Button handlers (used in template)
+function archiveExperience(entry) { openConfirm('archive', entry); }
+function unarchiveExperience(entry) { openConfirm('unarchive', entry); }
+function deleteExperience(entry) { openConfirm('delete', entry); }
 
 
-// Modal State
-let currentExperienceIndex = ref(null);
-
-const removeExperience = (experience) => {
-  if (confirm(`Are you sure you want to remove this experience entry: ${experience.title}?`)) {
-    deleteForm.delete(route('experience.remove', experience.id), {
-      onSuccess: () => {
-        const index = experienceEntries.findIndex(e => e.id === experience.id);
-        if (index !== -1) {
-          experienceEntries.splice(index, 1);
-        }
-      }
-    });
-  }
-};
-
-// Function to archive an experience entry
-const archiveExperience = (experience) => {
-  // Implementation would go here
-  console.log('Archiving experience:', experience.title);
-};
-
-// Function to unarchive an experience entry
-const unarchiveExperience = (experience) => {
-  // Implementation would go here
-  console.log('Unarchiving experience:', experience.title);
-};
 
 // Function to toggle archived experience visibility
 const toggleArchivedExperience = () => {
@@ -426,7 +425,39 @@ experienceForm.graduate_experience_address = selectedLocation
     </div>
   </Modal>
 
-
+  <!-- Confirmation Modal -->
+  <Modal :show="confirmModal.show" @close="closeConfirm">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4">
+        <div :class="{
+          'bg-amber-100': confirmModal.type === 'archive' || confirmModal.type === 'unarchive',
+          'bg-red-100': confirmModal.type === 'delete'
+        }" class="rounded-full p-3">
+          <i v-if="confirmModal.type === 'archive'" class="fas fa-archive text-amber-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'unarchive'" class="fas fa-undo text-green-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'delete'" class="fas fa-trash text-red-500 text-xl"></i>
+        </div>
+      </div>
+      <h3 class="text-lg font-medium text-center text-gray-900 mb-2">
+        {{ confirmModal.confirmLabel }} Experience
+      </h3>
+      <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
+      <div class="mt-6 flex justify-center space-x-2">
+        <SecondaryButton type="button" @click="closeConfirm">Cancel</SecondaryButton>
+        <DangerButton
+          v-if="confirmModal.type === 'delete'"
+          type="button"
+          @click="confirmModal.confirmAction"
+        >Delete</DangerButton>
+        <PrimaryButton
+          v-else
+          type="button"
+          :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
+          @click="confirmModal.confirmAction"
+        >{{ confirmModal.confirmLabel }}</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
 
   <div v-if="activeSection === 'experience'" class="flex flex-col lg:flex-row">
     <div class="w-full mb-6">
@@ -505,15 +536,21 @@ experienceForm.graduate_experience_address = selectedLocation
               </div>
             </div>
             <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200" @click="openUpdateExperienceModal(experienceEntry)">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200" @click="archiveExperience(experienceEntry)">
-                  <i class="fas fa-archive"></i>
-                </button>
-                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="deleteExperience(experienceEntry.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
+              <button type="button"
+                class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200"
+                @click="openUpdateExperienceModal(experienceEntry)">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button"
+                class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200"
+                @click="archiveExperience(experienceEntry)">
+                <i class="fas fa-archive"></i>
+              </button>
+              <button type="button"
+                class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200"
+                @click="deleteExperience(experienceEntry)">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
           </div>
           </div>
@@ -541,54 +578,58 @@ experienceForm.graduate_experience_address = selectedLocation
         <div class="p-6 transition-all duration-300">
           <div v-if="archivedExperienceEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="experienceEntry in archivedExperienceEntries" :key="experienceEntry.id"
-              class="bg-gray-50 p-6 rounded-lg shadow-md space-y-3 relative border border-gray-200 hover:shadow-lg transition-all duration-300 group opacity-85">
-              <div class="opacity-75">
-              <div class="border-b pb-2">
-                <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
-                <p class="text-gray-600">
-                  {{ experienceEntry.company }}
+              class="bg-gray-50 p-5 rounded-lg border border-gray-200 relative opacity-90 hover:opacity-100 transition">
+              <div class="space-y-2">
+                <div class="border-b pb-2">
+                  <h2 class="text-xl font-bold">{{ experienceEntry.title }}</h2>
+                  <p class="text-gray-600">
+                    {{ experienceEntry.company }}
+                  </p>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="fas fa-map-marker-alt mr-2"></i>
+                  <span>
+                    {{ experienceEntry.address }}
+                  </span>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
+                  <span>
+                    {{ formatDate(experienceEntry.start_date) }}
+                    -
+                    {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.end_date) }}
+                  </span>
+                </div>
+                <p v-if="!experienceEntry.is_current" class="text-gray-600 mt-2 flex items-center">
+                  <i class="fas fa-hourglass-half text-blue-600 mr-2"></i>
+                  <strong class="text-blue-900">Experience:</strong>
+                  <span class="ml-1">{{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false) }}</span>
+                </p>
+                <p class="text-gray-600 mt-2 flex items-center">
+                  <i class="fas fa-briefcase text-gray-500 mr-2"></i>
+                  <strong>Employment Type:</strong> {{ experienceEntry.employment_type }}
+                </p>
+                <p class="mt-2">
+                  <strong>
+                    <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
+                  </strong>
+                  {{ experienceEntry.description || 'No description provided' }}
                 </p>
               </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="fas fa-map-marker-alt mr-2"></i>
-                <span>
-                  {{ experienceEntry.address }}
-                </span>
+              <div class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wide">
+                Archived
               </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt mr-2"></i>
-                <span>
-                  {{ formatDate(experienceEntry.start_date) }}
-                  -
-                  {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.end_date) }}
-                </span>
+              <div class="absolute top-2 right-2 flex space-x-2">
+                <button type="button"
+                  class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200" @click="unarchiveExperience(experienceEntry)">
+                    <i class="fas fa-undo"></i>
+                  </button>
+                  <button type="button"
+                    class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="deleteExperience(experienceEntry)">
+                    <i class="fas fa-trash"></i>
+                  </button>
               </div>
-              <div v-if="!experienceEntry.is_current" class="ml-7 text-xs text-gray-500">
-                Experience: {{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false) }}
-              </div>
-              <p class="text-gray-600 mt-2 flex items-center">
-                <i class="fas fa-briefcase text-gray-500 mr-2"></i>
-                <strong>Employment Type:</strong> {{ experienceEntry.employment_type }}
-              </p>
-              <p class="mt-2">
-                <strong>
-                  <i class="fas fa-info-circle text-gray-500 mr-2"></i> Description:
-                </strong>
-                {{ experienceEntry.description || 'No description provided' }}
-              </p>
             </div>
-            <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200" @click="unarchiveExperience(experienceEntry)">
-                  <i class="fas fa-undo"></i>
-                </button>
-                <button class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="deleteExperience(experienceEntry.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
-            </div>
-            <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-md font-medium">
-              Archived
-            </div>
-          </div>
           </div>
 
           <!-- If no archived experience entries exist -->

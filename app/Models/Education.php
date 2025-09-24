@@ -15,7 +15,7 @@ class Education extends Model
      *
      * @var array
      */
-
+    protected $table = 'educations';
 
     protected $fillable = [
         'name',

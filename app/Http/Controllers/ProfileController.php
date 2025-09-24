@@ -50,12 +50,20 @@ class ProfileController extends Controller
         $experienceEntries = Experience::with('company')
             ->where('graduate_id', $graduate->id)
             ->get();
+    
+        $archivedExperienceEntries = Experience::onlyTrashed()
+            ->where('graduate_id', $graduate->id)
+            ->get();
 
         // Fetch all institution users (adjust as needed)
         $instiUsers = User::where('role', 'institution')->get();
 
         $educationEntries = GraduateEducation::where('graduate_id', $graduate->id)
             ->whereNull('deleted_at')
+            ->get();
+
+        $archivedEducationEntries = GraduateEducation::onlyTrashed()
+            ->where('graduate_id', $graduate->id)
             ->get();
 
         $internships = [];
@@ -101,7 +109,9 @@ class ProfileController extends Controller
             'graduate' => $graduate, 
             'instiUsers' => $instiUsers,
             'educationEntries' => $educationEntries,
+            'archivedEducationEntries' => $archivedEducationEntries,
             'experienceEntries' => $experienceEntries,
+            'archivedExperienceEntries' => $archivedExperienceEntries,
             'skillEntries' => GraduateSkill::with('skill')
                 ->where('graduate_id', $graduate->id)
                 ->get()
@@ -384,11 +394,27 @@ class ProfileController extends Controller
         return redirect()->back()->with('flash.banner', 'Education updated successfully.');
     }
 
-    // Remove education
-    public function removeEducation($id)
+    public function archiveEducation($id)
     {
-        $education = GraduateEducation::findOrFail($id);
-        $education->delete();
+        $edu = GraduateEducation::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $edu->delete(); // soft delete
+        return back()->with('flash.banner', 'Education archived.');
+    }
+
+    public function unarchiveEducation($id)
+    {
+        $edu = GraduateEducation::withTrashed()->where('id', $id)->firstOrFail();
+        if ($edu->trashed()) {
+            $edu->restore();
+        }
+        return back()->with('flash.banner', 'Education restored.');
+    }
+
+    // Remove education
+    public function deleteEducation($id)
+    {
+       $education = GraduateEducation::withTrashed()->findOrFail($id);
+        $education->forceDelete();
 
         return redirect()->back()->with('flash.banner', 'Education removed successfully.');
     }
@@ -486,11 +512,27 @@ class ProfileController extends Controller
         return redirect()->back()->with('flash.banner', 'Experience updated successfully.');
     }
 
+    public function archiveExperience($id)
+    {
+        $exp = Experience::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $exp->delete(); // soft delete
+        return back();
+    }
+
+    public function unarchiveExperience($id)
+    {
+        $exp = Experience::withTrashed()->findOrFail($id);
+        if ($exp->trashed()) {
+            $exp->restore();
+        }
+        return back();
+    }
+
     // Remove experience
     public function removeExperience($id)
     {
-        $experience = Experience::findOrFail($id);
-        $experience->delete();
+        $experience = Experience::withTrashed()->findOrFail($id);
+        $experience->forceDelete();
 
         return redirect()->back()->with('flash.banner', 'Experience removed successfully.');
     }

@@ -53,7 +53,7 @@ class Graduate extends Model
     }
     public function education()
     {
-        return $this->hasMany(Education::class);
+        return $this->hasMany(GraduateEducation::class);
     }
 
     public function institution()

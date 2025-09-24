@@ -108,14 +108,15 @@ const groupedEducationByLevel = computed(() => {
 });
 
 const highestEducation = computed(() => {
+    
     if (!props.education || !props.education.length) return null;
 
     // Priority order of education levels (highest to lowest)
     const levelPriority = {
         'Doctorate': 1,
-        'Master\'s': 2,
-        'Bachelor\'s': 3,
-        'Associate\'s': 4,
+        "Master's": 2,
+        "Bachelor's": 3,
+        "Associate's": 4,
         'Certificate': 5,
         'High School': 6,
         'Other': 7
@@ -124,8 +125,10 @@ const highestEducation = computed(() => {
     return props.education.reduce((highest, current) => {
         if (!highest) return current;
 
-        const currentPriority = levelPriority[current.level] || 999;
-        const highestPriority = levelPriority[highest.level] || 999;
+        const currentLevel = current.level_of_education || current.level || '';
+        const highestLevel = highest.level_of_education || highest.level || '';
+        const currentPriority = levelPriority[currentLevel] || 999;
+        const highestPriority = levelPriority[highestLevel] || 999;
 
         return currentPriority < highestPriority ? current : highest;
     }, null);
@@ -271,8 +274,14 @@ const yearsOfExperience = computed(() => {
 
                 <!-- Right Column (Tabs) -->
                 <div class="lg:col-span-2">
-                    <TabsSection :graduate="graduate" :experiences="experiences" :education="education"
-                        :projects="projects" :testimonials="testimonials" :resume="resume" :skills="skills"
+                    <TabsSection :graduate="graduate"
+                        :experiences="experiences"
+                        :education="education"
+                        :highestEducation="highestEducation"
+                        :projects="projects"
+                        :testimonials="testimonials"
+                        :resume="resume"
+                        :skills="skills"
                         class="transition-all duration-300" />
                 </div>
             </div>

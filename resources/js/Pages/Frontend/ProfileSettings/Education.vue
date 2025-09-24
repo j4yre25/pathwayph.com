@@ -13,24 +13,25 @@ const props = defineProps({
   user: { type: Object, default: () => ({}) },
   graduate: { type: Object, default: () => ({}) },
   educationEntries: { type: Array, default: () => [] },
+  archivedEducationEntries: { type: Array, default: () => [] },
   institutions: { type: Array, default: () => [] },
-  educationLevels: { type: Array, default: () => [] }, // [{id,name,order_rank}]
+  educationLevels: { type: Array, default: () => [] }, 
 })
 
-// Combo-box local state (unchanged labels but mapped to new columns)
-const institutionInput = ref('') // -> school_name
-const degreeInput = ref('')      // -> level_of_education
-const fieldInput = ref('')       // -> program
-const levelInput = ref('')            // -> level_of_education (text)
+// Combo-box local state 
+const institutionInput = ref('') 
+const degreeInput = ref('')      
+const fieldInput = ref('')       
+const levelInput = ref('')        
 
 const showInstSug = ref(false)
 const showDegSug = ref(false)
 const showProgSug = ref(false)
 const showLevelSug = ref(false)
 
-const selectedInstitution = ref(null) // {id,name}
-const selectedDegree = ref(null)      // {id,type}
-const selectedLevel = ref(null)       // -> sets education_id
+const selectedInstitution = ref(null) 
+const selectedDegree = ref(null)      
+const selectedLevel = ref(null)       
 
 // Helpers
 const norm = s => (s || '').toString().toLowerCase().trim()
@@ -68,7 +69,7 @@ const filteredLevels = computed(() => {
 
 // Keep form fields in sync with combo inputs (UPDATED mappings)
 watch(institutionInput, (val) => {
-  education.value.school_name = val || ''              // was education
+  education.value.school_name = val || ''             
   // clear dependant selections if text no longer matches selected
   const sel = selectedInstitution.value
   if (!sel || norm(sel.name) !== norm(val)) {
@@ -76,23 +77,23 @@ watch(institutionInput, (val) => {
     degreeInput.value = ''
     fieldInput.value = ''
     selectedDegree.value = null
-    education.value.level_of_education = ''            // was program
-    education.value.program = ''                       // was field_of_study
+    education.value.level_of_education = ''           
+    education.value.program = ''                      
   }
 })
 
 watch(degreeInput, (val) => {
-  education.value.level_of_education = val || ''       // was program
+  education.value.level_of_education = val || ''       
   const sel = selectedDegree.value
   if (!sel || norm(sel.type) !== norm(val)) {
     selectedDegree.value = null
     fieldInput.value = ''
-    education.value.program = ''                       // was field_of_study
+    education.value.program = ''                       
   }
 })
 
 watch(fieldInput, (val) => {
-  education.value.program = val || ''                  // was field_of_study
+  education.value.program = val || ''                  
 })
 
 watch(levelInput, (val) => {
@@ -118,14 +119,14 @@ function selectInstitution(inst) {
 
 function selectDegree(deg) {
   selectedDegree.value = deg
-  degreeInput.value = deg.type           // stored as level_of_education text
+  degreeInput.value = deg.type          
   fieldInput.value = ''
   education.value.program = ''
   showDegSug.value = false
 }
 
 function selectProgram(prog) {
-  fieldInput.value = prog.name           // stored as program
+  fieldInput.value = prog.name          
   education.value.program = prog.name
   showProgSug.value = false
 }
@@ -155,14 +156,14 @@ const openUpdateEducationModal = (entry) => {
   education.value = {
     id: entry.id,
     education_id: entry.education_id || null,
-    school_name: entry.school_name || '',               // UPDATED
-    level_of_education: entry.level_of_education || '', // UPDATED
-    program: entry.program || '',                       // UPDATED
+    school_name: entry.school_name || '',               
+    level_of_education: entry.level_of_education || '', 
+    program: entry.program || '',                      
     start_date: entry.start_date ? new Date(entry.start_date) : null,
     end_date: entry.end_date ? new Date(entry.end_date) : null,
     description: entry.description || '',
     is_current: !entry.end_date ? true : !!entry.is_current,
-    achievement: entry.achievement || '',               // UPDATED (singular)
+    achievement: entry.achievement || '',               
     noAchievements: !entry.achievement
   }
   levelInput.value = education.value.level_of_education
@@ -186,24 +187,6 @@ const modals = reactive({
 });
 
 const errorMessage = ref('');
-
-const isEducationAddedModalOpen = ref(false);
-const isEducationUpdatedModalOpen = ref(false);
-
-
-const datepickerConfig = {
-  format: 'YYYY-MM-DD',
-  enableTime: false,
-  parseDate: (dateStr) => {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? null : date;
-  },
-  formatDate: (date) => {
-    if (!date || isNaN(date.getTime())) return '';
-    return date.toISOString().split('T')[0];
-  }
-};
 
 const formatDate = (date) => {
   if (!date) return '';
@@ -229,24 +212,7 @@ const formatDisplayDate = (date) => {
   }
 };
 
-const formattedStartDate = computed(() => {
-  return education.value.start_date
-    ? new Date(education.value.start_date).toISOString().split('T')[0]
-    : null;
-});
-
-const formattedEndDate = computed(() => {
-  if (education.value.is_current) return null;
-  return education.value.end_date
-    ? new Date(education.value.end_date).toISOString().split('T')[0]
-    : null;
-});
-
 const educationEntries = computed(() => props.educationEntries || []);
-
-onMounted(() => {
-  // Optionally log data
-});
 
 watch(() => props.activeSection, (newValue) => {
   if (newValue === 'education') {
@@ -256,20 +222,89 @@ watch(() => props.activeSection, (newValue) => {
 
 // State for form (UPDATED keys)
 const education = ref({
-  education_id: null,            // optional FK to educations.id (levels), keep null if not used
-  school_name: '',               // from Institution combo
-  level_of_education: '',        // from Degree combo
-  program: '',                   // from Field of Study combo
+  education_id: null,            
+  school_name: '',               
+  level_of_education: '',        
+  program: '',                   
   start_date: null,
   end_date: null,
   description: '',
   is_current: false,
-  achievement: '',               // singular
+  achievement: '',              
   noAchievements: false,
 })
 
 const isAddEducationModalOpen = ref(false);
 const isUpdateEducationModalOpen = ref(false);
+const showArchivedEducation = ref(false)
+const archivedEntries = computed(() => props.archivedEducationEntries || [])
+
+function toggleArchivedEducation() {
+  showArchivedEducation.value = !showArchivedEducation.value
+}
+
+const confirmModal = reactive({
+  show: false,
+  type: '', // 'archive' | 'unarchive' | 'delete'
+  entry: null,
+  message: '',
+  confirmLabel: '',
+  confirmAction: null,
+});
+
+function openConfirm(type, entry) {
+  confirmModal.type = type;
+  confirmModal.entry = entry;
+  confirmModal.show = true;
+  if (type === 'archive') {
+    confirmModal.message = 'Are you sure you want to archive this education entry?';
+    confirmModal.confirmLabel = 'Archive';
+    confirmModal.confirmAction = () => doArchive(entry);
+  } else if (type === 'unarchive') {
+    confirmModal.message = 'Restore this archived education entry?';
+    confirmModal.confirmLabel = 'Restore';
+    confirmModal.confirmAction = () => doUnarchive(entry);
+  } else if (type === 'delete') {
+    confirmModal.message = 'Permanently delete this education entry? This cannot be undone.';
+    confirmModal.confirmLabel = 'Delete';
+    confirmModal.confirmAction = () => doDelete(entry);
+  }
+}
+
+function closeConfirm() {
+  confirmModal.show = false;
+  confirmModal.type = '';
+  confirmModal.entry = null;
+  confirmModal.message = '';
+  confirmModal.confirmLabel = '';
+  confirmModal.confirmAction = null;
+}
+
+// Actual actions (no confirm here)
+function doArchive(entry) {
+  closeConfirm();
+  useForm({}).put(route('profile.education.archive', entry.id), { preserveScroll: true });
+}
+function doUnarchive(entry) {
+  closeConfirm();
+  useForm({}).put(route('profile.education.unarchive', entry.id), { preserveScroll: true });
+}
+function doDelete(entry) {
+  closeConfirm();
+  useForm({}).delete(route('profile.education.delete', entry.id), { preserveScroll: true });
+}
+
+// Replace button handlers:
+function archiveEducation(entry) { openConfirm('archive', entry); }
+function unarchiveEducation(entry) { openConfirm('unarchive', entry); }
+function deleteEducation(entry) { openConfirm('delete', entry); }
+
+// Fix missing handler referenced in template
+function handleIsCurrent() {
+  if (education.value.is_current) {
+    education.value.end_date = null
+  }
+}
 
 watch(() => education.value.start_date, (newValue) => {
   if (newValue && isNaN(new Date(newValue).getTime())) {
@@ -480,10 +515,25 @@ const handleNoAchievements = () => {
     education.value.achievement = '';
   }
 };
+
+// Computed property for graduate primary education
+const graduatePrimaryEducation = computed(() => {
+  if (!props.graduate) return null
+  return {
+    id: 'primary-' + (props.graduate.id || ''),
+    school_name: props.graduate?.institution?.institution_name || null,
+    level_of_education: props.graduate?.program?.degree?.type || null,
+    program: props.graduate?.program?.name || null,
+    year_graduated: props.graduate?.school_year?.school_year_range || null,
+    description: props.graduate?.about_me || null,
+    achievement: null,
+    is_current: false,
+  }
+})
 </script>
 
 <template>
-  <div v-if="activeSection === 'education'" class="w-full">
+  <div v-if="activeSection === 'education'" class="w-full relative z-0">
     <!-- Success Modal -->
     <Modal :show="modals.isSuccessOpen" @close="modals.isSuccessOpen = false">
       <div class="p-6">
@@ -542,6 +592,40 @@ const handleNoAchievements = () => {
         </div>
       </div>
     </Modal>
+
+    <!-- Confirm Action Modal -->
+    <Modal :show="confirmModal.show" @close="closeConfirm">
+      <div class="p-6">
+        <div class="flex items-center justify-center mb-4">
+          <div :class="{
+            'bg-amber-100': confirmModal.type === 'archive' || confirmModal.type === 'unarchive',
+            'bg-red-100': confirmModal.type === 'delete'
+          }" class="rounded-full p-3">
+            <i v-if="confirmModal.type === 'archive'" class="fas fa-archive text-amber-500 text-xl"></i>
+            <i v-else-if="confirmModal.type === 'unarchive'" class="fas fa-undo text-green-500 text-xl"></i>
+            <i v-else-if="confirmModal.type === 'delete'" class="fas fa-trash text-red-500 text-xl"></i>
+          </div>
+        </div>
+        <h3 class="text-lg font-medium text-center text-gray-900 mb-2">
+          {{ confirmModal.confirmLabel }} Education
+        </h3>
+        <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
+        <div class="mt-6 flex justify-center space-x-2">
+          <SecondaryButton type="button" @click="closeConfirm">Cancel</SecondaryButton>
+          <DangerButton
+            v-if="confirmModal.type === 'delete'"
+            type="button"
+            @click="confirmModal.confirmAction"
+          >Delete</DangerButton>
+          <PrimaryButton
+            v-else
+            type="button"
+            :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
+            @click="confirmModal.confirmAction"
+          >{{ confirmModal.confirmLabel }}</PrimaryButton>
+        </div>
+      </div>
+    </Modal>
     
     <!-- Education Section -->
     <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
@@ -558,6 +642,12 @@ const handleNoAchievements = () => {
             <i class="fas fa-plus mr-2"></i>
             Add Education
           </PrimaryButton>
+            <button
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center text-sm"
+              @click="toggleArchivedEducation">
+              <i class="fas" :class="showArchivedEducation ? 'fa-eye-slash' : 'fa-eye'"></i>
+              <span class="ml-1">{{ showArchivedEducation ? 'Hide Archived' : 'Show Archived' }}</span>
+            </button>
         </div>
       </div>
       <div class="p-4">
@@ -566,7 +656,6 @@ const handleNoAchievements = () => {
           <div v-if="educationEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
               <div class="space-y-2">
-                <!-- Replace title and subtitle block: -->
                 <div class="border-b pb-2">
                   <h2 class="text-xl font-bold text-blue-900">{{ entry.school_name || 'Unknown Institution' }}</h2>
                   <p class="text-gray-700">
@@ -581,7 +670,6 @@ const handleNoAchievements = () => {
                       formatDisplayDate(entry.end_date) : 'present' }}
                   </span>
                 </div>
-                <!-- Description and Achievements updated -->
                 <div class="mt-3">
                   <strong>
                     <i class="fas fa-info-circle text-blue-500 mr-2"></i> Description:
@@ -604,14 +692,72 @@ const handleNoAchievements = () => {
                   </span>
                 </div>
               </div>
-              <div class="absolute top-8 right-4 flex space-x-4">
-                <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150" @click="openUpdateModal(entry)">
-                <i class="fas fa-edit"></i>
-              </button>
+              <div class="absolute top-8 right-4 flex space-x-2">
+                <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150" 
+                  @click="openUpdateModal(entry)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center px-2 py-1 bg-amber-100 border border-amber-300 rounded-md text-xs text-amber-700 hover:bg-amber-200"
+                  @click="archiveEducation(entry)">
+                  <i class="fas fa-archive"></i>
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md text-xs text-red-700 hover:bg-red-200"
+                  @click="deleteEducation(entry)">
+                  <i class="fas fa-trash"></i>
+                </button>
               </div>
             </div>
           </div>
-          <!-- Empty state removed as requested -->
+        </div>
+      </div>
+      <div v-if="showArchivedEducation" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+        <h4 class="text-sm font-semibold text-gray-600 mb-3 flex items-center">
+          <i class="fas fa-archive mr-2 text-gray-500"></i> Archived Education
+        </h4>
+        <div v-if="archivedEntries.length" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div v-for="entry in archivedEntries" :key="entry.id"
+            class="bg-gray-50 p-5 rounded-lg border border-gray-200 relative opacity-90 hover:opacity-100 transition">
+            <div class="space-y-2">
+              <div class="border-b pb-2">
+                <h2 class="text-lg font-bold text-gray-800">{{ entry.school_name || 'Unknown Institution' }}</h2>
+                <p class="text-gray-600 text-sm">
+                  <span class="font-medium">{{ entry.level_of_education || '—' }}</span>
+                  <span v-if="entry.program"> — 
+                    <span class="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded-full">{{ entry.program }}</span>
+                  </span>
+                </p>
+              </div>
+              <div class="flex items-center text-gray-600 text-sm">
+                <i class="far fa-calendar-alt mr-2"></i>
+                <span>{{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ? formatDisplayDate(entry.end_date) : 'present' }}</span>
+              </div>
+              <div class="text-xs text-gray-500">
+                {{ (entry.description || '').slice(0,120) || 'No description provided' }}<span v-if="(entry.description||'').length>120">...</span>
+              </div>
+            </div>
+            <div class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wide">
+              Archived
+            </div>
+            <div class="absolute top-2 right-2 flex space-x-2">
+              <button
+                class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full"
+                @click="unarchiveEducation(entry)">
+                <i class="fas fa-undo"></i>
+              </button>
+              <button
+                class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full"
+                @click="deleteEducation(entry)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-gray-500 text-sm bg-white border border-dashed p-4 rounded">
+          No archived education entries.
         </div>
       </div>
     </div>
@@ -619,7 +765,7 @@ const handleNoAchievements = () => {
 
 
     <!-- Add Education Modal -->
-    <div v-if="isAddEducationModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="isAddEducationModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Add Education</h2>
@@ -794,7 +940,7 @@ const handleNoAchievements = () => {
 
     <!-- Update Education Modal -->
     <div v-if="isUpdateEducationModalOpen"
-      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Update Education</h2>
@@ -971,40 +1117,57 @@ const handleNoAchievements = () => {
       </div>
     </div>
 
-    <!-- Graduate School Information (always visible) -->
-    <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
-        <div class="flex items-center">
-          <div class="bg-blue-100 p-2 rounded-full mr-3">
-            <i class="fas fa-university text-blue-600"></i>
-          </div>
-          <h3 class="text-lg font-semibold text-blue-800">Graduate Education</h3>
-        </div>
-      </div>
-      <div class="p-4 transition-all duration-300">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">School Graduated From</label>
-            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-              {{ graduate?.institution?.institution_name || 'Not specified' }}
+    <!-- Graduate School Information (institution-added, read-only) -->
+    <div v-if="graduatePrimaryEducation && (graduatePrimaryEducation.school_name || graduatePrimaryEducation.program)"
+         class="mb-6">
+      <div class="p-4 pt-0">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+            <div class="space-y-2">
+              <div class="border-b pb-2">
+                <h2 class="text-xl font-bold text-blue-900 flex items-center">
+                  <i class="fas fa-university text-blue-600 mr-2"></i>
+                  {{ graduatePrimaryEducation.school_name || 'Institution Not Specified' }}
+                </h2>
+                <p class="text-gray-700">
+                  <span class="font-medium">{{ graduatePrimaryEducation.level_of_education || '—' }}</span>
+                  <span v-if="graduatePrimaryEducation.program">
+                    — <span class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">
+                      {{ graduatePrimaryEducation.program }}
+                    </span>
+                  </span>
+                </p>
+              </div>
+
+              <div class="flex items-center text-gray-600 mt-2">
+                <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
+                <span>{{ graduatePrimaryEducation.year_graduated || 'Year Not Specified' }}</span>
+              </div>
+
+              <div class="mt-3">
+                <strong>
+                  <i class="fas fa-info-circle text-blue-500 mr-2"></i> Description:
+                </strong>
+                <p class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400 mt-1">
+                  {{ graduatePrimaryEducation.description || 'No description provided' }}
+                </p>
+              </div>
+
+                <div class="mt-3">
+                  <strong>
+                    <i class="fas fa-trophy text-blue-500 mr-2"></i> Achievements:
+                  </strong>
+                  <span class="block bg-gray-50 p-2 rounded mt-1">
+                    None
+                  </span>
+                </div>
             </div>
-          </div>
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">Year Graduated</label>
-            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-              {{ graduate?.school_year?.school_year_range || 'Not specified' }}
-            </div>
-          </div>
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">Program Completed</label>
-            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-              {{ graduate?.program?.name || 'Not specified' }}
-            </div>
-          </div>
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">Degree Completed</label>
-            <div class="w-full border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-700">
-              {{ graduate?.program?.degree?.type || graduate?.degree?.type || 'Not specified' }}
+
+            <!-- Read-only badge -->
+            <div class="absolute top-4 right-4">
+              <span class="text-[10px] uppercase tracking-wide px-2 py-1 rounded bg-gray-200 text-gray-600 font-semibold">
+                Read Only
+              </span>
             </div>
           </div>
         </div>
