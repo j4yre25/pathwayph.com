@@ -978,7 +978,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::put('/profile/testimonials/{id}/archive', [ProfileController::class, 'archiveTestimonial'])->name('profile.testimonials.archive');
     Route::post('/profile/testimonials/{id}/unarchive', [ProfileController::class, 'unarchiveTestimonial'])->name('profile.testimonials.unarchive');
     Route::put('/profile/testimonials/{id}/archived', [ProfileController::class, 'archivedTestimonial'])->name('profile.testimonials.archived');
-
+    Route::get('/api/companies-institutions', [ProfileController::class, 'getCompaniesAndInstitutions']);
     // Alumni Stories Routes
     Route::get('/profile/alumni-stories/settings', [ProfileController::class, 'alumniStoriesSettings'])->name('profile.alumni-stories.settings');
     Route::post('/profile/alumni-stories', [ProfileController::class, 'addAlumniStory'])->name('profile.alumni-stories.add');

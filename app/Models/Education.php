@@ -35,6 +35,11 @@ class Education extends Model
     /**
      * Get the institution associated with the education record.
      */
+
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class);
+    }
     public function institution()
     {
         return $this->belongsTo(\App\Models\Institution::class, 'institution_id');

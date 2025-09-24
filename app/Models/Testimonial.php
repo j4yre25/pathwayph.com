@@ -12,17 +12,29 @@ class Testimonial extends Model
     protected $table = 'graduate_testimonials';
 
     protected $fillable = [
-        'author',
-        'position',
-        'company',
+        'graduate_id',
+        'company_id',
+        'company_name',
+        'institution_id',
+        'institution_name',
         'content',
         'file',
-        'graduate_id', // Foreign key
+         'author',
     ];
 
     // Relationship with User
-    public function user()
+    public function graduate()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Graduate::class);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class);
     }
 }

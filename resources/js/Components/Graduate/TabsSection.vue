@@ -163,11 +163,6 @@ const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-
-
-
-
-
 };
 
 
@@ -1018,20 +1013,11 @@ const allEducation = computed(() => normalizedEducation.value);
                 </div>
               </div>
               <div class="flex-grow">
-                <h4 class="text-base font-medium text-gray-900">{{ testimonial.author_name || 'Anonymous' }}</h4>
-                <div class="text-sm text-gray-600">{{ testimonial.author_title || 'No title' }}</div>
-                <div class="flex items-center mt-1">
-                  <div class="flex">
-                    <template v-for="i in 5" :key="i">
-                      <i :class="i <= (testimonial.rating || 0) ? 'fas fa-star text-yellow-400' : 'far fa-star text-gray-300'"
-                        class="text-sm mr-0.5"></i>
-                    </template>
-                  </div>
-                  <span class="text-xs text-gray-500 ml-2">{{ testimonial.rating || 0 }}/5</span>
-                </div>
+                <h4 class="text-base font-medium text-gray-900">{{ testimonial.author|| 'Anonymous' }}</h4>
+               
               </div>
               <div class="flex-shrink-0 text-sm text-gray-500">
-                {{ formatDate(testimonial.date) }}
+                {{ formatDate(testimonial.created_at) }}
               </div>
             </div>
 
@@ -1040,7 +1026,7 @@ const allEducation = computed(() => normalizedEducation.value);
               {{ testimonial.content || 'No content provided' }}
               <i class="fas fa-quote-right text-indigo-300 ml-1 opacity-50"></i>
             </div>
-          </div>
+          </div>  
         </div>
 
         <div v-else
