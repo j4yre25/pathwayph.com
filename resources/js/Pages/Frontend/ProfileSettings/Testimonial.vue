@@ -11,6 +11,8 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
+import axios from 'axios';
+
 
 // Define props
 const props = defineProps({
@@ -27,6 +29,8 @@ const props = defineProps({
     default: () => []
   }
 });
+
+
 const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // State variables
 const testimonialEntries = ref(props.testimonialEntries || []);
@@ -45,21 +49,19 @@ const successMessage = ref('');
 const errorMessage = ref('');
 
 // Testimonial form
+const companies = ref([]);
+const institutions = ref([]);
 const testimonials = useForm({
-  id: null,
-  author: '',
-  position: '',
-  company: '',
+  company_id: null,
+  company_name: '',
+  institution_id: null,
+  institution_name: '',
   content: '',
-  file: null
 });
 
-// Replace testimonials form with a request form
-const testimonialRequestForm = useForm({
-  company_id: '',
-  message: '',
-  file: null
-});
+
+console.log('Props companies:', props.companies);
+console.log('Props institutions:', props.institutions);
 
 // File upload handling
 const handleTestimonialFileUpload = (event) => {
@@ -116,6 +118,24 @@ const addTestimonials = () => {
     }
   });
 };
+
+onMounted(async () => {
+  const res = await axios.get('/api/companies-institutions');
+  companies.value = res.data.companies;
+  institutions.value = res.data.institutions;
+});
+
+// Watch for changes to set ID if the name matches, or clear ID if not
+function onCompanyInput(e) {
+  const match = companies.value.find(c => c.name === e.target.value);
+  testimonials.value.company_id = match ? match.id : null;
+  testimonials.value.company_name = e.target.value;
+}
+function onInstitutionInput(e) {
+  const match = institutions.value.find(i => i.name === e.target.value);
+  testimonials.value.institution_id = match ? match.id : null;
+  testimonials.value.institution_name = e.target.value;
+}
 
 // Send request to company instead of adding testimonial
 const sendTestimonialRequest = () => {
@@ -311,7 +331,7 @@ onMounted(() => {
             class="bg-indigo-600 text-white px-4 py-2 rounded flex items-center hover:bg-indigo-700 transition-colors"
             @click="isAddTestimonialsModalOpen = true">
             <i class="fas fa-plus mr-2"></i>
-            Request Testimonial 
+            Add Testimonial
           </PrimaryButton>
           <button
             class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
@@ -321,7 +341,7 @@ onMounted(() => {
           </button>
         </div>
       </div>
-      <p class="text-gray-600 mt-2 mb-6">Recommendations from colleagues and clients</p>
+      <p class="text-gray-600 mt-2 mb-6">My Testimonials in Institution and Companies</p>
 
       <!-- Testimonials Entries -->
       <div>
@@ -329,7 +349,9 @@ onMounted(() => {
         <div v-if="testimonialEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div v-for="entry in testimonialEntries" :key="entry.id" class="...">
             <h2 class="text-xl font-bold text-gray-900">{{ entry.author }}</h2>
-            <p class="text-gray-600 font-medium">{{ entry.position }}</p>
+            <p class="text-gray-600 font-medium">
+              {{ entry.company_name || entry.institution_name || 'N/A' }}
+            </p>
             <p class="mt-3 text-gray-700 italic">"{{ entry.content }}"</p>
             <div v-if="entry.file" class="md:w-1/3">
               <img :src="`/storage/${entry.file}`" :alt="entry.author" class="w-full h-auto rounded-lg shadow-sm" />
@@ -338,9 +360,11 @@ onMounted(() => {
               <button class="text-gray-600 hover:text-indigo-600" @click="editTestimonial(entry)">
                 <i class="fas fa-pen"></i>
               </button>
-              <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="removeTestimonials(entry.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
+              <button
+                class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
+                @click="removeTestimonials(entry.id)">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -371,12 +395,16 @@ onMounted(() => {
               </div>
             </div>
             <div class="absolute top-2 right-2 flex space-x-2">
-              <button class="inline-flex items-center px-2 py-1 bg-green-100 border border-green-300 rounded-md font-semibold text-xs text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150" @click="unarchiveTestimonial(entry)">
-                  <i class="fas fa-undo"></i>
-                </button>
-                <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="deleteTestimonial(entry.id)">
-                  <i class="fas fa-trash"></i>
-                </button>
+              <button
+                class="inline-flex items-center px-2 py-1 bg-green-100 border border-green-300 rounded-md font-semibold text-xs text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150"
+                @click="unarchiveTestimonial(entry)">
+                <i class="fas fa-undo"></i>
+              </button>
+              <button
+                class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
+                @click="deleteTestimonial(entry.id)">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
             <div class="absolute top-2 left-2 bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">
               Archived
@@ -396,33 +424,48 @@ onMounted(() => {
       class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">Request Testimonial from Company</h2>
+          <h2 class="text-xl font-semibold">Add Testimonial</h2>
           <button class="text-gray-500 hover:text-gray-700" @click="closeAddTestimonialsModal">
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <p class="text-gray-600 mb-4">Send a request to a company for a testimonial</p>
-        <form @submit.prevent="sendTestimonialRequest">
+        <p class="text-gray-600 mb-4">Share your testimonial for a company or institution</p>
+        <form @submit.prevent="addTestimonials">
           <div class="mb-4">
-            <InputLabel for="company_id" value="Select Company" />
-            <SelectInput id="company_id" v-model="testimonialRequestForm.company_id" :options="companyOptions" required />
-            <InputError :message="testimonialRequestForm.errors.company_id" />
+            <InputLabel for="testimonial-company" value="Company Name" />
+            <input v-model="testimonials.company_name" @input="onCompanyInput" list="company-list"
+              placeholder="Type or select a company..." class="w-full px-3 py-2 border rounded" />
+            <datalist id="company-list">
+              <option v-for="company in companies" :key="company.id" :value="company.name" />
+            </datalist>
           </div>
+          <!-- Institution -->
           <div class="mb-4">
-            <InputLabel for="message" value="Message" />
-            <TextArea id="message" v-model="testimonialRequestForm.message" rows="3" required />
-            <InputError :message="testimonialRequestForm.errors.message" />
+            <InputLabel for="testimonial-institution" value="Institution Name" />
+
+            <input v-model="testimonials.institution_name" @input="onInstitutionInput" list="institution-list"
+              placeholder="Type or select an institution..." class="w-full px-3 py-2 border rounded" />
+            <datalist id="institution-list">
+              <option v-for="inst in institutions" :key="inst.id" :value="inst.name" />
+            </datalist>
+
+          </div>
+
+          <div class="mb-4">
+            <InputLabel for="content" value="Testimonial" />
+            <TextArea id="content" v-model="testimonials.content" rows="3" required
+              placeholder="Write your testimonial here..." />
+            <InputError :message="testimonials.errors.content" />
           </div>
           <div class="mb-4">
             <InputLabel for="testimonial-file" value="Attach File (optional)" />
-            <input type="file" id="testimonial-file" @change="handleFileUpload"
+            <input type="file" id="testimonial-file" @change="handleTestimonialFileUpload"
               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
           </div>
           <div class="flex justify-end">
             <button type="submit"
               class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
-              <i class="fas fa-paper-plane mr-2"></i>
-              Send Request
+              Submit Testimonial
             </button>
           </div>
         </form>
@@ -544,9 +587,11 @@ onMounted(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
   }
@@ -557,6 +602,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -50,7 +50,7 @@ class ProfileController extends Controller
         $experienceEntries = Experience::with('company')
             ->where('graduate_id', $graduate->id)
             ->get();
-    
+
         $archivedExperienceEntries = Experience::onlyTrashed()
             ->where('graduate_id', $graduate->id)
             ->get();
@@ -99,14 +99,14 @@ class ProfileController extends Controller
             ];
         })->values();
 
-        $educationLevels = Education::orderBy('order_rank')->get(['id','name','order_rank']);
+        $educationLevels = Education::orderBy('order_rank')->get(['id', 'name', 'order_rank']);
         $locations = Location::select('id', 'address as name')->orderBy('address')->get();
         $companies = Company::select('id', 'company_name as name')->orderBy('company_name')->get();
         $sectors = Sector::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Frontend/ProfileSettings/ProfileSettings', [
             'user' => $user,
-            'graduate' => $graduate, 
+            'graduate' => $graduate,
             'instiUsers' => $instiUsers,
             'educationEntries' => $educationEntries,
             'archivedEducationEntries' => $archivedEducationEntries,
@@ -199,9 +199,9 @@ class ProfileController extends Controller
 
         // Fetch all experience entries for this graduate
         $experienceEntries = Experience::with('company')
-        ->where('graduate_id', $graduate->id)
-        ->whereNull('deleted_at')
-        ->get();
+            ->where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at')
+            ->get();
 
         $archivedExperienceEntries = Experience::with('company')
             ->where('graduate_id', $graduate->id)
@@ -217,7 +217,7 @@ class ProfileController extends Controller
             'user' => $user,
             'experienceEntries' => $experienceEntries,
             'archivedExperienceEntries' => $archivedExperienceEntries,
-            'companies' => $companies, 
+            'companies' => $companies,
         ]);
     }
 
@@ -322,15 +322,15 @@ class ProfileController extends Controller
     public function addEducation(Request $request)
     {
         $request->validate([
-        'education_id'        => 'nullable|exists:educations,id',
-        'level_of_education'  => 'nullable|string|max:100',
-        'program'             => 'nullable|string|max:255',
-        'school_name'         => 'required|string|max:255',
-        'start_date'          => 'required|date',
-        'end_date'            => 'nullable|date|after_or_equal:start_date',
-        'is_current'          => 'boolean',
-        'description'         => 'nullable|string',
-        'achievement'         => 'nullable|string',
+            'education_id'        => 'nullable|exists:educations,id',
+            'level_of_education'  => 'nullable|string|max:100',
+            'program'             => 'nullable|string|max:255',
+            'school_name'         => 'required|string|max:255',
+            'start_date'          => 'required|date',
+            'end_date'            => 'nullable|date|after_or_equal:start_date',
+            'is_current'          => 'boolean',
+            'description'         => 'nullable|string',
+            'achievement'         => 'nullable|string',
         ]);
 
         $graduateId = auth()->user()->graduate->id;
@@ -348,8 +348,8 @@ class ProfileController extends Controller
             'school_name'        => $request->school_name,
             'start_date'         => Carbon::parse($request->start_date)->format('Y-m-d'),
             'end_date'           => $request->boolean('is_current')
-                                    ? null
-                                    : ($request->end_date ? Carbon::parse($request->end_date)->format('Y-m-d') : null),
+                ? null
+                : ($request->end_date ? Carbon::parse($request->end_date)->format('Y-m-d') : null),
             'is_current'         => $request->boolean('is_current'),
             'description'        => $request->description,
             'achievement'        => $request->achievement,
@@ -387,8 +387,8 @@ class ProfileController extends Controller
             'school_name'        => $request->school_name,
             'start_date'         => \Carbon\Carbon::parse($request->start_date)->format('Y-m-d'),
             'end_date'           => $request->boolean('is_current')
-                                    ? null
-                                    : ($request->end_date ? \Carbon\Carbon::parse($request->end_date)->format('Y-m-d') : null),
+                ? null
+                : ($request->end_date ? \Carbon\Carbon::parse($request->end_date)->format('Y-m-d') : null),
             'is_current'         => $request->boolean('is_current'),
             'description'        => $request->description,
             'achievement'        => $request->achievement,
@@ -416,7 +416,7 @@ class ProfileController extends Controller
     // Remove education
     public function deleteEducation($id)
     {
-       $education = GraduateEducation::withTrashed()->findOrFail($id);
+        $education = GraduateEducation::withTrashed()->findOrFail($id);
         $education->forceDelete();
 
         return redirect()->back()->with('flash.banner', 'Education removed successfully.');
@@ -439,7 +439,7 @@ class ProfileController extends Controller
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-         // Convert ISO8601 to Y-m-d
+        // Convert ISO8601 to Y-m-d
         $startDate = $request->graduate_experience_start_date
             ? Carbon::parse($request->graduate_experience_start_date)->format('Y-m-d')
             : null;
@@ -473,7 +473,7 @@ class ProfileController extends Controller
     // Update experience
     public function updateExperience(Request $request, $id)
     {
-            $request->validate([
+        $request->validate([
             'graduate_experience_title' => 'required|string|max:255',
             'graduate_experience_start_date' => 'required|string',
             'graduate_experience_end_date' => 'nullable|string',
@@ -1024,10 +1024,11 @@ class ProfileController extends Controller
     public function addTestimonial(Request $request)
     {
         $request->validate([
-            'author' => 'required|string|max:255',
-            'position' => 'required|string|max:255',
-            'company' => 'nullable|string|max:255',
             'content' => 'required|string',
+            'company_id' => 'nullable|exists:companies,id',
+            'company_name' => 'nullable|string|max:255',
+            'institution_id' => 'nullable|exists:institutions,id',
+            'institution_name' => 'nullable|string|max:255',
             'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
         ]);
 
@@ -1035,11 +1036,14 @@ class ProfileController extends Controller
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
         $data = [
-            'author' => $request->author,
-            'position' => $request->position,
-            'company' => $request->company,
-            // 'content' => $request->content,
             'graduate_id' => $graduate->id,
+            'author' => $graduate->first_name . ' ' . $graduate->last_name,
+
+            'content' => $request->content,
+            'company_id' => $request->company_id,
+            'company_name' => $request->company_name,
+            'institution_id' => $request->institution_id,
+            'institution_name' => $request->institution_name,
         ];
 
         if ($request->hasFile('file')) {
@@ -1049,33 +1053,50 @@ class ProfileController extends Controller
             $data['file'] = $path;
         }
 
-        $testimonial = new Testimonial($data);
+        $testimonial = new \App\Models\Testimonial($data);
         $testimonial->save();
 
         return redirect()->back()->with('flash.banner', 'Testimonial added successfully.');
+    }
+
+    public function getCompaniesAndInstitutions()
+    {
+        $companies = \App\Models\Company::select('id', 'company_name as name')->orderBy('company_name')->get();
+        $institutions = \App\Models\Institution::select('id', 'institution_name as name')->orderBy('institution_name')->get();
+        return response()->json([
+            'companies' => $companies,
+            'institutions' => $institutions,
+        ]);
     }
 
     // Update testimonial
     public function updateTestimonial(Request $request, $id)
     {
         $request->validate([
-            'author' => 'required|string|max:255',
-            'position' => 'required|string|max:255',
-            'company' => 'nullable|string|max:255',
             'content' => 'required|string',
+            'company_id' => 'nullable|exists:companies,id',
+            'company_name' => 'nullable|string|max:255',
+            'institution_id' => 'nullable|exists:institutions,id',
+            'institution_name' => 'nullable|string|max:255',
             'file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
         ]);
 
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        $testimonial = Testimonial::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
+        $testimonial = \App\Models\Testimonial::where('id', $id)
+            ->where('graduate_id', $graduate->id)
+            ->firstOrFail();
 
-        $testimonial->author = $request->author;
-        $testimonial->position = $request->position;
-        $testimonial->company = $request->company;
-        // $testimonial->content = $request->content;
+        // Always update author to current graduate name
+        $testimonial->author = $graduate->first_name . ' ' . $graduate->last_name;
+        $testimonial->content = $request->content;
+        $testimonial->company_id = $request->company_id;
+        $testimonial->company_name = $request->company_name;
+        $testimonial->institution_id = $request->institution_id;
+        $testimonial->institution_name = $request->institution_name;
 
         if ($request->hasFile('file')) {
+            // Delete old file if exists
             if ($testimonial->file) {
                 Storage::disk('public')->delete($testimonial->file);
             }
