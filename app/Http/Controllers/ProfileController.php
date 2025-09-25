@@ -124,10 +124,51 @@ class ProfileController extends Controller
                         'graduate_skills_years_experience' => $gs->years_experience,
                     ];
                 }),
+            'archivedSkillEntries' => GraduateSkill::with('skill')
+                ->onlyTrashed()
+                ->where('graduate_id', $graduate->id)
+                ->get()
+                ->map(function ($gs) {
+                    return [
+                        'id' => $gs->id,
+                        'graduate_skills_name' => $gs->skill ? $gs->skill->name : null,
+                        'graduate_skills_proficiency_type' => $gs->proficiency_type,
+                        'graduate_skills_type' => $gs->type,
+                        'graduate_skills_years_experience' => $gs->years_experience,
+                    ];
+                }),
+            'archivedProjectsEntries' => Project::where('graduate_id', $graduate->id)
+                ->onlyTrashed()
+                ->get(),
+            'achievementEntries' => Achievement::where('graduate_id', $graduate->id)
+                ->get()
+                ->map(function ($a) {
+                    return [
+                        'id' => $a->id,
+                        'title' => $a->title,
+                        'type' => $a->type,
+                        'issuer' => $a->issuer,
+                        'date' => $a->date,
+                        'description' => $a->description,
+                        'url' => $a->url,
+                        'credential_picture' => $a->credential_picture,
+                        // ...other fields if needed
+                    ];
+                }),
+
+            'archivedAchievementEntries' => Achievement::where('graduate_id', $graduate->id)
+                ->onlyTrashed()
+                ->get(),
             'certificationsEntries' => Certification::where('graduate_id', $graduate->id)->get(),
+            'archivedCertificationsEntries' => Certification::where('graduate_id', $graduate->id)
+                ->onlyTrashed()
+                ->get(),
             'projectsEntries' => Project::where('graduate_id', $graduate->id)->get(),
             'achievementEntries' => Achievement::where('graduate_id', $graduate->id)->get(),
             'testimonialsEntries' => Testimonial::where('graduate_id', $graduate->id)->get(),
+            'archivedTestimonialsEntries' => Testimonial::where('graduate_id', $graduate->id)
+                ->onlyTrashed()
+                ->get(),    
             'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduate->id)->first(),
             'careerGoals' => CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
@@ -615,10 +656,26 @@ class ProfileController extends Controller
     // Remove skill
     public function removeSkill($id)
     {
-        $skill = Skill::findOrFail($id);
-        $skill->delete();
+        $graduateSkill = GraduateSkill::withTrashed()->findOrFail($id);
+        $graduateSkill->forceDelete();
 
         return redirect()->back()->with('flash.banner', 'Skill removed successfully.');
+    }
+
+    public function archiveSkill($id)
+    {
+        $graduateSkill = GraduateSkill::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $graduateSkill->delete(); // soft delete
+        return back();
+    }
+
+    public function unarchiveSkill($id)
+    {
+        $graduateSkill = GraduateSkill::withTrashed()->findOrFail($id);
+        if ($graduateSkill->trashed()) {
+            $graduateSkill->restore();
+        }
+        return back();
     }
 
     // Add Project
@@ -717,16 +774,36 @@ class ProfileController extends Controller
         return redirect()->back()->with('projectsEntries', Project::where('graduate_id', $project->graduate_id)->whereNull('deleted_at')->get());
     }
 
+
+
+
+    public function archiveProject($id)
+    {
+        $project = Project::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $project->delete(); // soft delete
+        return back();
+    }
+
+    public function unarchiveProject($id)
+    {
+        $project = Project::withTrashed()->findOrFail($id);
+        if ($project->trashed()) {
+            $project->restore();
+        }
+        return back();
+    }
+
     public function removeProject($id)
     {
         try {
-            $project = Project::findOrFail($id);
+            $project = Project::withTrashed()->findOrFail($id);
 
             if ($project->user_id !== Auth::id()) {
                 return redirect()->back()->with('flash.banner', 'Unauthorized access.');
             }
 
-            $project->delete();
+            $project->forceDelete();
+
 
             return redirect()->back()->with('flash.banner', 'Project removed successfully.');
         } catch (\Exception $e) {
@@ -857,28 +934,31 @@ class ProfileController extends Controller
             return redirect()->back()->with('flash.banner', 'Failed to update certification. Please try again.');
         }
     }
+
     public function removeCertification($id)
     {
-        try {
-            $certification = Certification::findOrFail($id);
+        $certification = Certification::withTrashed()->findOrFail($id);
+        $certification->forceDelete();
 
-            if ($certification->user_id !== Auth::id()) {
-                return redirect()->back()->with('flash.banner', 'Unauthorized access.');
-            }
-
-            // Optionally delete file
-            if ($certification->file_path) {
-                Storage::disk('public')->delete($certification->file_path);
-            }
-
-            $certification->delete();
-
-            return redirect()->back()->with('flash.banner', 'Certification removed successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error removing certification: ' . $e->getMessage());
-            return redirect()->back()->with('flash.banner', 'Failed to remove certification. Please try again.');
-        }
+        return redirect()->back()->with('flash.banner', 'Certification removed successfully.');
     }
+
+    public function archiveCertification($id)
+    {
+        $certification = Certification::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $certification->delete(); // soft delete
+        return back();
+    }
+
+    public function unarchiveCertification($id)
+    {
+        $certification = Certification::withTrashed()->findOrFail($id);
+        if ($certification->trashed()) {
+            $certification->restore();
+        }
+        return back();
+    }
+
 
     public function achievementSettings()
     {
@@ -906,12 +986,12 @@ class ProfileController extends Controller
     public function addAchievement(Request $request)
     {
         $request->validate([
-            'graduate_achievement_title' => 'required|string|max:255',
-            'graduate_achievement_issuer' => 'required|string|max:255',
-            'graduate_achievement_date' => 'required|date',
-            'graduate_achievement_description' => 'nullable|string',
-            'graduate_achievement_url' => 'nullable|string|max:255',
-            'graduate_achievement_type' => 'required|string|in:Award,Recognition,Publication,Patent,Other',
+            'title' => 'required|string|max:255',
+            'issuer' => 'required|string|max:255',
+            'date' => 'required|date',
+            'description' => 'nullable|string',
+            'url' => 'nullable|string|max:255',
+            'type' => 'required|string|in:Award,Recognition,Publication,Patent,Other',
             'credential_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
@@ -919,12 +999,12 @@ class ProfileController extends Controller
 
         $achievement = new Achievement();
         $achievement->graduate_id = $graduate->id;
-        $achievement->title = $request->graduate_achievement_title;
-        $achievement->issuer = $request->graduate_achievement_issuer;
-        $achievement->date = \Carbon\Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
-        $achievement->description = $request->graduate_achievement_description ?? 'No description provided';
-        $achievement->url = $request->graduate_achievement_url;
-        $achievement->type = $request->graduate_achievement_type;
+        $achievement->title = $request->title;
+        $achievement->issuer = $request->issuer;
+        $achievement->date = \Carbon\Carbon::parse($request->date)->format('Y-m-d');
+        $achievement->description = $request->description ?? 'No description provided';
+        $achievement->url = $request->url;
+        $achievement->type = $request->type;
 
         if ($request->hasFile('credential_picture')) {
             $file = $request->file('credential_picture');
@@ -933,6 +1013,7 @@ class ProfileController extends Controller
             $achievement->credential_picture = $path;
         }
 
+
         $achievement->save();
 
         return redirect()->back()->with('flash.banner', 'Achievement added successfully.');
@@ -940,25 +1021,26 @@ class ProfileController extends Controller
 
     public function updateAchievement(Request $request, $id)
     {
+        \Log::info('Achievement update request:', $request->all());
         $request->validate([
-            'graduate_achievement_title' => 'required|string|max:255',
-            'graduate_achievement_issuer' => 'required|string|max:255',
-            'graduate_achievement_date' => 'required|date',
-            'graduate_achievement_description' => 'nullable|string',
-            'graduate_achievement_url' => 'nullable|string|max:255',
-            'graduate_achievement_type' => 'required|string|in:Award,Recognition,Publication,Patent,Other',
+            'title' => 'required|string|max:255',
+            'issuer' => 'required|string|max:255',
+            'date' => 'required|date',
+            'description' => 'nullable|string',
+            'url' => 'nullable|string|max:255',
+            'type' => 'required|string|in:Award,Recognition,Publication,Patent,Other',
             'credential_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
         $graduate = \App\Models\Graduate::where('user_id', Auth::id())->firstOrFail();
         $achievement = Achievement::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
 
-        $achievement->title = $request->graduate_achievement_title;
-        $achievement->issuer = $request->graduate_achievement_issuer;
-        $achievement->date = \Carbon\Carbon::parse($request->graduate_achievement_date)->format('Y-m-d');
-        $achievement->description = $request->graduate_achievement_description;
-        $achievement->url = $request->graduate_achievement_url;
-        $achievement->type = $request->graduate_achievement_type;
+        $achievement->title = $request->title;
+        $achievement->issuer = $request->issuer;
+        $achievement->date = \Carbon\Carbon::parse($request->date)->format('Y-m-d');
+        $achievement->description = $request->description;
+        $achievement->url = $request->url;
+        $achievement->type = $request->type;
 
         if ($request->hasFile('credential_picture')) {
             if ($achievement->credential_picture) {
@@ -970,34 +1052,34 @@ class ProfileController extends Controller
             $achievement->credential_picture = $path;
         }
 
+
         $achievement->save();
 
         return redirect()->back()->with('flash.banner', 'Achievement updated successfully.');
     }
     // Remove achievement
-    public function deleteAchievement($id)
+    public function removeAchievement($id)
     {
-        try {
-            $achievement = Achievement::findOrFail($id);
+        $achievement = Achievement::withTrashed()->findOrFail($id);
+        $achievement->forceDelete();
 
-            $graduate = \App\Models\Graduate::where('user_id', Auth::id())->firstOrFail();
-            $achievement = Achievement::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
-            // Check ownership
-            if ($achievement->user_id !== Auth::id() || $achievement->graduate_id !== $graduate->id) {
-                return redirect()->back()->with('flash.banner', 'Unauthorized access.');
-            }
+        return redirect()->back();
+    }
 
-            if ($achievement->credential_picture_url) {
-                Storage::disk('public')->delete($achievement->credential_picture_url);
-            }
+    public function archiveAchievement($id)
+    {
+        $achievement = Achievement::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $achievement->delete(); // soft delete
+        return back();
+    }
 
-            $achievement->delete();
-
-            return redirect()->back()->with('flash.banner', 'Achievement removed successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error deleting achievement: ' . $e->getMessage());
-            return redirect()->back()->with('flash.banner', 'Failed to remove achievement. Please try again.');
+    public function unarchiveAchievement($id)
+    {
+        $achievement = Achievement::withTrashed()->findOrFail($id);
+        if ($achievement->trashed()) {
+            $achievement->restore();
         }
+        return back();
     }
     public function testimonialSettings()
     {
@@ -1072,6 +1154,12 @@ class ProfileController extends Controller
     // Update testimonial
     public function updateTestimonial(Request $request, $id)
     {
+        \Log::info('Testimonial update request', [
+            'all' => $request->all(),
+            'content' => $request->content,
+            'method' => $request->method(),
+            'hasContent' => $request->has('content'),
+        ]);
         $request->validate([
             'content' => 'required|string',
             'company_id' => 'nullable|exists:companies,id',
@@ -1113,23 +1201,29 @@ class ProfileController extends Controller
 
     public function removeTestimonial($id)
     {
-        try {
-            $user = Auth::user();
-            $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-            $testimonial = Testimonial::where('id', $id)->where('graduate_id', $graduate->id)->firstOrFail();
+        $testimonial = \App\Models\Testimonial::withTrashed()->findOrFail($id);
+        $testimonial->forceDelete();
 
-            if ($testimonial->file) {
-                Storage::disk('public')->delete($testimonial->file);
-            }
-
-            $testimonial->delete();
-
-            return redirect()->back()->with('flash.banner', 'Testimonial removed successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error deleting testimonial: ' . $e->getMessage());
-            return redirect()->back()->with('flash.banner', 'Failed to remove testimonial. Please try again.');
-        }
+        return redirect()->back()->with('flash.banner', 'Testimonial removed successfully.');
     }
+
+    public function archiveTestimonial($id)
+    {
+        $testimonial = \App\Models\Testimonial::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $testimonial->delete(); // soft delete
+        return back();
+    }
+
+    public function unarchiveTestimonial($id)
+    {
+        $testimonial = \App\Models\Testimonial::withTrashed()->findOrFail($id);
+        if ($testimonial->trashed()) {
+            $testimonial->restore();
+        }
+        return back();
+    }
+
+
 
     public function employmentReferenceSettings()
     {

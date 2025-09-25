@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, reactive } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-
+import '@fortawesome/fontawesome-free/css/all.css';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/Components/DangerButton.vue';
 import ApexCharts from 'vue3-apexcharts';
 import Modal from '@/Components/Modal.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -25,6 +27,34 @@ const props = defineProps({
   sectors: { type: Array, default: () => [] },
 
 });
+
+
+const confirmModal = reactive({
+  show: false,
+  entry: null,
+  message: '',
+  confirmLabel: '',
+  confirmAction: null,
+});
+
+function openArchiveConfirm(skill) {
+  confirmModal.show = true;
+  confirmModal.entry = skill;
+  confirmModal.message = 'Are you sure you want to archive this skill?';
+  confirmModal.confirmLabel = 'Archive';
+  confirmModal.confirmAction = () => {
+    archiveSkill(skill);
+    confirmModal.show = false;
+  };
+}
+
+function closeConfirm() {
+  confirmModal.show = false;
+  confirmModal.entry = null;
+  confirmModal.message = '';
+  confirmModal.confirmLabel = '';
+  confirmModal.confirmAction = null;
+}
 
 // Emit for parent communication
 const emit = defineEmits(['closeAllModals', 'resetAllStates', 'refresh-skills']);
@@ -116,6 +146,11 @@ const openEditSkillModal = (skill) => {
 };
 
 const updateSkill = () => {
+
+    skillForm.graduate_skills_name = skillName.value;
+  skillForm.graduate_skills_proficiency_type = skillProficiencyType.value;
+  skillForm.graduate_skills_type = skillType.value;
+  skillForm.graduate_skills_years_experience = yearsExperience.value;F
   if (!skillProficiencyType.value) {
     alert("Please select a proficiency type.");
     return;
@@ -262,10 +297,13 @@ const archiveSkill = (skill) => {
   router.put(route('profile.skills.archive', { id: skill.id }), {}, {
     preserveScroll: true,
     onSuccess: () => {
+      isSuccessModalOpen.value = true;
+      successMessage.value = 'Skill archived successfully!';
       emit('refresh-skills');
     },
     onError: (errors) => {
-      alert('Failed to archive skill.');
+      isErrorModalOpen.value = true;
+      errorMessage.value = 'Failed to archive skill.';
     }
   });
 };
@@ -577,7 +615,7 @@ const archiveExperience = (experienceEntry) => {
                   <div class="p-6">
                     <div class="grid md:grid-cols-2 gap-6">
                       <div v-for="skill in skillsGroup" :key="skill.graduate_skills_name"
-                        class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative border border-gray-200">
+                        class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative border border-gray-200 group">
                         <div class="border-b border-blue-100 pb-3">
                           <h3 class="text-xl font-bold text-blue-900">{{ skill.graduate_skills_name }}</h3>
                           <div class="flex items-center mt-1">
@@ -648,7 +686,7 @@ const archiveExperience = (experienceEntry) => {
                           </button>
                           <button
                             class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200"
-                            @click="archiveSkill(skill)">
+                            @click="openArchiveConfirm(skill)">
                             <i class="fas fa-archive"></i>
                           </button>
                         </div>
@@ -1229,6 +1267,54 @@ const archiveExperience = (experienceEntry) => {
       </div>
     </div>
   </div>
+
+  <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
+        <i class="fas fa-check text-green-500 text-xl"></i>
+      </div>
+      <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Success</h2>
+      <p class="text-center text-gray-600">{{ successMessage }}</p>
+      <div class="mt-6 flex justify-center">
+        <PrimaryButton @click="isSuccessModalOpen = false">OK</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
+
+  <!-- Error Modal -->
+  <Modal :modelValue="isErrorModalOpen" @close="isErrorModalOpen = false">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4 bg-red-100 rounded-full w-12 h-12 mx-auto">
+        <i class="fas fa-times text-red-500 text-xl"></i>
+      </div>
+      <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h2>
+      <p class="text-center text-gray-600">{{ errorMessage }}</p>
+      <div class="mt-6 flex justify-center">
+        <PrimaryButton @click="isErrorModalOpen = false">OK</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
+
+  <!-- Archive Confirmation Modal -->
+  <Modal :show="confirmModal.show" @close="closeConfirm">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4">
+        <div class="bg-amber-100 rounded-full p-3">
+          <i class="fas fa-archive text-amber-500 text-xl"></i>
+        </div>
+      </div>
+      <h3 class="text-lg font-medium text-center text-gray-900 mb-2">
+        {{ confirmModal.confirmLabel }} Skill
+      </h3>
+      <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
+      <div class="mt-6 flex justify-center space-x-2">
+        <SecondaryButton type="button" @click="closeConfirm">Cancel</SecondaryButton>
+        <PrimaryButton type="button" class="bg-amber-500 hover:bg-amber-600" @click="confirmModal.confirmAction">
+          {{ confirmModal.confirmLabel }}
+        </PrimaryButton>
+      </div>
+    </div>
+  </Modal>
 </template>
 
 <style scoped>

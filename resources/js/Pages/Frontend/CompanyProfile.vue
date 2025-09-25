@@ -322,11 +322,7 @@ function requestReferral(companyId, jobId) {
                                     <span class="block text-lg font-medium text-gray-900">{{ job.job_title }}</span>
                                     <span class="block text-sm text-gray-500" v-if="job.sector">{{ job.sector }}</span>
                                 </div>
-                                <PrimaryButton v-if="page.props.auth.user.role === 'graduate'"
-                                    @click="requestReferral(company.id, job.id)"
-                                    class="mt-2 md:mt-0 bg-blue-600 hover:bg-blue-700">
-                                    Request Referral Certificate
-                                </PrimaryButton>
+
                             </div>
                         </div>
                         <!-- Pagination Controls -->

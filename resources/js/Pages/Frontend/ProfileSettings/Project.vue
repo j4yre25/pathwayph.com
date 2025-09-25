@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, defineAsyncComponent } from 'vue';
+import { ref, computed, watch, defineAsyncComponent, reactive } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import Datepicker from 'vue3-datepicker';
@@ -138,6 +138,43 @@ const closeSuccessModal = () => { isSuccessModalOpen.value = false; };
 const closeErrorModal = () => { isErrorModalOpen.value = false; };
 const closeDuplicateModal = () => { isDuplicateModalOpen.value = false; };
 
+
+const confirmModal = reactive({
+  show: false,
+  type: '',      // 'archive' | 'unarchive' | 'delete'
+  entry: null,
+  message: '',
+  confirmLabel: '',
+  confirmAction: null,
+});
+
+function openConfirm(type, entry) {
+  confirmModal.type = type;
+  confirmModal.entry = entry;
+  confirmModal.show = true;
+  if (type === 'archive') {
+    confirmModal.message = 'Archive this project entry?';
+    confirmModal.confirmLabel = 'Archive';
+    confirmModal.confirmAction = () => archiveProject(entry);
+  } else if (type === 'unarchive') {
+    confirmModal.message = 'Restore this archived project entry?';
+    confirmModal.confirmLabel = 'Restore';
+    confirmModal.confirmAction = () => unarchiveProject(entry);
+  } else if (type === 'delete') {
+    confirmModal.message = 'Permanently delete this project entry? This cannot be undone.';
+    confirmModal.confirmLabel = 'Delete';
+    confirmModal.confirmAction = () => removeProject(entry.id);
+  }
+}
+
+function closeConfirm() {
+  confirmModal.show = false;
+  confirmModal.type = '';
+  confirmModal.entry = null;
+  confirmModal.message = '';
+  confirmModal.confirmLabel = '';
+  confirmModal.confirmAction = null;
+}
 // File upload
 const handleFileUpload = (event) => {
   form.graduate_project_file = event.target.files[0];
@@ -217,13 +254,13 @@ const updateProject = () => {
   form.graduate_projects_url = noProjectUrl.value ? '' : form.graduate_projects_url;
   form.graduate_projects_description = form.graduate_projects_description?.trim() || 'No description provided';
   form.graduate_projects_key_accomplishments = form.graduate_projects_key_accomplishments?.trim() || '';
-  
+
   console.log('Submitting:', {
-  graduate_projects_title: form.graduate_projects_title,
-  graduate_projects_role: form.graduate_projects_role,
-  graduate_projects_start_date: form.graduate_projects_start_date,
-  // ...other fields
-});
+    graduate_projects_title: form.graduate_projects_title,
+    graduate_projects_role: form.graduate_projects_role,
+    graduate_projects_start_date: form.graduate_projects_start_date,
+    // ...other fields
+  });
 
   form.post(route('profile.projects.update', form.id), {
     forceFormData: true,
@@ -251,7 +288,7 @@ const updateProject = () => {
 
 // Archive Project
 const archiveProject = (entry) => {
-  useForm().post(route('profile.projects.archive', entry.id), {
+  useForm().put(route('profile.projects.archive', entry.id), {
     onSuccess: (response) => {
       if (response?.props?.projectsEntries) {
         projectsEntries.value = response.props.projectsEntries;
@@ -260,7 +297,9 @@ const archiveProject = (entry) => {
         archivedProjectsEntries.value = response.props.archivedProjectsEntries;
       }
       successMessage.value = 'Project archived successfully!';
+      closeConfirm();
       isSuccessModalOpen.value = true;
+
     },
     onError: () => {
       errorMessage.value = 'Failed to archive project. Please try again.';
@@ -280,6 +319,7 @@ const unarchiveProject = (entry) => {
         archivedProjectsEntries.value = response.props.archivedProjectsEntries;
       }
       successMessage.value = 'Project unarchived successfully!';
+      closeConfirm();
       isSuccessModalOpen.value = true;
     },
     onError: () => {
@@ -389,6 +429,33 @@ watch(
     </div>
   </Modal>
 
+  <Modal :modelValue="confirmModal.show" @close="closeConfirm">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4">
+        <div :class="{
+          'bg-amber-100': confirmModal.type === 'archive' || confirmModal.type === 'unarchive',
+          'bg-red-100': confirmModal.type === 'delete'
+        }" class="rounded-full p-3">
+          <i v-if="confirmModal.type === 'archive'" class="fas fa-archive text-amber-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'unarchive'" class="fas fa-undo text-green-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'delete'" class="fas fa-trash text-red-500 text-xl"></i>
+        </div>
+      </div>
+      <h3 class="text-lg font-medium text-center text-gray-900 mb-2">
+        {{ confirmModal.confirmLabel }} Project
+      </h3>
+      <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
+      <div class="mt-6 flex justify-center space-x-2">
+        <SecondaryButton type="button" @click="closeConfirm">Cancel</SecondaryButton>
+        <DangerButton v-if="confirmModal.type === 'delete'" type="button" @click="confirmModal.confirmAction">Delete
+        </DangerButton>
+        <PrimaryButton v-else type="button"
+          :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
+          @click="confirmModal.confirmAction">{{ confirmModal.confirmLabel }}</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
+
   <div v-if="activeSection === 'projects'" class="w-full">
     <!-- Main Content Grid Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
@@ -428,7 +495,8 @@ watch(
               <h2 class="text-lg font-medium mb-4">Active Projects</h2>
               <div v-if="filteredProjectsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ProjectEntryCard v-for="entry in filteredProjectsEntries" :key="entry?.id" :entry="entry"
-                  :is-archived="false" @update="openUpdateProjectModal" @archive="archiveProject" />
+                  :is-archived="false" @update="openUpdateProjectModal"
+                  @archive="entry => openConfirm('archive', entry)" />
               </div>
 
               <!-- If no projects exist -->
@@ -463,7 +531,8 @@ watch(
                 <div class="p-4 transition-all duration-300">
                   <div v-if="filteredArchivedProjectsEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <ProjectEntryCard v-for="entry in filteredArchivedProjectsEntries" :key="entry?.id" :entry="entry"
-                      :is-archived="true" @unarchive="unarchiveProject" @remove="removeProject" />
+                      :is-archived="true" @unarchive="entry => openConfirm('unarchive', entry)"
+                      @remove="id => openConfirm('delete', { id })" />
                   </div>
                   <!-- If no archived project entries exist -->
                   <div v-else class="bg-white p-8 rounded-lg shadow-md border border-gray-200 text-center">

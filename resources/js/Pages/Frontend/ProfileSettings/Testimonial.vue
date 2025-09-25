@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, reactive } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -27,9 +27,14 @@ const props = defineProps({
   archivedTestimonialEntries: {
     type: Array,
     default: () => []
-  }
+  },
+
+  companies: { type: Array, default: () => [] },
+  institutions: { type: Array, default: () => [] },
 });
 
+console.log(props.companies)
+const selectedType = ref(''); // 'company' or 'institution'
 
 const emit = defineEmits(['close-all-modals', 'reset-all-states']);
 // State variables
@@ -57,6 +62,7 @@ const testimonials = useForm({
   institution_id: null,
   institution_name: '',
   content: '',
+  file: null,
 });
 
 
@@ -91,14 +97,114 @@ const closeUpdateTestimonialsModal = () => {
   testimonials.clearErrors();
 };
 
+const confirmModal = reactive({
+  show: false,
+  type: '',      // 'archive' | 'unarchive' | 'delete'
+  entry: null,
+  message: '',
+  confirmLabel: '',
+  confirmAction: null,
+});
+
+function openConfirm(type, entry) {
+  confirmModal.type = type;
+  confirmModal.entry = entry;
+  confirmModal.show = true;
+  if (type === 'delete') {
+    confirmModal.message = 'Are you sure you want to delete this testimonial? This action cannot be undone.';
+    confirmModal.confirmLabel = 'Delete';
+    confirmModal.confirmAction = () => {
+      useForm({}).delete(route('profile.testimonials.remove', entry.id), {
+        onSuccess: () => {
+          successMessage.value = 'Testimonial deleted successfully!';
+          isSuccessModalOpen.value = true;
+          closeConfirm();
+          fetchTestimonials();
+        },
+        onError: () => {
+          errorMessage.value = 'Failed to delete testimonial. Please try again.';
+          isErrorModalOpen.value = true;
+          closeConfirm();
+        }
+      });
+    };
+  } else if (type === 'archive') {
+    confirmModal.message = 'Are you sure you want to archive this testimonial?';
+    confirmModal.confirmLabel = 'Archive';
+    confirmModal.confirmAction = () => {
+      useForm({}).put(route('profile.testimonials.archive', entry.id), {
+        onSuccess: () => {
+          successMessage.value = 'Testimonial archived successfully!';
+          isSuccessModalOpen.value = true;
+          closeConfirm();
+          fetchTestimonials();
+        },
+        onError: () => {
+          errorMessage.value = 'Failed to archive testimonial. Please try again.';
+          isErrorModalOpen.value = true;
+          closeConfirm();
+        }
+      });
+    };
+  } else if (type === 'unarchive') {
+    confirmModal.message = 'Restore this archived testimonial?';
+    confirmModal.confirmLabel = 'Restore';
+    confirmModal.confirmAction = () => {
+      useForm({}).post(route('profile.testimonials.unarchive', entry.id), {
+        onSuccess: () => {
+          successMessage.value = 'Testimonial restored successfully!';
+          isSuccessModalOpen.value = true;
+          closeConfirm();
+          fetchTestimonials();
+        },
+        onError: () => {
+          errorMessage.value = 'Failed to restore testimonial. Please try again.';
+          isErrorModalOpen.value = true;
+          closeConfirm();
+        }
+      });
+    };
+  }
+}
+
+function closeConfirm() {
+  confirmModal.show = false;
+  confirmModal.type = '';
+  confirmModal.entry = null;
+  confirmModal.message = '';
+  confirmModal.confirmLabel = '';
+  confirmModal.confirmAction = null;
+}
+
+function deleteTestimonial(entry) {
+  openConfirm('delete', entry);
+}
+function archiveTestimonial(entry) {
+  openConfirm('archive', entry);
+}
+function unarchiveTestimonial(entry) {
+  openConfirm('unarchive', entry);
+}
+
 // Edit testimonial
 const editTestimonial = (testimonial) => {
   testimonials.id = testimonial.id;
-  testimonials.author = testimonial.author;
-  testimonials.position = testimonial.position;
-  testimonials.company = testimonial.company;
+  testimonials.company_id = testimonial.company_id;
+  testimonials.company_name = testimonial.company_name;
+  testimonials.institution_id = testimonial.institution_id;
+  testimonials.institution_name = testimonial.institution_name;
   testimonials.content = testimonial.content;
   testimonials.file = null;
+  companyInput.value = testimonial.company_name || '';
+  institutionInput.value = testimonial.institution_name || '';
+  // Set selectedType for update modal
+  if (testimonial.company_name) {
+    selectedType.value = 'company';
+  } else if (testimonial.institution_name) {
+    selectedType.value = 'institution';
+  } else {
+    selectedType.value = '';
+  }
   isUpdateTestimonialsModalOpen.value = true;
 };
 
@@ -128,13 +234,13 @@ onMounted(async () => {
 // Watch for changes to set ID if the name matches, or clear ID if not
 function onCompanyInput(e) {
   const match = companies.value.find(c => c.name === e.target.value);
-  testimonials.value.company_id = match ? match.id : null;
-  testimonials.value.company_name = e.target.value;
+  testimonials.company_id = match ? match.id : null;
+  testimonials.company_name = e.target.value;
 }
 function onInstitutionInput(e) {
   const match = institutions.value.find(i => i.name === e.target.value);
-  testimonials.value.institution_id = match ? match.id : null;
-  testimonials.value.institution_name = e.target.value;
+  testimonials.institution_id = match ? match.id : null;
+  testimonials.institution_name = e.target.value;
 }
 
 // Send request to company instead of adding testimonial
@@ -155,8 +261,14 @@ const sendTestimonialRequest = () => {
 
 // Update testimonial function
 const updateTestimonials = () => {
-  testimonials.post(route('profile.updateTestimonial', testimonials.id), {
+  testimonials.company_name = companyInput.value;
+  testimonials.institution_name = institutionInput.value;
+
+  console.log('Updating testimonial:', { ...testimonials });
+
+  testimonials.post(route('profile.testimonials.update', testimonials.id), {
     forceFormData: true,
+    _method: 'PUT',
     onSuccess: () => {
       closeUpdateTestimonialsModal();
       successMessage.value = 'Testimonial updated successfully!';
@@ -165,7 +277,6 @@ const updateTestimonials = () => {
     },
     onError: (errors) => {
       console.error(errors);
-
       errorMessage.value = 'Failed to update testimonial. Please check the form and try again.';
       isErrorModalOpen.value = true;
     }
@@ -177,45 +288,22 @@ const archiveTestimonialForm = useForm({
   is_archived: true
 });
 
-const archiveTestimonial = (testimonial) => {
-  archiveTestimonialForm.put(route('profile.testimonials.archive', testimonial.id), {
-    onSuccess: () => {
-      successMessage.value = 'Testimonial archived successfully!';
-      isSuccessModalOpen.value = true;
-      fetchTestimonials();
-    },
-    onError: () => {
-      errorMessage.value = 'Failed to archive testimonial. Please try again.';
-      isErrorModalOpen.value = true;
-    }
-  });
-};
+
 
 // Unarchive testimonial function
 const unarchiveTestimonialForm = useForm({
   is_archived: false
 });
 
-const unarchiveTestimonial = (testimonial) => {
-  unarchiveTestimonialForm.post(route('profile.testimonials.unarchive', testimonial.id), {
-    onSuccess: () => {
-      successMessage.value = 'Testimonial unarchived successfully!';
-      isSuccessModalOpen.value = true;
-      fetchTestimonials();
-    },
-    onError: () => {
-      errorMessage.value = 'Failed to unarchive testimonial. Please try again.';
-      isErrorModalOpen.value = true;
-    }
-  });
-};
+
+
 
 // Delete testimonial function
 const deleteTestimonialForm = useForm({});
 
 const removeTestimonials = (testimonialId) => {
   if (confirm('Are you sure you want to delete this testimonial?')) {
-    testimonials.delete(route('profile.removeTestimonial', testimonialId), {
+    testimonials.delete(route('profile.testimonials.remove', testimonialId), {
       onSuccess: () => {
         successMessage.value = 'Testimonial deleted successfully!';
         isSuccessModalOpen.value = true;
@@ -251,6 +339,57 @@ const closeDuplicateModal = () => {
   isDuplicateModalOpen.value = false;
 };
 
+const companyInput = ref('');
+const institutionInput = ref('');
+const showCompanySug = ref(false);
+const showInstitutionSug = ref(false);
+
+const filteredCompanies = computed(() => {
+  const q = (companyInput.value || '').toLowerCase().trim();
+  if (!q) return props.companies.slice(0, 8);
+  return props.companies.filter(c => c.name.toLowerCase().includes(q)).slice(0, 8);
+});
+
+const filteredInstitutions = computed(() => {
+  const q = (institutionInput.value || '').toLowerCase().trim();
+  if (!q) return props.institutions.slice(0, 8);
+  return props.institutions.filter(i => i.name.toLowerCase().includes(q)).slice(0, 8);
+});
+
+function selectCompany(company) {
+  companyInput.value = company.name;
+  testimonials.company_id = company.id;
+  testimonials.company_name = company.name;
+  showCompanySug.value = false;
+}
+function selectInstitution(inst) {
+  institutionInput.value = inst.name;
+  testimonials.institution_id = inst.id;
+  testimonials.institution_name = inst.name;
+  showInstitutionSug.value = false;
+}
+
+// Keep testimonial fields in sync with input
+watch(companyInput, (val) => {
+  if (val && val.trim() !== '') {
+    selectedType.value = 'company';
+    institutionInput.value = '';
+    testimonials.institution_id = null;
+    testimonials.institution_name = '';
+  } else if (!institutionInput.value) {
+    selectedType.value = '';
+  }
+});
+watch(institutionInput, (val) => {
+  if (val && val.trim() !== '') {
+    selectedType.value = 'institution';
+    companyInput.value = '';
+    testimonials.company_id = null;
+    testimonials.company_name = '';
+  } else if (!companyInput.value) {
+    selectedType.value = '';
+  }
+});
 // Fetch testimonials on component mount
 onMounted(() => {
   fetchTestimonials();
@@ -276,6 +415,38 @@ onMounted(() => {
             class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
             OK
           </button>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- Confirmation Modal -->
+    <Modal :show="confirmModal.show" @close="closeConfirm">
+      <div class="p-6">
+        <div class="flex items-center justify-center mb-4">
+          <div :class="{
+            'bg-amber-100': confirmModal.type === 'archive' || confirmModal.type === 'unarchive',
+            'bg-red-100': confirmModal.type === 'delete'
+          }" class="rounded-full p-3">
+            <i v-if="confirmModal.type === 'archive'" class="fas fa-archive text-amber-500 text-xl"></i>
+            <i v-else-if="confirmModal.type === 'unarchive'" class="fas fa-undo text-green-500 text-xl"></i>
+            <i v-else-if="confirmModal.type === 'delete'" class="fas fa-trash text-red-500 text-xl"></i>
+          </div>
+        </div>
+        <h3 class="text-lg font-medium text-center text-gray-900 mb-2">
+          {{ confirmModal.confirmLabel }} Testimonial
+        </h3>
+        <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
+        <div class="mt-6 flex justify-center space-x-2">
+          <button type="button" @click="closeConfirm"
+            class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">
+            Cancel
+          </button>
+          <button v-if="confirmModal.type === 'delete'" type="button" @click="confirmModal.confirmAction"
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition duration-200">Delete</button>
+          <button v-else type="button"
+            :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
+            class="text-white px-4 py-2 rounded transition duration-200" @click="confirmModal.confirmAction">{{
+              confirmModal.confirmLabel }}</button>
         </div>
       </div>
     </Modal>
@@ -361,9 +532,9 @@ onMounted(() => {
                 <i class="fas fa-pen"></i>
               </button>
               <button
-                class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
-                @click="removeTestimonials(entry.id)">
-                <i class="fas fa-trash"></i>
+                class="inline-flex items-center px-2 py-1 bg-amber-100 border border-amber-300 rounded-md font-semibold text-xs text-amber-700 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500 transition ease-in-out duration-150"
+                @click="archiveTestimonial(entry)">
+                <i class="fas fa-archive"></i>
               </button>
             </div>
           </div>
@@ -383,14 +554,14 @@ onMounted(() => {
             class="bg-gray-50 rounded-lg shadow-md p-4 space-y-3 border border-gray-200 relative">
             <div class="opacity-75">
               <div class="border-b pb-2">
-                <h3 class="text-lg font-semibold">{{ entry.graduate_testimonials_name }}</h3>
-                <span class="text-sm text-gray-600">{{ entry.graduate_testimonials_role_title }}</span>
+                <h3 class="text-lg font-semibold">{{ entry.author }}</h3>
+                <span class="text-sm text-gray-600">{{ entry.company_name || entry.institution_name || 'N/A' }}</span>
               </div>
               <div class="space-y-1">
-                <p class="text-sm italic">"{{ entry.graduate_testimonial_content }}"</p>
+                <p class="text-sm italic">"{{ entry.content }}"</p>
               </div>
-              <div v-if="entry.graduate_testimonial_file" class="mt-3">
-                <img :src="`/storage/${entry.graduate_testimonial_file}`" :alt="entry.graduate_testimonial_author"
+              <div v-if="entry.file" class="mt-3">
+                <img :src="`/storage/${entry.file}`" :alt="entry.graduate_testimonial_author"
                   class="max-w-full h-auto rounded-lg shadow" />
               </div>
             </div>
@@ -432,25 +603,50 @@ onMounted(() => {
         <p class="text-gray-600 mb-4">Share your testimonial for a company or institution</p>
         <form @submit.prevent="addTestimonials">
           <div class="mb-4">
-            <InputLabel for="testimonial-company" value="Company Name" />
-            <input v-model="testimonials.company_name" @input="onCompanyInput" list="company-list"
-              placeholder="Type or select a company..." class="w-full px-3 py-2 border rounded" />
-            <datalist id="company-list">
-              <option v-for="company in companies" :key="company.id" :value="company.name" />
-            </datalist>
-          </div>
-          <!-- Institution -->
-          <div class="mb-4">
-            <InputLabel for="testimonial-institution" value="Institution Name" />
-
-            <input v-model="testimonials.institution_name" @input="onInstitutionInput" list="institution-list"
-              placeholder="Type or select an institution..." class="w-full px-3 py-2 border rounded" />
-            <datalist id="institution-list">
-              <option v-for="inst in institutions" :key="inst.id" :value="inst.name" />
-            </datalist>
-
+            <InputLabel value="Testimonial For" />
+            <select v-model="selectedType" class="w-full px-3 py-2 border rounded-lg">
+              <option value="">Select type</option>
+              <option value="company">Company</option>
+              <option value="institution">Institution</option>
+            </select>
           </div>
 
+          <div v-if="selectedType == 'company'" class="mb-4 relative">
+            <InputLabel for="company" value="Company" />
+            <input id="company" type="text" v-model="companyInput" @focus="showCompanySug = true"
+              @blur="() => setTimeout(() => showCompanySug = false, 150)"
+              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              placeholder="Type to search or enter a new company" autocomplete="off" />
+            <ul v-if="showCompanySug && filteredCompanies.length"
+              class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+              <li v-for="c in filteredCompanies" :key="c.id" @mousedown.prevent="selectCompany(c)"
+                class="px-3 py-2 hover:bg-indigo-50 cursor-pointer">
+                {{ c.name }}
+              </li>
+            </ul>
+            <div v-if="showCompanySug && !filteredCompanies.length" class="text-xs text-gray-400 mt-1">
+              No matches. Press Enter to use “{{ companyInput }}”.
+            </div>
+          </div>
+
+          <!-- Institution Suggestive Input -->
+          <div v-if="selectedType == 'institution'" class="mb-4 relative">
+            <InputLabel for="institution" value="Institution" />
+            <input id="institution" type="text" v-model="institutionInput" @focus="showInstitutionSug = true"
+              @blur="() => setTimeout(() => showInstitutionSug = false, 150)"
+              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              placeholder="Type to search or enter a new institution" autocomplete="off" />
+            <ul v-if="showInstitutionSug && filteredInstitutions.length"
+              class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+              <li v-for="i in filteredInstitutions" :key="i.id" @mousedown.prevent="selectInstitution(i)"
+                class="px-3 py-2 hover:bg-indigo-50 cursor-pointer">
+                {{ i.name }}
+              </li>
+            </ul>
+            <div v-if="showInstitutionSug && !filteredInstitutions.length" class="text-xs text-gray-400 mt-1">
+              No matches. Press Enter to use “{{ institutionInput }}”.
+            </div>
+          </div>
           <div class="mb-4">
             <InputLabel for="content" value="Testimonial" />
             <TextArea id="content" v-model="testimonials.content" rows="3" required
@@ -477,35 +673,66 @@ onMounted(() => {
       class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold">Update Testimonials</h2>
+          <h2 class="text-xl font-semibold">Edit Testimonial</h2>
           <button class="text-gray-500 hover:text-gray-700" @click="closeUpdateTestimonialsModal">
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <p class="text-gray-600 mb-4">Update a recommendation from a colleague or client</p>
         <form @submit.prevent="updateTestimonials">
-          <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-2">Name <span class="text-red-500">*</span></label>
-            <input type="text" v-model="testimonials.graduate_testimonials_name"
+          <!-- Company Suggestive Input -->
+          <div v-if="selectedType == 'company'" class="mb-4 relative">
+            <InputLabel for="edit-company" value="Company" />
+            <input id="edit-company" type="text" v-model="companyInput" @focus="showCompanySug = true"
+              @blur="() => setTimeout(() => showCompanySug = false, 150)"
               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-              placeholder="e.g. John Doe" required />
+              placeholder="Type to search or enter a new company" autocomplete="off" />
+            <ul v-if="showCompanySug && filteredCompanies.length"
+              class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+              <li v-for="c in filteredCompanies" :key="c.id" @mousedown.prevent="selectCompany(c)"
+                class="px-3 py-2 hover:bg-indigo-50 cursor-pointer">
+                {{ c.name }}
+              </li>
+            </ul>
+            <div v-if="showCompanySug && !filteredCompanies.length" class="text-xs text-gray-400 mt-1">
+              No matches. Press Enter to use “{{ companyInput }}”.
+            </div>
           </div>
-          <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-2">Role/Title <span class="text-red-500">*</span></label>
-            <input type="text" v-model="testimonials.graduate_testimonials_role_title"
+
+          <!-- Institution Suggestive Input -->
+          <div v-if="selectedType == 'institution'" class="mb-4 relative">
+            <InputLabel for="edit-institution" value="Institution" />
+            <input id="edit-institution" type="text" v-model="institutionInput" @focus="showInstitutionSug = true"
+              @blur="() => setTimeout(() => showInstitutionSug = false, 150)"
               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
-              placeholder="e.g. Manager" required />
+              placeholder="Type to search or enter a new institution" autocomplete="off" />
+            <ul v-if="showInstitutionSug && filteredInstitutions.length"
+              class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+              <li v-for="i in filteredInstitutions" :key="i.id" @mousedown.prevent="selectInstitution(i)"
+                class="px-3 py-2 hover:bg-indigo-50 cursor-pointer">
+                {{ i.name }}
+              </li>
+            </ul>
+            <div v-if="showInstitutionSug && !filteredInstitutions.length" class="text-xs text-gray-400 mt-1">
+              No matches. Press Enter to use “{{ institutionInput }}”.
+            </div>
           </div>
+
+          <!-- Testimonial Content -->
           <div class="mb-4">
-            <label class="block text-gray-700 font-medium mb-2">Testimonial <span class="text-red-500">*</span></label>
-            <textarea v-model="testimonials.graduate_testimonials_testimonial"
-              class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600" rows="3"
-              placeholder="Write the testimonial here..." required></textarea>
+            <InputLabel for="edit-content" value="Testimonial" />
+            <TextArea id="edit-content" v-model="testimonials.content" rows="3" required
+              placeholder="Write your testimonial here..." />
+            <InputError :message="testimonials.errors?.content" />
+          </div>
+          <!-- File Upload -->
+          <div class="mb-4">
+            <InputLabel for="edit-testimonial-file" value="Attach File (optional)" />
+            <input type="file" id="edit-testimonial-file" @change="handleTestimonialFileUpload"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
           </div>
           <div class="flex justify-end">
             <button type="submit"
               class="w-full bg-indigo-600 text-white py-2 rounded-md flex items-center justify-center">
-              <i class="fas fa-save mr-2"></i>
               Update Testimonial
             </button>
           </div>

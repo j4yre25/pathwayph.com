@@ -284,14 +284,18 @@ function closeConfirm() {
 function doArchive(entry) {
   closeConfirm();
   useForm({}).put(route('profile.education.archive', entry.id), { preserveScroll: true });
+  emit('refresh-education')
 }
+
 function doUnarchive(entry) {
   closeConfirm();
   useForm({}).put(route('profile.education.unarchive', entry.id), { preserveScroll: true });
+  emit('refresh-education')
 }
 function doDelete(entry) {
   closeConfirm();
   useForm({}).delete(route('profile.education.delete', entry.id), { preserveScroll: true });
+  emit('refresh-education')
 }
 
 // Replace button handlers:
