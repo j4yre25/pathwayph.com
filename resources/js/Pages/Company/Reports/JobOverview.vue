@@ -55,6 +55,16 @@ function resetFilters() {
   selectedStatus.value = '';
   applyFilters();
 }
+const filtersActive = computed(() =>
+  !!(
+    datePreset.value !== 'overall' ||
+    experienceLevel.value ||
+    workEnvironment.value ||
+    selectedType.value ||
+    selectedStatus.value ||
+    (datePreset.value === 'custom' && dateFrom.value && dateTo.value)
+  )
+);
 
 // Auto apply logic
 watch(datePreset, (val) => {
@@ -132,14 +142,6 @@ const topType = computed(() => {
   return entries.length ? entries[0][0] : "N/A";
 });
 
-const textualReport = computed(() => {
-  const total = props.totalOpenings;
-  const open = props.activeListings;
-  const filled = props.rolesFilled;
-  const top = topType.value;
-  const dateRange = props.filters?.date_range_label || '';
-  return `During ${dateRange}, you have ${total} job postings, with ${open} active and ${filled} filled. The most frequent job type is "${top}".`;
-});
 
 const pieOption = computed(() => {
   const sel = selectedType.value;
@@ -165,6 +167,29 @@ const pieOption = computed(() => {
       label: { formatter: "{b}: {d}%", color: "#374151", fontWeight: "bold" },
     }]
   };
+});
+
+const textualReport = computed(() => {
+  const total = props.totalOpenings ?? 0;
+  const open = props.activeListings ?? 0;
+  const filled = props.rolesFilled ?? 0;
+  const top = topType.value;
+  const dateRange = props.filters?.date_range_label || 'the selected period';
+
+  if (total === 0) {
+    return `No job postings were recorded for ${dateRange}. Try adjusting filters to see more data.`;
+  }
+
+  const filledPct = ((filled / total) * 100).toFixed(1);
+  const openPct = ((open / total) * 100).toFixed(1);
+
+  return `During ${dateRange}, there were ${total} job postings, of which ${open} (${openPct}%) are still active and ${filled} (${filledPct}%) have been successfully filled. ` +
+         `The most frequently posted job type was "${top}", indicating where most of your hiring efforts are focused. ` +
+         (filledPct >= 75
+           ? "This shows strong progress in meeting hiring goals."
+           : filledPct >= 40
+             ? "Filling progress is moderate — you may want to focus on remaining openings."
+             : "A majority of roles are still open, suggesting a need to accelerate recruitment.");
 });
 </script>
 
@@ -204,7 +229,13 @@ const pieOption = computed(() => {
           <label class="block text-xs font-medium text-gray-700 mb-1">Work Environment</label>
           <select v-model="workEnvironment" class="w-full border-gray-300 rounded">
             <option value="">All</option>
-            <option v-for="we in filterOptions.work_environments" :key="we" :value="we">{{ we }}</option>
+            <option
+              v-for="we in filterOptions.work_environments.filter(we => isNaN(Number(we.environment_type)))"
+              :key="we.environment_type"
+              :value="we.environment_type"
+            >
+              {{ we.environment_type }}
+            </option>
           </select>
         </div>
         <div>
@@ -245,36 +276,45 @@ const pieOption = computed(() => {
         <h3 class="text-2xl font-bold text-gray-700">List of Jobs</h3>
         <div v-if="paginatedJobs.length" class="mt-2">
           <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead>
-            <tr>
-              <th class="px-2 py-1 text-left font-medium text-gray-700">Title</th>
-              <th class="px-2 py-1 text-left font-medium text-gray-700">Job Type(s)</th>
-              <th class="px-2 py-1 text-left font-medium text-gray-700">Status</th>
-              <th class="px-2 py-1 text-left font-medium text-gray-700">Experience</th>
-              <th class="px-2 py-1 text-left font-medium text-gray-700">Vacancies</th>
-              <th class="px-2 py-1 text-left font-medium text-gray-700">Environment</th>
-              <th class="px-2 py-1 text-left font-medium text-gray-700">Posted</th>
-            </tr>
+           <thead>
+              <tr>
+                <th class="px-2 py-1 text-left font-medium text-gray-700">Title</th>
+                <th class="px-2 py-1 text-left font-medium text-gray-700">Job Type(s)</th>
+                <th class="px-2 py-1 text-left font-medium text-gray-700">Status</th>
+                <th class="px-2 py-1 text-left font-medium text-gray-700">Experience</th>
+                <th v-if="filtersActive" class="px-2 py-1 text-left font-medium text-gray-700">Vacancies</th>
+                <th v-if="filtersActive" class="px-2 py-1 text-left font-medium text-gray-700">Roles Filled</th>
+                <th v-else class="px-2 py-1 text-left font-medium text-gray-700">Environment</th>
+                <th class="px-2 py-1 text-left font-medium text-gray-700">Posted</th>
+              </tr>
             </thead>
             <tbody>
-            <tr v-for="job in paginatedJobs" :key="job.id" class="hover:bg-gray-50">
-              <td class="px-2 py-1">{{ job.job_title }}</td>
-              <td class="px-2 py-1">
-                <span v-if="job.job_types?.length">
-                  {{ job.job_types.map(j=>j.type).join(', ') }}
-                </span>
-                <span v-else>{{ job.job_type || '—' }}</span>
-              </td>
-              <td class="px-2 py-1 capitalize">{{ job.status }}</td>
-              <td class="px-2 py-1">{{ job.job_experience_level || '—' }}</td>
-              <td class="px-2 py-1">{{ job.job_vacancies ?? '—' }}</td>
-              <td class="px-2 py-1">
-                {{ job.work_environment || job.job_work_environment || job.job_work_arrangement || '—' }}
-              </td>
-              <td class="px-2 py-1">
-                {{ (job.created_at || '').substring(0,10) }}
-              </td>
-            </tr>
+              <tr v-for="job in paginatedJobs" :key="job.id" class="hover:bg-gray-50">
+                <td class="px-2 py-1">{{ job.job_title }}</td>
+                <td class="px-2 py-1">
+                  <span v-if="job.job_types?.length">
+                    {{ job.job_types.map(j=>j.type).join(', ') }}
+                  </span>
+                  <span v-else>{{ job.job_type || '—' }}</span>
+                </td>
+                <td class="px-2 py-1 capitalize">{{ job.status }}</td>
+                <td class="px-2 py-1">{{ job.job_experience_level || '—' }}</td>
+                <td v-if="filtersActive" class="px-2 py-1">{{ job.job_vacancies ?? '—' }}</td>
+                <td v-if="filtersActive" class="px-2 py-1">
+                  <!-- You may need to compute roles filled per job, or add a field in the controller -->
+                  {{ job.roles_filled ?? '—' }}
+                </td>
+                <td v-else class="px-2 py-1">
+                  {{
+                    filterOptions.work_environments.find(we =>
+                      job.work_environment == we.id || job.work_environment == we.environment_type
+                    )?.environment_type || job.work_environment || '—'
+                  }}
+                </td>
+                <td class="px-2 py-1">
+                  {{ (job.created_at || '').substring(0,10) }}
+                </td>
+              </tr>
             </tbody>
           </table>
           <div class="flex justify-center mt-4" v-if="totalPages > 1">

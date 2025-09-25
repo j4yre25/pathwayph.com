@@ -123,14 +123,16 @@ class CompanyReportsController extends Controller
             ->filter()->unique()->sort()->values()->toArray();
 
         // Distinct work environments: pivot + legacy
-        $workEnvSet = collect();
+        $workEnvironments = [];
         if (\Schema::hasTable('work_environments')) {
-            $workEnvSet = \App\Models\WorkEnvironment::pluck('environment_type');
+            $workEnvironments = \App\Models\WorkEnvironment::select('id', 'environment_type')->get()->toArray();
         }
         if (\Schema::hasColumn('jobs','work_environment')) {
-            $workEnvSet = $workEnvSet->merge($allJobs->pluck('work_environment'));
+            // Add legacy string values if any
+            $legacy = $allJobs->pluck('work_environment')->filter()->unique()->map(fn($v) => ['id' => $v, 'environment_type' => $v])->values()->toArray();
+            $workEnvironments = array_merge($workEnvironments, $legacy);
         }
-        $workEnvironments = $workEnvSet->filter()->unique()->sort()->values()->toArray();
+        $workEnvironments = collect($workEnvironments)->unique('environment_type')->values()->toArray();
 
         $vacancyMinActual = (int)($allJobs->min('job_vacancies') ?? 0);
         $vacancyMaxActual = (int)($allJobs->max('job_vacancies') ?? 0);
@@ -188,9 +190,7 @@ class CompanyReportsController extends Controller
                 'date_from' => $dateFromInput,
                 'date_to' => $dateToInput,
                 'experience_level' => $experienceLevel,
-                'vacancy_min' => $vacancyMin,
-                'vacancy_max' => $vacancyMax,
-                'work_environment' => $workEnvFilterArray,
+                'work_environment' => $workEnvironments,
                 'date_range_label' => $dateRangeLabel,
                 'filters_active' => $filtersActive,
             ],
