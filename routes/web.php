@@ -935,7 +935,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // Skill Routes
     Route::post('/profile/skills', [ProfileController::class, 'addSkill'])->name('profile.skills.add');
     Route::put('/profile/skills/{id}', [ProfileController::class, 'updateSkill'])->name('profile.skills.update');
-    Route::delete('/profile/skills/{id}', [ProfileController::class, 'deleteSkill'])->name('profile.skills.remove');
+    Route::delete('/profile/skills/{id}', [ProfileController::class, 'removeSkill'])->name('profile.skills.remove');
     Route::put('/profile/skills/{id}/archive', [ProfileController::class, 'archiveSkill'])->name('profile.skills.archive');
     Route::put('/profile/skills/{id}/unarchive', [ProfileController::class, 'unarchiveSkill'])->name('profile.skills.unarchive');
     Route::put('/profile/skills/{id}/archived', [ProfileController::class, 'archivedSkill'])->name('profile.skills.archived');
@@ -966,7 +966,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // Achievement Routes
     Route::post('/profile/achievements', [ProfileController::class, 'addAchievement'])->name('profile.achievements.add');
-    Route::put('/profile/achievements/{id}', [ProfileController::class, 'updateAchievement'])->name('profile.achievements.update');
+    Route::match(['put', 'post'], '/profile/achievements/{id}', [ProfileController::class, 'updateAchievement'])->name('profile.achievements.update');
     Route::delete('/profile/achievements/{id}', [ProfileController::class, 'removeAchievement'])->name('profile.achievements.remove');
     Route::put('/profile/achievements/{id}/archive', [ProfileController::class, 'archiveAchievement'])->name('profile.achievements.archive');
     Route::post('/profile/achievements/{id}/unarchive', [ProfileController::class, 'unarchiveAchievement'])->name('profile.achievements.unarchive');
@@ -974,12 +974,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
     // Testimonial Routes
     Route::post('/profile/testimonials', [ProfileController::class, 'addTestimonial'])->name('profile.testimonials.add');
-    Route::put('/profile/testimonials/{id}', [ProfileController::class, 'updateTestimonial'])->name('profile.testimonials.update');
+    Route::match(['put', 'post'], 'profile/testimonials/{id}', [ProfileController::class, 'updateTestimonial'])->name('profile.testimonials.update');
     Route::delete('/profile/testimonials/{id}', [ProfileController::class, 'removeTestimonial'])->name('profile.testimonials.remove');
     Route::put('/profile/testimonials/{id}/archive', [ProfileController::class, 'archiveTestimonial'])->name('profile.testimonials.archive');
     Route::post('/profile/testimonials/{id}/unarchive', [ProfileController::class, 'unarchiveTestimonial'])->name('profile.testimonials.unarchive');
     Route::put('/profile/testimonials/{id}/archived', [ProfileController::class, 'archivedTestimonial'])->name('profile.testimonials.archived');
-
+    Route::get('/api/companies-institutions', [ProfileController::class, 'getCompaniesAndInstitutions']);
     // Alumni Stories Routes
     Route::get('/profile/alumni-stories/settings', [ProfileController::class, 'alumniStoriesSettings'])->name('profile.alumni-stories.settings');
     Route::post('/profile/alumni-stories', [ProfileController::class, 'addAlumniStory'])->name('profile.alumni-stories.add');

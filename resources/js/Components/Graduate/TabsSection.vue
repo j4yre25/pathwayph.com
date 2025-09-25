@@ -163,11 +163,6 @@ const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-
-
-
-
-
 };
 
 
@@ -314,7 +309,7 @@ const allEducation = computed(() => normalizedEducation.value);
             {{ testimonials.length }}
           </span>
         </button>
-        <button @click="activeTab = 'feedback'" :class="[
+        <!-- <button @click="activeTab = 'feedback'" :class="[
           activeTab === 'feedback'
             ? 'border-blue-600 text-blue-700 border-b-2 font-medium'
             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
@@ -322,7 +317,7 @@ const allEducation = computed(() => normalizedEducation.value);
         ]" role="tab" aria-selected="false" aria-controls="tab-feedback" id="tab-button-feedback">
           <i class="fas fa-comment-alt mr-2 text-gray-500"></i>
           Feedback
-        </button>
+        </button> -->
         <button @click="activeTab = 'skills'" :class="[
           activeTab === 'skills'
             ? 'border-blue-600 text-blue-700 border-b-2 font-medium'
@@ -343,7 +338,7 @@ const allEducation = computed(() => normalizedEducation.value);
           <i class="fas fa-user mr-2 text-gray-500"></i>
           Details
         </button>
-        <button @click="activeTab = 'assessment'" :class="[
+        <!-- <button @click="activeTab = 'assessment'" :class="[
           activeTab === 'assessment'
             ? 'border-blue-600 text-blue-700 border-b-2 font-medium'
             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
@@ -351,7 +346,7 @@ const allEducation = computed(() => normalizedEducation.value);
         ]" role="tab" aria-selected="false" aria-controls="tab-assessment" id="tab-button-assessment">
           <i class="fas fa-clipboard-check mr-2 text-gray-500"></i>
           Assessment
-        </button>
+        </button> -->
       </nav>
     </div>
 
@@ -1018,20 +1013,11 @@ const allEducation = computed(() => normalizedEducation.value);
                 </div>
               </div>
               <div class="flex-grow">
-                <h4 class="text-base font-medium text-gray-900">{{ testimonial.author_name || 'Anonymous' }}</h4>
-                <div class="text-sm text-gray-600">{{ testimonial.author_title || 'No title' }}</div>
-                <div class="flex items-center mt-1">
-                  <div class="flex">
-                    <template v-for="i in 5" :key="i">
-                      <i :class="i <= (testimonial.rating || 0) ? 'fas fa-star text-yellow-400' : 'far fa-star text-gray-300'"
-                        class="text-sm mr-0.5"></i>
-                    </template>
-                  </div>
-                  <span class="text-xs text-gray-500 ml-2">{{ testimonial.rating || 0 }}/5</span>
-                </div>
+                <h4 class="text-base font-medium text-gray-900">{{ testimonial.author|| 'Anonymous' }}</h4>
+               
               </div>
               <div class="flex-shrink-0 text-sm text-gray-500">
-                {{ formatDate(testimonial.date) }}
+                {{ formatDate(testimonial.created_at) }}
               </div>
             </div>
 
@@ -1040,7 +1026,7 @@ const allEducation = computed(() => normalizedEducation.value);
               {{ testimonial.content || 'No content provided' }}
               <i class="fas fa-quote-right text-indigo-300 ml-1 opacity-50"></i>
             </div>
-          </div>
+          </div>  
         </div>
 
         <div v-else
@@ -1063,7 +1049,7 @@ const allEducation = computed(() => normalizedEducation.value);
       </div>
 
       <!-- Assessment Tab -->
-      <div v-else-if="activeTab === 'assessment'" class="transition-opacity duration-300">
+      <!-- <div v-else-if="activeTab === 'assessment'" class="transition-opacity duration-300">
         <div
           class="text-center py-8 bg-gray-50 rounded-lg border border-gray-200 transition-all duration-300 hover:border-indigo-100 hover:bg-gray-100">
           <div class="text-gray-400 mb-4">
@@ -1079,7 +1065,7 @@ const allEducation = computed(() => normalizedEducation.value);
           </button>
         </div>
 
-      </div>
+      </div> -->
 
     </div>
 

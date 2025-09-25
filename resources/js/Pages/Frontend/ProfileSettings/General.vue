@@ -32,6 +32,21 @@ const datepickerConfig = {
   format: 'yyyy-MM-dd',
   enableTime: false
 };
+
+const isCurrentlyEmployed = computed(() => {
+  // If you pass experienceEntries as a prop to General.vue
+  const entries = pageProps.experienceEntries || [];
+  return entries.some(e => e.is_current);
+});
+
+watch(isCurrentlyEmployed, (val) => {
+  if (val) {
+    profile.value.employment_status = 'Employed'; // or 'Underemployed' based on your logic
+  } else {
+    profile.value.employment_status = 'Unemployed';
+  }
+});
+
 const degreeCompleted = computed(() =>
   pageProps.graduate?.program?.degree?.type ||
   pageProps.graduate?.degree?.type ||

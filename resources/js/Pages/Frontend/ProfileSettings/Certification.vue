@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, reactive } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import Datepicker from 'vue3-datepicker';
@@ -130,7 +130,7 @@ const addCertification = () => {
   form.post(route('profile.certifications.add'), {
     forceFormData: true,
     onSuccess: (response) => {
-      isAddCertificationModalOpen.value = false;
+      closeAddCertificationModal();
       successMessage.value = 'Certification added successfully!';
       isSuccessModalOpen.value = true;
       resetForm();
@@ -159,6 +159,7 @@ const updateCertification = () => {
       successMessage.value = 'Certification updated successfully!';
       isSuccessModalOpen.value = true;
       resetForm();
+
     },
     onError: (errors) => {
       if (errors.duplicate) {
@@ -169,12 +170,10 @@ const updateCertification = () => {
         isUpdateCertificationModalOpen.value = false; // <-- Ensure modal closes on error
       }
     },
-    onFinish: () => {
-      // Always close modal after request finishes
-      isUpdateCertificationModalOpen.value = false;
-    }
+
   });
 };
+
 
 // Remove Certification
 const removeCertification = (entry) => {
@@ -191,9 +190,128 @@ const removeCertification = (entry) => {
     });
   }
 };
+
+
+const confirmModal = reactive({
+  show: false,
+  type: '',      // 'archive' | 'unarchive' | 'delete'
+  entry: null,
+  message: '',
+  confirmLabel: '',
+  confirmAction: null,
+});
+
+function openConfirm(type, entry) {
+  confirmModal.type = type;
+  confirmModal.entry = entry;
+  confirmModal.show = true;
+  if (type === 'delete') {
+    confirmModal.message = 'Are you sure you want to delete this certification? This action cannot be undone.';
+    confirmModal.confirmLabel = 'Delete';
+    confirmModal.confirmAction = () => {
+      useForm({}).delete(route('profile.certifications.remove', entry.id), {
+        onSuccess: () => {
+          successMessage.value = 'Certification deleted successfully!';
+          isSuccessModalOpen.value = true;
+          closeConfirm();
+        },
+        onError: () => {
+          errorMessage.value = 'Failed to delete certification. Please try again.';
+          isErrorModalOpen.value = true;
+          closeConfirm();
+        }
+      });
+    };
+  } else if (type === 'archive') {
+    confirmModal.message = 'Are you sure you want to archive this certification?';
+    confirmModal.confirmLabel = 'Archive';
+    confirmModal.confirmAction = () => {
+      useForm({}).put(route('profile.certifications.archive', entry.id), {
+        onSuccess: () => {
+          successMessage.value = 'Certification archived successfully!';
+          isSuccessModalOpen.value = true;
+          closeConfirm();
+        },
+        onError: () => {
+          errorMessage.value = 'Failed to archive certification. Please try again.';
+          isErrorModalOpen.value = true;
+          closeConfirm();
+        }
+      });
+    };
+  } else if (type === 'unarchive') {
+    confirmModal.message = 'Restore this archived certification?';
+    confirmModal.confirmLabel = 'Restore';
+    confirmModal.confirmAction = () => {
+      useForm({}).post(route('profile.certifications.unarchive', entry.id), {
+        onSuccess: () => {
+          successMessage.value = 'Certification restored successfully!';
+          isSuccessModalOpen.value = true;
+          closeConfirm();
+        },
+        onError: () => {
+          errorMessage.value = 'Failed to restore certification. Please try again.';
+          isErrorModalOpen.value = true;
+          closeConfirm();
+        }
+      });
+    };
+  }
+}
+
+function deleteCertification(entry) {
+  openConfirm('delete', entry);
+}
+
+function archiveCertification(entry) {
+  openConfirm('archive', entry);
+}
+
+function unarchiveCertification(entry) {
+  openConfirm('unarchive', entry);
+}
+
+function closeConfirm() {
+  confirmModal.show = false;
+  confirmModal.type = '';
+  confirmModal.entry = null;
+  confirmModal.message = '';
+  confirmModal.confirmLabel = '';
+  confirmModal.confirmAction = null;
+}
 </script>
 
 <template>
+  <Modal :show="confirmModal.show" @close="closeConfirm">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4">
+        <div :class="{
+          'bg-amber-100': confirmModal.type === 'archive' || confirmModal.type === 'unarchive',
+          'bg-red-100': confirmModal.type === 'delete'
+        }" class="rounded-full p-3">
+          <i v-if="confirmModal.type === 'archive'" class="fas fa-archive text-amber-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'unarchive'" class="fas fa-undo text-green-500 text-xl"></i>
+          <i v-else-if="confirmModal.type === 'delete'" class="fas fa-trash text-red-500 text-xl"></i>
+        </div>
+      </div>
+      <h3 class="text-lg font-medium text-center text-gray-900 mb-2">
+        {{ confirmModal.confirmLabel }} Certification
+      </h3>
+      <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
+      <div class="mt-6 flex justify-center space-x-2">
+        <button type="button" @click="closeConfirm"
+          class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">
+          Cancel
+        </button>
+        <button v-if="confirmModal.type === 'delete'" type="button" @click="confirmModal.confirmAction"
+          class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition duration-200">Delete</button>
+        <button v-else type="button"
+          :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
+          class="text-white px-4 py-2 rounded transition duration-200" @click="confirmModal.confirmAction">{{
+            confirmModal.confirmLabel }}</button>
+      </div>
+    </div>
+  </Modal>
   <!-- Success Modal -->
   <Modal :modelValue="isSuccessModalOpen" @close="closeSuccessModal">
     <div class="p-6">
@@ -285,7 +403,7 @@ const removeCertification = (entry) => {
                 <div class="border-b border-blue-100 pb-2">
                   <h2 class="text-xl font-bold text-blue-900">{{ entry.name }}</h2>
                   <p class="text-sm text-gray-600"><i class="fas fa-certificate text-blue-600 mr-2"></i>{{ entry.issuer
-                  }}</p>
+                    }}</p>
                 </div>
                 <div class="flex items-center text-gray-600 mt-2 bg-blue-50 px-3 py-1 rounded-full inline-block">
                   <i class="far fa-calendar-alt mr-2 text-blue-600"></i>
@@ -326,9 +444,9 @@ const removeCertification = (entry) => {
                   <i class="fas fa-edit"></i>
                 </button>
                 <button
-                  class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
-                  @click="removeCertification(entry)">
-                  <i class="fas fa-trash"></i>
+                  class="inline-flex items-center px-2 py-1 bg-amber-100 border border-amber-300 rounded-md font-semibold text-xs text-amber-700 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500 transition ease-in-out duration-150"
+                  @click="archiveCertification(entry)">
+                  <i class="fas fa-archive"></i>
                 </button>
               </div>
             </div>
@@ -402,6 +520,8 @@ const removeCertification = (entry) => {
                   </div>
                 </div>
                 <div class="absolute top-6 right-4 flex space-x-4">
+                  <!-- Archive Button (for active certifications) -->
+
                   <button
                     class="inline-flex items-center px-2 py-1 bg-green-100 border border-green-300 rounded-md font-semibold text-xs text-green-700 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition ease-in-out duration-150"
                     @click="unarchiveCertification(entry)">
@@ -409,7 +529,7 @@ const removeCertification = (entry) => {
                   </button>
                   <button
                     class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
-                    @click="removeCertification(entry)">
+                    @click="deleteCertification(entry)">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
