@@ -573,6 +573,7 @@ class DashboardController extends Controller
                     'posted_at' => $job->created_at->diffForHumans(),
                     'match_labels' => $labels,
                     'match_percentage' => isset($score, $criteria) && $criteria ? round(($score / $criteria) * 100) : null,
+
                 ];
             }
         }
@@ -666,7 +667,8 @@ class DashboardController extends Controller
                 'jobsAligned' => $jobsAligned,
             ],
             'recommendedJobs' => $recommendedJobs,
-            'featuredCompanies' => $featuredCompanies
+            'featuredCompanies' => $featuredCompanies,
+            'recent_activities' => $user->notifications()->latest()->take(10)->get(), // or your own logic
 
         ];
     }
