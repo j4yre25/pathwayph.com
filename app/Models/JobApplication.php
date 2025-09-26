@@ -149,6 +149,10 @@ class JobApplication extends Model
     public function stageLogs() {
         return $this->hasMany(JobApplicationStageLog::class, 'job_application_id');
     }
+    public function actionLogs()
+    {
+        return $this->hasMany(\App\Models\JobApplicationActionLog::class);
+    }
 
     public function syncStatusFromStage(): bool
     {

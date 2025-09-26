@@ -7,10 +7,46 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 use App\Models\Messages;
 
 class PipelineActionExecutor
 {
+    private function buildEvent(string $key, array $payload): string
+    {
+        $dt = null;
+        $fmt = fn(Carbon $c) => $c->format('M d, Y').' at '.$c->format('h:i A');
+
+        // try common datetime keys
+        foreach (['scheduled_at','schedule_at','interview_at','interview_datetime','datetime'] as $k) {
+            if (!empty($payload[$k])) { try { $dt = Carbon::parse($payload[$k]); } catch (\Throwable $e) {} }
+        }
+        if (!$dt && !empty($payload['date']) && !empty($payload['time'])) {
+            try { $dt = Carbon::parse($payload['date'].' '.$payload['time']); } catch (\Throwable $e) {}
+        }
+
+        $loc = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
+
+        return match ($key) {
+            'request_more_info','request_info' => 'Requested more info'.(
+                !empty($payload['requested']) && is_array($payload['requested'])
+                    ? ': '.implode(', ', array_filter($payload['requested']))
+                    : ''
+            ),
+            'schedule_interview'   => 'Interview scheduled'.($dt ? ' for '.$fmt($dt) : '').$loc,
+            'reschedule_interview' => 'Interview rescheduled'.($dt ? ' to '.$fmt($dt) : '').$loc,
+            'record_interview_feedback' => 'Interview feedback recorded'.(!empty($payload['feedback']) ? ': '.$payload['feedback'] : ''),
+            'send_exam_instructions'    => 'Exam instructions sent'.($dt ? ' for '.$fmt($dt) : ''),
+            'record_test_results'       => 'Test results recorded'.(
+                isset($payload['score']) ? ': '.$payload['score'] : (isset($payload['result']) ? ': '.$payload['result'] : '')
+            ),
+            'reschedule_test' => 'Exam rescheduled'.($dt ? ' to '.$fmt($dt) : ''),
+            'send_offer'      => 'Offer sent'.(!empty($payload['offered_salary']) ? ' (salary '.$payload['offered_salary'].')' : ''),
+            'hire'            => 'Marked as hired',
+            'reject','reject_withdraw' => 'Application rejected'.(!empty($payload['reason']) ? ': '.$payload['reason'] : ''),
+            default => ucfirst(str_replace('_',' ', $key)),
+        };
+    }
     public function execute(array $action, JobApplication $application): string
     {
         try {
@@ -95,16 +131,26 @@ class PipelineActionExecutor
                 return "Stage moved to {$to}";
             }
 
-            if (($action['type'] ?? null) === 'action') {
-                // Log action
+           if (($action['type'] ?? null) === 'action') {
+                // Log action with payload + event
                 if (Schema::hasTable('job_application_action_logs')) {
                     try {
+                        $key = $action['key'] ?? '';
+                        $payload = $action['payload'] ?? [];
+
+                        // include requested items for request_info
+                        if (in_array($key, ['request_info','request_more_info']) && !empty($action['requested'])) {
+                            $payload['requested'] = array_values(array_unique((array)$action['requested']));
+                        }
+
+                        $event = $action['event'] ?? $this->buildEvent($key, (array)$payload);
+
                         DB::table('job_application_action_logs')->insert([
                             'job_application_id'=>$application->id,
                             'user_id'=>Auth::id(),
-                            'action_key'=>$action['key'],
-                            'event'=>$action['event'] ?? null,
-                            'payload'=>null,
+                            'action_key'=>$key,
+                            'event'=>$event,
+                            'payload'=>json_encode($payload),
                             'created_at'=>now(),
                             'updated_at'=>now(),
                         ]);
@@ -145,7 +191,7 @@ class PipelineActionExecutor
                     $content = $custom !== '' ? $custom : Messages::template($type);
 
                     // Create the message
-                    \App\Models\Messages::create([
+                    Messages::create([
                         'application_id' => $application->id,
                         'sender_id'      => Auth::id(),
                         'receiver_id'    => $this->resolveApplicantUserId($application),

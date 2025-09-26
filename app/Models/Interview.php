@@ -22,4 +22,8 @@ class Interview extends Model
     {
         return $this->belongsTo(\App\Models\JobApplication::class);
     }
+    public function graduates()
+    {
+        return $this->belongsToMany(\App\Models\Graduate::class, 'interview_graduate', 'interview_id', 'graduate_id');
+    }
 }
