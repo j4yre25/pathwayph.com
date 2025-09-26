@@ -67,6 +67,7 @@ const maxWidthClass = computed(() => {
 
 </script>
 
+
 <template>
   <Teleport to="body">
     <transition name="fade">
@@ -94,7 +95,24 @@ const maxWidthClass = computed(() => {
           >
             <i class="fas fa-times"></i>
           </button>
-          <slot />
+          <!-- Named slots support: title/header, content/body, footer -->
+          <template v-if="$slots.title || $slots.header || $slots.content || $slots.body || $slots.footer">
+            <div v-if="$slots.title || $slots.header" class="px-6 pt-6 pb-2 border-b border-gray-100">
+              <slot name="title" v-if="$slots.title" />
+              <slot name="header" v-else />
+            </div>
+            <div v-if="$slots.content || $slots.body" class="px-6 py-4">
+              <slot name="content" v-if="$slots.content" />
+              <slot name="body" v-else />
+            </div>
+            <div v-if="$slots.footer" class="px-6 pb-6 pt-2 border-t border-gray-100 flex justify-end">
+              <slot name="footer" />
+            </div>
+          </template>
+          <!-- Default slot fallback -->
+          <template v-else>
+            <slot />
+          </template>
         </div>
       </div>
     </transition>

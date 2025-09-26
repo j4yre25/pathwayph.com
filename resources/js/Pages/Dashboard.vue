@@ -30,8 +30,6 @@ const filteredCompanies = computed(() =>
     )
 );
 
-
-
 const dateFrom = ref('');
 const dateTo = ref('');
 
@@ -216,20 +214,6 @@ function submitReferral() {
             </h2>
         </template>
 
-        <Modal v-model="showApprovalModal">
-            <template #header>
-                <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
-            </template>
-            <template #body>
-                <p class="mb-6 text-gray-700">
-                    Your account is still waiting for admin approval.<br>
-                    You will be notified once your account is approved.
-                </p>
-            </template>
-            <template #footer>
-                <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
-            </template>
-        </Modal>
 
         <div v-if="page.props.roles?.isCompany" class="py-12">
             <Welcome v-if="!page.props.roles?.isCompany" />
