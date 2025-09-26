@@ -917,7 +917,7 @@ const allEducation = computed(() => normalizedEducation.value);
               class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300">
               <h4 class="text-base font-medium text-gray-800 mb-3 flex items-center">
                 <i class="fas fa-graduation-cap text-gray-500 mr-2"></i>
-                Program Information
+                Program and Employment Information
               </h4>
 
               <div class="space-y-3">
