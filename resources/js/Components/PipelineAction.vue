@@ -166,7 +166,7 @@ async function sendRequestInfo() {
     action: 'request_more_info',
     requested: requested.value,
     custom_message: customMessage.value,
-  })
+  }, { preserveScroll: true, preserveState: true })
   requestInfoOpen.value = false
 }
 </script>

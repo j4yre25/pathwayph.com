@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, onMounted, ref, computed } from "vue";
+import { defineProps, onMounted, ref, computed, watch } from "vue";
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { useForm } from '@inertiajs/vue3';
@@ -34,9 +34,24 @@ const dateOptions = [
   { value: "this_week", label: "This Week" },
 ];
 
-// Chart option builder
+// Derived labels from backend
+const labels = computed(() => props.vacancyStats?.labels ?? [])
+
+// Normalize series to match labels length and be numeric
+function normalizeSeries(lbls, data) {
+  const out = Array(lbls.length).fill(0)
+  const src = Array.isArray(data) ? data : []
+  for (let i = 0; i < out.length; i++) out[i] = Number(src[i] ?? 0)
+  return out
+}
+
+// Chart options with axes
 const chartOption = computed(() => {
-  const series = [];
+  const apps = normalizeSeries(labels.value, props.vacancyStats?.applicationSent)
+  const interviews = normalizeSeries(labels.value, props.vacancyStats?.interviews)
+  const rejected = normalizeSeries(labels.value, props.vacancyStats?.rejected)
+
+  const series = []
   if (showApplicationSent.value) {
     series.push({
       name: "Application Sent",
@@ -46,8 +61,8 @@ const chartOption = computed(() => {
       showSymbol: false,
       lineStyle: { color: "#4F46E5", width: 3 },
       itemStyle: { color: "#4F46E5" },
-      data: props.vacancyStats?.applicationSent ?? [],
-    });
+      data: apps,
+    })
   }
   if (showInterviews.value) {
     series.push({
@@ -58,8 +73,8 @@ const chartOption = computed(() => {
       showSymbol: false,
       lineStyle: { color: "#10B981", width: 3 },
       itemStyle: { color: "#10B981" },
-      data: props.vacancyStats?.interviews ?? [],
-    });
+      data: interviews,
+    })
   }
   if (showRejected.value) {
     series.push({
@@ -68,58 +83,53 @@ const chartOption = computed(() => {
       smooth: true,
       symbol: "circle",
       showSymbol: false,
-      lineStyle: { color: "#6B7280", width: 3, type: "dashed" },
-      itemStyle: { color: "#6B7280" },
-      data: props.vacancyStats?.rejected ?? [],
-    });
+      lineStyle: { color: "#EF4444", width: 3, type: "dashed" },
+      itemStyle: { color: "#EF4444" },
+      data: rejected,
+    })
   }
-  return {
-    tooltip: {
-      trigger: "axis",
-      backgroundColor: "#fff",
-      borderColor: "#e5e7eb",
-      borderWidth: 1,
-      textStyle: { color: "#374151" },
-      formatter: params => {
-        let html = `<div style='font-weight:600;'>${params[0]?.axisValueLabel}</div>`;
-        params.forEach(p => {
-          html += `<div style='color:${p.color};margin-bottom:2px;'><span style='font-weight:600;'>${p.value}</span> ${p.seriesName}</div>`;
-        });
-        return html;
-      }
-    },
-    legend: {
-      data: ["Application Sent", "Interviews", "Rejected"],
-      top: 10,
-      left: 120,
-      itemWidth: 18,
-      itemHeight: 8,
-      textStyle: { fontSize: 13 },
-      selected: {
-        "Application Sent": showApplicationSent.value,
-        "Interviews": showInterviews.value,
-        "Rejected": showRejected.value,
-      }
-    },
-    grid: { left: 40, right: 30, top: 60, bottom: 60 },
+
+  const opt = {
+    tooltip: { trigger: "axis" },
+    grid: { left: 40, right: 20, top: 30, bottom: 30 },
     xAxis: {
       type: "category",
-      data: props.vacancyStats?.labels ?? [],
-      axisLabel: { fontSize: 13, interval: 0 },
-      name: "",
-      nameLocation: "middle",
-      nameGap: 30,
+      boundaryGap: false,
+      data: labels.value,
+      axisLine: { lineStyle: { color: "#9CA3AF" } },
+      axisLabel: { color: "#6B7280" },
     },
     yAxis: {
       type: "value",
-      name: "Total",
-      nameLocation: "middle",
-      nameGap: 40,
-      axisLabel: { fontSize: 12 }
+      minInterval: 1,
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: "#E5E7EB" } },
+      axisLabel: { color: "#6B7280" },
     },
-    series
-  };
-});
+    legend: {
+      data: ["Application Sent", "Interviews", "Rejected"],
+      top: 0,
+      textStyle: { color: "#374151", fontSize: 12 },
+    },
+    series,
+  }
+
+  // Debug chart config
+  console.log('Chart Option:', opt)
+  return opt
+})
+
+
+// Reload data when date filter changes
+watch(dateFilter, (v) => {
+  console.log('Date filter changed:', v)
+  router.reload({
+    only: ['vacancyStats','kpi'],
+    data: { date_filter: v },
+    preserveScroll: true,
+    preserveState: true,
+  })
+})
 
 const recentActivities = computed(() => {
   const activities = usePage().props.recent_activities || [];
@@ -330,7 +340,7 @@ onMounted(() => {
                 <button
                   @click="showRejected = !showRejected"
                   :class="['flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition', showRejected ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500']">
-                  <span class="w-3 h-3 rounded-full" :style="{ background: '#6B7280' }"></span>
+                  <span class="w-3 h-3 rounded-full" :style="{ background: '#EF4444' }"></span>
                   Rejected
                 </button>
                 <!-- Date filter dropdown -->

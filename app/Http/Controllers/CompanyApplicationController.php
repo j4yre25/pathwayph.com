@@ -45,20 +45,29 @@ private function normalizePayload($payload): array
     private function extractDateTimeFromPayload(array $p): ?Carbon
     {
         $candidates = [
-            'scheduled_at','schedule_at','interview_at','interview_date','date','datetime','rescheduled_at','new_date'
+            'scheduled_at','schedule_at','interview_at','interview_date','date','datetime','rescheduled_at','new_date','time'
         ];
-        foreach ($candidates as $k) {
-            if (!empty($p[$k])) {
-                try { return Carbon::parse($p[$k]); } catch (\Throwable $e) {}
+        foreach ([['date','time'], ['new_date','new_time'], ['day','time']] as $pair) {
+            [$d, $t] = $pair;
+            if (!empty($p[$d]) && !empty($p[$t])) {
+                try { return Carbon::parse(trim($p[$d].' '.$p[$t]), config('app.timezone')); } catch (\Throwable $e) {}
             }
         }
-        // Some forms store separate date/time
-        if (!empty($p['date']) && !empty($p['time'])) {
-            try { return Carbon::parse($p['date'].' '.$p['time']); } catch (\Throwable $e) {}
+
+        // Single datetime-like fields
+        foreach (['scheduled_at','schedule_at','interview_at','interview_datetime','datetime','rescheduled_at','new_datetime'] as $k) {
+            if (!empty($p[$k])) {
+                try { return Carbon::parse($p[$k], config('app.timezone')); } catch (\Throwable $e) {}
+            }
         }
-        if (!empty($p['day']) && !empty($p['time'])) {
-            try { return Carbon::parse($p['day'].' '.$p['time']); } catch (\Throwable $e) {}
+
+        // Fallback: date only
+        foreach (['date','new_date','interview_date'] as $k) {
+            if (!empty($p[$k])) {
+                try { return Carbon::parse($p[$k], config('app.timezone')); } catch (\Throwable $e) {}
+            }
         }
+
         return null;
     }
     private function resolveStageName(object $row, string $prefix, array $byId, array $bySlug): string
@@ -304,10 +313,11 @@ private function normalizePayload($payload): array
             'type'  => 'action',
             'stage' => 'applied',
             'by'    => $applicantName ?: 'Applicant',
-            'at'    => $application->created_at,
+            'at'    => ($application->created_at ? Carbon::parse($application->created_at)->toIso8601String() : now()->toIso8601String()),
             'text'  => " applied for {$jobTitle}",
             'meta'  => null,
         ]);
+
         // Stage change logs
          if (Schema::hasTable('job_application_stage_logs')) {
             // Maps for both id->name and slug->name
@@ -356,11 +366,13 @@ private function normalizePayload($payload): array
                         if ($matchPercent !== null) {
                             $autoText .= ", having {$matchPercent}% match for the {$jobTitle}";
                         }
+                        $atIso = Carbon::parse($log->created_at)->toIso8601String();
+
                         $activities->push([
                             'type'  => 'action',
                             'stage' => 'screening',
                             'by'    => $applicantName ?: 'Applicant',
-                            'at'    => ($hasChangedAt && !empty($log->changed_at)) ? $log->changed_at : $log->created_at,
+                            'at'    => $atIso,
                             'text'  => $autoText,
                             'meta'  => null,
                         ]);
@@ -368,14 +380,15 @@ private function normalizePayload($payload): array
                     }
                     continue; // do not add the skipped stage-change item
                 }
+                $atIso = Carbon::parse($log->created_at)->toIso8601String();
 
                 $activities->push([
                     'type'  => 'stage_change',
                     'stage' => strtolower($toName),
                     'by'    => $byName,
-                    'at'    => ($hasChangedAt && !empty($log->changed_at)) ? $log->changed_at : $log->created_at,
+                    'at'    => $atIso,
                     // CHANGED: clearer sentence
-                    'text'  => "moved the applicant from {$fromName} to {$toName}",
+                    'text'  => " moved the applicant from {$fromName} to {$toName}",
                     'meta'  => null,
                 ]);
             }
@@ -394,7 +407,7 @@ private function normalizePayload($payload): array
                 $key      = (string)($log->action_key ?? '');
 
                 // Build human text per action
-                $text = 'performed an action';
+                $text = ' performed an action';
                 $stageForAction = strtolower($application->stage ?? 'applied');
 
                 switch ($key) {
@@ -407,14 +420,14 @@ private function normalizePayload($payload): array
                             $req = [(string)$payload['type']];
                         }
                         $extra = $req ? ': '.implode(', ', $req) : '';
-                        $text = "requested more info{$extra}";
+                        $text = " requested more info{$extra}";
                         break;
 
                     case 'schedule_interview':
                         $dt = $this->extractDateTimeFromPayload($payload);
                         $when = $dt ? (' on '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
                         $loc  = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
-                        $text = "scheduled an interview{$when}{$loc}";
+                        $text = " scheduled an interview{$when}{$loc}";
                         $stageForAction = 'interview';
                         break;
 
@@ -422,14 +435,14 @@ private function normalizePayload($payload): array
                         $dt = $this->extractDateTimeFromPayload($payload);
                         $when = $dt ? (' to '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
                         $loc  = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
-                        $text = "rescheduled the interview{$when}{$loc}";
+                        $text = " rescheduled the interview{$when}{$loc}";
                         $stageForAction = 'interview';
                         break;
 
                     case 'record_interview_feedback':
                         $rec = $payload['recommendation'] ?? $payload['status'] ?? null;
                         $summary = $payload['feedback'] ?? $payload['notes'] ?? null;
-                        $text = "recorded interview feedback".($rec ? " - {$rec}" : '');
+                        $text = " recorded interview feedback".($rec ? " - {$rec}" : '');
                         if ($summary) $text .= ": ".$summary;
                         $stageForAction = 'interview';
                         break;
@@ -437,20 +450,20 @@ private function normalizePayload($payload): array
                     case 'send_exam_instructions':
                         $dt = $this->extractDateTimeFromPayload($payload);
                         $when = $dt ? (' for '.$dt->format('M d, Y').' '.$dt->format('h:i A')) : '';
-                        $text = "sent exam instructions{$when}";
+                        $text = " sent exam instructions {$when}";
                         $stageForAction = 'assessment';
                         break;
 
                     case 'record_test_results':
                         $score = $payload['score'] ?? $payload['result'] ?? $payload['summary'] ?? null;
-                        $text = "recorded test results".($score ? ": {$score}" : '');
+                        $text = " recorded test results".($score ? ": {$score}" : '');
                         $stageForAction = 'assessment';
                         break;
 
                     case 'reschedule_test':
                         $dt = $this->extractDateTimeFromPayload($payload);
                         $when = $dt ? (' to '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
-                        $text = "rescheduled the exam{$when}";
+                        $text = " rescheduled the exam{$when}";
                         $stageForAction = 'assessment';
                         break;
 
@@ -461,19 +474,19 @@ private function normalizePayload($payload): array
                         if ($salary !== null) $extra[] = "salary {$salary}";
                         if ($start) $extra[] = "start date {$start}";
                         $tail = $extra ? ' ('.implode(', ', $extra).')' : '';
-                        $text = "sent an offer{$tail}";
+                        $text = " sent an offer{$tail}";
                         $stageForAction = 'offer';
                         break;
 
                     case 'hire':
-                        $text = "marked the applicant as hired";
+                        $text = " marked the applicant as hired";
                         $stageForAction = 'hired';
                         break;
 
                     case 'reject':
                     case 'reject_withdraw':
                         $reason = $payload['reason'] ?? null;
-                        $text = "rejected the applicant".($reason ? ": {$reason}" : '');
+                        $text = " rejected the applicant".($reason ? ": {$reason}" : '');
                         $stageForAction = 'rejected';
                         break;
 
@@ -481,7 +494,7 @@ private function normalizePayload($payload): array
                     case 'note_added':
                         $remark = trim((string)($payload ?: ''));
                         $remark = $remark === '' && !empty($payload['remark']) ? $payload['remark'] : $remark;
-                        $text = "added a remark".($remark ? ": ".$remark : '');
+                        $text = " added a remark".($remark ? ": ".$remark : '');
                         break;
 
                     default:
@@ -505,12 +518,13 @@ private function normalizePayload($payload): array
                         $text = $labelMap[$key] ?? 'performed an action';
                         break;
                 }
+                $atIso = Carbon::parse($log->created_at)->toIso8601String();
 
                 $activities->push([
                     'type'  => 'action',
                     'stage' => $stageForAction,
                     'by'    => $userName,
-                    'at'    => $log->created_at,
+                    'at'    => $atIso,
                     'text'  => $text,
                     'meta'  => [
                         'event'   => $log->event,
@@ -640,7 +654,10 @@ private function normalizePayload($payload): array
                     $payload['changed_at'] = now();
                 }
 
-                JobApplicationStageLog::create($payload);
+                if (false && Schema::hasTable('job_application_stage_logs')) {
+                    // old logging block disabled to prevent duplicates
+                    // JobApplicationStageLog::create($payload);
+                }
             }
         }
 
