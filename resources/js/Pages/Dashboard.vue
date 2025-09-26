@@ -485,7 +485,8 @@ function submitReferral() {
                 :aboutMe="page.props.aboutMe" :currentJob="page.props.currentJob"
                 :highestEducation="page.props.highestEducation"
                 :featuredCompanies="page.props.featuredCompanies"
-                :careerGoals="page.props.careerGoals" />
+                :careerGoals="page.props.careerGoals"
+                :vacancyStats="page.props.vacancyStats" />
         </div>
 
 

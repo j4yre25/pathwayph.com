@@ -35,8 +35,6 @@ const props = defineProps({
   stageActivities: { type: Array, default: () => [] },      // NEW
 })
 
-// Canonical stage order
-const stageOrder = ['applied','screening','assessment','interview','offer','hired','rejected']
 const currentStage = ref(props.applicant.stage || 'applied')
 
 // Status mapping helper (front-end mirror of backend logic)
@@ -77,7 +75,103 @@ const stageLabels = {
 
 const displayStage = computed(() => stageLabels[currentStage.value] || currentStage.value)
 
-// Optional: retain original applicant.status separately
+// Format a timestamp into local date+time consistently (expects ISO 8601)
+function humanDateTime(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  if (isNaN(d)) return ts
+  return d.toLocaleString([], { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+}
+
+// Summarize payload into human-readable lines
+function payloadSummary(act) {
+  const p = act?.meta?.payload
+  if (!p || typeof p !== 'object') {
+    // handle stringified JSON
+    if (typeof act?.meta?.payload === 'string' && act.meta.payload.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(act.meta.payload)
+        return summarizeByKey(act.key, parsed)
+      } catch { /* ignore */ }
+    }
+    return ''
+  }
+  return summarizeByKey(act.key, p)
+}
+
+function summarizeByKey(key, p) {
+  if (!key) return ''
+  const join = arr => (Array.isArray(arr) ? arr.filter(Boolean).join(', ') : '')
+  switch (key) {
+    case 'request_info':
+    case 'request_more_info': {
+      const requested = join(p.requested)
+      const msg = p.custom_message || ''
+      const parts = []
+      if (requested) parts.push(`Requested: ${requested}`)
+      if (msg) parts.push(`Message: ${msg}`)
+      return parts.join(' | ')
+    }
+    case 'schedule_interview':
+    case 'reschedule_interview': {
+      const date = p.date || p.scheduled_at || p.interview_date || p.interview_at || p.new_date
+      const time = p.time || p.new_time
+      let when = ''
+      if (date && time) when = humanDateTime(`${date} ${time}`)
+      else if (date) when = humanDateTime(date)
+      const loc = p.location || p.link || ''
+      const parts = []
+      if (when) parts.push(`When: ${when}`)
+      if (loc) parts.push(`Where: ${loc}`)
+      return parts.join(' | ')
+    }
+    case 'send_exam_instructions':
+    case 'reschedule_test': {
+      const date = p.date || p.new_date
+      const time = p.time || p.new_time
+      const when = (date && time) ? humanDateTime(`${date} ${time}`) : (date ? humanDateTime(date) : '')
+      const parts = []
+      if (p.exam_type) parts.push(`Exam: ${p.exam_type}`)
+      if (when) parts.push(`When: ${when}`)
+      if (p.location) parts.push(`Where: ${p.location}`)
+      if (p.requirements) parts.push(`Req: ${p.requirements}`)
+      if (p.reason) parts.push(`Reason: ${p.reason}`)
+      return parts.join(' | ')
+    }
+    case 'record_test_results': {
+      const parts = []
+      if (p.exam_type) parts.push(`Exam: ${p.exam_type}`)
+      if (p.score !== undefined && p.score !== null) parts.push(`Score: ${p.score}`)
+      if (p.result) parts.push(`Result: ${p.result}`)
+      if (p.remarks) parts.push(`Remarks: ${p.remarks}`)
+      return parts.join(' | ')
+    }
+    case 'record_interview_feedback': {
+      const parts = []
+      if (p.rating) parts.push(`Rating: ${p.rating}`)
+      if (p.recommendation) parts.push(`Recommendation: ${p.recommendation}`)
+      if (p.feedback || p.notes) parts.push(`Notes: ${p.feedback || p.notes}`)
+      return parts.join(' | ')
+    }
+    case 'send_offer': {
+      const parts = []
+      if (p.offered_salary || p.salary) parts.push(`Salary: ${p.offered_salary || p.salary}`)
+      if (p.start_date) parts.push(`Start: ${humanDateTime(p.start_date)}`)
+      return parts.join(' | ')
+    }
+    case 'reject':
+    case 'reject_withdraw':
+      return p.reason ? `Reason: ${p.reason}` : ''
+    case 'add_remark':
+    case 'note_added':
+      if (typeof p === 'string') return p
+      if (p.remark) return p.remark
+      return ''
+    default:
+      // Show compact JSON for unknown keys
+      try { return JSON.stringify(p) } catch { return '' }
+  }
+}
 
 const showHireConfirmation = ref(false);
 
@@ -116,22 +210,6 @@ function formatDate(dateStr) {
     day: 'numeric'
   });
 }
-
-
-const totalYearsExperience = computed(() => {
-  if (!props.experiences.length) return 'No work experience';
-  let totalMonths = 0;
-  props.experiences.forEach(exp => {
-    if (exp.start_date) {
-      const start = new Date(exp.start_date);
-      const end = exp.is_current ? new Date() : (exp.end_date ? new Date(exp.end_date) : new Date());
-      const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-      totalMonths += months > 0 ? months : 0;
-    }
-  });
-  const years = Math.floor(totalMonths / 12);
-  return years > 0 ? `${years} Year${years > 1 ? 's' : ''}` : '< 1 Year';
-});
 
 const goBack = () => {
     window.history.back();
@@ -611,7 +689,7 @@ const activitiesByDay = computed(() => {
               </div>
           </div>
 
-          <!-- Stage Activities (replaces sidebar Documents/Resume card) -->
+         <!-- Stage Activities -->
           <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between mb-3">
               <h4 class="text-lg font-semibold text-gray-800">Stage Activities</h4>
@@ -622,38 +700,44 @@ const activitiesByDay = computed(() => {
               No activities yet.
             </div>
 
-            <div v-else class="space-y-6">
-              <div v-for="group in activitiesByDay" :key="group.day">
-                <div class="text-xs font-semibold text-gray-500 mb-2">{{ group.day }}</div>
-                <ul class="space-y-3">
-                  <li v-for="(act, idx) in group.items" :key="group.day + '-' + idx" class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                      <i v-if="act.type==='stage_change'" class="fas fa-random"></i>
-                      <i v-else-if="act.type==='action'" class="fas fa-tasks"></i>
-                      <i v-else-if="act.type==='message'" class="fas fa-envelope"></i>
-                      <i v-else class="fas fa-info-circle"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <div class="text-sm text-gray-800">
-                        <strong>{{ act.by || 'System' }}</strong>
-                        <span class="text-gray-700"> {{ act.text }}</span>
-                      </div>
-                      <div v-if="act.meta?.payload" class="text-xs text-gray-600 mt-0.5 whitespace-pre-line">
-                        {{ typeof act.meta.payload === 'string' ? act.meta.payload : JSON.stringify(act.meta.payload) }}
-                      </div>
-                      <div class="flex items-center gap-2 mt-1">
-                        <span class="inline-block text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                          Stage: {{ (act.stage || '').toString().replace(/\b\w/g, c => c.toUpperCase()) }}
-                        </span>
-                        <span class="text-[10px] text-gray-500">
-                          {{ act.at ? new Date(act.at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '' }}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <div v-else class="space-y-6 max-h-[60vh] overflow-y-auto pr-2" style="scrollbar-gutter: stable;">
+               <div v-for="group in activitiesByDay" :key="group.day">
+                 <div class="text-xs font-semibold text-gray-500 mb-2">{{ group.day }}</div>
+                 <ul class="space-y-3">
+                   <li v-for="(act, idx) in group.items" :key="group.day + '-' + idx" class="flex items-start gap-3">
+                     <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                       <i v-if="act.type==='stage_change'" class="fas fa-random"></i>
+                       <i v-else-if="act.type==='action'" class="fas fa-tasks"></i>
+                       <i v-else-if="act.type==='message'" class="fas fa-envelope"></i>
+                       <i v-else class="fas fa-info-circle"></i>
+                     </div>
+                     <div class="flex-1 min-w-0">
+                       <div class="text-sm text-gray-800">
+                         <strong>{{ act.by || 'System' }}</strong>
+                         <span class="text-gray-700"> {{ act.text }}</span>
+                       </div>
+
+                       <!-- Humanized payload -->
+                       <div v-if="payloadSummary(act)" class="text-xs text-gray-600 mt-0.5 whitespace-pre-line">
+                         {{ payloadSummary(act) }}
+                       </div>
+                       <div v-else-if="act.meta?.event" class="text-xs text-gray-500 mt-0.5 italic">
+                         {{ act.meta.event }}
+                       </div>
+
+                       <div class="flex items-center gap-2 mt-1">
+                         <span class="inline-block text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                           Stage: {{ (act.stage || '').toString().replace(/\b\w/g, c => c.toUpperCase()) }}
+                         </span>
+                         <span class="text-[10px] text-gray-500">
+                           {{ humanDateTime(act.at) }}
+                         </span>
+                       </div>
+                     </div>
+                   </li>
+                 </ul>
+               </div>
+             </div>
           </div>
         </aside>
 

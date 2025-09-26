@@ -7,11 +7,12 @@ use App\Models\Messages;
 use App\Models\TestResult;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Services\PipelineActionExecutor;
 
 class AssessmentController extends Controller
 {
     // Send initial exam instructions
-    public function sendInstructions(Request $request)
+    public function sendInstructions(Request $request, PipelineActionExecutor $executor)
     {
         $data = $request->validate([
             'application_id' => ['required','integer','exists:job_applications,id'],
@@ -30,38 +31,26 @@ class AssessmentController extends Controller
             return response()->json(['message'=>'Forbidden'],403);
         }
 
-        $contentLines = [
-            "Exam Type: {$data['exam_type']}",
-            "Schedule: ".date('Y-m-d', strtotime($data['schedule_date'])) . ' ' . $data['schedule_time'],
-        ];
-        if (!empty($data['venue'])) $contentLines[] = "Venue: {$data['venue']}";
-        if (!empty($data['link'])) $contentLines[] = "Link: {$data['link']}";
-        if (!empty($data['requirements'])) $contentLines[] = "Requirements: {$data['requirements']}";
-        if (!empty($data['notes'])) $contentLines[] = "Notes: {$data['notes']}";
+        $executor->execute([
+            'key'     => 'send_exam_instructions',
+            'type'    => 'action',
+            'payload' => [
+                'exam_type'     => $data['exam_type'],
+                'date'          => $data['schedule_date'],
+                'time'          => $data['schedule_time'],
+                'location'      => $data['venue'] ?: $data['link'],
+                'requirements'  => $data['requirements'] ?? null,
+                'notes'         => $data['notes'] ?? null,
+                'receiver_id'   => $data['receiver_id'],
+            ],
+            // optional: custom message could be added here
+        ], $application);
 
-        $msg = Messages::create([
-            'application_id' => $data['application_id'],
-            'sender_id'      => $request->user()->id,
-            'receiver_id'    => $data['receiver_id'],
-            'message_type'   => 'exam_instructions',
-            'content'        => implode("\n", $contentLines),
-            'status'         => Messages::STATUS_UNREAD,
-            'meta'           => [
-                'exam_type' => $data['exam_type'],
-                'schedule_date' => $data['schedule_date'],
-                'schedule_time' => $data['schedule_time'],
-                'venue' => $data['venue'] ?? null,
-                'link' => $data['link'] ?? null,
-                'requirements' => $data['requirements'] ?? null,
-                'notes' => $data['notes'] ?? null,
-            ]
-        ]);
-
-        return response()->json(['message'=>'Exam instructions sent','data'=>$msg],201);
+        return response()->json(['message'=>'Exam instructions sent'],201);
     }
 
-    // Reschedule (creates another message flagged exam_reschedule)
-    public function reschedule(Request $request)
+    // Reschedule exam
+    public function reschedule(Request $request, PipelineActionExecutor $executor)
     {
         $data = $request->validate([
             'application_id' => ['required','integer','exists:job_applications,id'],
@@ -77,33 +66,23 @@ class AssessmentController extends Controller
             return response()->json(['message'=>'Forbidden'],403);
         }
 
-        $lines = [
-            "RESCHEDULED EXAM",
-            "Exam Type: {$data['exam_type']}",
-            "New Schedule: ".date('Y-m-d', strtotime($data['new_date'])) . ' ' . $data['new_time'],
-        ];
-        if (!empty($data['reason'])) $lines[] = "Reason: {$data['reason']}";
-
-        $msg = Messages::create([
-            'application_id' => $data['application_id'],
-            'sender_id'      => $request->user()->id,
-            'receiver_id'    => $data['receiver_id'],
-            'message_type'   => 'exam_reschedule',
-            'content'        => implode("\n",$lines),
-            'status'         => Messages::STATUS_UNREAD,
-            'meta'           => [
+        $executor->execute([
+            'key'     => 'reschedule_test',
+            'type'    => 'action',
+            'payload' => [
                 'exam_type' => $data['exam_type'],
                 'new_date'  => $data['new_date'],
                 'new_time'  => $data['new_time'],
                 'reason'    => $data['reason'] ?? null,
-            ]
-        ]);
+                'receiver_id'=> $data['receiver_id'],
+            ],
+        ], $application);
 
-        return response()->json(['message'=>'Exam reschedule sent','data'=>$msg],201);
+        return response()->json(['message'=>'Exam reschedule sent'],201);
     }
 
     // Record test results
-    public function recordResult(Request $request)
+    public function recordResult(Request $request, PipelineActionExecutor $executor)
     {
         $data = $request->validate([
             'application_id' => ['required','integer','exists:job_applications,id'],
@@ -126,6 +105,18 @@ class AssessmentController extends Controller
             'remarks'        => $data['remarks'],
             'recorded_by'    => $request->user()->id,
         ]);
+
+        // Log action
+        $executor->execute([
+            'key'     => 'record_test_results',
+            'type'    => 'action',
+            'payload' => [
+                'exam_type' => $data['exam_type'],
+                'score'     => $data['score'],
+                'result'    => $data['status'],
+                'remarks'   => $data['remarks'] ?? null,
+            ],
+        ], $application);
 
         return response()->json(['message'=>'Result recorded','data'=>$result],201);
     }

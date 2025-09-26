@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Models\Messages;
 use App\Models\JobApplication;
+use App\Services\PipelineActionExecutor;
 
 class RequestMoreInfoController extends Controller
 {
@@ -21,7 +22,7 @@ class RequestMoreInfoController extends Controller
         return response()->json(['data'=>$out]);
     }
 
-    public function send(Request $request)
+    public function send(Request $request, PipelineActionExecutor $executor)
     {
         $data = $request->validate([
             'application_id' => ['required','integer','exists:job_applications,id'],
@@ -31,23 +32,26 @@ class RequestMoreInfoController extends Controller
         ]);
 
         $application = JobApplication::findOrFail($data['application_id']);
-
         if ($request->user()->cannot('update', $application)) {
             return $this->respond($request, false, 'Forbidden', null, 403);
         }
 
+        // Build final content (custom or template)
         $finalContent = $data['content'] ?: Messages::template($data['request_type']);
 
-        $row = Messages::create([
-            'application_id' => $data['application_id'],
-            'sender_id'      => $request->user()->id,
-            'receiver_id'    => $data['receiver_id'],
-            'message_type'   => 'request_info',
-            'content'        => $finalContent,
-            'status'         => Messages::STATUS_UNREAD,
-        ]);
+        // Use the pipeline executor to LOG the action and SEND the message
+        $executor->execute([
+            'key'            => 'request_more_info',
+            'type'           => 'action',
+            'requested'      => [$data['request_type']],   // stored in payload
+            'custom_message' => $finalContent,             // used as message content
+            'payload'        => [
+                'requested'      => [$data['request_type']],
+                'custom_message'  => $finalContent,
+            ],
+        ], $application);
 
-        return $this->respond($request, true, 'Request sent', $row, 201);
+        return $this->respond($request, true, 'Request sent', null, 201);
     }
 
     /**

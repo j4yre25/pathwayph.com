@@ -63,6 +63,7 @@ return [
                 'archive_candidate',
             ],
         ],
+        
         'rejected' => [
             'label' => 'Rejected',
             'description' => 'Candidate not proceeding.',
