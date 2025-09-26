@@ -320,10 +320,11 @@ class DashboardController extends Controller
     public function handleGraduateDashboard($user)
     {
         $graduate = $user->graduate;
-
+        
         // Example queries, adjust as needed
         $jobsApplied = \App\Models\JobApplication::where('graduate_id', $graduate->id)->count();
         $referralsMade = \App\Models\Referral::where('graduate_id', $graduate->id)->count();
+        $interviewsScheduled = \App\Models\Interview::where('job_application_id', $graduate->id)->count();
         // Jobs Aligned (based on recommendations)
         $graduateSkills = \App\Models\GraduateSkill::where('graduate_id', $graduate->id)
             ->with('skill')
@@ -333,7 +334,7 @@ class DashboardController extends Controller
             ->unique()
             ->toArray();
 
-        $education = \App\Models\Education::where('graduate_id', $graduate->id)->first();
+        $education = \App\Models\GraduateEducation::where('graduate_id', $graduate->id)->first();
         $program = $education ? $education->program : null;
 
         $experiences = \App\Models\Experience::where('graduate_id', $graduate->id)->get();
@@ -354,8 +355,93 @@ class DashboardController extends Controller
             ->unique()
             ->toArray();
 
-        $jobs = \App\Models\Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+        $dateFilter = request('date_filter', 'this_month'); // or get from $request if passed
 
+        // Prepare date ranges and labels
+        if ($dateFilter === 'this_year') {
+            // Group by month
+            $labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            $appQuery = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+            ->whereYear('created_at', now()->year)
+                ->selectRaw('MONTH(created_at) as period, status, COUNT(*) as count')
+                ->groupBy('period', 'status')
+                ->get();
+            $applicationSent = array_fill(1, 12, 0);
+            $interviews = array_fill(1, 12, 0);
+            $rejected = array_fill(1, 12, 0);
+            foreach ($appQuery as $row) {
+                if ($row->status === 'pending' || $row->status === 'applied') $applicationSent[$row->period] += $row->count;
+                if ($row->status === 'interview') $interviews[$row->period] += $row->count;
+                if ($row->status === 'rejected') $rejected[$row->period] += $row->count;
+            }
+            $vacancyStats = [
+                'labels' => $labels,
+                'applicationSent' => array_values($applicationSent),
+                'interviews' => array_values($interviews),
+                'rejected' => array_values($rejected),
+            ];
+        } elseif ($dateFilter === 'this_week') {
+            // Group by day (Mon-Sun)
+            $startOfWeek = now()->startOfWeek();
+            $labels = [];
+            $applicationSent = [];
+            $interviews = [];
+            $rejected = [];
+            for ($i = 0; $i < 7; $i++) {
+                $date = $startOfWeek->copy()->addDays($i);
+                $labels[] = $date->format('M d');
+                $applicationSent[] = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereDate('created_at', $date)
+                    ->whereIn('status', ['pending','applied'])
+                    ->count();
+                $interviews[] = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereDate('created_at', $date)
+                    ->where('status', 'interview')
+                    ->count();
+                $rejected[] = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereDate('created_at', $date)
+                    ->where('status', 'rejected')
+                    ->count();
+            }
+            $vacancyStats = [
+                'labels' => $labels,
+                'applicationSent' => $applicationSent,
+                'interviews' => $interviews,
+                'rejected' => $rejected,
+            ];
+        } else {
+            // Default: this_month, group by week
+            $startOfMonth = now()->startOfMonth();
+            $labels = [];
+            $applicationSent = [];
+            $interviews = [];
+            $rejected = [];
+            for ($w = 0; $w < 5; $w++) {
+                $weekStart = $startOfMonth->copy()->addWeeks($w);
+                $weekEnd = $weekStart->copy()->addDays(6);
+                $labels[] = 'Week ' . ($w + 1);
+                $applicationSent[] = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereBetween('created_at', [$weekStart, $weekEnd])
+                    ->count();
+                $interviews[] = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereBetween('created_at', [$weekStart, $weekEnd])
+                    ->where('status', 'interview')
+                    ->count();
+                $rejected[] = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereBetween('created_at', [$weekStart, $weekEnd])
+                    ->where('status', 'rejected')
+                    ->count();
+            }
+            $vacancyStats = [
+                'labels' => $labels,
+                'applicationSent' => $applicationSent,
+                'interviews' => $interviews,
+                'rejected' => $rejected,
+            ];
+        }
+
+        $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+        
         $jobsAligned = 0;
 
         foreach ($jobs as $job) {
@@ -655,6 +741,7 @@ class DashboardController extends Controller
 
         return [
             'graduate' => $graduate,
+            'vacancyStats' => $vacancyStats,
 
             'roles' => [
                 'isGraduate' => true,
@@ -665,6 +752,7 @@ class DashboardController extends Controller
                 'jobsApplied' => $jobsApplied,
                 'referralsMade' => $referralsMade,
                 'jobsAligned' => $jobsAligned,
+                'interviewsScheduled' => $interviewsScheduled,
             ],
             'recommendedJobs' => $recommendedJobs,
             'featuredCompanies' => $featuredCompanies,

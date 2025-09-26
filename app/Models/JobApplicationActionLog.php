@@ -13,4 +13,14 @@ class JobApplicationActionLog extends Model
     protected $casts = [
         'payload' => 'array',
     ];
+
+    public function jobApplication()
+    {
+        return $this->belongsTo(\App\Models\JobApplication::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
 }
