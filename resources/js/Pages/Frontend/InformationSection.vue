@@ -115,6 +115,10 @@ const filteredDegrees = computed(() => {
   return props.degrees.filter(degree => degreeIds.includes(Number(degree.id)));
 });
 
+const sectors = props.sectors;
+
+console.log('Available sectors:', sectors);
+
 // Programs filtered by selected school and degree
 const filteredPrograms = computed(() => {
   if (!form.graduate_school_graduated_from || !form.graduate_degree) return [];
@@ -158,7 +162,11 @@ function selectCompany(company) {
 }
 
 function submit() {
-  if (currentStep.value === totalSteps && canProceed.value) {
+  if (currentStep.value === totalSteps && canProceed.value)
+    if (form.company_not_found && form.other_company_sector) {
+      const sectorObj = props.sectors.find(s => s.id == form.other_company_sector);
+      form.other_company_sector = sectorObj ? sectorObj.name : '';
+    } {
     form.post(route('graduate.information.save'), {
       onSuccess: () => {
         showModal.value = true;
@@ -437,10 +445,15 @@ function goToProfile() {
                   <select id="other_company_sector" v-model="form.other_company_sector" required
                     class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
                     <option value="" class="bg-white">Select Sector</option>
-                    <option v-for="sector in props.sectors" :key="sector.id" :value="sector.id" class="bg-white">{{
-                      sector.name }}</option>
+                    <option v-for="sector in sectors" :key="sector.id" :value="sector.id" class="bg-white">
+                      {{ sector.name }}
+                    </option>
                   </select>
                   <InputError :message="form.errors.other_company_sector" class="text-red-600" />
+                  <!-- Show selected sector name -->
+                  <div v-if="form.other_company_sector && selectedSectorName" class="mt-2 text-emerald-700 text-sm">
+                    Selected Sector: <span class="font-semibold">{{ selectedSectorName }}</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -18,6 +18,7 @@ use App\Models\SchoolYear;
 use App\Models\InstitutionDegree;
 use App\Models\InstitutionProgram;
 use App\Models\Company;
+use App\Models\Sector;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,8 +32,11 @@ class GraduateProfileController extends Controller
             'education',
             'institution',
             'program',
-            'institutionSchoolYear.schoolYear'
+            'institutionSchoolYear.schoolYear',
         ])->findOrFail($id);
+
+        $sectors = Sector::all(); // Get all sectors
+
 
         // Get year graduated and term
         $yearGraduated = null;
@@ -132,6 +136,7 @@ class GraduateProfileController extends Controller
                 'year_graduated' => $yearGraduated,
                 'term' => $term,
             ],
+            'sectors' => $sectors,
             'skills' => GraduateSkill::where('graduate_id', $graduate->id)
                 ->join('skills', 'graduate_skills.skill_id', '=', 'skills.id')
                 ->select('graduate_skills.*', 'skills.name as skill_name')
@@ -163,6 +168,8 @@ class GraduateProfileController extends Controller
         $institutionDegrees = InstitutionDegree::all();
         $institutionPrograms = InstitutionProgram::all();
         $companies = Company::all();
+        $sectors = Sector::all();
+
 
         return Inertia::render('Frontend/InformationSection', [
             'email' => $user->email,
@@ -173,6 +180,7 @@ class GraduateProfileController extends Controller
             'institutionDegrees' => $institutionDegrees,
             'institutionPrograms' => $institutionPrograms,
             'companies' => $companies,
+            'sectors' => $sectors,
         ]);
     }
 
@@ -208,6 +216,11 @@ class GraduateProfileController extends Controller
             }
         }
 
+        if ($request->company_not_found) {
+            $sectorId = $request->input('other_company_sector');
+            $sector = \App\Models\Sector::find($sectorId);
+        }
+
         $graduate = Graduate::create([
             'user_id' => $user->id,
             'first_name' => $validated['first_name'],
@@ -222,7 +235,7 @@ class GraduateProfileController extends Controller
             'degree_id' => $validated['graduate_degree'],
             'company_id' => $companyId,
             'other_company_name' => $validated['other_company_name'] ?? null,
-            'other_company_sector' => $validated['other_company_sector'] ?? null,
+            'other_company_sector' =>  $sector ? $sector->name : null,
             'current_job_title' => $validated['current_job_title'] ?? '',
             'employment_status' => $validated['employment_status'] ?? '',
         ]);
@@ -239,7 +252,7 @@ class GraduateProfileController extends Controller
                     : ($validated['other_company_name'] ?? $validated['company_name'] ?? null),
                 'start_date' => now()->format('Y-m-d'),
                 'is_current' => true,
-                'employment_type' => null,
+                'employment_type' => '',
                 'address' => null,
                 'description' => null,
             ]);

@@ -49,7 +49,10 @@ class ProfileController extends Controller
         // Eager load company relation for experience entries
         $experienceEntries = Experience::with('company')
             ->where('graduate_id', $graduate->id)
+            ->whereNull('deleted_at')
             ->get();
+
+
 
         $archivedExperienceEntries = Experience::onlyTrashed()
             ->where('graduate_id', $graduate->id)
@@ -110,6 +113,8 @@ class ProfileController extends Controller
             'instiUsers' => $instiUsers,
             'educationEntries' => $educationEntries,
             'archivedEducationEntries' => $archivedEducationEntries,
+            'experiences' => Experience::where('graduate_id', $graduate->id)->get(),
+
             'experienceEntries' => $experienceEntries,
             'archivedExperienceEntries' => $archivedExperienceEntries,
             'skillEntries' => GraduateSkill::with('skill')
@@ -168,7 +173,7 @@ class ProfileController extends Controller
             'testimonialsEntries' => Testimonial::where('graduate_id', $graduate->id)->get(),
             'archivedTestimonialsEntries' => Testimonial::where('graduate_id', $graduate->id)
                 ->onlyTrashed()
-                ->get(),    
+                ->get(),
             'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduate->id)->first(),
             'careerGoals' => CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
@@ -1369,7 +1374,7 @@ class ProfileController extends Controller
                 ]
             );
 
-          
+
 
             // Fallback for non-AJAX
             return redirect()->back()->with('success', 'Resume uploaded successfully!');
