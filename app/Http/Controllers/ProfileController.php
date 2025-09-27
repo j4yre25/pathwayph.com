@@ -1369,10 +1369,7 @@ class ProfileController extends Controller
                 ]
             );
 
-            // Return JSON for AJAX (Inertia) requests
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['resume' => $resume]);
-            }
+          
 
             // Fallback for non-AJAX
             return redirect()->back()->with('success', 'Resume uploaded successfully!');

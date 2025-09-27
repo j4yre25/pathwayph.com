@@ -55,16 +55,23 @@ class GraduateProfileController extends Controller
 
         // Compute highest education (rank + recency)
         $rankMap = [
-            'phd' => 1, 'doctor' => 1, 'doctorate' => 1,
-            "master's" => 2, 'masters' => 2, 'master' => 2,
-            "bachelor's" => 3, 'bachelors' => 3, 'bachelor' => 3,
+            'phd' => 1,
+            'doctor' => 1,
+            'doctorate' => 1,
+            "master's" => 2,
+            'masters' => 2,
+            'master' => 2,
+            "bachelor's" => 3,
+            'bachelors' => 3,
+            'bachelor' => 3,
             'associate' => 4,
             'certificate' => 5,
             'vocational' => 6,
-            'senior high' => 7, 'high school' => 7,
+            'senior high' => 7,
+            'high school' => 7,
         ];
 
-        $normalize = fn ($v) => strtolower(trim($v ?? ''));
+        $normalize = fn($v) => strtolower(trim($v ?? ''));
 
         $highestEducationModel = $educationCollection
             ->map(function ($e) {
@@ -219,6 +226,26 @@ class GraduateProfileController extends Controller
             'current_job_title' => $validated['current_job_title'] ?? '',
             'employment_status' => $validated['employment_status'] ?? '',
         ]);
+
+        if (
+            in_array($graduate->employment_status, ['Employed', 'Underemployed']) &&
+            !empty($validated['current_job_title'])
+        ) {
+            \App\Models\Experience::create([
+                'graduate_id' => $graduate->id,
+                'title' => $validated['current_job_title'],
+                'company_name' => $companyId
+                    ? optional(\App\Models\Company::find($companyId))->company_name
+                    : ($validated['other_company_name'] ?? $validated['company_name'] ?? null),
+                'start_date' => now()->format('Y-m-d'),
+                'is_current' => true,
+                'employment_type' => null,
+                'address' => null,
+                'description' => null,
+            ]);
+        }
+
+
 
         $user->is_approved = null;
         $user->has_completed_information = true;
