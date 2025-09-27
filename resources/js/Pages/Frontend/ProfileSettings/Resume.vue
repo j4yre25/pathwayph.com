@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import { useForm, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { wind } from 'fontawesome';
 
 const props = defineProps({
   activeSection: { type: String, default: 'resume' },
@@ -38,21 +39,12 @@ const saveResume = () => {
   form.post(route('resume.upload'), {
     forceFormData: true,
     preserveScroll: true,
-    onSuccess: (response) => {
-      // If using Inertia, response is not available here, so use onFinish
-    },
-    onFinish: () => {
-      // Fetch the latest resume via AJAX (optional, but best for instant update)
-      fetch(route('profile.resume.settings'), { headers: { 'Accept': 'application/json' } })
-        .then(res => res.json())
-        .then(data => {
-          if (data.resume) {
-            currentResume.value = data.resume;
-          }
-          successMessage.value = 'Resume uploaded successfully!';
-          isSuccessModalOpen.value = true;
-          form.reset();
-        });
+    onSuccess: () => {
+      successMessage.value = 'Resume uploaded successfully!';
+      isSuccessModalOpen.value = true;
+      form.reset();
+      window.location.reload();
+      // Optionally reload resume data here if needed
     },
     onError: () => {
       errorMessage.value = 'Failed to upload resume. Please try again.';
