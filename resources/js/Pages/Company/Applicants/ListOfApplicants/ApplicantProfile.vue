@@ -32,10 +32,9 @@ const props = defineProps({
   careerGoals: { type: Object, default: null },
   resume: { type: Object, default: null },
   referralCertificates: { type: Array, default: () => [] }, // NEW
+  stageActivities: { type: Array, default: () => [] },      // NEW
 })
 
-// Canonical stage order
-const stageOrder = ['applied','screening','assessment','interview','offer','hired','rejected']
 const currentStage = ref(props.applicant.stage || 'applied')
 
 // Status mapping helper (front-end mirror of backend logic)
@@ -76,7 +75,103 @@ const stageLabels = {
 
 const displayStage = computed(() => stageLabels[currentStage.value] || currentStage.value)
 
-// Optional: retain original applicant.status separately
+// Format a timestamp into local date+time consistently (expects ISO 8601)
+function humanDateTime(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  if (isNaN(d)) return ts
+  return d.toLocaleString([], { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+}
+
+// Summarize payload into human-readable lines
+function payloadSummary(act) {
+  const p = act?.meta?.payload
+  if (!p || typeof p !== 'object') {
+    // handle stringified JSON
+    if (typeof act?.meta?.payload === 'string' && act.meta.payload.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(act.meta.payload)
+        return summarizeByKey(act.key, parsed)
+      } catch { /* ignore */ }
+    }
+    return ''
+  }
+  return summarizeByKey(act.key, p)
+}
+
+function summarizeByKey(key, p) {
+  if (!key) return ''
+  const join = arr => (Array.isArray(arr) ? arr.filter(Boolean).join(', ') : '')
+  switch (key) {
+    case 'request_info':
+    case 'request_more_info': {
+      const requested = join(p.requested)
+      const msg = p.custom_message || ''
+      const parts = []
+      if (requested) parts.push(`Requested: ${requested}`)
+      if (msg) parts.push(`Message: ${msg}`)
+      return parts.join(' | ')
+    }
+    case 'schedule_interview':
+    case 'reschedule_interview': {
+      const date = p.date || p.scheduled_at || p.interview_date || p.interview_at || p.new_date
+      const time = p.time || p.new_time
+      let when = ''
+      if (date && time) when = humanDateTime(`${date} ${time}`)
+      else if (date) when = humanDateTime(date)
+      const loc = p.location || p.link || ''
+      const parts = []
+      if (when) parts.push(`When: ${when}`)
+      if (loc) parts.push(`Where: ${loc}`)
+      return parts.join(' | ')
+    }
+    case 'send_exam_instructions':
+    case 'reschedule_test': {
+      const date = p.date || p.new_date
+      const time = p.time || p.new_time
+      const when = (date && time) ? humanDateTime(`${date} ${time}`) : (date ? humanDateTime(date) : '')
+      const parts = []
+      if (p.exam_type) parts.push(`Exam: ${p.exam_type}`)
+      if (when) parts.push(`When: ${when}`)
+      if (p.location) parts.push(`Where: ${p.location}`)
+      if (p.requirements) parts.push(`Req: ${p.requirements}`)
+      if (p.reason) parts.push(`Reason: ${p.reason}`)
+      return parts.join(' | ')
+    }
+    case 'record_test_results': {
+      const parts = []
+      if (p.exam_type) parts.push(`Exam: ${p.exam_type}`)
+      if (p.score !== undefined && p.score !== null) parts.push(`Score: ${p.score}`)
+      if (p.result) parts.push(`Result: ${p.result}`)
+      if (p.remarks) parts.push(`Remarks: ${p.remarks}`)
+      return parts.join(' | ')
+    }
+    case 'record_interview_feedback': {
+      const parts = []
+      if (p.rating) parts.push(`Rating: ${p.rating}`)
+      if (p.recommendation) parts.push(`Recommendation: ${p.recommendation}`)
+      if (p.feedback || p.notes) parts.push(`Notes: ${p.feedback || p.notes}`)
+      return parts.join(' | ')
+    }
+    case 'send_offer': {
+      const parts = []
+      if (p.offered_salary || p.salary) parts.push(`Salary: ${p.offered_salary || p.salary}`)
+      if (p.start_date) parts.push(`Start: ${humanDateTime(p.start_date)}`)
+      return parts.join(' | ')
+    }
+    case 'reject':
+    case 'reject_withdraw':
+      return p.reason ? `Reason: ${p.reason}` : ''
+    case 'add_remark':
+    case 'note_added':
+      if (typeof p === 'string') return p
+      if (p.remark) return p.remark
+      return ''
+    default:
+      // Show compact JSON for unknown keys
+      try { return JSON.stringify(p) } catch { return '' }
+  }
+}
 
 const showHireConfirmation = ref(false);
 
@@ -115,22 +210,6 @@ function formatDate(dateStr) {
     day: 'numeric'
   });
 }
-
-
-const totalYearsExperience = computed(() => {
-  if (!props.experiences.length) return 'No work experience';
-  let totalMonths = 0;
-  props.experiences.forEach(exp => {
-    if (exp.start_date) {
-      const start = new Date(exp.start_date);
-      const end = exp.is_current ? new Date() : (exp.end_date ? new Date(exp.end_date) : new Date());
-      const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-      totalMonths += months > 0 ? months : 0;
-    }
-  });
-  const years = Math.floor(totalMonths / 12);
-  return years > 0 ? `${years} Year${years > 1 ? 's' : ''}` : '< 1 Year';
-});
 
 const goBack = () => {
     window.history.back();
@@ -324,7 +403,7 @@ const eduRank = {
   'phd':1,'doctor':1,'doctorate':1,
   "master's":2,'masters':2,'master':2,
   "bachelor's":3,'bachelors':3,'bachelor':3,
-  'associate':4,'certificate':5,'senior high':6,'high school':6,'vocational':7
+  'associate':4,'certificate':5,'vocational':6,'senior high':7,'high school':7,
 };
 const normEdu = s => (s || '').toLowerCase();
 
@@ -381,6 +460,57 @@ const otherEducation = computed(() =>
     ? normalizedEducation.value.filter(e => e.id !== highestEducation.value.id)
     : normalizedEducation.value
 );
+
+// Helpers for activities
+const stageName = (s) => {
+  const m = {
+    applied: 'Applied', screening: 'Screening', assessment: 'Assessment / Exam',
+    interview: 'Interview', offer: 'Offer', hired: 'Hired', rejected: 'Rejected'
+  }
+  return m[(s||'').toLowerCase()] || (s || '—')
+}
+
+function formatTime(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  if (isNaN(d)) return ts
+  return d.toLocaleString([], { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+}
+
+const activitiesSorted = computed(() => {
+  const list = Array.isArray(props.stageActivities) ? [...props.stageActivities] : []
+  return list.sort((a,b) => new Date(b.at) - new Date(a.at))
+})
+
+// Optionally reflect new remarks locally after saving
+async function saveRemarkAndRefresh() {
+  // call existing saveNote from composable
+  await saveNote()
+  // Soft prepend (UI immediate). Actual persisted entry appears after refresh/navigation.
+  activitiesSorted.value?.unshift?.({
+    type: 'action',
+    stage: currentStage.value,
+    by: 'You',
+    at: new Date().toISOString(),
+    text: 'added a remark',
+    meta: { payload: noteInput.value }
+  })
+}
+
+// Group activities by day
+const activitiesByDay = computed(() => {
+  const groups = {};
+  (props.stageActivities || []).forEach(a => {
+    const d = a.at ? new Date(a.at) : null;
+    const key = d ? d.toLocaleDateString([], { year:'numeric', month:'short', day:'2-digit' }) : 'Unknown';
+    (groups[key] ||= []).push(a);
+  });
+  Object.values(groups).forEach(list => list.sort((x,y)=> new Date(y.at) - new Date(x.at)));
+  // return in descending day order
+  return Object.entries(groups)
+    .sort((a,b) => new Date(b[0]) - new Date(a[0]))
+    .map(([day, items]) => ({ day, items }));
+});
 </script>
 
 <template>
@@ -539,14 +669,13 @@ const otherEducation = computed(() =>
               <div v-else>
                 <textarea v-model="noteInput" rows="3" class="w-full border rounded p-2 text-sm"></textarea>
                 <div class="flex gap-2 mt-2">
-                  <button @click="saveNote" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">Save</button>
+                  <button @click="saveRemarkAndRefresh" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">Save</button>
                   <button @click="cancelEditNote" class="bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs hover:bg-gray-400">Cancel</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Skills -->
             <div class="bg-white rounded-lg shadow-lg p-6">
               <h4 class="text-lg font-semibold text-gray-800 mb-3">About Me</h4>
               <div
@@ -560,26 +689,55 @@ const otherEducation = computed(() =>
               </div>
           </div>
 
-          <!-- Resume -->
-          <div v-if="resume && resume.file_url" class="bg-white rounded-lg shadow-lg p-6">
-              <h4 class="text-lg font-semibold text-gray-800 mb-3">Documents</h4>
-              <div class="flex items-center gap-4 mb-4">
-                  <i v-if="resume.file_type && resume.file_type.includes('pdf')"
-                      class="fas fa-file-pdf text-3xl text-red-500"></i>
-                  <i v-else-if="resume.file_type && resume.file_type.includes('word')"
-                      class="fas fa-file-word text-3xl text-blue-500"></i>
-                  <i v-else class="fas fa-file-alt text-3xl text-gray-500"></i>
-                  <span class="font-semibold">{{ resume.file_name }}</span>
-                  <a :href="resume.file_url" download target="_blank"
-                      class="inline-flex items-center text-indigo-600 hover:underline font-semibold ml-4">
-                      <i class="fas fa-file-download mr-2"></i>
-                      Download
-                  </a>
-              </div>
-          </div>
-          <div v-else class="bg-white rounded-lg shadow-lg p-6 text-gray-600">
-              <h4 class="text-lg font-semibold text-gray-800 mb-3">Resume</h4>
-              No resume uploaded.
+         <!-- Stage Activities -->
+          <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-lg font-semibold text-gray-800">Stage Activities</h4>
+              <span class="text-xs text-gray-500">{{ (props.stageActivities || []).length }} activity(ies)</span>
+            </div>
+
+            <div v-if="!(props.stageActivities || []).length" class="text-sm text-gray-500 italic">
+              No activities yet.
+            </div>
+
+            <div v-else class="space-y-6 max-h-[60vh] overflow-y-auto pr-2" style="scrollbar-gutter: stable;">
+               <div v-for="group in activitiesByDay" :key="group.day">
+                 <div class="text-xs font-semibold text-gray-500 mb-2">{{ group.day }}</div>
+                 <ul class="space-y-3">
+                   <li v-for="(act, idx) in group.items" :key="group.day + '-' + idx" class="flex items-start gap-3">
+                     <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                       <i v-if="act.type==='stage_change'" class="fas fa-random"></i>
+                       <i v-else-if="act.type==='action'" class="fas fa-tasks"></i>
+                       <i v-else-if="act.type==='message'" class="fas fa-envelope"></i>
+                       <i v-else class="fas fa-info-circle"></i>
+                     </div>
+                     <div class="flex-1 min-w-0">
+                       <div class="text-sm text-gray-800">
+                         <strong>{{ act.by || 'System' }}</strong>
+                         <span class="text-gray-700"> {{ act.text }}</span>
+                       </div>
+
+                       <!-- Humanized payload -->
+                       <div v-if="payloadSummary(act)" class="text-xs text-gray-600 mt-0.5 whitespace-pre-line">
+                         {{ payloadSummary(act) }}
+                       </div>
+                       <div v-else-if="act.meta?.event" class="text-xs text-gray-500 mt-0.5 italic">
+                         {{ act.meta.event }}
+                       </div>
+
+                       <div class="flex items-center gap-2 mt-1">
+                         <span class="inline-block text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                           Stage: {{ (act.stage || '').toString().replace(/\b\w/g, c => c.toUpperCase()) }}
+                         </span>
+                         <span class="text-[10px] text-gray-500">
+                           {{ humanDateTime(act.at) }}
+                         </span>
+                       </div>
+                     </div>
+                   </li>
+                 </ul>
+               </div>
+             </div>
           </div>
         </aside>
 

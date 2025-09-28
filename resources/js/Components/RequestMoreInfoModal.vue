@@ -141,22 +141,21 @@ function sendRequest() {
   if (submitting.value) return
   submitting.value = true
 
+  // Always send a message; if textbox is empty, fall back to the current template
+  const messageToSend = (customMessage.value || templateFor(selectedRequestType.value)).trim()
+
   router.post(route('requestInfo.send'), {
       application_id: props.applicationId,
       receiver_id: props.receiverId,
       request_type: selectedRequestType.value,
-      content: customMessage.value && customMessage.value !== lastAutoTemplate.value
-        ? customMessage.value
-        : null // let backend auto-template if unchanged
+      content: messageToSend, // always include content (even when it equals the template)
     }, {
       preserveScroll: true,
       onSuccess: () => {
         emit('request-sent')
         closeModal()
       },
-      onError: () => {
-        // You can optionally surface errors inside modal
-      },
+      onError: () => {},
       onFinish: () => submitting.value = false
     }
   )

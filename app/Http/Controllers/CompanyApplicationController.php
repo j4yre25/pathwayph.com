@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use App\Models\JobPipelineStage;
 use App\Models\JobApplicationStageLog;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use App\Models\Messages;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 
@@ -23,6 +27,91 @@ class CompanyApplicationController extends Controller
  * @param  \App\Models\User  $user
  * @return \Inertia\Response
  */
+
+private function normalizePayload($payload): array
+    {
+        if (is_array($payload)) return $payload;
+        if (is_object($payload)) return (array) $payload;
+        if (is_string($payload)) {
+            $decoded = json_decode($payload, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return [];
+    }
+
+    // Helper: try to extract a Carbon date-time from a payload with common keys
+    private function extractDateTimeFromPayload(array $p): ?Carbon
+    {
+        $candidates = [
+            'scheduled_at','schedule_at','interview_at','interview_date','date','datetime','rescheduled_at','new_date','time'
+        ];
+        foreach ([['date','time'], ['new_date','new_time'], ['day','time']] as $pair) {
+            [$d, $t] = $pair;
+            if (!empty($p[$d]) && !empty($p[$t])) {
+                try { return Carbon::parse(trim($p[$d].' '.$p[$t]), config('app.timezone')); } catch (\Throwable $e) {}
+            }
+        }
+
+        // Single datetime-like fields
+        foreach (['scheduled_at','schedule_at','interview_at','interview_datetime','datetime','rescheduled_at','new_datetime'] as $k) {
+            if (!empty($p[$k])) {
+                try { return Carbon::parse($p[$k], config('app.timezone')); } catch (\Throwable $e) {}
+            }
+        }
+
+        // Fallback: date only
+        foreach (['date','new_date','interview_date'] as $k) {
+            if (!empty($p[$k])) {
+                try { return Carbon::parse($p[$k], config('app.timezone')); } catch (\Throwable $e) {}
+            }
+        }
+
+        return null;
+    }
+    private function resolveStageName(object $row, string $prefix, array $byId, array $bySlug): string
+    {
+        $pid   = "{$prefix}_stage_id";
+        $pslug = "{$prefix}_stage_slug";
+        $pname = "{$prefix}_stage";
+
+        if (property_exists($row, $pid) && !is_null($row->{$pid})) {
+            return $byId[$row->{$pid}] ?? '—';
+        }
+        if (property_exists($row, $pslug) && !is_null($row->{$pslug})) {
+            return $bySlug[$row->{$pslug}] ?? ucfirst(str_replace('_',' ', (string)$row->{$pslug}));
+        }
+        if (property_exists($row, $pname) && !is_null($row->{$pname})) {
+            return (string)$row->{$pname};
+        }
+        return '—';
+    }
+
+    private function userDisplayName($userId): ?string
+    {
+        if (!$userId) return null;
+
+        // Prefer HR full name
+        $hrName = DB::table('human_resources')
+            ->where('user_id', $userId)
+            ->selectRaw("TRIM(CONCAT(COALESCE(first_name,''),' ',COALESCE(last_name,''))) as name")
+            ->value('name');
+        if ($hrName && trim($hrName) !== '') return $hrName;
+
+        // Try Graduate profile
+        if (Schema::hasTable('graduates')) {
+            $gradName = DB::table('graduates')
+                ->where('user_id', $userId)
+                ->selectRaw("TRIM(CONCAT(COALESCE(first_name,''),' ',COALESCE(last_name,''))) as name")
+                ->value('name');
+            if ($gradName && trim($gradName) !== '') return $gradName;
+        }
+
+        // Fallback to email
+        return DB::table('users')->where('id', $userId)->value('email');
+    }
+
     public function show(JobApplication $application)
     {
             // Load related data (skills, portfolio, etc.)
@@ -45,6 +134,7 @@ class CompanyApplicationController extends Controller
             ]);
 
         $graduate = $application->graduate;
+        
 
         $resume = $graduate->resume;
         if ($resume) {
@@ -214,9 +304,257 @@ class CompanyApplicationController extends Controller
             })
             ->first();
 
+        // Build Stage Activities
+        $activities = collect();
+        
+        $applicantName = trim(($graduate->first_name ?? '') . ' ' . ($graduate->last_name ?? ''));
+        $jobTitle = $application->job->job_title ?? 'the position';
+        $activities->push([
+            'type'  => 'action',
+            'stage' => 'applied',
+            'by'    => $applicantName ?: 'Applicant',
+            'at'    => ($application->created_at ? Carbon::parse($application->created_at)->toIso8601String() : now()->toIso8601String()),
+            'text'  => " applied for {$jobTitle}",
+            'meta'  => null,
+        ]);
+
+        // Stage change logs
+         if (Schema::hasTable('job_application_stage_logs')) {
+            // Maps for both id->name and slug->name
+            $stageById   = DB::table('job_pipeline_stages')->pluck('name','id')->toArray();
+            $stageBySlug = DB::table('job_pipeline_stages')->pluck('name','slug')->toArray();
+
+            $hasChangedAt = Schema::hasColumn('job_application_stage_logs', 'changed_at');
+
+            $q = DB::table('job_application_stage_logs')
+                ->where('job_application_id', $application->id);
+            if ($hasChangedAt) $q->orderByDesc('changed_at');
+            $q->orderByDesc('created_at');
+
+            $stageLogs = $q->get();
+
+            $nl = fn($v) => strtolower(trim((string)$v));
+            $autoScreenMsgAdded = false;
+
+            // Try to find a match percentage on the application record
+            $matchPercent = $application->match_percentage
+                ?? $application->matching_percentage
+                ?? $application->match_percent
+                ?? $application->match_score
+                ?? $application->score
+                ?? null;
+            if (is_numeric($matchPercent)) $matchPercent = (int) round($matchPercent);
+
+            foreach ($stageLogs as $log) {
+                $byName   = $this->userDisplayName($log->changed_by ?? null);
+                $fromName = $this->resolveStageName($log, 'from', $stageById, $stageBySlug);
+                $toName   = $this->resolveStageName($log, 'to',   $stageById, $stageBySlug);
+
+                $fromL = $nl($fromName);
+                $toL   = $nl($toName);
+
+                $isInitialToApplying   = ($fromL === '' || $fromL === '—' || $fromL === '-') && ($toL === 'applying' || $toL === 'applied');
+                $isApplyingToScreening = ($fromL === 'applying' || $fromL === 'applied' || $fromL === '') && $toL === 'screening';
+                $endsAtApplying        = ($toL === 'applying' || $toL === 'applied');
+
+                if ($isInitialToApplying || $isApplyingToScreening || $endsAtApplying) {
+                    // Instead of "applying -> screening", optionally add an auto-screened note once
+                    if ($isApplyingToScreening && !$autoScreenMsgAdded) {
+                        $autoText = $applicantName
+                            ? " automatically screened"
+                            : "Applicant automatically screened";
+                        if ($matchPercent !== null) {
+                            $autoText .= ", having {$matchPercent}% match for the {$jobTitle}";
+                        }
+                        $atIso = Carbon::parse($log->created_at)->toIso8601String();
+
+                        $activities->push([
+                            'type'  => 'action',
+                            'stage' => 'screening',
+                            'by'    => $applicantName ?: 'Applicant',
+                            'at'    => $atIso,
+                            'text'  => $autoText,
+                            'meta'  => null,
+                        ]);
+                        $autoScreenMsgAdded = true;
+                    }
+                    continue; // do not add the skipped stage-change item
+                }
+                $atIso = Carbon::parse($log->created_at)->toIso8601String();
+
+                $activities->push([
+                    'type'  => 'stage_change',
+                    'stage' => strtolower($toName),
+                    'by'    => $byName,
+                    'at'    => $atIso,
+                    // CHANGED: clearer sentence
+                    'text'  => " moved the applicant from {$fromName} to {$toName}",
+                    'meta'  => null,
+                ]);
+            }
+        }
+
+        // Action logs (request info, interview schedule, etc.)
+        if (Schema::hasTable('job_application_action_logs')) {
+            $actionLogs = DB::table('job_application_action_logs')
+                ->where('job_application_id', $application->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            foreach ($actionLogs as $log) {
+                $userName = $this->userDisplayName($log->user_id ?? null);
+                $payload  = $this->normalizePayload($log->payload ?? []);
+                $key      = (string)($log->action_key ?? '');
+
+                // Build human text per action
+                $text = ' performed an action';
+                $stageForAction = strtolower($application->stage ?? 'applied');
+
+                switch ($key) {
+                    case 'request_info':
+                    case 'request_more_info':
+                        $req = [];
+                        if (!empty($payload['requested']) && is_array($payload['requested'])) {
+                            $req = array_filter(array_map('trim', $payload['requested']));
+                        } elseif (!empty($payload['type'])) {
+                            $req = [(string)$payload['type']];
+                        }
+                        $extra = $req ? ': '.implode(', ', $req) : '';
+                        $text = " requested more info{$extra}";
+                        break;
+
+                    case 'schedule_interview':
+                        $dt = $this->extractDateTimeFromPayload($payload);
+                        $when = $dt ? (' on '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
+                        $loc  = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
+                        $text = " scheduled an interview{$when}{$loc}";
+                        $stageForAction = 'interview';
+                        break;
+
+                    case 'reschedule_interview':
+                        $dt = $this->extractDateTimeFromPayload($payload);
+                        $when = $dt ? (' to '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
+                        $loc  = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
+                        $text = " rescheduled the interview{$when}{$loc}";
+                        $stageForAction = 'interview';
+                        break;
+
+                    case 'record_interview_feedback':
+                        $rec = $payload['recommendation'] ?? $payload['status'] ?? null;
+                        $summary = $payload['feedback'] ?? $payload['notes'] ?? null;
+                        $text = " recorded interview feedback".($rec ? " - {$rec}" : '');
+                        if ($summary) $text .= ": ".$summary;
+                        $stageForAction = 'interview';
+                        break;
+
+                    case 'send_exam_instructions':
+                        $dt = $this->extractDateTimeFromPayload($payload);
+                        $when = $dt ? (' for '.$dt->format('M d, Y').' '.$dt->format('h:i A')) : '';
+                        $text = " sent exam instructions {$when}";
+                        $stageForAction = 'assessment';
+                        break;
+
+                    case 'record_test_results':
+                        $score = $payload['score'] ?? $payload['result'] ?? $payload['summary'] ?? null;
+                        $text = " recorded test results".($score ? ": {$score}" : '');
+                        $stageForAction = 'assessment';
+                        break;
+
+                    case 'reschedule_test':
+                        $dt = $this->extractDateTimeFromPayload($payload);
+                        $when = $dt ? (' to '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
+                        $text = " rescheduled the exam{$when}";
+                        $stageForAction = 'assessment';
+                        break;
+
+                    case 'send_offer':
+                        $salary = $payload['offered_salary'] ?? $payload['salary'] ?? null;
+                        $start  = !empty($payload['start_date']) ? Carbon::parse($payload['start_date'])->format('M d, Y') : null;
+                        $extra  = [];
+                        if ($salary !== null) $extra[] = "salary {$salary}";
+                        if ($start) $extra[] = "start date {$start}";
+                        $tail = $extra ? ' ('.implode(', ', $extra).')' : '';
+                        $text = " sent an offer{$tail}";
+                        $stageForAction = 'offer';
+                        break;
+
+                    case 'hire':
+                        $text = " marked the applicant as hired";
+                        $stageForAction = 'hired';
+                        break;
+
+                    case 'reject':
+                    case 'reject_withdraw':
+                        $reason = $payload['reason'] ?? null;
+                        $text = " rejected the applicant".($reason ? ": {$reason}" : '');
+                        $stageForAction = 'rejected';
+                        break;
+
+                    case 'add_remark':
+                    case 'note_added':
+                        $remark = trim((string)($payload ?: ''));
+                        $remark = $remark === '' && !empty($payload['remark']) ? $payload['remark'] : $remark;
+                        $text = " added a remark".($remark ? ": ".$remark : '');
+                        break;
+
+                    default:
+                        // Fallback to generic label if we had one
+                        $labelMap = [
+                            'request_info' => 'requested more info',
+                            'request_more_info' => 'requested more info',
+                            'schedule_interview' => 'scheduled an interview',
+                            'reschedule_interview' => 'rescheduled interview',
+                            'record_interview_feedback' => 'recorded interview feedback',
+                            'send_exam_instructions' => 'sent exam instructions',
+                            'record_test_results' => 'recorded test results',
+                            'reschedule_test' => 'rescheduled test',
+                            'send_offer' => 'sent an offer',
+                            'hire' => 'marked as hired',
+                            'reject' => 'rejected applicant',
+                            'reject_withdraw' => 'withdrew/rejected',
+                            'add_remark' => 'added a remark',
+                            'note_added' => 'added a remark',
+                        ];
+                        $text = $labelMap[$key] ?? 'performed an action';
+                        break;
+                }
+                $atIso = Carbon::parse($log->created_at)->toIso8601String();
+
+                $activities->push([
+                    'type'  => 'action',
+                    'stage' => $stageForAction,
+                    'by'    => $userName,
+                    'at'    => $atIso,
+                    'text'  => $text,
+                    'meta'  => [
+                        'event'   => $log->event,
+                        'payload' => $payload,
+                    ],
+                ]);
+            }
+        }
+
+       
+
+        // Sort and trim fields for frontend
+        $stageActivities = $activities
+            ->sortByDesc(fn($a) => $a['at'] ?? now())
+            ->values()
+            ->map(function($a){
+                return [
+                    'type' => $a['type'],
+                    'stage' => $a['stage'],
+                    'by' => $a['by'],
+                    'at' => $a['at'],
+                    'text' => $a['text'],
+                    'meta' => $a['meta'],
+                ];
+            });
+
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,
             'graduate' => $graduate,
+            'stageActivities' => $stageActivities,
             'skills' => $graduate?->graduateSkills?->map(function($gs) {
                 $skill = $gs->skill;
                 // Collect possible type/category sources
@@ -278,8 +616,9 @@ class CompanyApplicationController extends Controller
         if (array_key_exists('job_pipeline_stage_id',$data)
             && (int)$data['job_pipeline_stage_id'] !== (int)$application->job_pipeline_stage_id) {
 
-            $fromId = $application->job_pipeline_stage_id;
-            $stage = JobPipelineStage::find($data['job_pipeline_stage_id']);
+            $fromId    = $application->job_pipeline_stage_id;
+            $fromStage = $fromId ? JobPipelineStage::find($fromId) : null;
+            $stage     = JobPipelineStage::find($data['job_pipeline_stage_id']);
 
             if ($stage) {
                 $application->job_pipeline_stage_id = $stage->id;
@@ -287,13 +626,38 @@ class CompanyApplicationController extends Controller
                 $application->stage = $stage->slug;
                 $changed[] = 'stage';
 
-                JobApplicationStageLog::create([
+                // REPLACED: flexible payload based on available columns
+                $payload = [
                     'job_application_id' => $application->id,
-                    'from_stage_id'      => $fromId,
-                    'to_stage_id'        => $stage->id,
                     'changed_by'         => Auth::id(),
-                    'changed_at'         => Carbon::now(),
-                ]);
+                ];
+
+                // from_*
+                if (Schema::hasColumn('job_application_stage_logs','from_stage_id')) {
+                    $payload['from_stage_id'] = $fromId;
+                } elseif (Schema::hasColumn('job_application_stage_logs','from_stage_slug')) {
+                    $payload['from_stage_slug'] = $fromStage?->slug;
+                } elseif (Schema::hasColumn('job_application_stage_logs','from_stage')) {
+                    $payload['from_stage'] = $fromStage?->name ?? $fromStage?->slug;
+                }
+
+                // to_*
+                if (Schema::hasColumn('job_application_stage_logs','to_stage_id')) {
+                    $payload['to_stage_id'] = $stage->id;
+                } elseif (Schema::hasColumn('job_application_stage_logs','to_stage_slug')) {
+                    $payload['to_stage_slug'] = $stage->slug;
+                } elseif (Schema::hasColumn('job_application_stage_logs','to_stage')) {
+                    $payload['to_stage'] = $stage->name ?? $stage->slug;
+                }
+
+                if (Schema::hasColumn('job_application_stage_logs','changed_at')) {
+                    $payload['changed_at'] = now();
+                }
+
+                if (false && Schema::hasTable('job_application_stage_logs')) {
+                    // old logging block disabled to prevent duplicates
+                    // JobApplicationStageLog::create($payload);
+                }
             }
         }
 
@@ -304,6 +668,23 @@ class CompanyApplicationController extends Controller
         }
 
         if ($changed) $application->save();
+
+         // NEW: log remark to stage activities when notes change
+        if (in_array('notes', $changed) && Schema::hasTable('job_application_action_logs')) {
+            try {
+                DB::table('job_application_action_logs')->insert([
+                    'job_application_id' => $application->id,
+                    'user_id' => Auth::id(),
+                    'action_key' => 'add_remark',
+                    'event' => 'remark',
+                    'payload' => $application->notes, // store latest remark text
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Throwable $e) {
+                // ignore logging failure
+            }
+        }
 
         return back()->with('success', 'Updated: '.implode(', ',$changed));
     }

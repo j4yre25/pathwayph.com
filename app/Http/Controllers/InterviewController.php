@@ -6,15 +6,16 @@ use Illuminate\Http\Request;
 use App\Models\JobApplication;
 use App\Models\Messages;
 use App\Models\InterviewFeedback;
+use App\Services\PipelineActionExecutor;
 
 class InterviewController extends Controller
 {
-    public function sendInvitation(Request $request)
+    public function sendInvitation(Request $request, PipelineActionExecutor $executor)
     {
         $data = $request->validate([
             'application_id' => ['required','integer','exists:job_applications,id'],
             'receiver_id'    => ['required','integer','exists:users,id'],
-            'interview_type' => ['required','string','max:50'], // in-person | online | phone
+            'interview_type' => ['required','string','max:50'],
             'date'           => ['required','date'],
             'time'           => ['required','date_format:H:i'],
             'location'       => ['nullable','string','max:255'],
@@ -27,29 +28,23 @@ class InterviewController extends Controller
             return response()->json(['message'=>'Forbidden'],403);
         }
 
-        $defaultMsg = "Dear {$app->graduate?->first_name}, we would like to invite you to an interview on {$data['date']} at {$data['time']}. Please confirm your availability.";
-        $content = $data['message'] ?: $defaultMsg;
-
-        $msg = Messages::create([
-            'application_id' => $data['application_id'],
-            'sender_id'      => $request->user()->id,
-            'receiver_id'    => $data['receiver_id'],
-            'message_type'   => Messages::TYPE_INTERVIEW_INVITE,
-            'content'        => $content,
-            'status'         => Messages::STATUS_UNREAD,
-            'meta'           => [
+        $executor->execute([
+            'key'            => 'schedule_interview',
+            'type'           => 'action',
+            'custom_message' => $data['message'] ?? null,
+            'payload'        => [
                 'interview_type' => $data['interview_type'],
-                'date' => $data['date'],
-                'time' => $data['time'],
-                'location' => $data['location'],
-                'link' => $data['link'],
+                'date'           => $data['date'],
+                'time'           => $data['time'],
+                'location'       => $data['location'] ?: $data['link'],
+                'receiver_id'    => $data['receiver_id'],
             ],
-        ]);
+        ], $app);
 
-        return response()->json(['message'=>'Interview invitation sent','data'=>$msg],201);
+        return response()->json(['message'=>'Interview invitation sent'],201);
     }
 
-    public function reschedule(Request $request)
+    public function reschedule(Request $request, PipelineActionExecutor $executor)
     {
         $data = $request->validate([
             'application_id' => ['required','integer','exists:job_applications,id'],
@@ -66,28 +61,23 @@ class InterviewController extends Controller
             return response()->json(['message'=>'Forbidden'],403);
         }
 
-        $defaultMsg = "We apologize, but your interview has been rescheduled to {$data['new_date']} at {$data['new_time']}. Please confirm.";
-        $content = $data['message'] ?: $defaultMsg;
-
-        $msg = Messages::create([
-            'application_id' => $data['application_id'],
-            'sender_id'      => $request->user()->id,
-            'receiver_id'    => $data['receiver_id'],
-            'message_type'   => Messages::TYPE_INTERVIEW_RESCHEDULE,
-            'content'        => $content,
-            'status'         => Messages::STATUS_UNREAD,
-            'meta'           => [
+        $executor->execute([
+            'key'            => 'reschedule_interview',
+            'type'           => 'action',
+            'custom_message' => $data['message'] ?? null,
+            'payload'        => [
                 'interview_type' => $data['interview_type'],
-                'new_date' => $data['new_date'],
-                'new_time' => $data['new_time'],
-                'reason' => $data['reason'],
+                'new_date'       => $data['new_date'],
+                'new_time'       => $data['new_time'],
+                'reason'         => $data['reason'] ?? null,
+                'receiver_id'    => $data['receiver_id'],
             ],
-        ]);
+        ], $app);
 
-        return response()->json(['message'=>'Interview reschedule sent','data'=>$msg],201);
+        return response()->json(['message'=>'Interview reschedule sent'],201);
     }
 
-    public function recordFeedback(Request $request)
+    public function recordFeedback(Request $request, PipelineActionExecutor $executor)
     {
         $data = $request->validate([
             'application_id'   => ['required','integer','exists:job_applications,id'],
@@ -111,6 +101,18 @@ class InterviewController extends Controller
             'weaknesses'       => $data['weaknesses'],
             'recommendation'   => $data['recommendation'],
         ]);
+
+        // Log the action
+        $executor->execute([
+            'key'     => 'record_interview_feedback',
+            'type'    => 'action',
+            'payload' => [
+                'rating'         => $data['rating'],
+                'strengths'      => $data['strengths'],
+                'weaknesses'     => $data['weaknesses'],
+                'recommendation' => $data['recommendation'],
+            ],
+        ], $app);
 
         return response()->json(['message'=>'Interview feedback saved','data'=>$feedback],201);
     }

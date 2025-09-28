@@ -103,8 +103,8 @@ const highestEducation = computed(() => {
   const endLabel = top.is_current
     ? 'Present'
     : (top.end_date
-        ? new Date(top.end_date).getFullYear()
-        : (top.year_graduated || null));
+      ? new Date(top.end_date).getFullYear()
+      : (top.year_graduated || null));
 
   return {
     school: top.school_name || top.education || 'Not specified',
@@ -225,8 +225,14 @@ const parseFullName = () => {
 watch(() => profile.value.fullName, (newFullName) => {
   const nameParts = newFullName.trim().split(' ');
   profile.value.first_name = nameParts[0] || '';
-  profile.value.last_name = nameParts[nameParts.length - 1] || '';
-  profile.value.middle_name = nameParts.length > 2 ? nameParts[1].charAt(0) : '';
+  profile.value.last_name = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+  // Middle name: take the first letter of the middle part, uppercase, no dot
+  if (nameParts.length > 2) {
+    const middleInitial = nameParts[1].charAt(0).toUpperCase();
+    profile.value.middle_name = middleInitial || '';
+  } else {
+    profile.value.middle_name = '';
+  }
 });
 
 watch(() => profile.value.employment_status, (newStatus) => {
@@ -242,6 +248,10 @@ const saveProfile = () => {
   if (!validateForm()) {
     showErrorModal('Please correct the errors in the form.');
     return;
+  }
+  
+  if (profile.value.middle_name) {
+    profile.value.middle_name = profile.value.middle_name.charAt(0).toUpperCase();
   }
 
   // Format birthdate
@@ -272,10 +282,15 @@ const saveProfile = () => {
   settingsForm.other_social_links = profile.value.other_social_links;
   settingsForm.enable_contact_form = profile.value.enable_contact_form;
 
+
+  const initialMiddle = pageProps.graduate?.middle_name
+    ? `${pageProps.graduate.middle_name.charAt(0).toUpperCase()}.`
+    : '';
+
   // Only send changed fields
   const initial = {
     first_name: pageProps.graduate?.first_name || '',
-    middle_name: pageProps.graduate?.middle_name || '',
+    middle_name: initialMiddle,
     last_name: pageProps.graduate?.last_name || '',
     current_job_title: pageProps.graduate?.current_job_title || '',
     profession: pageProps.graduate?.profession || '',
@@ -409,10 +424,10 @@ const validateForm = () => {
   }
 
   // Validate location if required by backend
-  if (!profile.value.graduate_location) {
-    errors.graduate_location = 'Location is required';
-    isValid = false;
-  }
+  // if (!profile.value.graduate_location) {
+  //   errors.graduate_location = 'Location is required';
+  //   isValid = false;
+  // }
 
   // Validate URL formats if provided
   if (profile.value.linkedin_url && !isValidUrl(profile.value.linkedin_url)) {
@@ -746,11 +761,12 @@ form div {
 
               <div class="mb-4">
                 <label for="profession" class="block text-gray-700 font-medium mb-1">Profession</label>
-                 <div class="relative">
+                <div class="relative">
                   <i class="fas fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                id="profession" v-model="profile.profession" placeholder="Enter your profession" />
-                  </div>
+                  <input type="text"
+                    class="w-full border border-gray-300 rounded-md p-2 pl-10 outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                    id="profession" v-model="profile.profession" placeholder="Enter your profession" />
+                </div>
               </div>
 
               <!-- Gender -->

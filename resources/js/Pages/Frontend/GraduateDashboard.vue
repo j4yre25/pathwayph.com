@@ -1,12 +1,11 @@
 <script setup>
-import { defineProps, onMounted, ref, computed } from "vue";
+import { defineProps, onMounted, ref, computed, watch } from "vue";
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { useForm } from '@inertiajs/vue3';
 import ProfileCardDashboard from '@/Components/Graduate/ProfileCardDashboard.vue';
 import { router, usePage } from '@inertiajs/vue3';
-
-
+import VueECharts from "vue-echarts";
 
 const props = defineProps({
   summary: Object,
@@ -19,24 +18,123 @@ const props = defineProps({
   employmentPreferences: Object,
   careerGoals: Object,
   featuredCompanies: Array,
-
+  vacancyStats: Object,
 });
 
+// Filter toggles
+const showApplicationSent = ref(true);
+const showInterviews = ref(true);
+const showRejected = ref(false);
+
+// Date range filter
+const dateFilter = ref("this_month"); // "this_year", "this_month", "this_week"
+const dateOptions = [
+  { value: "this_year", label: "This Year" },
+  { value: "this_month", label: "This Month" },
+  { value: "this_week", label: "This Week" },
+];
+
+// Derived labels from backend
+const labels = computed(() => props.vacancyStats?.labels ?? [])
+
+// Normalize series to match labels length and be numeric
+function normalizeSeries(lbls, data) {
+  const out = Array(lbls.length).fill(0)
+  const src = Array.isArray(data) ? data : []
+  for (let i = 0; i < out.length; i++) out[i] = Number(src[i] ?? 0)
+  return out
+}
+
+// Chart options with axes
+const chartOption = computed(() => {
+  const apps = normalizeSeries(labels.value, props.vacancyStats?.applicationSent)
+  const interviews = normalizeSeries(labels.value, props.vacancyStats?.interviews)
+  const rejected = normalizeSeries(labels.value, props.vacancyStats?.rejected)
+
+  const series = []
+  if (showApplicationSent.value) {
+    series.push({
+      name: "Application Sent",
+      type: "line",
+      smooth: true,
+      symbol: "circle",
+      showSymbol: false,
+      lineStyle: { color: "#4F46E5", width: 3 },
+      itemStyle: { color: "#4F46E5" },
+      data: apps,
+    })
+  }
+  if (showInterviews.value) {
+    series.push({
+      name: "Interviews",
+      type: "line",
+      smooth: true,
+      symbol: "circle",
+      showSymbol: false,
+      lineStyle: { color: "#10B981", width: 3 },
+      itemStyle: { color: "#10B981" },
+      data: interviews,
+    })
+  }
+  if (showRejected.value) {
+    series.push({
+      name: "Rejected",
+      type: "line",
+      smooth: true,
+      symbol: "circle",
+      showSymbol: false,
+      lineStyle: { color: "#EF4444", width: 3, type: "dashed" },
+      itemStyle: { color: "#EF4444" },
+      data: rejected,
+    })
+  }
+
+  const opt = {
+    tooltip: { trigger: "axis" },
+    grid: { left: 40, right: 20, top: 30, bottom: 30 },
+    xAxis: {
+      type: "category",
+      boundaryGap: false,
+      data: labels.value,
+      axisLine: { lineStyle: { color: "#9CA3AF" } },
+      axisLabel: { color: "#6B7280" },
+    },
+    yAxis: {
+      type: "value",
+      minInterval: 1,
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: "#E5E7EB" } },
+      axisLabel: { color: "#6B7280" },
+    },
+    legend: {
+      data: ["Application Sent", "Interviews", "Rejected"],
+      top: 0,
+      textStyle: { color: "#374151", fontSize: 12 },
+    },
+    series,
+  }
+
+  // Debug chart config
+  console.log('Chart Option:', opt)
+  return opt
+})
 
 
+// Reload data when date filter changes
+watch(dateFilter, (v) => {
+  console.log('Date filter changed:', v)
+  router.reload({
+    only: ['vacancyStats','kpi'],
+    data: { date_filter: v },
+    preserveScroll: true,
+    preserveState: true,
+  })
+})
 
 const recentActivities = computed(() => {
-  // Fallback to [] if not present
   const activities = usePage().props.recent_activities || [];
-  // Show only the latest 4
   return activities.slice(0, 4);
 });
-
-console.log(recentActivities)
-
-console.log('KPI:', props.kpi);
-console.log('Jobs', props.recommendedJobs)
-console.log('Graduate', props.graduate)
 
 const isViewDetailsModalOpen = ref(false);
 const isApplyModalOpen = ref(false);
@@ -153,13 +251,11 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-gray">
-
-
     <!-- Main Content -->
     <main class="flex flex-col w-full h-fi ">
       <!-- KPI Cards -->
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-gray">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <!-- Jobs Applied -->
           <div
             class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
@@ -187,6 +283,15 @@ onMounted(() => {
             <span class="text-indigo-700 text-xs font-medium text-center">Jobs Aligned</span>
             <span class="text-indigo-900 text-3xl font-bold">{{ kpi.jobsAligned ?? 0 }}</span>
           </div>
+           <!-- Interviews Scheduled -->
+          <div 
+            class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
+            <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
+              <i class="fas fa-calendar-check text-white"></i>
+            </div>
+            <span class="text-yellow-700 text-xs font-medium text-center">Interviews Scheduled</span>
+            <span class="text-yellow-900 text-3xl font-bold">{{ kpi.interviewsScheduled ?? 0 }}</span>
+          </div>
         </div>
       </div>
 
@@ -213,16 +318,40 @@ onMounted(() => {
         <div class="lg:col-span-3 space-y-8 w-full">
           <!-- Chart Placeholder -->
           <div class="bg-white rounded-lg shadow p-6 mb-4">
-            <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
-              <i class="fas fa-chart-line mr-2 text-indigo-500"></i>
-              Vacancy Stats
-            </h3>
-            <div class="h-48 flex items-center justify-center text-gray-400">
-              <!-- Replace with your chart component -->
-              <span>Chart Placeholder</span>
+            <div class="flex flex-wrap items-center justify-between mb-2">
+              <h3 class="font-semibold text-gray-700 flex items-center">
+                <i class="fas fa-chart-line mr-2 text-indigo-500"></i>
+                Application Stats
+              </h3>
+              <div class="flex items-center gap-4">
+                <!-- Filter toggles -->
+                <button
+                  @click="showApplicationSent = !showApplicationSent"
+                  :class="['flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition', showApplicationSent ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500']">
+                  <span class="w-3 h-3 rounded-full" :style="{ background: '#4F46E5' }"></span>
+                  Application Sent
+                </button>
+                <button
+                  @click="showInterviews = !showInterviews"
+                  :class="['flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition', showInterviews ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">
+                  <span class="w-3 h-3 rounded-full" :style="{ background: '#10B981' }"></span>
+                  Interviews
+                </button>
+                <button
+                  @click="showRejected = !showRejected"
+                  :class="['flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition', showRejected ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500']">
+                  <span class="w-3 h-3 rounded-full" :style="{ background: '#EF4444' }"></span>
+                  Rejected
+                </button>
+                <!-- Date filter dropdown -->
+                <select v-model="dateFilter"
+                  class="ml-4 px-3 py-1 rounded-md border border-gray-300 text-xs font-semibold text-gray-700 bg-white focus:outline-none focus:ring-indigo-500">
+                  <option v-for="opt in dateOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
             </div>
+            <VueECharts :option="chartOption" style="height:320px;width:100%;" />
           </div>
-
           <!-- Jobs Based on Preference -->
           <div>
             <h2 class="text-lg font-semibold mb-4">Jobs for You</h2>

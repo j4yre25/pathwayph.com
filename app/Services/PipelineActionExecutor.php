@@ -7,16 +7,91 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 use App\Models\Messages;
 
 class PipelineActionExecutor
 {
+    private function buildEvent(string $key, array $payload): string
+    {
+        $dt = null;
+        $fmt = fn(Carbon $c) => $c->format('M d, Y').' at '.$c->format('h:i A');
+
+        // try common datetime keys
+        foreach (['scheduled_at','schedule_at','interview_at','interview_datetime','datetime'] as $k) {
+            if (!empty($payload[$k])) { try { $dt = Carbon::parse($payload[$k]); } catch (\Throwable $e) {} }
+        }
+        if (!$dt && !empty($payload['date']) && !empty($payload['time'])) {
+            try { $dt = Carbon::parse($payload['date'].' '.$payload['time']); } catch (\Throwable $e) {}
+        }
+
+        $loc = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
+
+        return match ($key) {
+            'request_more_info','request_info' => 'Requested more info'.(
+                !empty($payload['requested']) && is_array($payload['requested'])
+                    ? ': '.implode(', ', array_filter($payload['requested']))
+                    : ''
+            ),
+            'schedule_interview'   => 'Interview scheduled'.($dt ? ' for '.$fmt($dt) : '').$loc,
+            'reschedule_interview' => 'Interview rescheduled'.($dt ? ' to '.$fmt($dt) : '').$loc,
+            'record_interview_feedback' => 'Interview feedback recorded'.(!empty($payload['feedback']) ? ': '.$payload['feedback'] : ''),
+            'send_exam_instructions'    => 'Exam instructions sent'.($dt ? ' for '.$fmt($dt) : ''),
+            'record_test_results'       => 'Test results recorded'.(
+                isset($payload['score']) ? ': '.$payload['score'] : (isset($payload['result']) ? ': '.$payload['result'] : '')
+            ),
+            'reschedule_test' => 'Exam rescheduled'.($dt ? ' to '.$fmt($dt) : ''),
+            'send_offer'      => 'Offer sent'.(!empty($payload['offered_salary']) ? ' (salary '.$payload['offered_salary'].')' : ''),
+            'hire'            => 'Marked as hired',
+            'reject','reject_withdraw' => 'Application rejected'.(!empty($payload['reason']) ? ': '.$payload['reason'] : ''),
+            default => ucfirst(str_replace('_',' ', $key)),
+        };
+    }
+
+    private function normalizeAction(array $action): array
+    {
+        $a = $action;
+
+        // accept "action" as key
+        if (!isset($a['key']) && isset($a['action'])) {
+            $a['key'] = $a['action'];
+        }
+
+        // guess type if missing
+        if (!isset($a['type'])) {
+            $actionKeys = [
+                'request_info','request_more_info',
+                'schedule_interview','reschedule_interview','record_interview_feedback',
+                'send_exam_instructions','record_test_results','reschedule_test',
+                'send_offer','hire','reject','reject_withdraw'
+            ];
+            if (!empty($a['key']) && in_array($a['key'], $actionKeys, true)) {
+                $a['type'] = 'action';
+            }
+        }
+
+        // ensure payload array carries modal fields
+        if (!isset($a['payload']) || !is_array($a['payload'])) {
+            $a['payload'] = [];
+        }
+        if (!empty($a['requested']) && is_array($a['requested'])) {
+            $a['payload']['requested'] = array_values(array_unique($a['requested']));
+        }
+        if (!empty($a['custom_message'])) {
+            $a['payload']['custom_message'] = (string)$a['custom_message'];
+        }
+
+        return $a;
+    }
+
     public function execute(array $action, JobApplication $application): string
     {
+        $action = $this->normalizeAction($action); 
+
         try {
             $type = $action['type'];
 
-            if ($type === 'transition' || $action['key'] === 'move_next') {
+            if ($type === 'transition' || ($action['key'] ?? null) === 'move_next') {
                 $from = $application->stage ?: 'applied';
                 $to   = strtolower($action['to'] ?? '');
 
@@ -47,16 +122,18 @@ class PipelineActionExecutor
                 // Stage log with optional note
                 if (Schema::hasTable('job_application_stage_logs')) {
                     try {
-                        $cols = Schema::getColumnListing('job_application_stage_logs');
-                        $row = [
-                            'job_application_id' => $application->id,
-                            'from_stage' => $from,
-                            'to_stage'   => $to,
-                        ];
-                        if (in_array('changed_by', $cols))  $row['changed_by'] = Auth::id();
-                        if ($note && in_array('note',$cols)) $row['note'] = $note;
-                        if (in_array('created_at', $cols))  $row['created_at'] = now();
-                        DB::table('job_application_stage_logs')->insert($row);
+                        if (!$this->isDuplicateStageLog($application->id, $from, $to)) {
+                            $cols = Schema::getColumnListing('job_application_stage_logs');
+                            $row = [
+                                'job_application_id' => $application->id,
+                                'from_stage' => $from,
+                                'to_stage'   => $to,
+                            ];
+                            if (in_array('changed_by', $cols))  $row['changed_by'] = Auth::id();
+                            if (!empty($note) && in_array('note',$cols)) $row['note'] = $note;
+                            if (in_array('created_at', $cols))  $row['created_at'] = now();
+                            DB::table('job_application_stage_logs')->insert($row);
+                        }
                     } catch (\Throwable $e) {
                         Log::warning('Stage log failed (ignored)', ['err'=>$e->getMessage()]);
                     }
@@ -95,31 +172,68 @@ class PipelineActionExecutor
                 return "Stage moved to {$to}";
             }
 
-            if (($action['type'] ?? null) === 'action') {
-                // Log action
+           if (($action['type'] ?? null) === 'action') {
+                // Log action with payload + event
                 if (Schema::hasTable('job_application_action_logs')) {
                     try {
-                        DB::table('job_application_action_logs')->insert([
-                            'job_application_id'=>$application->id,
-                            'user_id'=>Auth::id(),
-                            'action_key'=>$action['key'],
-                            'event'=>$action['event'] ?? null,
-                            'payload'=>null,
-                            'created_at'=>now(),
-                            'updated_at'=>now(),
-                        ]);
+                        $key     = $action['key'] ?? '';
+                        $payload = $action['payload'] ?? [];
+
+                        // include requested items for request_info
+                        if (in_array($key, ['request_info','request_more_info'], true) && !empty($action['requested'])) {
+                            $payload['requested'] = array_values(array_unique((array)$action['requested']));
+                        }
+
+                        $event = $action['event'] ?? $this->buildEvent($key, (array)$payload);
+
+                        // Insert only the columns that exist (schema-agnostic)
+                        $cols   = Schema::getColumnListing('job_application_action_logs');
+                        $row    = [];
+
+                        // application foreign key
+                        $appCol = in_array('job_application_id', $cols) ? 'job_application_id'
+                            : (in_array('application_id', $cols) ? 'application_id' : null);
+                        if ($appCol) $row[$appCol] = $application->id;
+
+                        // user foreign key
+                        $userCol = in_array('user_id', $cols) ? 'user_id'
+                                : (in_array('actor_id', $cols) ? 'actor_id' : null);
+                        if ($userCol) $row[$userCol] = Auth::id();
+
+                        // action key/name
+                        $actionCol = in_array('action_key', $cols) ? 'action_key'
+                                : (in_array('action', $cols) ? 'action' : null);
+                        if ($actionCol) $row[$actionCol] = $key;
+
+                        // optional fields
+                        if (in_array('event', $cols)) {
+                            $row['event'] = $event;
+                        }
+                        if (in_array('payload', $cols)) {
+                            $row['payload'] = is_string($payload) ? $payload : json_encode($payload);
+                        }
+                        if (in_array('created_at', $cols)) $row['created_at'] = now();
+                        if (in_array('updated_at', $cols)) $row['updated_at'] = now();
+
+                        // Only insert if we have the minimal FK + action
+                        if ($appCol && $actionCol) {
+                            DB::table('job_application_action_logs')->insert($row);
+                        } else {
+                            Log::warning('Action log skipped: missing essential columns', compact('cols','row'));
+                        }
                     } catch (\Throwable $e) {
-                        Log::warning('Action log failed (ignored)', ['err'=>$e->getMessage()]);
+                        Log::warning('Action log failed (ignored)', ['err' => $e->getMessage()]);
                     }
                 }
 
                 // Map action keys to message types
                 $keyToType = [
-                    'request_info'      => Messages::TYPE_REQUEST_INFO,
+                    'request_info'           => Messages::TYPE_REQUEST_INFO,
+                    'request_more_info'      => Messages::TYPE_REQUEST_INFO, // added
                     'schedule_interview'     => Messages::TYPE_INTERVIEW_INVITE,
                     'reschedule_interview'   => Messages::TYPE_INTERVIEW_RESCHEDULE,
                     'send_exam_instructions' => Messages::TYPE_EXAM_INSTRUCTIONS,
-                    'reschedule_exam'        => Messages::TYPE_EXAM_RESCHEDULE,
+                    'reschedule_test'        => Messages::TYPE_EXAM_RESCHEDULE, // align with config key
                     'send_offer'             => Messages::TYPE_OFFER_LETTER,
                     'hire'                   => Messages::TYPE_HIRED,
                     'reject'                 => Messages::TYPE_REJECTED,
@@ -145,7 +259,7 @@ class PipelineActionExecutor
                     $content = $custom !== '' ? $custom : Messages::template($type);
 
                     // Create the message
-                    \App\Models\Messages::create([
+                    Messages::create([
                         'application_id' => $application->id,
                         'sender_id'      => Auth::id(),
                         'receiver_id'    => $this->resolveApplicantUserId($application),
@@ -181,5 +295,40 @@ class PipelineActionExecutor
         }
         if (method_exists($application, 'user') && $application->user) return (int)$application->user->id;
         throw new \RuntimeException('Could not resolve applicant user id');
+    }
+
+    private function isDuplicateStageLog(int $applicationId, string $from, string $to, int $windowSeconds = 15): bool
+    {
+        if (!Schema::hasTable('job_application_stage_logs')) return false;
+
+        $last = DB::table('job_application_stage_logs')
+            ->where('job_application_id', $applicationId)
+            ->orderByDesc('created_at')
+            ->limit(1)
+            ->first();
+
+        if (!$last) return false;
+
+        // Resolve "to" and "from" of last entry regardless of schema (id vs name)
+        $slugById = [];
+        if (Schema::hasTable('job_pipeline_stages')) {
+            $slugById = DB::table('job_pipeline_stages')->pluck('slug', 'id')->toArray();
+        }
+
+        $lastTo = null;
+        if (isset($last->to_stage) && $last->to_stage) $lastTo = strtolower((string)$last->to_stage);
+        elseif (isset($last->to_stage_id) && $last->to_stage_id && isset($slugById[$last->to_stage_id])) $lastTo = strtolower($slugById[$last->to_stage_id]);
+
+        $lastFrom = null;
+        if (isset($last->from_stage) && $last->from_stage) $lastFrom = strtolower((string)$last->from_stage);
+        elseif (isset($last->from_stage_id) && $last->from_stage_id && isset($slugById[$last->from_stage_id])) $lastFrom = strtolower($slugById[$last->from_stage_id]);
+
+        $sameTransition = ($lastFrom === strtolower($from)) && ($lastTo === strtolower($to));
+        if (!$sameTransition) return false;
+
+        $lastAt = isset($last->created_at) ? Carbon::parse($last->created_at) : null;
+        if (!$lastAt) return false;
+
+        return $lastAt->greaterThanOrEqualTo(now()->subSeconds($windowSeconds));
     }
 }
