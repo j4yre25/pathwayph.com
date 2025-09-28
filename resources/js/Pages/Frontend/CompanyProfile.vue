@@ -311,7 +311,7 @@ function requestReferral(companyId, jobId) {
                     </div>
                 </div>
 
-                <!-- Available Jobs Section -->
+                <!--     Jobs Section -->
                 <div v-if="company.jobs && company.jobs.length" class="mt-10">
                     <div class="bg-white shadow-lg rounded-lg p-6">
                         <h4 class="text-xl font-semibold text-gray-800 mb-4">Available Jobs</h4>

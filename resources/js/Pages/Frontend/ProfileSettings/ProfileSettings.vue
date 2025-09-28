@@ -49,7 +49,6 @@ const menuStructure = {
     icon: 'fas fa-bullseye'
   },
   'internship': { title: 'Internship', icon: 'fas fa-user-graduate' },
-  'batch-upload': { title: 'Batch Upload', icon: 'fas fa-upload' },
 };
 
 // Helper functions for refreshing data

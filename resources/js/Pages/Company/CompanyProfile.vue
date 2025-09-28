@@ -9,6 +9,8 @@ const props = defineProps({
   company: Object,
   userRole: { type: String, required: true },
 });
+
+console.log('company', props.company)
 const isEditing = ref(false);
 const localDescription = ref(props.company.description || '');
 
@@ -32,8 +34,8 @@ const cancelEditing = () => {
 };
 
 const contactForm = reactive({
-  contact: props.company?.mobile_phone || '',
-  telephone: props.company?.telephone_number || '',
+  contact: props.company?.company_mobile_phone || '',
+  telephone: props.company?.company_tel_phone || '',
 });
 const { formattedMobileNumber } = useFormattedMobileNumber(contactForm, 'contact');
 const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 'telephone')
@@ -73,7 +75,7 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
             <!-- Industry Sector -->
             <div class="flex items-center text-gray-600 text-sm">
               <i class="fas fa-industry text-blue-500 mr-1"></i>
-              <span>{{ company.sector || 'Industry Sector' }}</span>
+              <span>{{ company.sector.name || 'Industry Sector' }}</span>
             </div>
             
             <!-- Company ID -->
@@ -134,7 +136,7 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
               <div class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100">
                 <i class="fas fa-building text-gray-500"></i>
               </div>
-              <span>{{ company.address || "N/A" }}</span>
+              <span>{{ company.company_street_address + ',' + ' ' + company.company_city || "N/A" }}</span>
             </li>
             <li class="flex items-center space-x-3">
               <div class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100">
@@ -219,14 +221,11 @@ const { formattedTelephoneNumber } = useFormattedTelephoneNumber(contactForm, 't
             Jobs For You
           </h4>
 
-          <div
-            v-if="company.jobs && company.jobs.length"
-            v-for="job in company.jobs"
-            :key="job.id"
+          <div v-if="company.jobs && company.jobs.length" v-for="job in company.jobs" :key="job.id"
             class="mt-6 p-4 rounded-xl border border-gray-100 hover:shadow-md transition-shadow duration-200">
-            <h5 class="text-lg font-semibold text-gray-900">{{ job.title }}</h5>
-            <p class="text-gray-600 mt-2 leading-relaxed">{{ job.description }}</p>
-            <p class="text-xs text-gray-400 mt-3">Posted {{ job.posted_at }}</p>
+            <h5 class="text-lg font-semibold text-gray-900">{{ job.job_title }}</h5>
+            <p class="text-gray-600 mt-2 leading-relaxed">{{ job.job_description }}</p>
+            <p class="text-xs text-gray-400 mt-3">Posted {{ job.created_at }}</p>
           </div>
 
           <div v-if="!company.jobs || company.jobs.length === 0" class="mt-6 text-center text-gray-400">

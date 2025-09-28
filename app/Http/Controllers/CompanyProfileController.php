@@ -18,9 +18,12 @@ class CompanyProfileController extends Controller
         // Determine user role
         $userRole = $user->hasRole('company') ? 'company' : 'graduate';
 
+        $jobPostCount = $company && method_exists($company, 'jobs') ? $company->jobs()->count() : 0;
+
         return Inertia::render('Company/CompanyProfile', [
             'userRole' => $userRole,
             'company' => [
+                'job_post_count' => $jobPostCount,
                 'company_name' => $company->company_name ?? 'N/A',
                 'company_email' => $company->company_email ?? 'N/A',
                 'company_contact_number' => $user->company_contact_number ?? 'N/A',
@@ -32,6 +35,7 @@ class CompanyProfileController extends Controller
                     $company?->company_zip_code,
                 ])),
                 'sector' => $company?->sector?->name ?? null,
+                'category' => $company?->category?->name ?? null,
                 'description' => $company?->company_description ?? null,
                 'mobile_phone' => $company?->company_mobile_phone ?? null,
                 'telephone_number' => $company?->company_tel_phone ?? null,
@@ -167,20 +171,27 @@ class CompanyProfileController extends Controller
 
     public function showPublic($id)
     {
-        $company = \App\Models\Company::with(['jobs', 'sector'])->findOrFail($id);
-        return inertia('Frontend/CompanyProfile', [
-            'company' => $company,
+        $company = \App\Models\Company::with(['jobs', 'sector', 'category'])->findOrFail($id);
+        $jobPostCount = method_exists($company, 'jobs') ? $company->jobs()->count() : 0;
+
+        return inertia('Company/CompanyProfile', [
+            'company' => [
+                ...$company->toArray(),
+                'job_post_count' => $jobPostCount,
+                'category' => $company->category?->name, // <-- Add this line for category name
+
+            ],
         ]);
     }
-    
+
     public function settings()
     {
         $user = Auth::user();
         $company = $user->company;
-        
+
         // Get company social links if they exist
         $socialLinks = $company->social_links ?? [];
-        
+
         return Inertia::render('Company/CompanyProfileSettings', [
             'company' => [
                 'company_name' => $company->company_name ?? 'N/A',
@@ -201,12 +212,12 @@ class CompanyProfileController extends Controller
             ],
         ]);
     }
-    
+
     public function updateSettings(Request $request)
     {
         $user = Auth::user();
         $company = $user->company;
-        
+
         // Validate the request
         $validated = $request->validate([
             'company_name' => 'required|string|max:255',
@@ -222,7 +233,7 @@ class CompanyProfileController extends Controller
             'website' => 'nullable|string|max:255',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
         ]);
-        
+
         // Update company information
         if ($company) {
             $company->company_name = $validated['company_name'];
@@ -230,7 +241,7 @@ class CompanyProfileController extends Controller
             $company->company_mobile_phone = $validated['mobile_number'];
             $company->company_tel_phone = $validated['telephone_number'] ?? $company->company_tel_phone;
             $company->company_description = $validated['description'] ?? $company->company_description;
-            
+
             // Update social links
             $company->social_links = [
                 'indeed' => $validated['indeed_profile'] ?? '',
@@ -240,10 +251,10 @@ class CompanyProfileController extends Controller
                 'instagram' => $validated['instagram'] ?? '',
                 'website' => $validated['website'] ?? '',
             ];
-            
+
             $company->save();
         }
-        
+
         // Handle logo upload if present
         if ($request->hasFile('logo')) {
             if ($user->profile_photo_path) {
@@ -252,7 +263,7 @@ class CompanyProfileController extends Controller
             $user->profile_photo_path = $request->file('logo')->store('profile-photos', 'public');
             $user->save();
         }
-        
+
         return back()->with('success', 'Company profile settings updated successfully!');
     }
 
@@ -296,7 +307,7 @@ class CompanyProfileController extends Controller
             'mobile_number' => 'required|string|max:20',
             // Documents
             'verification_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'bir_tin' => ['required','string','max:30'],
+            'bir_tin' => ['required', 'string', 'max:30'],
             'company_logo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -327,7 +338,7 @@ class CompanyProfileController extends Controller
             'verification_file_path' => $verificationPath,
             'bir_tin' => $validated['bir_tin'],
             'company_logo_path' => $logoPath,
-            'company_profile_photo_path' => $logoPath, 
+            'company_profile_photo_path' => $logoPath,
         ]);
 
         \App\Models\HumanResource::create([

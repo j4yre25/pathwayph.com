@@ -19,6 +19,7 @@ class Experience extends Model
      * @var array
      */
     protected $fillable = [
+        'graduate_id',      // <-- add this
         'title',
         'company_name',
         'description',
