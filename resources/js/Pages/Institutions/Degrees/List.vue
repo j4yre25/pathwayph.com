@@ -67,110 +67,141 @@ watch(searchQuery, () => {
   <AppLayout title="Manage Degrees">
     <template #header>
       <div class="flex items-center">
-        <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
+        <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
           <i class="fas fa-chevron-left"></i>
         </button>
-        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
-          <i class="fas fa-graduation-cap text-blue-500 text-xl mr-2"></i> Manage Degrees
-        </h2>
+        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+          <i class="fas fa-graduation-cap text-white"></i>
+        </div>
+        <div>
+          <h2 class="font-semibold text-xl text-gray-800 leading-tight">Manage Degrees</h2>
+          <p class="text-sm text-gray-600">Browse and filter degrees by status</p>
+        </div>
       </div>
     </template>
 
     <link rel="stylesheet" :href="faCSS" />
 
-    <Container class="py-6 space-y-6">
+    <Container class="py-8 space-y-8">
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-gray-600 text-sm font-medium mb-2">Total Degrees</h3>
-              <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+        <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-graduation-cap text-white text-lg"></i>
             </div>
-            <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
-              <i class="fas fa-graduation-cap text-blue-600"></i>
-            </div>
+            <h3 class="text-blue-700 text-sm font-medium mb-2">Total Degrees</h3>
+            <p class="text-2xl font-bold text-blue-900">{{ stats.total }}</p>
           </div>
         </div>
         
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-gray-600 text-sm font-medium mb-2">Active</h3>
-              <p class="text-3xl font-bold text-gray-800">{{ stats.active }}</p>
+        <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-check-circle text-white text-lg"></i>
             </div>
-            <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
-              <i class="fas fa-check-circle text-green-600"></i>
-            </div>
+            <h3 class="text-green-700 text-sm font-medium mb-2">Active</h3>
+            <p class="text-2xl font-bold text-green-900">{{ stats.active }}</p>
           </div>
         </div>
         
-        <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500 relative overflow-hidden">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-gray-600 text-sm font-medium mb-2">Inactive</h3>
-              <p class="text-3xl font-bold text-gray-800">{{ stats.inactive }}</p>
+        <div class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+              <i class="fas fa-times-circle text-white text-lg"></i>
             </div>
-            <div class="bg-red-100 rounded-full p-3 flex items-center justify-center">
-              <i class="fas fa-times-circle text-red-600"></i>
-            </div>
+            <h3 class="text-red-700 text-sm font-medium mb-2">Inactive</h3>
+            <p class="text-2xl font-bold text-red-900">{{ stats.inactive }}</p>
           </div>
         </div>
       </div>
 
       <!-- Filter and Search -->
-      <div class="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center">
-            <i class="fas fa-filter text-gray-500 mr-2"></i>
-            <label for="statusFilter" class="font-medium text-gray-700">Filter by Status:</label>
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center">
+          <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+            <i class="fas fa-filter text-white text-sm"></i>
           </div>
-          <select
-            id="statusFilter"
-            v-model="selectedStatus"
-            class="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+          <div>
+            <h2 class="text-lg font-bold text-gray-800">Filter Degrees</h2>
+            <span class="text-xs text-gray-600">Search and filter by status</span>
+          </div>
         </div>
-        
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <i class="fas fa-search text-gray-400"></i>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="statusFilter" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              id="statusFilter"
+              v-model="selectedStatus"
+              class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
           </div>
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="Search degrees..."
-            class="pl-10 border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none w-full md:w-64"
-          />
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-search text-gray-400"></i>
+              </div>
+              <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search degrees..."
+                class="w-full pl-10 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Table -->
-      <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center">
+          <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+            <i class="fas fa-list text-white text-sm"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-gray-800">Degrees List</h2>
+            <span class="text-xs text-gray-600">{{ filteredDegrees.length }} shown</span>
+          </div>
+        </div>
         <div class="overflow-x-auto">
-          <table class="min-w-full text-sm text-left text-gray-700">
-            <thead class="bg-gray-100 text-xs uppercase tracking-wider text-gray-600">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gradient-to-r from-blue-50 to-indigo-50">
               <tr>
-                <th class="px-6 py-4"><i class="fas fa-graduation-cap mr-2"></i> Degree</th>
-                <th class="px-6 py-4"><i class="fas fa-hashtag mr-2"></i> Degree Code</th>
-                <th class="px-6 py-4"><i class="fas fa-info-circle mr-2"></i> Status</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Degree</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Degree Code</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="bg-white divide-y divide-gray-100">
               <tr
                 v-for="degree in filteredDegrees"
                 :key="degree.id"
-                class="border-t hover:bg-gray-50 transition-colors"
+                class="hover:bg-gray-50 transition-colors"
               >
-                <td class="px-6 py-4 font-medium">{{ degree.degree?.type }}</td>
-                <td class="px-6 py-4">{{ degree.degree_code }}</td>
-                <td class="px-6 py-4">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="h-8 w-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-3">
+                      <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-800">{{ degree.degree?.type }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="h-8 w-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mr-3">
+                      <i class="fas fa-hashtag"></i>
+                    </div>
+                    <span class="text-sm text-gray-700">{{ degree.degree_code }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
                   <span 
-                    class="px-2 py-1 rounded-full text-xs font-semibold" 
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
                     :class="degree.deleted_at ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'"
                   >
                     <i :class="degree.deleted_at ? 'fas fa-times-circle mr-1' : 'fas fa-check-circle mr-1'"></i>
@@ -179,10 +210,11 @@ watch(searchQuery, () => {
                 </td>
               </tr>
               <tr v-if="filteredDegrees.length === 0">
-                <td colspan="3" class="px-6 py-8 text-center text-gray-500">
-                  <div class="flex flex-col items-center">
-                    <i class="fas fa-search text-gray-400 text-3xl mb-2"></i>
-                    <p>No degrees found matching your criteria</p>
+                <td colspan="3" class="px-6 py-12 text-center">
+                  <div class="flex flex-col items-center justify-center">
+                    <i class="fas fa-search text-gray-300 text-5xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-700">No degrees found</h3>
+                    <p class="text-gray-500 mt-1">Adjust filters to see results here</p>
                   </div>
                 </td>
               </tr>

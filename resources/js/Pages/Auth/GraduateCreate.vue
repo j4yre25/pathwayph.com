@@ -202,80 +202,101 @@ const goBack = () => {
         
         <div class="py-8">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-white border-b border-gray-200">
+                <div class="bg-white overflow-hidden shadow-lg sm:rounded-2xl">
+                    <div class="p-6 bg-white">
                         <div class="flex items-center justify-between mb-6">
-                            <div class="flex items-center">
-                                <i class="fas fa-user-graduate text-blue-500 mr-2"></i>
-                                <h3 class="text-lg font-medium text-gray-900">New Graduate Registration</h3>
+                        </div>
+                <div class="flex justify-center mb-8">
+                    <div class="flex flex-col items-center">
+                        <div class="flex items-center space-x-4">
+                            <!-- Step 1: Personal Information -->
+                            <div class="flex flex-col items-center">
+                                <div @click="goToStep(1)"
+                                    :class="[
+                                        'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                                        currentStep === 1 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                                        (currentStep > 1 ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600')
+                                    ]">
+                                    <svg v-if="currentStep > 1" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <i v-else class="fas fa-user"></i>
+                                </div>
+                                <div class="mt-2 text-center text-sm font-medium text-gray-700">Personal Information</div>
+                            </div>
+
+                            <div class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+
+                            <!-- Step 2: Academic Information -->
+                            <div class="flex flex-col items-center">
+                                <div @click="goToStep(2)"
+                                    :class="[
+                                        'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                                        currentStep === 2 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                                        (currentStep > 2 ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600')
+                                    ]">
+                                    <svg v-if="currentStep > 2" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <i v-else class="fas fa-graduation-cap"></i>
+                                </div>
+                                <div class="mt-2 text-center text-sm font-medium text-gray-700">Academic Information</div>
+                            </div>
+
+                            <div class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+
+                            <!-- Step 3: Employment Information -->
+                            <div class="flex flex-col items-center">
+                                <div @click="goToStep(3)"
+                                    :class="[
+                                        'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                                        currentStep === 3 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' : 'bg-gray-200 border-gray-300 text-gray-600'
+                                    ]">
+                                    <i class="fas fa-briefcase"></i>
+                                </div>
+                                <div class="mt-2 text-center text-sm font-medium text-gray-700">Employment Information</div>
                             </div>
                         </div>
-                <div class="mb-8">
-                    <div class="flex justify-between mb-2">
-                        <div v-for="(title, index) in stepTitles" :key="index" 
-                            class="flex flex-col items-center cursor-pointer" 
-                            @click="goToStep(index + 1)">
-                            <div :class="[`text-${stepColors[index]}-500 bg-${stepColors[index]}-100`, 
-                                        currentStep > index + 1 ? `bg-${stepColors[index]}-500 text-white` : '',
-                                        currentStep === index + 1 ? `ring-2 ring-${stepColors[index]}-500` : '']"
-                                class="w-10 h-10 rounded-full flex items-center justify-center mb-1 transition-all duration-200">
-                                <i v-if="currentStep > index + 1" class="fas fa-check"></i>
-                                <i v-else :class="stepIcons[index]"></i>
-                            </div>
-                            <span :class="[currentStep === index + 1 ? `text-${stepColors[index]}-600 font-medium` : 'text-gray-500']"
-                                class="text-xs text-center hidden sm:block">
-                                {{ title }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div class="absolute top-0 left-0 h-full transition-all duration-300 ease-in-out"
-                            :class="`bg-${stepColors[currentStep-1]}-500`"
-                            :style="{width: `${(currentStep / totalSteps) * 100}%`}"></div>
                     </div>
                 </div>
                 
                 <form @submit.prevent="createGraduate" class="space-y-6">
                     <!-- Step 1: Personal Information -->
-                    <div v-show="currentStep === 1" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-user text-blue-500 mr-2"></i>
-                            Personal Information
-                        </h3>
+                    <div v-show="currentStep === 1">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="email" class="text-sm font-medium text-gray-700 mb-1">Email <span class="text-blue-400">*</span></label>
                                 <input v-model="form.email" type="email" id="email" required
-                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="Enter your email" />
                             </div>
                             <div>
                                 <label for="first_name" class="text-sm font-medium text-gray-700 mb-1">First Name <span class="text-emerald-400">*</span></label>
                                 <input v-model="form.first_name" type="text" id="first_name" required
-                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="Enter your first name" />
                             </div>
                             <div>
                                 <label for="middle_name" class="text-sm font-medium text-gray-700 mb-1">Middle Name</label>
                                 <input v-model="form.middle_name" type="text" id="middle_name"
-                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="Enter your middle name" />
                             </div>
                             <div>
                                 <label for="last_name" class="text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-emerald-400">*</span></label>
                                 <input v-model="form.last_name" type="text" id="last_name" required
-                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="Enter your last name" />
                             </div>
                             <div>
                                 <label for="birth_date" class="text-sm font-medium text-gray-700 mb-1">Birth Date <span class="text-emerald-400">*</span></label>
                                 <input v-model="form.birth_date" type="date" id="birth_date" required
-                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition" />
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                             </div>
                             <div>
                                 <label for="gender" class="text-sm font-medium text-gray-700 mb-1">Gender <span class="text-emerald-400">*</span></label>
                                 <select v-model="form.gender" id="gender" required
-                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition">
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
@@ -284,18 +305,14 @@ const goBack = () => {
                             <div>
                                 <label for="contact_number" class="text-sm font-medium text-gray-700 mb-1">Mobile Number <span class="text-emerald-400">*</span></label>
                                 <input v-model="formattedMobileNumber" type="text" id="contact_number" required
-                                    class="mt-2 block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition"
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="+63 XXX XXX XXXX" />
-                            </div>
+                    </div>
                         </div>
                     </div>
 
                     <!-- Step 2: Academic Information -->
-                    <div v-show="currentStep === 2" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
-                            Academic Information
-                        </h3>
+                    <div v-show="currentStep === 2">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="flex flex-col">
                                 <label for="degree_id" class="text-sm font-medium text-gray-700 mb-1">Degree</label>
@@ -304,7 +321,7 @@ const goBack = () => {
                                         <i class="fas fa-scroll text-gray-400"></i>
                                     </div>
                                     <select v-model="form.degree_id" id="degree_id" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition">
+                                        class="pl-10 w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 appearance-none">
                                         <option value="">Select Degree</option>
                                         <option v-for="degree in degrees" :key="degree.id" :value="degree.id">
                                             {{ degree.type }}
@@ -323,7 +340,7 @@ const goBack = () => {
                                         <i class="fas fa-book text-gray-400"></i>
                                     </div>
                                     <select v-model="form.program_id" id="program_id" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition"
+                                        class="pl-10 w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 appearance-none"
                                         :disabled="!form.degree_id">
                                         <option value="">Select Program</option>
                                         <option v-for="program in filteredPrograms" :key="program.id" :value="program.id">
@@ -343,7 +360,7 @@ const goBack = () => {
                                         <i class="fas fa-calendar-check text-gray-400"></i>
                                     </div>
                                     <select v-model="form.school_year_id" id="school_year_id" required
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition">
+                                        class="pl-10 w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 appearance-none">
                                         <option value="">Select School Year</option>
                                         <option v-for="school_year in school_years" :key="school_year.id"
                                             :value="school_year.id">
@@ -359,12 +376,8 @@ const goBack = () => {
                     </div>
 
                     <!-- Step 3: Employment Information -->
-                    <div v-show="currentStep === 3" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-briefcase text-purple-500 mr-2"></i>
-                            Employment Information
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div v-show="currentStep === 3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="flex flex-col">
                                 <label for="employment_status" class="text-sm font-medium text-gray-700 mb-1">Employment Status</label>
                                 <div class="relative">
@@ -373,7 +386,7 @@ const goBack = () => {
                                     </div>
                                     <select v-model="form.employment_status" id="employment_status" required
                                         @change="handleEmploymentStatusChange"
-                                        class="pl-10 w-full py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none transition">
+                                        class="pl-10 w-full py-2.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 appearance-none">
                                         <option value="">Select Employment Status</option>
                                         <option value="Employed">Employed</option>
                                         <option value="Underemployed">Underemployed</option>
@@ -397,25 +410,29 @@ const goBack = () => {
                             </div>
 
                             <!-- Company Searchable Dropdown & Checkbox -->
-                            <div class="flex flex-col" v-if="form.employment_status !== 'Unemployed'">
-                                <label class="inline-flex items-center mb-2">
-                                    <input type="checkbox" v-model="form.company_not_found" class="form-checkbox text-blue-400" />
-                                    <span class="ml-2 text-sm text-gray-700 font-medium">My company is not listed</span>
-                                </label>
+                            <div class="flex flex-col relative overflow-visible" v-if="form.employment_status !== 'Unemployed'">
+                                <!-- Header row: label + toggle -->
+                                <div class="flex items-center justify-between mb-2">
+                                    <label for="company_search" class="text-sm font-medium text-gray-700">Company</label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" v-model="form.company_not_found" class="form-checkbox text-blue-500" />
+                                        <span class="ml-2 text-sm text-gray-700 font-medium">My company is not listed</span>
+                                    </label>
+                                </div>
+
                                 <!-- Company Search Dropdown -->
                                 <div v-if="!form.company_not_found" class="relative">
-                                    <label for="company_name" class="text-sm font-medium text-gray-700 mb-1">Company Name</label>
                                     <input
                                         id="company_search"
                                         v-model="companySearch"
                                         type="text"
-                                        class="mt-2 block w-full rounded-lg border border-gray-300"
+                                        class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="Type to search company..."
                                         autocomplete="off"
                                         @focus="showCompanyDropdown = true"
                                         @blur="handleCompanyBlur"
                                     />
-                                    <div v-if="showCompanyDropdown && filteredCompanies.length" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                    <div v-if="showCompanyDropdown && filteredCompanies.length" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                         <div
                                             v-for="company in filteredCompanies"
                                             :key="company.id"
@@ -426,20 +443,25 @@ const goBack = () => {
                                         </div>
                                     </div>
                                 </div>
+
                                 <!-- Manual Company Name & Sector -->
-                                <div v-else class="space-y-2 mt-2">
-                                    <label for="other_company_name" class="text-sm font-medium text-gray-700 mb-1">Other Company Name</label>
-                                    <input v-model="form.other_company_name" type="text" id="other_company_name" required
-                                        class="block w-full rounded-lg border border-gray-300"
-                                        placeholder="Enter company name" />
-                                    <label for="other_company_sector" class="text-sm font-medium text-gray-700 mb-1">Sector</label>
-                                    <select v-model="form.other_company_sector" id="other_company_sector" required
-                                        class="block w-full rounded-lg border border-gray-300">
-                                        <option value="">Select Sector</option>
-                                        <option v-for="sector in sectors" :key="sector.id" :value="sector.id">
-                                            {{ sector.name }}
-                                        </option>
-                                    </select>
+                                <div v-else class="grid grid-cols-1 gap-2 mt-2">
+                                    <div>
+                                        <label for="other_company_name" class="text-sm font-medium text-gray-700 mb-1">Other Company Name</label>
+                                        <input v-model="form.other_company_name" type="text" id="other_company_name" required
+                                            class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            placeholder="Enter company name" />
+                                    </div>
+                                    <div>
+                                        <label for="other_company_sector" class="text-sm font-medium text-gray-700 mb-1">Sector</label>
+                                        <select v-model="form.other_company_sector" id="other_company_sector" required
+                                            class="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="">Select Sector</option>
+                                            <option v-for="sector in sectors" :key="sector.id" :value="sector.id">
+                                                {{ sector.name }}
+                                            </option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>

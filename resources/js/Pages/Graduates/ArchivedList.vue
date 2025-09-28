@@ -1,9 +1,8 @@
 <script setup>
 import { router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const confirmRestore = ref(false);
@@ -37,7 +36,10 @@ const props = defineProps({
     },
 });
 
-// --- Filter Logic ---
+// Initialize filters from props
+filters.value = { ...props.filters };
+
+// --- Automatic Filter Logic ---
 const applyFilters = () => {
     const activeFilters = {};
 
@@ -64,6 +66,11 @@ const applyFilters = () => {
 
     router.get(route('graduates.archived'), activeFilters, { preserveState: true });
 };
+
+// Watch for filter changes and apply automatically
+watch(filters, () => {
+    applyFilters();
+}, { deep: true });
 
 const closeDateErrorModal = () => {
     showDateErrorModal.value = false;
@@ -96,11 +103,14 @@ const proceedWithRestore = () => {
 const stats = computed(() => {
     return [
         {
-            title: 'Total Archived',
+            title: 'Total Archived Graduates',
             value: props.graduates?.data?.length || 0,
             icon: 'fas fa-archive',
-            color: 'text-orange-600',
-            bgColor: 'bg-orange-100'
+            color: 'text-white',
+            bgGradient: 'bg-gradient-to-br from-orange-100 to-orange-200',
+            iconBg: 'bg-orange-500',
+            textColor: 'text-orange-700',
+            valueColor: 'text-orange-900'
         }
     ];
 });
@@ -109,31 +119,27 @@ const stats = computed(() => {
 <template>
     <AppLayout title="Archived Graduates">
         <template #header>
-            <div>
-                <div class="flex items-center">
-                    <button @click="$inertia.get(route('graduates.index'))" class="mr-4 text-gray-600 hover:text-gray-900 transition">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <i class="fas fa-archive text-orange-500 text-xl mr-2"></i>
-                    <h2 class="text-2xl font-bold text-gray-800">Archived Graduates</h2>
-                </div>
-                <p class="text-sm text-gray-500 mb-1">View the full list of archived graduates or restore them.</p>
+            <div class="flex items-center">
+                <button @click="$inertia.get(route('graduates.index'))" class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h2 class="font-semibold text-xl text-gray-800 flex items-center">
+                    <i class="fas fa-archive text-blue-500 text-xl mr-2"></i> Archived Graduates
+                </h2>
             </div>
         </template>
 
-        <Container class="py-8">
+        <Container class="py-6 space-y-6">
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mb-6">
+            <div class="grid grid-cols-1 gap-6 mb-6">
                 <div v-for="(stat, index) in stats" :key="index"
-                    class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500 relative overflow-hidden">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
-                            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
+                    :class="[stat.bgGradient, 'rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105']">
+                    <div class="flex flex-col items-center text-center">
+                        <div :class="[stat.iconBg, 'w-12 h-12 rounded-full flex items-center justify-center mb-3']">
+                            <i :class="[stat.icon, stat.color, 'text-lg']"></i>
                         </div>
-                        <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
-                            <i :class="[stat.icon, stat.color]"></i>
-                        </div>
+                        <h3 :class="[stat.textColor, 'text-sm font-medium mb-2']">{{ stat.title }}</h3>
+                        <p :class="[stat.valueColor, 'text-2xl font-bold']">{{ stat.value }}</p>
                     </div>
                 </div>
             </div>
@@ -144,7 +150,7 @@ const stats = computed(() => {
                     <i class="fas fa-filter text-blue-500 mr-2"></i>
                     Filter Graduates
                 </h3>
-                <form @submit.prevent="applyFilters" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Program Filter -->
                     <div class="flex flex-col">
                         <label for="program" class="text-sm font-medium text-gray-700 mb-1">Program</label>
@@ -186,98 +192,83 @@ const stats = computed(() => {
                             </div>
                         </div>
                     </div>
-
-                    <!-- Submit -->
-                    <div class="flex items-end">
-                        <button type="submit"
-                            class="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center">
-                            <i class="fas fa-search mr-2"></i>
-                            Apply Filters
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
 
-            <div class="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200 mb-6">
-                <div class="p-4 border-b border-gray-200 bg-gray-50 flex items-center">
-                    <i class="fas fa-list text-blue-500 mr-2"></i>
-                    <h2 class="font-semibold text-gray-800">Archived Graduates List</h2>
+            <!-- Table Card -->
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-table text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">Archived Graduates</h3>
+                            <p class="text-sm text-gray-600">Manage archived graduates</p>
+                            <span class="text-sm font-semibold text-gray-700">{{ graduates.data.length }} total</span>
+                        </div>
+                    </div>
                 </div>
+                
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full table-auto">
+                        <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
                             <tr>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Name
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">Name</div>
                                 </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Program</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Date
-                                    Created</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status</th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">Program</div>
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">Date Created</div>
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center">Status</div>
+                                </th>
+                                <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                                    <div class="flex items-center justify-end">Actions</div>
+                                </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-100">
+                        <tbody class="divide-y divide-gray-100 bg-white">
                             <tr v-for="graduate in graduates.data" :key="graduate.id"
-                                class="hover:bg-gray-50 transition duration-150">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-user text-gray-400 mr-2"></i>
-                                        <span class="text-sm font-medium text-gray-800">
-                                            {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name
-                                            }}
-                                        </span>
+                                class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <div class="text-sm font-semibold text-gray-900">
+                                        {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-graduation-cap text-gray-400 mr-2"></i>
-                                        <span class="text-sm text-gray-700">{{ graduate.graduate_program_completed
-                                        }}</span>
-                                    </div>
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <div class="text-sm text-gray-700">{{ graduate.graduate_program_completed }}</div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-calendar-alt text-gray-400 mr-2"></i>
-                                        <span class="text-sm text-gray-600">{{ new
-                                            Date(graduate.created_at).toLocaleDateString() }}</span>
-                                    </div>
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <div class="text-sm text-gray-600">{{ new Date(graduate.created_at).toLocaleDateString() }}</div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        <i class="fas fa-archive mr-1"></i>
-                                        Archived
+                                <td class="px-6 py-5 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 shadow-sm">
+                                        <i class="fas fa-archive mr-1.5"></i> Archived
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <button @click="confirmRestoreGraduate(graduate)"
-                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                                        <i class="fas fa-undo-alt mr-1"></i>
-                                        Restore
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr v-if="graduates.data.length === 0">
-                                <td colspan="5" class="px-6 py-12 text-center">
-                                    <div class="flex flex-col items-center justify-center">
-                                        <i class="fas fa-archive text-gray-300 text-5xl mb-4"></i>
-                                        <p class="text-gray-500 text-lg font-medium">No archived graduates found</p>
-                                        <p class="text-gray-400 text-sm mt-1">Archived graduates will appear here</p>
+                                <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex items-center justify-end space-x-2">
+                                        <button @click="confirmRestoreGraduate(graduate)"
+                                            class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-full hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md"
+                                            title="Restore">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Empty State -->
+                <div v-if="graduates.data.length === 0" class="py-12 text-center">
+                    <i class="fas fa-archive text-gray-300 text-5xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-700">No archived graduates found</h3>
+                    <p class="text-gray-500 mt-1">When graduates are archived, they will appear here</p>
                 </div>
             </div>
 

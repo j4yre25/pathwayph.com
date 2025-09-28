@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
+import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage();
 const userId = page.props.auth.user.id;
@@ -106,70 +107,84 @@ watch([selectedProgram, selectedCareerOpportunity, selectedSkill, selectedStatus
 </script>
 
 <template>
-  <AppLayout title="Internship Programs List">
+  <AppLayout title="Internship Programs">
     <template #header>
       <div class="flex items-center">
         <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
           <i class="fas fa-chevron-left"></i>
         </button>
-        <i class="fas fa-list text-blue-500 text-xl mr-2"></i>
+        <i class="fas fa-briefcase text-blue-500 text-xl mr-2"></i>
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Internship Programs</h2>
       </div>
     </template>
 
     <div class="py-8">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
         <!-- Stats Summary -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden">
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="text-gray-600 text-sm font-medium mb-2">Total Programs</h3>
-                <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Total Programs Card -->
+          <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+            <div class="flex flex-col items-center text-center">
+              <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+                <i class="fas fa-briefcase text-white text-lg"></i>
               </div>
-              <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
-                <i class="fas fa-briefcase text-blue-600"></i>
-              </div>
+              <h3 class="text-blue-700 text-sm font-medium mb-2">Total Programs</h3>
+              <p class="text-2xl font-bold text-blue-900">{{ stats.total }}</p>
             </div>
           </div>
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden">
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="text-gray-600 text-sm font-medium mb-2">Active Programs</h3>
-                <p class="text-3xl font-bold text-gray-800">{{ stats.active }}</p>
+
+          <!-- Active Programs Card -->
+          <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+            <div class="flex flex-col items-center text-center">
+              <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+                <i class="fas fa-check-circle text-white text-lg"></i>
               </div>
-              <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
-                <i class="fas fa-check-circle text-green-600"></i>
-              </div>
+              <h3 class="text-green-700 text-sm font-medium mb-2">Active Programs</h3>
+              <p class="text-2xl font-bold text-green-900">{{ stats.active }}</p>
             </div>
           </div>
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500 relative overflow-hidden">
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="text-gray-600 text-sm font-medium mb-2">Archived Programs</h3>
-                <p class="text-3xl font-bold text-gray-800">{{ stats.archived }}</p>
+
+          <!-- Archived Programs Card -->
+          <div class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+            <div class="flex flex-col items-center text-center">
+              <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mb-3">
+                <i class="fas fa-archive text-white text-lg"></i>
               </div>
-              <div class="bg-purple-100 rounded-full p-3 flex items-center justify-center">
-                <i class="fas fa-archive text-purple-600"></i>
-              </div>
+              <h3 class="text-purple-700 text-sm font-medium mb-2">Archived Programs</h3>
+              <p class="text-2xl font-bold text-purple-900">{{ stats.archived }}</p>
             </div>
           </div>
         </div>
         
         <!-- Filter and Search -->
-        <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
           <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <i class="fas fa-filter text-indigo-500 mr-2"></i>
-            Filter Options
+            <i class="fas fa-filter text-blue-500 mr-2"></i>
+            Filter Internship Programs
           </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <!-- Search -->
+            <div>
+              <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <div class="relative">
+                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                <input
+                  id="search"
+                  type="text"
+                  v-model="searchQuery"
+                  placeholder="Search internship programs..."
+                  class="pl-9 w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
+                />
+              </div>
+            </div>
+          
             <!-- Program Filter -->
             <div>
-              <label for="programFilter" class="block text-sm font-medium text-gray-700 mb-1">Program</label>
+              <label for="programFilter" class="block text-sm font-medium text-gray-700 mb-2">Program</label>
               <select
                 id="programFilter"
                 v-model="selectedProgram"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
               >
                 <option value="">All Programs</option>
                 <option v-for="program in programs" :key="program.id" :value="program.id.toString()">
@@ -180,11 +195,11 @@ watch([selectedProgram, selectedCareerOpportunity, selectedSkill, selectedStatus
             
             <!-- Career Opportunity Filter -->
             <div>
-              <label for="careerFilter" class="block text-sm font-medium text-gray-700 mb-1">Career Opportunity</label>
+              <label for="careerFilter" class="block text-sm font-medium text-gray-700 mb-2">Career Opportunity</label>
               <select
                 id="careerFilter"
                 v-model="selectedCareerOpportunity"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
               >
                 <option value="">All Opportunities</option>
                 <option v-for="opportunity in careerOpportunities" :key="opportunity.id" :value="opportunity.id.toString()">
@@ -195,11 +210,11 @@ watch([selectedProgram, selectedCareerOpportunity, selectedSkill, selectedStatus
             
             <!-- Skill Filter -->
             <div>
-              <label for="skillFilter" class="block text-sm font-medium text-gray-700 mb-1">Skill</label>
+              <label for="skillFilter" class="block text-sm font-medium text-gray-700 mb-2">Skill</label>
               <select
                 id="skillFilter"
                 v-model="selectedSkill"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
               >
                 <option value="">All Skills</option>
                 <option v-for="skill in skills" :key="skill.id" :value="skill.id.toString()">
@@ -210,11 +225,11 @@ watch([selectedProgram, selectedCareerOpportunity, selectedSkill, selectedStatus
             
             <!-- Status Filter -->
             <div>
-              <label for="statusFilter" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label for="statusFilter" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
                 id="statusFilter"
                 v-model="selectedStatus"
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
               >
                 <option value="all">All</option>
                 <option value="active">Active</option>
@@ -222,67 +237,70 @@ watch([selectedProgram, selectedCareerOpportunity, selectedSkill, selectedStatus
               </select>
             </div>
           </div>
-          
-          <!-- Search -->
-          <div class="flex flex-col md:flex-row items-center gap-4">
-            <div class="relative w-full md:w-1/2">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fas fa-search text-gray-400"></i>
-              </div>
-              <input
-                type="text"
-                v-model="searchQuery"
-                placeholder="Search internship programs..."
-                class="pl-10 w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-              />
-            </div>
-          </div>
         </div>
 
         <!-- Main Content -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
-          <!-- Action Buttons -->
-          <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <!-- List Header -->
+          <div class="p-6 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
             <div class="flex items-center">
-              <h3 class="text-lg font-semibold text-gray-800">All Internship Programs</h3>
-              <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredPrograms.length }} found</span>
+              <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                <i class="fas fa-table text-white"></i>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-800">Internship Programs</h3>
+                <p class="text-sm text-gray-600">Browse and filter internship programs</p>
+                <span class="text-sm font-semibold text-gray-700">{{ filteredPrograms.length }} found</span>
+              </div>
             </div>
           </div>
 
           <!-- Table -->
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr class="bg-gray-50">
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programs</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Career Opportunities</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skills</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <table class="min-w-full table-auto">
+              <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
+                <tr>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Title</th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Programs</th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Career Opportunities</th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Skills</th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">Status</th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="internship in paginatedPrograms" :key="internship.id" class="hover:bg-gray-50 transition-colors duration-150">
-                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ internship.title }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-600">
-                    <div v-for="program in internship.programs" :key="program.id" class="mb-1 flex items-center">
-                      <span class="inline-block w-2 h-2 rounded-full bg-blue-400 mr-2"></span>
-                      {{ program.name }}
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <tr v-for="internship in paginatedPrograms" :key="internship.id" :class="{ 'bg-gray-50': internship.deleted_at }" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200">
+                  <td class="px-6 py-5 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-600 shadow-sm">
+                        <i class="fas fa-briefcase"></i>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-semibold text-gray-900">{{ internship.title }}</div>
+                      </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4 text-sm text-gray-600">
-                    <div v-for="careerOpportunity in internship.career_opportunities" :key="careerOpportunity.id" class="mb-1 flex items-center">
-                      <span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-2"></span>
-                      {{ careerOpportunity.title }}
+                  <td class="px-6 py-5 whitespace-nowrap">
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="program in internship.programs" :key="program.id" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {{ program.name }}
+                      </span>
                     </div>
                   </td>
-                  <td class="px-6 py-4 text-sm text-gray-600">
-                    <div v-for="skill in internship.skills" :key="skill.id" class="mb-1 flex items-center">
-                      <span class="inline-block w-2 h-2 rounded-full bg-purple-400 mr-2"></span>
-                      {{ skill.name }}
+                  <td class="px-6 py-5 whitespace-nowrap">
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="careerOpportunity in internship.career_opportunities" :key="careerOpportunity.id" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {{ careerOpportunity.title }}
+                      </span>
                     </div>
                   </td>
-                  <td class="px-6 py-4 text-sm">
+                  <td class="px-6 py-5 whitespace-nowrap">
+                    <div class="flex flex-wrap gap-1">
+                      <span v-for="skill in internship.skills" :key="skill.id" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {{ skill.name }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-5 whitespace-nowrap">
                     <span v-if="internship.deleted_at" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                       <i class="fas fa-archive mr-1"></i> Archived
                     </span>
@@ -305,36 +323,47 @@ watch([selectedProgram, selectedCareerOpportunity, selectedSkill, selectedStatus
           </div>
           
           <!-- Pagination -->
-          <div v-if="totalPages > 1" class="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div class="flex-1 flex justify-between sm:hidden">
-              <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          <div v-if="totalPages > 1" class="flex items-center justify-center mt-8 mb-6 px-6">
+            <div class="flex items-center space-x-2">
+              <button
+                @click="goToPage(Math.max(1, currentPage - 1))"
+                :disabled="currentPage === 1"
+                :class="[
+                  'px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+                  currentPage === 1 
+                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed' 
+                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                ]"
+              >
                 Previous
               </button>
-              <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+              <div class="flex space-x-1">
+                <button 
+                  v-for="pageNum in totalPages" 
+                  :key="pageNum" 
+                  @click="goToPage(pageNum)"
+                  :class="[
+                    'px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+                    pageNum === currentPage 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                  ]"
+                >
+                  {{ pageNum }}
+                </button>
+              </div>
+              <button
+                @click="goToPage(Math.min(totalPages, currentPage + 1))"
+                :disabled="currentPage === totalPages"
+                :class="[
+                  'px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+                  currentPage === totalPages 
+                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed' 
+                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                ]"
+              >
                 Next
               </button>
-            </div>
-            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p class="text-sm text-gray-700">
-                  Showing <span class="font-medium">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredPrograms.length) }}</span> of <span class="font-medium">{{ filteredPrograms.length }}</span> results
-                </p>
-              </div>
-              <div>
-                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                  <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                    <span class="sr-only">Previous</span>
-                    <i class="fas fa-chevron-left h-5 w-5"></i>
-                  </button>
-                  <button v-for="page in totalPages" :key="page" @click="goToPage(page)" :class="[currentPage === page ? 'z-10 bg-indigo-500 border-indigo-500 text-indigo-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50', 'relative inline-flex items-center px-4 py-2 border text-sm font-medium']">
-                    {{ page }}
-                  </button>
-                  <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                    <span class="sr-only">Next</span>
-                    <i class="fas fa-chevron-right h-5 w-5"></i>
-                  </button>
-                </nav>
-              </div>
             </div>
           </div>
         </div>

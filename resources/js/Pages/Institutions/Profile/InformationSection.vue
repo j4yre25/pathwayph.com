@@ -105,12 +105,12 @@ function goToProfile() {
 
         <!-- Step Progress Indicator -->
         <div class="flex justify-center mb-12">
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-6">
             <div v-for="step in totalSteps" :key="step" class="flex items-center">
               <div @click="goToStep(step)" :class="[
                 'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
-                currentStep === step ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white scale-110' :
-                  currentStep > step ? 'bg-blue-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600'
+                currentStep === step ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                  currentStep > step ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600'
               ]">
                 <svg v-if="currentStep > step" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd"
@@ -127,15 +127,32 @@ function goToProfile() {
         <form @submit.prevent="submit" class="space-y-8">
           <!-- Step 1: Institution Details -->
           <div v-show="currentStep === 1" class="bg-white rounded-2xl p-8 reveal shadow-lg border border-gray-200">
-            <div class="bg-white rounded shadow p-6">
-              <h2 class="text-xl font-semibold mb-4">Institution Details</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-center mb-6">
+              <div class="w-12 h-12 gradient-card rounded-xl flex items-center justify-center mr-4">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-gray-900">Institution Details</h2>
+                <p class="text-gray-700">Tell us about your institution</p>
+              </div>
+            </div>
+            <div class="space-y-6">
                 <div>
                   <InputLabel for="institution_name">Institution Name <span class="text-red-500">*</span></InputLabel>
                   <TextInput id="institution_name" v-model="form.institution_name" type="text" required
                     class="mt-1 block w-full" />
                   <InputError :message="form.errors.institution_name" />
                 </div>
+                <div>
+                  <InputLabel for="institution_address">Institution Address <span class="text-red-500">*</span>
+                  </InputLabel>
+                  <TextInput id="institution_address" v-model="form.institution_address" type="text" required
+                    class="mt-1 block w-full" />
+                  <InputError :message="form.errors.institution_address" />
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div class="flex items-center gap-1">
                     <InputLabel for="institution_type">Institution Type <span class="text-red-500">*</span></InputLabel>
@@ -148,13 +165,6 @@ function goToProfile() {
                     <option value="institution">Institution</option>
                   </select>
                   <InputError class="mt-2" :message="form.errors.institution_type" />
-                </div>
-                <div>
-                  <InputLabel for="institution_address">Institution Address <span class="text-red-500">*</span>
-                  </InputLabel>
-                  <TextInput id="institution_address" v-model="form.institution_address" type="text" required
-                    class="mt-1 block w-full" />
-                  <InputError :message="form.errors.institution_address" />
                 </div>
                 <div>
                   <InputLabel for="email">Email <span class="text-red-500">*</span></InputLabel>

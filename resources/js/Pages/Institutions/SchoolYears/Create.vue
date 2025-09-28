@@ -36,7 +36,7 @@ const goBack = () => {
 
 <template>
     <AppLayout title="Add School Year">
-        <template #header> 
+        <template #header>
             <div>
                 <div class="flex items-center">
                     <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
@@ -45,61 +45,77 @@ const goBack = () => {
                     <i class="fas fa-calendar-alt text-blue-500 text-xl mr-2"></i>
                     <h2 class="text-2xl font-bold text-gray-800">Add School Year</h2>
                 </div>
-                <p class="text-sm text-gray-500 mb-1">Fill in the details below to add a new school year.</p>
+                <p class="text-sm text-gray-500 mb-1">Register a new school year in the system.</p>
             </div>
         </template>
 
-        <Container class="py-8">
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
-                <form @submit.prevent="createSchoolYear" class="space-y-6">
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
-                            School Year Details
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="flex flex-col">
-                                <InputLabel for="school_year_range" value="School Year (e.g., 2023-2024)" class="text-sm font-medium text-gray-700 mb-1" />
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-graduation-cap text-gray-400"></i>
+        <div class="py-8">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white overflow-hidden shadow-lg sm:rounded-2xl">
+                    <div class="p-6 bg-white">
+                        <form @submit.prevent="createSchoolYear" class="space-y-6">
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                    <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
+                                    School Year Details
+                                </h2>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="flex flex-col">
+                                        <label for="school_year_range" class="text-sm font-medium text-gray-700 mb-1">School Year (e.g., 2023-2024)</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <i class="fas fa-graduation-cap text-gray-400"></i>
+                                            </div>
+                                            <input
+                                                id="school_year_range"
+                                                v-model="form.school_year_range"
+                                                type="text"
+                                                class="mt-2 block w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                placeholder="2023-2024"
+                                            />
+                                        </div>
+                                        <InputError :message="form.errors.school_year_range" class="mt-2" />
                                     </div>
-                                    <TextInput 
-                                        id="school_year_range" 
-                                        v-model="form.school_year_range" 
-                                        type="text" 
-                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none" 
-                                        placeholder="2023-2024"
-                                    />
+
+                                    <div class="flex flex-col">
+                                        <label for="term" class="text-sm font-medium text-gray-700 mb-1">Term</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <i class="fas fa-list-ol text-gray-400"></i>
+                                            </div>
+                                            <select
+                                                id="term"
+                                                v-model="form.term"
+                                                class="mt-2 block w-full pl-10 pr-10 py-2.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 appearance-none"
+                                            >
+                                                <option value="">Select Term</option>
+                                                <option v-for="n in 5" :key="n" :value="String(n)">{{ n }}</option>
+                                                <option value="summer">Summer</option>
+                                            </select>
+                                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                        <InputError :message="form.errors.term" class="mt-2" />
+                                        <p class="text-xs text-gray-500 mt-1">Enter a value between 1 and 5</p>
+                                    </div>
                                 </div>
-                                <InputError :message="form.errors.school_year_range" class="mt-2" />
                             </div>
 
-                            <div class="col-span-6 sm:col-span-4">
-                                <InputLabel for="term" value="Term" />
-                                <select id="term" v-model="form.term" class="mt-1 block w-full">
-                                    <option value="">Select Term</option>
-                                    <option v-for="n in 5" :key="n" :value="String(n)">{{ n }}</option>
-                                    <option value="summer">Summer</option>
-                                </select>
-                                <InputError :message="form.errors.term" class="mt-2" />
-                                <p class="text-xs text-gray-500 mt-1">Enter a value between 1 and 5</p>
+                            <div class="flex justify-end pt-4">
+                                <button
+                                    type="submit"
+                                    :disabled="form.processing"
+                                    class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring focus:ring-blue-200 disabled:opacity-25 transition"
+                                >
+                                    <i class="fas fa-save mr-2"></i>
+                                    {{ form.processing ? 'Saving...' : 'Save School Year' }}
+                                </button>
                             </div>
-                        </div>
+                        </form>
                     </div>
-                
-                    <div class="flex justify-end pt-4">
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring focus:ring-blue-200 disabled:opacity-25 transition"
-                        >
-                            <i class="fas fa-save mr-2"></i>
-                            {{ form.processing ? 'Saving...' : 'Save School Year' }}
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
-        </Container>
+        </div>
     </AppLayout>
 </template>

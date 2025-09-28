@@ -186,16 +186,19 @@ function goToProfile() {
           
           <!-- Step Progress Bar -->
           <div class="flex justify-center items-center space-x-4 mb-8">
-            <div v-for="step in totalSteps" :key="step"
-              class="flex items-center">
+            <div v-for="step in totalSteps" :key="step" class="flex items-center">
               <div @click="goToStep(step)"
-                :class="['w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer transition-all duration-300',
-                currentStep >= step ? 'bg-emerald-500 text-white shadow-lg' : 'bg-gray-200 text-gray-500 hover:bg-gray-300']">
-                {{ step }}
+                :class="['w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                currentStep === step ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                  currentStep > step ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600']">
+                <svg v-if="currentStep > step" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"></path>
+                </svg>
+                <span v-else>{{ step }}</span>
               </div>
-              <div v-if="step < totalSteps":class="['w-16 h-1 mx-2 rounded transition-all duration-300',
-              currentStep > step ? 'bg-emerald-500' : 'bg-gray-300']">
-              </div>
+              <div v-if="step < totalSteps" class="w-12 h-0.5 bg-gray-300 mx-2"></div>
             </div>
           </div>
         </div>

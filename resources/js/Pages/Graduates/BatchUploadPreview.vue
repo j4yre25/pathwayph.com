@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import Papa from 'papaparse'
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import Container from '@/Components/Container.vue'
 import dayjs from 'dayjs'
 import '@fortawesome/fontawesome-free/css/all.css';
 
@@ -266,67 +267,96 @@ const stats = computed(() => {
 
 <template>
   <AppLayout title="Batch Upload Graduates">
-    <!-- Back Button and Header -->
-    <div class="flex items-center mt-6 mb-4 px-6">
-      <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
-        <i class="fas fa-chevron-left"></i>
-      </button>
+    <template #header>
       <div class="flex items-center">
-        <i class="fas fa-upload text-blue-500 text-xl mr-2"></i>
-        <h1 class="text-2xl font-bold text-gray-800">Batch Upload Graduates</h1>
+        <button 
+          @click="goBack"
+          class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+          <i class="fas fa-upload text-blue-500 text-xl mr-2"></i> Batch Upload Graduates
+        </h2>
       </div>
-    </div>
+    </template>
+    
+    <Container class="py-6 space-y-6">
 
-    <!-- Stats Cards (only show when data is loaded) -->
-    <div v-if="parsedRows.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 mb-6">
-      <div v-for="(stat, index) in stats" :key="index" 
-           class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 relative overflow-hidden">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
-            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
-          </div>
-          <div :class="[stat.bgColor, 'rounded-full p-3 flex items-center justify-center']">
-            <i :class="[stat.icon, stat.color]"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="px-6">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-        <!-- Header with back button -->
-        <div class="p-5 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <i class="fas fa-file-csv text-blue-500 text-xl mr-2"></i>
-              <h2 class="text-lg font-semibold text-gray-800">Upload & Preview CSV</h2>
+    <div class="space-y-6">
+      <!-- Upload Section -->
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border border-blue-200 relative overflow-hidden transition-all duration-300 hover:shadow-xl">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-200/20 to-indigo-300/20 rounded-full -mr-16 -mt-16"></div>
+        <div class="relative">
+          <div class="flex items-center mb-4">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-2 mr-3 shadow-md">
+              <i class="fas fa-upload text-white"></i>
             </div>
-            <a :href="route('graduates.template.download')" 
-               class="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-200 transition">
-              <i class="fas fa-download mr-2"></i>
-              Download CSV Template
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">Upload CSV File</h3>
+              <p class="text-sm text-gray-600">Import graduates in bulk using CSV format</p>
+            </div>
+          </div>
+          
+          <div class="mb-6">
+            <p class="text-sm text-gray-700 mb-3">
+              Please download the template and fill it with your data before uploading.
+            </p>
+            <a 
+              :href="route('graduates.template.download')" 
+              class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm font-medium">
+              <i class="fas fa-download mr-2"></i> 
+              Download Template
             </a>
           </div>
-        </div>
 
-        <!-- File Upload Section -->
-        <div class="p-5 border-b border-gray-200">
-          <input ref="fileInputRef" id="file-upload" type="file" @change="handleFileUpload" accept=".csv" class="hidden">
-          <div @click="triggerFileInput" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
-            <div class="flex flex-col items-center justify-center space-y-2">
-              <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
-              <p class="text-gray-700 font-medium">Click to upload CSV file</p>
-              <p class="text-xs text-gray-500">or drag and drop</p>
-              <p v-if="file" class="text-sm text-blue-600 font-medium mt-2">
-                <i class="fas fa-file-alt mr-1"></i> {{ file.name }}
-              </p>
-            </div>
+          <div class="flex items-center justify-center w-full">
+            <label 
+              class="flex flex-col items-center justify-center w-full h-40 border-2 border-blue-300 border-dashed rounded-xl cursor-pointer bg-white/50 hover:bg-white/80 transition-all duration-300 hover:border-blue-400 hover:shadow-md">
+              <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-full p-4 mb-3 shadow-sm">
+                  <i class="fas fa-cloud-upload-alt text-blue-600 text-2xl"></i>
+                </div>
+                <p class="mb-2 text-sm text-gray-700">
+                  <span class="font-semibold text-blue-600">Click to upload</span> or drag and drop
+                </p>
+                <p class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">CSV file only</p>
+                <p v-if="file" class="text-sm text-blue-600 font-medium mt-2">
+                  <i class="fas fa-file-alt mr-1"></i> {{ file.name }}
+                </p>
+              </div>
+              <input 
+                ref="fileInputRef"
+                type="file" 
+                class="hidden" 
+                accept=".csv" 
+                @change="handleFileUpload"
+              />
+            </label>
           </div>
         </div>
+      </div>
 
+      <!-- Preview Card -->
+      <div v-if="parsedRows.length" class="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <div class="bg-white/20 rounded-lg p-2 mr-3">
+                <i class="fas fa-table text-white"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-white">CSV Preview</h3>
+                <p class="text-blue-100 text-sm">{{ parsedRows.length }} records found</p>
+              </div>
+            </div>
+            <span class="text-xs font-medium text-blue-100 bg-white/20 rounded-full px-3 py-1">
+              Showing first 5 rows
+            </span>
+          </div>
+        </div>
+        
         <!-- Validation Errors -->
-        <div v-if="validationErrors.length" class="p-5 border-b border-gray-200">
+        <div v-if="validationErrors.length" class="p-6 border-b border-gray-200">
           <div class="flex items-center mb-4">
             <i class="fas fa-exclamation-circle text-red-500 text-xl mr-2"></i>
             <h3 class="font-semibold text-gray-800">Validation Issues</h3>
@@ -349,79 +379,109 @@ const stats = computed(() => {
           </div>
         </div>
 
-        <!-- Preview Table -->
-        <div v-if="parsedRows.length" class="p-5">
-          <div class="flex items-center mb-4">
-            <i class="fas fa-table text-blue-500 mr-2"></i>
-            <h3 class="font-semibold text-gray-800">Data Preview</h3>
-          </div>
+        <div class="p-6">
           <div class="overflow-x-auto">
-            <table class="w-full border-collapse">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">#</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Email</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">First Name</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Middle Name</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Last Name</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Degree Code</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Program Code</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Year Graduated</th>
-              <th class="p-2 border">Term</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">DOB</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Gender</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Contact No.</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Employment</th>
-              <th class="p-2 border">Company Name</th>
-                  <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Job Title</th>
+            <table class="min-w-full">
+              <thead>
+                <tr class="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>#
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Email
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>First Name
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Middle Name
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Last Name
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Degree Code
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Program Code
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Year Graduated
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Term
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-birthday-cake text-blue-500 mr-2"></i>DOB
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-venus-mars text-blue-500 mr-2"></i>Gender
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-phone text-blue-500 mr-2"></i>Contact No.
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-briefcase text-blue-500 mr-2"></i>Employment
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-building text-blue-500 mr-2"></i>Company Name
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    <i class="fas fa-user-tie text-blue-500 mr-2"></i>Job Title
+                  </th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="(row, i) in parsedRows" :key="i" 
                     :class="{'bg-red-50': validationErrors.some(e => e.row === i + 2)}">
-                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ i + 2 }}</td>
-                  <td class="p-3 whitespace-nowrap text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ i + 2 }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <div class="flex items-center">
                       <i class="fas fa-envelope text-gray-400 mr-2"></i>
                       <span>{{ row.email }}</span>
                     </div>
                   </td>
-                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.first_name }}</td>
-                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.middle_name }}</td>
-                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.last_name }}</td>
-                  <td class="p-3 whitespace-nowrap text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row.first_name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row.middle_name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row.last_name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <div class="flex items-center">
                       <i class="fas fa-graduation-cap text-gray-400 mr-2"></i>
                       <span>{{ row.degree_code }}</span>
                     </div>
                   </td>
-                  <td class="p-3 whitespace-nowrap text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <div class="flex items-center">
                       <i class="fas fa-book text-gray-400 mr-2"></i>
                       <span>{{ row.program_code }}</span>
                     </div>
                   </td>
-                  <td class="p-3 whitespace-nowrap text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <div class="flex items-center">
                       <i class="fas fa-calendar-check text-gray-400 mr-2"></i>
                       <span>{{ row.year_graduated }}</span>
                     </div>
                   </td>
-              <td class="border p-2">{{ row.term }}</td>
-                  <td class="p-3 whitespace-nowrap text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-tag text-gray-400 mr-2"></i>
+                      <span>{{ row.term }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <div class="flex items-center">
                       <i class="fas fa-birthday-cake text-gray-400 mr-2"></i>
                       <span>{{ row.dob }}</span>
                     </div>
                   </td>
-                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.gender }}</td>
-                  <td class="p-3 whitespace-nowrap text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row.gender }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <div class="flex items-center">
                       <i class="fas fa-phone text-gray-400 mr-2"></i>
                       <span>{{ row.contact_number }}</span>
                     </div>
                   </td>
-                  <td class="p-3 whitespace-nowrap text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <span :class="{
                       'px-2 py-1 text-xs rounded-full': true,
                       'bg-green-100 text-green-800': row.employment_status === 'Employed',
@@ -431,8 +491,13 @@ const stats = computed(() => {
                       {{ row.employment_status }}
                     </span>
                   </td>
-              <td class="border p-2">{{ row.company_name }}</td>
-                  <td class="p-3 whitespace-nowrap text-sm text-gray-900">{{ row.current_job_title || 'N/A' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <div class="flex items-center">
+                      <i class="fas fa-building text-gray-400 mr-2"></i>
+                      <span>{{ row.company_name }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row.current_job_title || 'N/A' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -459,6 +524,8 @@ const stats = computed(() => {
         </div>
       </div>
     </div>
+
+    </Container>
 
     <!-- Loading Overlay -->
     <div v-if="isLoading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-60">

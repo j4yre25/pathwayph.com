@@ -76,61 +76,101 @@ const stepColors = [
 
 <template>
   <AppLayout title="Add Internship Program">
-    <template #header>
+        <template #header>
       <div class="flex items-center">
-        <Link :href="route('internship-programs.index')" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+        <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
           <i class="fas fa-chevron-left"></i>
-        </Link>
-        <i class="fas fa-plus-circle text-blue-500 text-xl mr-2"></i>
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Add Internship Program</h2>
+        </button>
+        <h2 class="font-semibold text-xl text-gray-800 flex items-center">
+          <i class="fas fa-seedling text-emerald-600 text-xl mr-2"></i> Create Internship Program
+        </h2>
       </div>
     </template>
 
     <div class="py-8">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-          <div class="p-6 bg-white border-b border-gray-200">
+        <div class="bg-white overflow-hidden shadow-lg sm:rounded-2xl">
+          <div class="p-6 bg-white">
             <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center">
-                <i class="fas fa-briefcase text-blue-500 mr-2"></i>
-                <h3 class="text-lg font-medium text-gray-900">New Internship Program</h3>
-              </div>
             </div>
             
-            <!-- Progress Bar -->
-            <div class="mb-8">
-              <div class="flex justify-between mb-2">
-                <div v-for="(title, index) in stepTitles" :key="index" 
-                     class="flex flex-col items-center cursor-pointer" 
-                     @click="goToStep(index + 1)">
-                  <div :class="[`text-${stepColors[index]}-500 bg-${stepColors[index]}-100`, 
-                               currentStep > index + 1 ? `bg-${stepColors[index]}-500 text-white` : '',
-                               currentStep === index + 1 ? `ring-2 ring-${stepColors[index]}-500` : '']"
-                       class="w-10 h-10 rounded-full flex items-center justify-center mb-1 transition-all duration-200">
-                    <i v-if="currentStep > index + 1" class="fas fa-check"></i>
-                    <i v-else :class="stepIcons[index]"></i>
+            <!-- Progress Tabs (aligned with Jobs Create) -->
+            <div class="flex justify-center mb-8">
+              <div class="flex flex-col items-center">
+                <div class="flex items-center space-x-4">
+                  <!-- Step 1 -->
+                  <div class="flex flex-col items-center">
+                    <div @click="goToStep(1)"
+                         :class="[
+                           'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                           currentStep === 1 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                           (currentStep > 1 ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600')
+                         ]">
+                      <svg v-if="currentStep > 1" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                      </svg>
+                      <i v-else class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="mt-2 text-center text-sm font-medium text-gray-700">General Information</div>
                   </div>
-                  <span :class="[currentStep === index + 1 ? `text-${stepColors[index]}-600 font-medium` : 'text-gray-500']"
-                        class="text-xs text-center hidden sm:block">
-                    {{ title }}
-                  </span>
+
+                  <div class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+
+                  <!-- Step 2 -->
+                  <div class="flex flex-col items-center">
+                    <div @click="goToStep(2)"
+                         :class="[
+                           'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                           currentStep === 2 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                           (currentStep > 2 ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600')
+                         ]">
+                      <svg v-if="currentStep > 2" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                      </svg>
+                      <i v-else class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="mt-2 text-center text-sm font-medium text-gray-700">Programs</div>
+                  </div>
+
+                  <div class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+
+                  <!-- Step 3 -->
+                  <div class="flex flex-col items-center">
+                    <div @click="goToStep(3)"
+                         :class="[
+                           'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                           currentStep === 3 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                           (currentStep > 3 ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600')
+                         ]">
+                      <svg v-if="currentStep > 3" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                      </svg>
+                      <i v-else class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="mt-2 text-center text-sm font-medium text-gray-700">Career Opportunities</div>
+                  </div>
+
+                  <div class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+
+                  <!-- Step 4 -->
+                  <div class="flex flex-col items-center">
+                    <div @click="goToStep(4)"
+                         :class="[
+                           'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                           currentStep === 4 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' : 'bg-gray-200 border-gray-300 text-gray-600'
+                         ]">
+                      <i class="fas fa-tools"></i>
+                    </div>
+                    <div class="mt-2 text-center text-sm font-medium text-gray-700">Skills</div>
+                  </div>
                 </div>
-              </div>
-              <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div class="absolute top-0 left-0 h-full transition-all duration-300 ease-in-out"
-                     :class="`bg-${stepColors[currentStep-1]}-500`"
-                     :style="{width: `${(currentStep / totalSteps) * 100}%`}"></div>
               </div>
             </div>
             
             <form @submit.prevent="submit" class="space-y-6">
 
               <!-- Step 1: General Information -->
-              <div v-show="currentStep === 1" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
-                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                  General Information
-                </h3>
+              <div v-show="currentStep === 1">
                 <div>
                   <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
                   <input
@@ -138,18 +178,14 @@ const stepColors = [
                     v-model="form.title"
                     type="text"
                     placeholder="Enter internship title"
-                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
                   />
                   <p v-if="form.errors.title" class="text-sm text-red-500 mt-1">{{ form.errors.title }}</p>
                 </div>
               </div>
 
               <!-- Step 2: Programs -->
-              <div v-show="currentStep === 2" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
-                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <i class="fas fa-graduation-cap text-green-500 mr-2"></i>
-                  Programs
-                </h3>
+              <div v-show="currentStep === 2">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div
                     v-for="p in programs"
@@ -161,7 +197,7 @@ const stepColors = [
                       :id="'program-' + p.id"
                       :value="p.id"
                       v-model="form.program_id"
-                      class="rounded text-green-600 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                      class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
                     />
                     <label :for="'program-' + p.id" class="text-sm text-gray-700 cursor-pointer">{{ p.name }}</label>
                   </div>
@@ -170,11 +206,7 @@ const stepColors = [
               </div>
 
               <!-- Step 3: Career Opportunities -->
-              <div v-show="currentStep === 3" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-indigo-500">
-                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <i class="fas fa-briefcase text-indigo-500 mr-2"></i>
-                  Career Opportunities
-                </h3>
+              <div v-show="currentStep === 3" class="bg-white rounded-2xl shadow-lg p-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div
                     v-for="c in careerOpportunities"
@@ -186,7 +218,7 @@ const stepColors = [
                       :id="'career-' + c.id"
                       :value="c.id"
                       v-model="form.career_opportunity_id"
-                      class="rounded text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50"
+                      class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
                     />
                     <label :for="'career-' + c.id" class="text-sm text-gray-700 cursor-pointer">{{ c.title }}</label>
                   </div>
@@ -195,11 +227,7 @@ const stepColors = [
               </div>
 
               <!-- Step 4: Skills -->
-              <div v-show="currentStep === 4" class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
-                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <i class="fas fa-tools text-purple-500 mr-2"></i>
-                  Skills
-                </h3>
+              <div v-show="currentStep === 4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div
                     v-for="s in skills"
@@ -226,7 +254,7 @@ const stepColors = [
                     v-if="currentStep > 1" 
                     type="button" 
                     @click="prevStep"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 flex items-center"
                   >
                     <i class="fas fa-chevron-left mr-2"></i>
                     Previous
@@ -234,7 +262,7 @@ const stepColors = [
                   <Link 
                     v-else 
                     :href="route('internship-programs.index')" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 flex items-center"
                   >
                     <i class="fas fa-times mr-2"></i>
                     Cancel
@@ -245,7 +273,7 @@ const stepColors = [
                     v-if="currentStep < totalSteps"
                     type="button"
                     @click="nextStep"
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
                   >
                     Next
                     <i class="fas fa-chevron-right ml-2"></i>
@@ -253,7 +281,7 @@ const stepColors = [
                   <button
                     v-else
                     type="submit"
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                    class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 border border-transparent rounded-md shadow-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 flex items-center"
                     :disabled="form.processing"
                   >
                     <i class="fas fa-save mr-2"></i>

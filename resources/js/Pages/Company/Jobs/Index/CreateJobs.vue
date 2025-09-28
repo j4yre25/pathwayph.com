@@ -125,6 +125,14 @@ const goToNextStep = () => {
         currentStep.value = 'review';
     }
 };
+
+// Check if a step is completed (user has moved past it)
+const isStepCompleted = (step) => {
+    const stepOrder = ['job-details', 'salary-info', 'description', 'review'];
+    const currentIndex = stepOrder.indexOf(currentStep.value);
+    const stepIndex = stepOrder.indexOf(step);
+    return currentIndex > stepIndex;
+};
 // End for the tabs setup
 
 
@@ -251,32 +259,78 @@ const createJob = () => {
                 <FormSection @submitted="createJob">
                     <template #form>
                         <!-- Progress Tabs -->
-                        <div class="flex justify-center mb-8 border-b">
-                            <div @click="currentStep = 'job-details'"
-                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
-                                    currentStep === 'job-details' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500']">
-                                <i class="fas fa-briefcase text-xl mb-1"></i>
-                                <span>Basic Job Details</span>
-                            </div>
-                            <div @click="currentStep === 'job-details' ? null : currentStep = 'salary-info'" :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
-                                currentStep === 'salary-info' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
-                                currentStep === 'job-details' ? 'opacity-50 cursor-not-allowed' : '']">
-                                <i class="fas fa-money-bill-wave text-xl mb-1"></i>
-                                <span>Salary Information</span>
-                            </div>
-                            <div @click="currentStep === 'job-details' || currentStep === 'salary-info' ? null : currentStep = 'description'"
-                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
-                                    currentStep === 'description' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
-                                    currentStep === 'job-details' || currentStep === 'salary-info' ? 'opacity-50 cursor-not-allowed' : '']">
-                                <i class="fas fa-clipboard-list text-xl mb-1"></i>
-                                <span>Description & Requirements</span>
-                            </div>
-                            <div @click="currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? null : currentStep = 'review'"
-                                :class="['px-4 py-2 cursor-pointer flex flex-col items-center',
-                                    currentStep === 'review' ? 'border-b-2 border-blue-500 text-blue-500 font-semibold' : 'text-gray-500',
-                                    currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? 'opacity-50 cursor-not-allowed' : '']">
-                                <i class="fas fa-info-circle text-xl mb-1"></i>
-                                <span>Other Information</span>
+                        <div class="flex justify-center mb-8">
+                            <div class="flex flex-col items-center">
+                                <div class="flex items-center space-x-4">
+                                    <!-- Step 1: Job Details -->
+                                    <div class="flex flex-col items-center">
+                                        <div @click="currentStep = 'job-details'" 
+                                            :class="[
+                                                'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-300',
+                                                currentStep === 'job-details' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                                                isStepCompleted('job-details') ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600'
+                                            ]">
+                                            <svg v-if="isStepCompleted('job-details')" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <i v-else class="fas fa-briefcase"></i>
+                                        </div>
+                                        <div class="mt-2 text-center text-sm font-medium text-gray-700">Basic Job Details</div>
+                                    </div>
+                                    
+                                    <div v-if="currentStep !== 'review'" class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+                                    
+                                    <!-- Step 2: Salary Info -->
+                                    <div class="flex flex-col items-center">
+                                        <div @click="currentStep === 'job-details' ? null : currentStep = 'salary-info'" 
+                                            :class="[
+                                                'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300',
+                                                currentStep === 'job-details' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                                currentStep === 'salary-info' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                                                isStepCompleted('salary-info') ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600'
+                                            ]">
+                                            <svg v-if="isStepCompleted('salary-info')" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <i v-else class="fas fa-money-bill-wave"></i>
+                                        </div>
+                                        <div class="mt-2 text-center text-sm font-medium text-gray-700">Salary Information</div>
+                                    </div>
+                                    
+                                    <div v-if="currentStep !== 'review'" class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+                                    
+                                    <!-- Step 3: Description -->
+                                    <div class="flex flex-col items-center">
+                                        <div @click="currentStep === 'job-details' || currentStep === 'salary-info' ? null : currentStep = 'description'" 
+                                            :class="[
+                                                'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300',
+                                                currentStep === 'job-details' || currentStep === 'salary-info' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                                currentStep === 'description' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' :
+                                                isStepCompleted('description') ? 'bg-emerald-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-600'
+                                            ]">
+                                            <svg v-if="isStepCompleted('description')" class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <i v-else class="fas fa-clipboard-list"></i>
+                                        </div>
+                                        <div class="mt-2 text-center text-sm font-medium text-gray-700">Description & Requirements</div>
+                                    </div>
+                                    
+                                    <div v-if="currentStep !== 'review'" class="w-12 h-0.5 bg-gray-300 mt-6"></div>
+                                    
+                                    <!-- Step 4: Review -->
+                                    <div class="flex flex-col items-center">
+                                        <div @click="currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? null : currentStep = 'review'" 
+                                            :class="[
+                                                'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300',
+                                                currentStep === 'job-details' || currentStep === 'salary-info' || currentStep === 'description' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                                currentStep === 'review' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white scale-110' : 'bg-gray-200 border-gray-300 text-gray-600'
+                                            ]">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                        <div class="mt-2 text-center text-sm font-medium text-gray-700">Review & Submit</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
