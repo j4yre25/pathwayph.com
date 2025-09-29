@@ -82,6 +82,7 @@ use App\Notifications\VerifyEmailWithCode;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use App\Http\Controllers\ManageJobApprovalController;
 
 use App\Http\Controllers\CareerOfficerRegisterController;
 
@@ -493,10 +494,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/admin/manage-users/upload', [ManageUsersController::class, 'batchPage'])->name('companies.batch.page');
     Route::get('/admin/manage-users/download', [ManageUsersController::class, 'downloadTemplate'])->name('companies.template.download');
     Route::post('/admin/manage-users/batch-upload', [ManageUsersController::class, 'batchUpload'])->name('companies.batch.upload');
+    Route::post('/admin/manage-users/{user}/hold', [ManageUsersController::class, 'hold'])->name('admin.manage_users.hold');
+    Route::post('/admin/manage-users/{user}/unhold', [ManageUsersController::class, 'unhold'])->name('admin.manage_users.unhold');
     Route::get('/institutions/{institution}/download-verification', [ManageUsersController::class, 'downloadVerification'])
         ->name('institutions.downloadVerification');
     Route::get('/companies/{company}/download-verification', [ManageUsersController::class, 'downloadCompanyVerification'])
         ->name('companies.downloadVerification');
+    Route::post('/admin/jobs/{job}/approve', [ManageJobApprovalController::class, 'approve'])->name('admin.jobs.approve');
+    Route::post('/admin/jobs/{job}/disapprove', [ManageJobApprovalController::class, 'disapprove'])->name('admin.jobs.disapprove');
+    Route::get('/admin/jobs', [ManageJobApprovalController::class, 'index'])->name('admin.jobs.index');
+    Route::get('/admin/jobs/view/{job}', [\App\Http\Controllers\ManageJobApprovalController::class, 'view'])->name('admin.jobs.view');
 });
 
 // Sectors
@@ -1048,6 +1055,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::post('/job-referrals/{referral}/mark-success', [ManageJobReferralsController::class, 'markSuccess'])->name('peso.job-referrals.mark-success');
 
     Route::get('/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'reports'])->name('peso.reports.index');
+    Route::get('/peso-reports-overview', [App\Http\Controllers\Admin\PesoReportsController::class, 'overview'])->name('peso.reports.overview');
     Route::get('/home/peso-reports', [App\Http\Controllers\Admin\PesoReportsController::class, 'index'])->name('peso.reports.home');
     Route::get('/peso-reports/employment', [App\Http\Controllers\Admin\PesoReportsController::class, 'employment'])->name('peso.reports.employment');
     Route::get('/peso-reports/employment/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'employmentData'])->name('peso.reports.employment.data');
@@ -1057,11 +1065,20 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso-reports/school-employability/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'schoolEmployabilityData'])->name('peso.reports.schoolEmployability.data');
     Route::get('/peso-reports/skills', [App\Http\Controllers\Admin\PesoReportsController::class, 'skills'])->name('peso.reports.skills');
     Route::get('/peso-reports/skills/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'skillsData'])->name('peso.reports.skills.data');
+    Route::get('/peso-reports/careers', [App\Http\Controllers\Admin\PesoReportsController::class, 'careers'])->name('peso.reports.careers');
+    Route::get('/peso-reports/careers/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'careerData'])->name('peso.reports.careers.data');
+    Route::get('/peso-reports/diversity', [App\Http\Controllers\Admin\PesoReportsController::class, 'diversity'])->name('peso.reports.diversity');
+    Route::get('/peso-reports/diversity/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'diversityData'])->name('peso.reports.diversity.data');
+    Route::get('/peso-reports/jobmarket', [App\Http\Controllers\Admin\PesoReportsController::class, 'jobmarket'])->name('peso.reports.jobmarket');
+    Route::get('/peso-reports/jobmarket/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'jobmarketData'])->name('peso.reports.jobmarket.data');
 
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
     Route::get('/admin/seminar-requests', [PesoCareerGuidanceController::class, 'seminarRequests'])->name('admin.seminar-requests');
     Route::post('/admin/seminar-requests/{id}/status', [PesoCareerGuidanceController::class, 'updateSeminarRequestStatus'])->name('admin.seminar-requests.update-status');
     Route::get('/admin/seminar-requests/{id}', [PesoCareerGuidanceController::class, 'showSeminarRequest'])->name('admin.seminar-requests.show');
+    Route::get('/admin/seminar-requests/{id}/attendance', [PesoCareerGuidanceController::class, 'attendancePage'])->name('admin.seminar-requests.attendance');
+    Route::post('/admin/seminar-requests/{id}/attendance', [PesoCareerGuidanceController::class, 'storeAttendance'])->name('admin.seminar-requests.attendance.store');
+    Route::get('/seminar-requests/{id}/attendance/data', [PesoCareerGuidanceController::class, 'attendance'])->name('admin.seminar-requests.attendance.data');
 });
 
 
