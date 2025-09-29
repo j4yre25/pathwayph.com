@@ -366,6 +366,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/company/departments/restore/{id}', [CompanyHRDeptController::class, 'restoreDept'])->name('company.departments.restore');
     Route::put('/company/departments/{department}', [CompanyHRDeptController::class, 'updateDept'])->name('company.departments.update');
     Route::delete('/company/departments/{department}', [CompanyHRDeptController::class, 'destroyDept'])->name('company.departments.destroy');
+    Route::delete('/company/departments/{id}/force', [CompanyHRDeptController::class, 'forceDeleteDept'])->name('company.departments.forceDelete');
 });
 
 // Company Profile 

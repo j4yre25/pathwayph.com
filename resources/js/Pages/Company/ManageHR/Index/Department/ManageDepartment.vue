@@ -22,6 +22,10 @@ const editName = ref("");
 const uploadFile = ref(null)
 const uploadError = ref('')
 
+const showFeedback = ref(false);
+const feedbackMessage = ref('');
+const feedbackType = ref('success'); // 'success' or 'error'
+
 function handleFileChange(e) {
   uploadError.value = ''
   const file = e.target.files[0]
@@ -82,6 +86,17 @@ function removeFromBatch(index) {
   batchDepartments.value.splice(index, 1);
 }
 
+function showSuccess(msg) {
+  feedbackType.value = 'success';
+  feedbackMessage.value = msg;
+  showFeedback.value = true;
+}
+function showError(msg) {
+  feedbackType.value = 'error';
+  feedbackMessage.value = msg;
+  showFeedback.value = true;
+}
+
 function saveBatchDepartments() {
   if (batchDepartments.value.length === 0) return;
   router.post("/company/departments/batch", { department_names: batchDepartments.value }, {
@@ -89,6 +104,10 @@ function saveBatchDepartments() {
       batchDepartments.value = [];
       newDepartment.value = "";
       showAddModal.value = false;
+      showSuccess('Departments added successfully!');
+    },
+    onError: () => {
+      showError('Failed to add departments.');
     }
   });
 }
@@ -102,9 +121,12 @@ function saveEdit(dep) {
     onSuccess: () => editing.value = null
   });
 }
-function deleteDepartment(dep) {
-  if (confirm("Delete this department?")) {
-    router.delete(`/company/departments/${dep.id}`);
+function archiveDepartment(dep) {
+  if (confirm("Archive this department?")) {
+    router.delete(`/company/departments/${dep.id}`, {
+      onSuccess: () => showSuccess('Department archived successfully!'),
+      onError: () => showError('Failed to archive department.')
+    });
   }
 }
 
@@ -247,8 +269,8 @@ watch(() => props.departments, () => { currentPage.value = 1; });
                     <PrimaryButton class="mr-2" @click="startEdit(dep)">
                       <i class="fas fa-edit mr-1"></i> Edit
                     </PrimaryButton>
-                    <DangerButton @click="deleteDepartment(dep)">
-                      <i class="fas fa-trash mr-1"></i> Delete
+                    <DangerButton @click="archiveDepartment(dep)">
+                      <i class="fas fa-trash mr-1"></i> Archive
                     </DangerButton>
                   </template>
                 </div>
@@ -296,6 +318,24 @@ watch(() => props.departments, () => { currentPage.value = 1; });
         >
           Next
         </button>
+      </div>
+
+      <!-- Feedback Message -->
+      <div v-if="showFeedback" class="fixed top-4 right-4 z-50">
+        <div
+          v-if="feedbackType === 'success'"
+          class="bg-green-100 text-green-800 px-4 py-2 rounded-lg shadow-md mb-4"
+        >
+          <i class="fas fa-check-circle mr-2"></i>
+          {{ feedbackMessage }}
+        </div>
+        <div
+          v-else-if="feedbackType === 'error'"
+          class="bg-red-100 text-red-800 px-4 py-2 rounded-lg shadow-md mb-4"
+        >
+          <i class="fas fa-exclamation-circle mr-2"></i>
+          {{ feedbackMessage }}
+        </div>
       </div>
     </div>
   </AppLayout>

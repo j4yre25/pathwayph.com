@@ -238,7 +238,6 @@ class CompanyHRDeptController extends Controller
         $department->update(['department_name' => $request->department_name]);
         return redirect()->back()->with('success', 'Department updated!');
     }
-
     public function destroyDept(Department $department)
     {
         $department->delete();
@@ -248,25 +247,38 @@ class CompanyHRDeptController extends Controller
     public function archivedDept()
     {
         $hr = HumanResource::where('user_id', auth()->id())->first();
+
         $archivedDepartments = Department::onlyTrashed()
             ->where('company_id', $hr->company_id)
-            ->with('hr')
-            ->get()
-            ->map(function ($dep) {
-                $dep->hr_name = $dep->hr ? $dep->hr->first_name . ' ' . $dep->hr->last_name : '';
-                return $dep;
+            ->with('hr:id,first_name,last_name')
+            ->orderBy('department_name')
+            ->paginate(10)
+            ->through(function ($dep) {
+                return [
+                    'id' => $dep->id,
+                    'department_name' => $dep->department_name,
+                    'created_at' => $dep->created_at,
+                    'hr_name' => $dep->hr ? ($dep->hr->first_name . ' ' . $dep->hr->last_name) : null,
+                ];
             });
-        
+
         return inertia('Company/ManageHR/Index/Department/ArchivedDept', [
             'archivedDepartments' => $archivedDepartments,
             'hr' => $hr,
         ]);
     }
 
-    public function restore($id)
+    public function restoreDept($id)
     {
         $department = Department::onlyTrashed()->findOrFail($id);
         $department->restore();
         return redirect()->back()->with('success', 'Department restored successfully!');
+    }
+
+    public function forceDeleteDept($id)
+    {
+        $department = Department::onlyTrashed()->findOrFail($id);
+        $department->forceDelete();
+        return redirect()->back()->with('success', 'Department permanently deleted!');
     }
 }
