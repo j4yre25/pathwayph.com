@@ -10,14 +10,13 @@ import axios from 'axios'
 const selectedCompany = ref('')
 const selectedRole = ref('')
 const selectedSource = ref('')
-const selectedTimeline = ref('')
+
+
 
 const reportTypes = [
     { value: 'funnel', label: 'Referral Success Rate' },
     { value: 'trends', label: 'Referral Trends Over Time' },
-    { value: 'network', label: 'Referral Network Analysis' },
     { value: 'performance', label: 'Referral Performance by Role' },
-    { value: 'bonuses', label: 'Referral Bonuses and Outcomes' },
     { value: 'reasons', label: 'Reason for Referral Success' },
 ]
 const selectedReport = ref(null)
@@ -27,6 +26,9 @@ const page = usePage()
 const companies = ref(page.props.companies ?? [])
 const roles = ref(page.props.roles ?? [])
 const sources = ref(page.props.sources ?? [])
+const dateFrom = ref('')
+const dateTo = ref('')
+
 
 // --- Analytics data (fetched asynchronously) ---
 const analyticsData = ref({})
@@ -34,17 +36,20 @@ const loading = ref(false)
 
 // --- Fetch analytics data from backend ---
 function fetchAnalyticsData() {
+    console.log('fetchAnalyticsData called');
+
     loading.value = true
     axios.get(route('peso.reports.referral.data'), {
         params: {
             company_id: selectedCompany.value,
             role: selectedRole.value,
             source: selectedSource.value,
-            timeline: selectedTimeline.value,
+            date_from: dateFrom.value,
+            date_to: dateTo.value,
         }
     }).then(res => {
         analyticsData.value = res.data
-        console.log('Referral Data:', response.data);
+        console.log('Referral Data:', res.data);
     }).finally(() => {
         loading.value = false
     })
@@ -52,7 +57,7 @@ function fetchAnalyticsData() {
 
 // Fetch on mount and when filters change
 onMounted(fetchAnalyticsData)
-watch([selectedCompany, selectedRole, selectedSource, selectedTimeline], fetchAnalyticsData)
+watch([selectedCompany, selectedRole, selectedSource, dateFrom, dateTo], fetchAnalyticsData)
 
 // --- Chart options ---
 const funnelOption = computed(() => ({
@@ -187,7 +192,59 @@ const histogramOption = computed(() => ({
     }]
 }))
 
-const wordCloudData = computed(() => Object.entries(analyticsData.value.wordCloudData ?? {}).map(([text, value]) => ({ name: text, value })))
+const matchDetailsWordCloudOption = computed(() => ({
+    tooltip: {
+        show: true,
+        formatter: params => `${params.name}<br/>Count: ${params.value}`
+    },
+    series: [{
+        type: 'wordCloud',
+        shape: 'circle',
+        left: 'center',
+        top: 'center',
+        width: '100%',
+        height: '100%',
+        sizeRange: [16, 60],
+        rotationRange: [-90, 90],
+        gridSize: 8,
+        textStyle: {
+            fontFamily: 'sans-serif',
+            fontWeight: 'bold',
+            color: () => '#' + Math.floor(Math.random() * 16777215).toString(16)
+        },
+        data: matchDetailsWordCloudData.value // [{name, value}]
+    }]
+}));
+
+const matchDetailsWordCloudData = computed(() =>
+    Object.entries(analyticsData.value.matchDetailsWordCloud ?? {}).map(([name, value]) => ({ name, value }))
+);
+
+
+const stackedColumnOption = computed(() => {
+    const buckets = (analyticsData.value.stackedColumnData ?? []).map(d => d.bucket);
+    // Collect all unique feedbacks
+    const allFeedbacks = Array.from(
+        new Set(
+            (analyticsData.value.stackedColumnData ?? []).flatMap(d => Object.keys(d.feedbacks))
+        )
+    );
+    // Build series for each feedback
+    const series = allFeedbacks.map(feedback => ({
+        name: feedback,
+        type: 'bar',
+        stack: 'total',
+        data: (analyticsData.value.stackedColumnData ?? []).map(d => d.feedbacks[feedback] ?? 0),
+    }));
+    return {
+        tooltip: { trigger: 'axis' },
+        legend: { data: allFeedbacks },
+        xAxis: { type: 'category', data: buckets },
+        yAxis: { type: 'value' },
+        series,
+    };
+});
+
 
 </script>
 
@@ -221,8 +278,13 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Timeline</label>
-                        <input v-model="selectedTimeline" type="month"
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                        <input v-model="dateFrom" type="date"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                        <input v-model="dateTo" type="date"
                             class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200" />
                     </div>
 
@@ -310,18 +372,7 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
                 </div>
             </div>
 
-            <!-- Referral Network Analysis -->
-            <div v-if="selectedReport === 'network' && !loading" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <div class="bg-white rounded-xl shadow p-8">
-                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Bubble Chart (Influence)</h3>
-                    <VueECharts :option="bubbleOption" style="height: 400px; width: 100%;" />
-                </div>
-                <!-- Network Graph placeholder (requires custom ECharts graph config) -->
-                <div v-if="!loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Referral Network Graph</h3>
-                    <VueECharts :option="networkGraphOption" style="height: 400px; width: 100%;" />
-                </div>
-            </div>
+
 
             <!-- Referral Performance by Role -->
             <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
@@ -334,21 +385,22 @@ const wordCloudData = computed(() => Object.entries(analyticsData.value.wordClou
                 <VueECharts :option="stackedRoleStatsOption" style="height: 400px; width: 100%;" />
             </div>
 
-            <!-- Referral Bonuses and Outcomes -->
-            <div v-if="selectedReport === 'bonuses' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                <h3 class="text-lg font-semibold mb-6 text-gray-700">Histogram</h3>
-                <VueECharts :option="histogramOption" style="height: 400px; width: 100%;" />
-            </div>
+
 
             <!-- Reason for Referral Success -->
             <div v-if="selectedReport === 'reasons' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                <h3 class="text-lg font-semibold mb-6 text-gray-700">Word Cloud</h3>
-                <div class="flex flex-wrap gap-2">
-                    <span v-for="item in wordCloudData" :key="item.name"
-                        :style="{ fontSize: (item.value * 2 + 12) + 'px', color: '#6366f1', fontWeight: 'bold' }">
-                        {{ item.name }}
-                    </span>
+                <h3 class="text-lg font-semibold mb-6 text-gray-700">Word Cloud (Key Attributes)</h3>
+                <div class="bg-gray-50 rounded-lg p-4 shadow-inner">
+                    <VueECharts v-if="matchDetailsWordCloudData.length" :option="matchDetailsWordCloudOption"
+                        style="height: 300px; width: 100%;" />
+                    <div v-else class="text-gray-400 text-center py-8">No word cloud data available.</div>
                 </div>
+            </div>
+
+
+            <div v-if="selectedReport === 'reasons' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
+                <h3 class="text-lg font-semibold mb-6 text-gray-700">Stacked Column Chart (Feedback by Match Score)</h3>
+                <VueECharts :option="stackedColumnOption" style="height: 400px; width: 100%;" />
             </div>
         </Container>
     </AppLayout>

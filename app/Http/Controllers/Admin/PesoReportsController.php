@@ -312,10 +312,12 @@ class PesoReportsController extends Controller
         $roles = \App\Models\Job::select('job_title')->distinct()->pluck('job_title');
         $sources = ['Employee', 'Partner', 'Alumni', 'Recruiter', 'Other'];
 
+
         return Inertia::render('Admin/Reports/Referral', [
             'companies' => $companies,
             'roles' => $roles,
             'sources' => $sources,
+
             // No analytics data yet, will be fetched via referralData
         ]);
     }
@@ -336,16 +338,133 @@ class PesoReportsController extends Controller
                 $q->where('job_title', $request->role);
             });
         }
-        if ($request->timeline) {
-            $year = substr($request->timeline, 0, 4);
-            $month = substr($request->timeline, 5, 2);
-            $query->whereYear('created_at', $year)->whereMonth('created_at', $month);
+        if ($request->date_from && $request->date_to) {
+            $query->whereBetween('created_at', [$request->date_from, $request->date_to]);
         }
 
         // --- KPIs (same logic as ManageJobReferralsController) ---
         $totalReferrals = $query->count();
-        $successfulReferrals = Referral::where('status', 'success')->count();
-        $successRate = $totalReferrals > 0 ? round(($successfulReferrals / $totalReferrals) * 100, 2) : 0;
+        $successfulReferralsKPI = Referral::where('status', 'success')->count();
+        $successRate = $totalReferrals > 0 ? round(($successfulReferralsKPI / $totalReferrals) * 100, 2) : 0;
+
+        $successfulReferrals = Referral::with([
+            'graduate.user',
+            'job.company',
+            'graduate.graduateSkills.skill',
+            'job.programs',
+            'graduate.experience',
+            'graduate.employmentPreference',
+            'graduate.jobSearchHistory',
+        ])->where('status', 'success')->get();
+
+
+        $matchDetailsWordCloud = [];
+        $stackedFeedbackByScore = [
+            'Low (0-30)' => [],
+            'Medium (31-60)' => [],
+            'High (61-100)' => [],
+        ];
+
+        foreach ($successfulReferrals as $ref) {
+            $matchScore = 0;
+            $matchDetails = [];
+            $criteria = 0;
+            $graduate = $ref->graduate;
+            $job = $ref->job;
+
+            if (!$graduate) continue;
+            $preferences = $graduate->employmentPreference;
+            if (!$preferences) {
+                \Log::info('No employment preference for graduate', ['graduate_id' => $graduate->id]);
+                continue;
+            }
+            \Log::info('Graduate preferences', [
+                'graduate_id' => $graduate->id,
+                'min_salary' => $preferences->employment_min_salary,
+                'max_salary' => $preferences->employment_max_salary,
+                'work_environment' => $preferences->work_environment,
+                'job_type' => $preferences->job_type,
+            ]);
+
+            if ($graduate && $job) {
+                $preferences = $graduate->employmentPreference;
+                // Skills
+                $criteria++;
+                $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
+                $jobSkills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
+                $skillMatch = false;
+                foreach ($graduateSkills as $skill) {
+                    if (stripos(json_encode($jobSkills), $skill) !== false) {
+                        $matchDetails[] = 'Skills';
+                        $skillMatch = true;
+                        break;
+                    }
+                }
+                if ($skillMatch) $matchScore++;
+
+                // Education (Program)
+                $criteria++;
+                $program = $graduate->program_id ? \App\Models\Program::find($graduate->program_id)->name ?? null : null;
+                $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
+                if ($educationMatch) {
+                    $matchDetails[] = 'Education';
+                    $matchScore++;
+                }
+
+                // Experience
+                $criteria++;
+                $experiences = $graduate->experience ? $graduate->experience->pluck('job_title')->filter()->unique()->toArray() : [];
+                $experienceMatch = false;
+                foreach ($experiences as $title) {
+                    if (stripos($job->job_title, $title) !== false) {
+                        $matchDetails[] = 'Experience';
+                        $experienceMatch = true;
+                        break;
+                    }
+                }
+                if ($experienceMatch) $matchScore++;
+
+                // Past Search Keywords
+                $criteria++;
+                $pastKeywords = $graduate->jobSearchHistory ? $graduate->jobSearchHistory->pluck('keywords')->unique()->toArray() : [];
+                $pastKeywordMatch = false;
+                foreach ($pastKeywords as $keyword) {
+                    if (
+                        stripos($job->job_title, $keyword) !== false ||
+                        stripos($job->job_description, $keyword) !== false
+                    ) {
+                        $matchDetails[] = 'Past Search';
+                        $pastKeywordMatch = true;
+                        break;
+                    }
+                }
+                if ($pastKeywordMatch) $matchScore++;
+            }
+            $match_percentage = $criteria > 0 ? round(($matchScore / $criteria) * 100) : 0;
+
+            // Word Cloud: count each match detail
+            foreach ($matchDetails as $detail) {
+                $matchDetailsWordCloud[$detail] = ($matchDetailsWordCloud[$detail] ?? 0) + 1;
+            }
+
+            // Stacked Column: group feedback by match score bucket
+            $bucket = 'Low (0-30)';
+            if ($match_percentage > 60) $bucket = 'High (61-100)';
+            elseif ($match_percentage > 30) $bucket = 'Medium (31-60)';
+            $feedback = $ref->referral_feedback ?? null;
+            if ($feedback) {
+                $stackedFeedbackByScore[$bucket][$feedback] = ($stackedFeedbackByScore[$bucket][$feedback] ?? 0) + 1;
+            }
+        }
+
+        // Format stackedFeedbackByScore for charting
+        $stackedColumnData = [];
+        foreach ($stackedFeedbackByScore as $bucket => $feedbacks) {
+            $stackedColumnData[] = [
+                'bucket' => $bucket,
+                'feedbacks' => $feedbacks,
+            ];
+        }
 
         // --- Referral analytics for charts ---
         $referralsQuery = Referral::with([
@@ -364,11 +483,8 @@ class PesoReportsController extends Controller
                 $q->where('job_title', $request->role);
             });
         }
-        if ($request->timeline) {
-            $referralsQuery->whereYear('created_at', substr($request->timeline, 0, 4));
-            if (strlen($request->timeline) > 4) {
-                $referralsQuery->whereMonth('created_at', substr($request->timeline, 5, 2));
-            }
+        if ($request->date_from && $request->date_to) {
+            $referralsQuery->whereBetween('created_at', [$request->date_from, $request->date_to]);
         }
         $referrals = $referralsQuery->get();
 
@@ -385,10 +501,9 @@ class PesoReportsController extends Controller
                 $q->where('job_title', $request->role);
             });
         }
-        if ($request->timeline) {
-            $year = substr($request->timeline, 0, 4);
-            $month = substr($request->timeline, 5, 2);
-            $applicationsQuery->whereYear('created_at', $year)->whereMonth('created_at', $month);
+
+        if ($request->date_from && $request->date_to) {
+            $applicationsQuery->whereBetween('created_at', [$request->date_from, $request->date_to]);
         }
 
         // Funnel Chart Data: Stages
@@ -523,13 +638,14 @@ class PesoReportsController extends Controller
 
         try {
 
-            \Log::info('School Employability Labels:', $schoolEmployabilityLabels);
-            \Log::info('School Employability Data:', $schoolEmployabilityData);
-            \Log::info('School Employability List:', $schoolEmployabilityList->toArray());
+
             return response()->json([
                 'totalReferrals' => $totalReferrals,
-                'successfulReferrals' => $successfulReferrals,
+                'successfulReferrals' => $successfulReferralsKPI,
                 'successRate' => $successRate,
+                'matchDetailsWordCloud' => $matchDetailsWordCloud,
+                'stackedColumnData' => $stackedColumnData,
+
                 'funnelData' => $funnelData,
                 'barSuccessData' => $barSuccessData,
                 'pieSourceData' => $pieSourceData,
@@ -1108,7 +1224,9 @@ class PesoReportsController extends Controller
         $heatmap = [];
 
         foreach ($industries as $industry) {
-            $jobs = \App\Models\Job::where('sector_id', $industry->id)->where('is_approved', 1)->get();
+            $jobs = \App\Models\Job::whereHas('company', function ($q) use ($industry) {
+                $q->where('sector_id', $industry->id);
+            })->where('is_approved', 1)->get();
             $skillCounts = [];
             foreach ($jobs as $job) {
                 // Normalize and decode skills
@@ -1145,10 +1263,24 @@ class PesoReportsController extends Controller
             ->map(fn($s) => strtolower(trim($s)))
             ->countBy();
 
-        $allGraduateSkills = \App\Models\GraduateSkill::pluck('skill_id');
-        $allSkillCounts = \App\Models\Skill::whereIn('id', $allGraduateSkills)->pluck('name', 'id')->mapWithKeys(function ($name, $id) use ($allGraduateSkills) {
-            return [$name => $allGraduateSkills->where('id', $id)->count()];
+        $supplyCounts = \App\Models\GraduateSkill::select('skill_id')
+            ->groupBy('skill_id')
+            ->selectRaw('skill_id, COUNT(DISTINCT graduate_id) as supply')
+            ->pluck('supply', 'skill_id');
+
+        $skillNames = \App\Models\Skill::pluck('name', 'id');
+
+        $allSkillCounts = collect($skillNames)->mapWithKeys(function ($name, $id) use ($supplyCounts) {
+            return [strtolower(trim($name)) => $supplyCounts[$id] ?? 0];
         });
+
+        $skillsFlat = collect($jobSkills)
+            ->flatMap(function ($skills) {
+                return is_array($skills) ? $skills : json_decode($skills, true);
+            })
+            ->filter()
+            ->map(fn($s) => strtolower(trim($s)))
+            ->countBy();
 
         $bubbleData = [];
         foreach ($skillsFlat as $skill => $demand) {
@@ -1157,7 +1289,7 @@ class PesoReportsController extends Controller
                 'skill' => $skill,
                 'demand' => $demand,
                 'supply' => $supply,
-                'size' => $demand, // bubble size = demand
+                'size' => $demand,
             ];
         }
 
@@ -1166,8 +1298,16 @@ class PesoReportsController extends Controller
         $jobRoles = $employedGraduates->pluck('current_job_title')->filter()->countBy();
         $employedGraduateIds = $employedGraduates->pluck('id');
         $employedSkills = \App\Models\GraduateSkill::whereIn('graduate_id', $employedGraduateIds)->pluck('skill_id');
-        $skillCounts = \App\Models\Skill::whereIn('id', $employedSkills)->pluck('name', 'id')->mapWithKeys(function ($name, $id) use ($employedSkills) {
-            return [$name => $employedSkills->where('id', $id)->count()];
+        $supplyCounts = \App\Models\GraduateSkill::whereIn('graduate_id', $employedGraduateIds)
+            ->select('skill_id')
+            ->groupBy('skill_id')
+            ->selectRaw('skill_id, COUNT(DISTINCT graduate_id) as supply')
+            ->pluck('supply', 'skill_id');
+
+        $skillNames = \App\Models\Skill::pluck('name', 'id');
+
+        $skillCounts = collect($skillNames)->mapWithKeys(function ($name, $id) use ($supplyCounts) {
+            return [$name => $supplyCounts[$id] ?? 0];
         });
 
         // --- Bar Chart: Skill Demand by Job Title ---
