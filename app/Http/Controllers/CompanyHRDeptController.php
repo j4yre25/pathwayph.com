@@ -2,29 +2,137 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Models\HrInfoView;
 use App\Models\Department;
 use App\Models\HumanResource;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
-class CompanyDepartmentController extends Controller
+
+class CompanyHRDeptController extends Controller
 {
-    public function index()
+    /**
+     * Show the list of HRs under the company.
+     *
+     * @return \Inertia\Response
+     */
+    public function hrDept(Request $request)
     {
-        $hr = HumanResource::where('user_id', auth()->id())->first();
-        $departments = Department::where('company_id', $hr->company_id)
-            ->with('hr') // Make sure you have this relationship in Department model
+        /** @var \App\Models\User $user */
+         $user = Auth::user();
+
+        // Get the company_id linked to the currently logged-in HR
+        $companyId = $user->hr->company_id;
+        
+        // Query your view and filter by company_id
+        $hrs = DB::table('company_hr_view')
+            ->where('company_id', $companyId)
+            ->get();
+
+        $departments = Department::where('company_id', $companyId)
+            ->with('hr') 
             ->get()
             ->map(function ($dep) {
                 $dep->hr_name = $dep->hr ? $dep->hr->first_name . ' ' . $dep->hr->last_name : '';
                 return $dep;
         });
-        return inertia('Company/ManageHR/Index/Department/Index', [
+
+        
+        return inertia('Company/ManageHR/Index/Index', [
+            'hrs' => $hrs,
             'departments' => $departments,
+        ]);
+    }
+
+
+    public function editHR($id)
+    {
+        $user = Auth::user();// Get the logged-in user (company)
+
+        // Ensure only main HR can edit HRs
+        if ($user->role !== 'company' || !$user->is_main_hr) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Fetch the HR to edit
+        $hr = User::findOrFail($id);
+
+        // Ensure the HR belongs to the same company
+        if ($hr->company_email !== $user->company_email) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        return inertia('EditHR', [
             'hr' => $hr,
         ]);
     }
 
-    public function store(Request $request)
+    /**
+     * Update the HR details.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateHR(Request $request, $id)
+    {
+        $user = Auth::user(); // Get the logged-in user (company)
+
+        // Ensure only main HR can update HRs
+        if ($user->role !== 'company' || !$user->is_main_hr) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Validate the request
+        $validated = $request->validate([
+            'company_hr_first_name' => 'required|string|max:255',
+            'company_hr_last_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'contact_number' => 'required|digits_between:10,15',
+        ]);
+
+        // Fetch the HR to update
+        $hr = User::findOrFail($id);
+
+        // Ensure the HR belongs to the same company
+        if ($hr->company_email !== $user->company_email) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Update the HR details
+        $hr->update($validated);
+
+        return redirect()->route('company.manage-hrs')
+            ->with('success', 'HR details updated successfully!');
+    }
+
+    /**
+     * Delete the HR account.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+
+    public function archiveHR($id) {
+        $user = User::findOrFail($id);
+        $user->archived_at = now();
+        $user->save();
+
+        return back()->with('success', 'User archived successfully.');
+    }
+
+    public function unarchive($id) {
+        $user = User::findOrFail($id);
+        $user->archived_at = null;
+        $user->save();
+
+        return back()->with('success', 'User restored successfully.');
+    }
+
+    public function storeDept(Request $request)
     {
         $hr = HumanResource::where('user_id', auth()->id())->first();
         $request->validate(['department_name' => 'required|string|max:255']);
@@ -108,7 +216,7 @@ class CompanyDepartmentController extends Controller
         return response()->download(public_path('templates/department_template.csv'));
     }
 
-    public function manage(Department $department)
+    public function manageDept(Department $department)
     {
         $hr = HumanResource::where('user_id', auth()->id())->first();
         $departments = Department::where('company_id', $hr->company_id)
@@ -124,20 +232,20 @@ class CompanyDepartmentController extends Controller
         ]);
     }
 
-    public function update(Request $request, Department $department)
+    public function updateDept(Request $request, Department $department)
     {
         $request->validate(['department_name' => 'required|string|max:255']);
         $department->update(['department_name' => $request->department_name]);
         return redirect()->back()->with('success', 'Department updated!');
     }
 
-    public function destroy(Department $department)
+    public function destroyDept(Department $department)
     {
         $department->delete();
         return redirect()->back()->with('success', 'Department deleted!');
     }
 
-    public function archived()
+    public function archivedDept()
     {
         $hr = HumanResource::where('user_id', auth()->id())->first();
         $archivedDepartments = Department::onlyTrashed()
