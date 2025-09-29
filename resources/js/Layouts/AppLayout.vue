@@ -17,10 +17,6 @@ const props = defineProps({
 const page = usePage()
 const user = page.props.auth?.user
 
-console.log('user.company:', user.company)
-console.log('user.hr:', user.hr)
-
-console.log('Graduates', props)
 
 const auth = page.props
 const graduates = page.props.graduates
@@ -155,21 +151,9 @@ onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
 })
 
-// Safe logging
-console.log('Auth:', auth)
-console.log('Graduates:', graduates)
-console.log('Role:', roles)
-console.log('HR Count:', hrCount)
-console.log('isMainHR:', main)
-console.log('Company Name:', page.props.app?.currentUser?.company?.company_name)
-console.log('Sector:', page.props.sectors ?? 'No sectors found')
-console.log('Permission to manage:', page.props.permissions?.canManageInstitution)
+
 
 const sector = page.props.sectors
-console.log('Sector:', sector)
-console.log('Role', page.props.auth.user.role)
-
-console.log(page.props.app.currentUser.company?.company_name)
 
 const switchToTeam = (team) => {
   router.put(route('current-team.update'), {
@@ -184,7 +168,6 @@ const logout = () => {
   router.post(route('logout'))
 }
 
-console.log(page.props.permissions.canManageInstitution)
 
 async function openNotification(notif) {
   try {
@@ -206,7 +189,6 @@ async function markAllNotifications() {
   localNotifications.value = localNotifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }))
 }
 
-console.log(page.props.notifications)
 </script>
 
 <template>
