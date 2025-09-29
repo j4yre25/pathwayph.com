@@ -44,14 +44,17 @@ const props = defineProps({
   ethnicities: Array,
 });
 
-// --- JobOverview logic ---
+// --- Overall Filters ---
 const datePreset = ref(props.filters?.date_preset || 'overall');
 const dateFrom = ref(props.filters?.date_from || '');
 const dateTo = ref(props.filters?.date_to || '');
 const experienceLevel = ref(props.filters?.experience_level || '');
-const workEnvironment = ref(props.filters?.work_environment || '');
+// default to All = '' and normalize possible array from server
+const workEnvironment = ref(Array.isArray(props.filters?.work_environment) ? '' : (props.filters?.work_environment ?? ''));
 const selectedType = ref(props.filters?.job_type || '');
 const selectedStatus = ref(props.filters?.status || '');
+// Department: multi-select for overall filtering
+const selectedDepartment = ref('');
 
 let debounceTimer = null;
 function debouncedApply() {
@@ -67,6 +70,7 @@ function applyFilters() {
     work_environment: workEnvironment.value || null,
     job_type: selectedType.value || null,
     status: selectedStatus.value || null,
+    departments: selectedDepartment.value ? selectedDepartment.value : null,
   };
   router.get(route('company.reports.jobs'), query, { preserveState: true, preserveScroll: true, replace: true });
 }
@@ -78,8 +82,10 @@ function resetFilters() {
   workEnvironment.value = '';
   selectedType.value = '';
   selectedStatus.value = '';
+  selectedDepartment.value = '';
   applyFilters();
 }
+
 const filtersActive = computed(() =>
   !!(
     datePreset.value !== 'overall' ||
@@ -87,9 +93,12 @@ const filtersActive = computed(() =>
     workEnvironment.value ||
     selectedType.value ||
     selectedStatus.value ||
+    (selectedDepartment.value && selectedDepartment.value.length) ||
     (datePreset.value === 'custom' && dateFrom.value && dateTo.value)
   )
 );
+
+// Watchers for all filters
 watch(datePreset, (val) => {
   if (val !== 'custom') {
     dateFrom.value = '';
@@ -97,7 +106,7 @@ watch(datePreset, (val) => {
     debouncedApply();
   }
 });
-watch([experienceLevel, workEnvironment, selectedType, selectedStatus], () => {
+watch([experienceLevel, workEnvironment, selectedType, selectedStatus, selectedDepartment], () => {
   debouncedApply();
 });
 watch([dateFrom, dateTo], () => {
@@ -105,46 +114,99 @@ watch([dateFrom, dateTo], () => {
     if (dateFrom.value && dateTo.value) debouncedApply();
   }
 });
-const page = ref(1);
-const pageSize = 10;
+
+// Helpers
+const deptNameOf = (job) => {
+  return typeof job?.department === 'object'
+    ? (job.department?.department_name || '')
+    : (job?.department || '');
+};
+const formatCurrency = (v) => {
+  if (v === null || v === undefined || v === '' || isNaN(Number(v))) return '—';
+  return `₱${Number(v).toLocaleString()}`;
+};
+const salaryRangeText = (job) => {
+  const min = job?.salary?.job_min_salary ?? job?.job_min_salary ?? null;
+  const max = job?.salary?.job_max_salary ?? job?.job_max_salary ?? null;
+  if (min === null && max === null) return '—';
+  return `${formatCurrency(min)} - ${formatCurrency(max)}`;
+};
+
+// --- Filtered Data for ALL charts/tables ---
 const filteredAllJobs = computed(() => {
   let jobs = props.allJobs ?? [];
+  // type
   if (selectedType.value) {
     jobs = jobs.filter(job =>
-      Array.isArray(job.job_types) && job.job_types.some(jt => jt.type === selectedType.value)
+      (Array.isArray(job.job_types) && job.job_types.some(jt => jt.type === selectedType.value)) ||
+      job.job_type === selectedType.value
     );
   }
+  // status
   if (selectedStatus.value) {
     jobs = jobs.filter(job =>
-      selectedStatus.value === "Active"
-        ? job.status === "open"
-        : job.status === "closed"
+      selectedStatus.value === "Active" ? job.status === "open" : job.status === "closed"
     );
+  }
+  // departments 
+  if (selectedDepartment.value) {
+    jobs = jobs.filter(job => deptNameOf(job) === selectedDepartment.value);
+  }
+  // experience level
+  if (experienceLevel.value) {
+    jobs = jobs.filter(job => job.job_experience_level === experienceLevel.value);
+  }
+  // environment: accept direct string or related list
+  if (workEnvironment.value) {
+    const sel = String(workEnvironment.value);
+    jobs = jobs.filter(job => {
+      const direct = job.work_environment;
+      const directMatch = direct !== undefined && String(direct) === sel;
+      const relMatch = Array.isArray(job.work_environments)
+        ? job.work_environments.some(we => String(we.environment_type) === sel || String(we.id) === sel)
+        : false;
+      return directMatch || relMatch;
+    });
+  }
+  // date (client-side guard for custom; server already filters for presets)
+  if (datePreset.value === 'custom' && dateFrom.value && dateTo.value) {
+    const from = new Date(dateFrom.value);
+    const to = new Date(dateTo.value);
+    jobs = jobs.filter(job => {
+      const d = new Date(job.created_at);
+      return d >= from && d <= to;
+    });
   }
   return jobs;
 });
+
+// Pagination
+const page = ref(1);
+const pageSize = 10;
 const paginatedJobs = computed(() => {
   const jobs = filteredAllJobs.value;
   const start = (page.value - 1) * pageSize;
   return jobs.slice(start, start + pageSize);
 });
-const totalPages = computed(() => Math.ceil(filteredAllJobs.value.length / pageSize));
-watch([selectedType, selectedStatus], () => { page.value = 1; });
+const totalPages = computed(() => Math.max(1, Math.ceil((filteredAllJobs.value?.length || 0) / pageSize)));
+
+watch([selectedType, selectedStatus, selectedDepartment, experienceLevel, workEnvironment, datePreset, dateFrom, dateTo], () => { page.value = 1; });
+
+// KPIs and overview pie
 const kpis = computed(() => [
-  { label: "Total Job Posted", value: props.totalOpenings, color: "text-blue-600" },
-  { label: "Active Listings", value: props.activeListings, color: "text-green-600" },
-  { label: "Roles Filled", value: props.rolesFilled, color: "text-purple-600" },
+  { label: "Total Job Posted", value: props.totalOpenings ?? 0, color: "text-blue-600" },
+  { label: "Active Listings", value: props.activeListings ?? 0, color: "text-green-600" },
+  { label: "Roles Filled", value: props.rolesFilled ?? 0, color: "text-purple-600" },
 ]);
+
 const typeCountsLocal = computed(() => {
   const jobs = filteredAllJobs.value;
   const counts = {};
   (props.jobTypes ?? []).forEach(jt => {
     const typeName = jt.type;
-    counts[typeName] =
-      jobs.filter(j =>
-        Array.isArray(j.job_types) && j.job_types.some(rel => rel.type === typeName)
-      ).length
-      + jobs.filter(j => j.job_type === typeName).length;
+    const relCnt = jobs.filter(j => Array.isArray(j.job_types) && j.job_types.some(r => r.type === typeName)).length;
+    const directCnt = jobs.filter(j => j.job_type === typeName).length;
+    counts[typeName] = relCnt + directCnt;
   });
   return counts;
 });
@@ -178,409 +240,306 @@ const pieOption = computed(() => {
     }]
   };
 });
+
 const textualReport = computed(() => {
-  const total = props.totalOpenings ?? 0;
-  const open = props.activeListings ?? 0;
+  const total = filteredAllJobs.value.length;
+  const open = filteredAllJobs.value.filter(j => j.status === "open").length;
   const filled = props.rolesFilled ?? 0;
   const top = topType.value;
-  const dateRange = props.filters?.date_range_label || 'the selected period';
+  const dateRange = filtersActive.value 
+    ? (props.filters?.date_range_label || "the selected period")
+    : "the entire available dataset";
 
   if (total === 0) {
-    return `No job postings were recorded for ${dateRange}. Try adjusting filters to see more data.`;
+    return `No job postings were recorded for ${dateRange}. Try adjusting filters or posting new openings.`;
   }
 
-  const filledPct = ((filled / total) * 100).toFixed(1);
-  const openPct = ((open / total) * 100).toFixed(1);
+  const filledPct = total ? ((filled / total) * 100).toFixed(1) : '0.0';
+  const openPct = total ? ((open / total) * 100).toFixed(1) : '0.0';
 
-  return `During ${dateRange}, there were ${total} job postings, of which ${open} (${openPct}%) are still active and ${filled} (${filledPct}%) have been successfully filled. ` +
-         `The most frequently posted job type was "${top}", indicating where most of your hiring efforts are focused. ` +
-         (filledPct >= 75
-           ? "This shows strong progress in meeting hiring goals."
-           : filledPct >= 40
-             ? "Filling progress is moderate — you may want to focus on remaining openings."
-             : "A majority of roles are still open, suggesting a need to accelerate recruitment.");
+  return `For ${dateRange}, there were ${total} job postings. ${open} (${openPct}%) remain active while ${filled} (${filledPct}%) have been filled. The most common job type was "${top}".`;
 });
 
-// --- DeptWise logic ---
-const selectedDepartment = ref("");
-const selectedRoleLevel = ref("");
-const filteredJobsDept = computed(() => {
-  let jobs = props.stackedData.allJobs ?? [];
-  if (selectedDepartment.value) {
-    jobs = jobs.filter(j => j.department === selectedDepartment.value);
-  }
-  if (selectedRoleLevel.value) {
-    jobs = jobs.filter(j => j.job_experience_level === selectedRoleLevel.value);
-  }
-  return jobs;
-});
-const pageDept = ref(1);
-const pageSizeDept = 10;
-;
-
-watch([selectedDepartment, selectedRoleLevel], () => { pageDept.value = 1; });
-function goToPageDept(p) { pageDept.value = p; }
+// --- Department bar (by role level) computed from filteredAllJobs ---
+const roleLevelsLocal = computed(() =>
+  (props.roleLevels && props.roleLevels.length)
+    ? props.roleLevels
+    : Array.from(new Set(filteredAllJobs.value.map(j => j.job_experience_level).filter(Boolean)))
+);
+const departmentsLocal = computed(() =>
+  Array.from(new Set(filteredAllJobs.value.map(deptNameOf).filter(Boolean)))
+);
 const barOption = computed(() => {
-  const departments = [...new Set(filteredJobsDept.value.map(j => j.department))];
-  const roleLevels = props.roleLevels || [];
-  const series = roleLevels.map(level => ({
+  const depts = departmentsLocal.value;
+  const levels = roleLevelsLocal.value;
+  const dataByDeptLevel = {};
+  for (const d of depts) dataByDeptLevel[d] = {};
+  filteredAllJobs.value.forEach(j => {
+    const d = deptNameOf(j) || 'N/A';
+    const lvl = j.job_experience_level || 'N/A';
+    if (!dataByDeptLevel[d]) dataByDeptLevel[d] = {};
+    dataByDeptLevel[d][lvl] = (dataByDeptLevel[d][lvl] || 0) + 1;
+  });
+  const series = levels.map(level => ({
     name: level,
     type: "bar",
     stack: false,
     barGap: 0,
     barCategoryGap: "40%",
-    data: departments.map(dept =>
-      filteredJobsDept.value.filter(
-        j => j.department === dept && j.job_experience_level === level
-      ).length
-    ),
-    label: {
-      show: true,
-      position: "top",
-      fontSize: 12,
-      color: "#374151",
-      formatter: "{c}"
-    }
+    data: depts.map(d => dataByDeptLevel[d]?.[level] || 0),
+    label: { show: true, position: "top", fontSize: 12, color: "#374151", formatter: "{c}" }
   }));
-
   return {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: {
-      data: roleLevels,
-      top: 0,
-      textStyle: { fontSize: 13 }
-    },
-    grid: { left: 40, right: 30, top: 50, bottom: 200 }, // more bottom for long labels
+    legend: { data: levels, top: 0, textStyle: { fontSize: 13 } },
+    grid: { left: 40, right: 30, top: 50, bottom: 200 },
     xAxis: {
       type: "category",
-      data: departments,
+      data: depts,
       name: "Department",
       nameLocation: "middle",
       nameGap: 168,
-      axisLabel: {
-        fontSize: 13,
-        interval: 0,
-        rotate: 80, 
-        overflow: "truncate", // Prevent overlap, but show as much as possible
-        width: 180, // Wider for long names
-        lineHeight: 18,
-        formatter: value => value // Show full name (if fits)
-      }
+      axisLabel: { fontSize: 13, interval: 0, rotate: 80, overflow: "truncate", width: 180, lineHeight: 18 }
     },
-    yAxis: {
-      type: "value",
-      name: "Openings",
-      nameLocation: "middle",
-      nameGap: 40,
-      axisLabel: { fontSize: 12 }
-    },
+    yAxis: { type: "value", name: "Openings", nameLocation: "middle", nameGap: 40, axisLabel: { fontSize: 12 } },
     series
   };
 });
-
 const summaryReportDept = computed(() => {
-  const deptCounts = props.departmentCounts ?? [];
-  const total = deptCounts.reduce((sum, d) => sum + (d.total ?? 0), 0);
+  const jobs = filteredAllJobs.value;
+  if (!jobs.length) return "No department-level data is available for the selected filters.";
 
-  if (!deptCounts.length || total === 0) {
-    return "There are currently no job openings recorded across departments.";
-  }
-  const maxCount = Math.max(...deptCounts.map(d => d.total ?? 0));
-  const topDepts = deptCounts
-    .filter(d => (d.total ?? 0) === maxCount)
-    .map(d => `"${d.department}"`);
-  const topPercent = ((maxCount / total) * 100).toFixed(1);
-  const topLabel = topDepts.length > 1
-    ? `Departments ${topDepts.join(" and ")}`
-    : `Department ${topDepts[0]}`;
-  const roleLevelCounts = {};
-  const jobs = props.stackedData?.allJobs ?? [];
-  for (const role of props.roleLevels ?? []) {
-    roleLevelCounts[role] = jobs.filter(j => j.job_experience_level === role).length;
-  }
-  const topRoleLevelEntry = Object.entries(roleLevelCounts)
-    .sort((a, b) => b[1] - a[1])[0];
-  const roleLine = topRoleLevelEntry && topRoleLevelEntry[1] > 0
-    ? `The most common role level across departments is "${topRoleLevelEntry[0]}", with ${topRoleLevelEntry[1]} listings.`
-    : "";
-  return `As of now, there are ${total} job openings across all departments. 
-${topLabel} currently ${topDepts.length > 1 ? 'share' : 'has'} the highest number of postings, each accounting for ${topPercent}% of the total (${maxCount} positions). 
-${roleLine}`;
+  const countsByDept = jobs.reduce((acc, j) => {
+    const d = deptNameOf(j) || 'Unassigned';
+    acc[d] = (acc[d] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const total = jobs.length;
+  const max = Math.max(...Object.values(countsByDept));
+  const topDepts = Object.entries(countsByDept)
+    .filter(([, v]) => v === max)
+    .map(([k]) => `"${k}"`);
+  
+  const pct = ((max / total) * 100).toFixed(1);
+
+  return `There are ${total} job openings across ${Object.keys(countsByDept).length} department(s). ` +
+         `${topDepts.length > 1 ? 'Departments ' : 'Department '}${topDepts.join(' and ')} ` +
+         `account${topDepts.length > 1 ? '' : 's'} for the highest share (${pct}% of all postings).`;
 });
 
-// --- JobPostTrends logic ---
-const selectedDepartmentTrend = ref(props.filters?.department || "");
-const selectedStatusTrend = ref(props.filters?.status || "");
-const dateFromTrend = ref(props.filters?.date_from || "");
-const pageTrend = ref(props.jobsList?.current_page || 1);
-function applyFiltersTrend(newPage = 1) {
-  router.get(
-    route("company.reports.jobs"),
-    {
-      department: selectedDepartmentTrend.value,
-      status: selectedStatusTrend.value,
-      date_from: dateFromTrend.value,
-      page: newPage,
-    },
-    { preserveState: true, replace: true }
-  );
-}
-watch([selectedDepartmentTrend, selectedStatusTrend, dateFromTrend], () => applyFiltersTrend(1));
-watch(pageTrend, (val) => applyFiltersTrend(val));
-const lineOption = computed(() => ({
-  tooltip: { trigger: "axis" },
-  xAxis: {
-    type: "category",
-    data: props.jobPostingTrends.map(item => item.month),
-    name: "Month",
-    nameLocation: "middle",
-    nameGap: 30,
-  },
-  yAxis: { type: "value", name: "Job Posts", nameLocation: "middle", nameGap: 40 },
-  series: [
-    {
-      name: "Job Posts",
-      type: "line",
-      areaStyle: {},
-      smooth: true,
-      data: props.jobPostingTrends.map(item => item.total),
-    },
-  ],
-}));
-const areaOption = computed(() => ({
-  tooltip: { trigger: "axis" },
-  legend: { top: "top" },
-  grid: { top: 90 },
-  xAxis: {
-    type: "category",
-    boundaryGap: false,
-    data: props.areaChartLabels || [],
-    name: "Month",
-    nameLocation: "middle",
-    nameGap: 30,
-  },
-  yAxis: { type: "value", name: "Job Posts", nameLocation: "middle", nameGap: 40 },
-  series: props.areaChartSeries || [],
-}));
-const summaryInsightTrend = computed(() => {
-  const trends = props.jobPostingTrends || [];
-  const areaSeries = props.areaChartSeries || [];
-  const total = trends.reduce((sum, row) => sum + (row.total || 0), 0);
-  const selectedDept = selectedDepartmentTrend.value;
-  const status = selectedStatusTrend.value;
-  const date = dateFromTrend.value;
-  const statusPart = status ? ` with status <strong>${status}</strong>` : "";
-  const datePart = date
-    ? ` starting from <strong>${new Date(date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong>`
-    : "";
-  if (!total) {
-    return `<strong>No job postings</strong> were recorded${statusPart}${datePart}.`;
-  }
-  const formatMonth = (str) => {
-    const [year, month] = str.split("-");
-    return new Date(Number(year), Number(month) - 1).toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric"
-    });
+
+// --- Trends (line and stacked area) computed from filteredAllJobs ---
+const monthsLocal = computed(() => {
+  const s = new Set();
+  filteredAllJobs.value.forEach(j => {
+    if (!j.created_at) return;
+    const d = new Date(j.created_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    s.add(key);
+  });
+  return Array.from(s).sort(); // YYYY-MM
+});
+const lineOption = computed(() => {
+  const monthKeys = monthsLocal.value;
+  const monthCounts = monthKeys.map(m => {
+    return filteredAllJobs.value.filter(j => {
+      if (!j.created_at) return false;
+      const d = new Date(j.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      return key === m;
+    }).length;
+  });
+  return {
+    tooltip: { trigger: "axis" },
+    xAxis: { type: "category", data: monthKeys, nameLocation: "middle", nameGap: 30 },
+    yAxis: { type: "value", name: "Job Posts", nameLocation: "middle", nameGap: 40 },
+    series: [{ name: "Job Posts", type: "line", areaStyle: {}, smooth: true, data: monthCounts }]
   };
-  const deptTotals = areaSeries.map(series => ({
-    name: series.name,
-    total: series.data.reduce((a, b) => a + b, 0),
-    monthly: series.data
-  }));
-  if (selectedDept) {
-    const deptEntry = deptTotals.find(d => d.name === selectedDept);
-    const deptTotal = deptEntry?.total || 0;
-    if (!deptEntry || deptTotal === 0) {
-      return `
-        A total of <strong>${total} job postings</strong> were recorded${statusPart}${datePart}.
-        However, <strong>${selectedDept}</strong> had no recorded postings in the selected period.
-      `;
-    }
-    const deptMonthly = deptEntry.monthly || [];
-    const peakCount = Math.max(...deptMonthly);
-    const peakIndices = deptMonthly
-      .map((val, idx) => val === peakCount ? idx : -1)
-      .filter(idx => idx !== -1);
-    const peakMonths = peakIndices
-      .map(idx => props.areaChartLabels?.[idx])
-      .filter(Boolean)
-      .map(formatMonth);
-    const peakText = peakMonths.length === 0
-      ? `There was no peak posting month for <strong>${selectedDept}</strong> in this period.`
-      : peakMonths.length === 1
-        ? `The highest job posting activity in this department was in <strong>${peakMonths[0]}</strong> with <strong>${peakCount} postings</strong>.`
-        : `The peak months in this department were <strong>${peakMonths.join(", ")}</strong>, each with <strong>${peakCount} postings</strong>.`;
-    const sorted = [...deptTotals].sort((a, b) => b.total - a.total);
-    const rank = sorted.findIndex(d => d.name === selectedDept) + 1;
-    const totalDepts = sorted.length;
-    return `
-      A total of <strong>${total} job postings</strong> were recorded${statusPart}${datePart}.
-      Within the <strong>${selectedDept}</strong> department, there were <strong>${deptTotal} postings</strong> overall.
-      ${peakText}
-      This department ranked <strong>#${rank}</strong> out of <strong>${totalDepts}</strong> in posting volume.
-    `;
-  } else {
-    const maxTrend = Math.max(...trends.map(row => row.total));
-    const peakMonths = trends
-      .filter(row => row.total === maxTrend)
-      .map(row => formatMonth(row.month));
-    const peakText = peakMonths.length === 1
-      ? `The highest job posting activity was recorded in <strong>${peakMonths[0]}</strong> with <strong>${maxTrend} postings</strong>.`
-      : `Peak posting months were <strong>${peakMonths.join(", ")}</strong>, each with <strong>${maxTrend} postings</strong>.`;
-    const maxDeptTotal = Math.max(...deptTotals.map(d => d.total));
-    const topDepartments = deptTotals
-      .filter(d => d.total === maxDeptTotal)
-      .map(d => d.name);
-    const deptText = topDepartments.length === 1
-      ? `The most active department was <strong>${topDepartments[0]}</strong> with <strong>${maxDeptTotal} postings</strong>.`
-      : `Top departments with equal posting activity (<strong>${maxDeptTotal} postings</strong> each) include: <strong>${topDepartments.join(", ")}</strong>.`;
-    return `
-      A total of <strong>${total} job postings</strong> were recorded${statusPart}${datePart}.
-      ${peakText}
-      ${deptText}
-    `;
-  }
+});
+const areaOption = computed(() => {
+  const monthKeys = monthsLocal.value;
+  const byDeptMonth = {};
+  filteredAllJobs.value.forEach(j => {
+    const dept = deptNameOf(j) || 'N/A';
+    if (!j.created_at) return;
+    const d = new Date(j.created_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!byDeptMonth[dept]) byDeptMonth[dept] = {};
+    byDeptMonth[dept][key] = (byDeptMonth[dept][key] || 0) + 1;
+  });
+  const series = Object.keys(byDeptMonth).map(dept => {
+    const data = monthKeys.map(m => byDeptMonth[dept][m] || 0);
+    return { name: dept, type: 'line', areaStyle: {}, stack: 'total', data };
+  });
+  return {
+    tooltip: { trigger: "axis" },
+    legend: { top: "top" },
+    grid: { top: 90 },
+    xAxis: { type: "category", boundaryGap: false, data: monthKeys, name: "Month", nameLocation: "middle", nameGap: 30 },
+    yAxis: { type: "value", name: "Job Posts", nameLocation: "middle", nameGap: 40 },
+    series
+  };
+});
+const summaryInsightTrend = computed(() => {
+  const total = filteredAllJobs.value.length;
+  if (!total) return `No job postings were recorded for the selected filters.`;
+  const months = monthsLocal.value;
+  const monthCounts = months.map(m => filteredAllJobs.value.filter(j => {
+    const d = new Date(j.created_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    return key === m;
+  }).length);
+  const max = Math.max(...monthCounts);
+  const peaks = months.filter((m, i) => monthCounts[i] === max);
+  return `A total of ${total} job postings were recorded. Peak month(s): ${peaks.join(', ')} with ${max} postings.`;
 });
 
-// --- SalaryInsights logic ---
-const boxCategories = computed(() => props.boxPlotData.map(d => d.role));
-const boxSeriesData = computed(() => props.boxPlotData.map(d => d.values));
-const histCategories = computed(() => props.histogramBins.map(b => b.range));
-const histCounts = computed(() => props.histogramBins.map(b => b.count));
-const boxPlotOption = computed(() => ({
-  tooltip: { trigger: "item" },
-  grid: { left: 50, right: 30, top: 40, bottom: 60 },
-  xAxis: { type: "category", data: boxCategories.value, name: "Job Role", axisLabel: { rotate: 25 } },
-  yAxis: { type: "value", name: "Salary" },
-  series: [{
-    name: "Salary Range",
-    type: "boxplot",
-    itemStyle: { color: "#4F46E5" },
-    data: boxSeriesData.value,
-  }],
-}));
+// --- SalaryInsights logic (fallback to client-side if props.histogramBins missing) ---
+const computedBins = computed(() => {
+  // build from filteredAllJobs on the fly
+  const mids = [];
+  filteredAllJobs.value.forEach(job => {
+    const minS = job?.salary?.job_min_salary ?? job?.job_min_salary ?? null;
+    const maxS = job?.salary?.job_max_salary ?? job?.job_max_salary ?? null;
+    if (minS == null && maxS == null) return;
+    const mid = (minS != null && maxS != null) ? (Number(minS) + Number(maxS)) / 2
+               : (minS != null ? Number(minS) : Number(maxS));
+    if (!isNaN(mid) && mid > 0) mids.push(mid);
+  });
+  if (!mids.length) return [];
+  const binSize = 10000;
+  let min = Math.floor(Math.min(...mids) / binSize) * binSize;
+  let max = Math.ceil(Math.max(...mids) / binSize) * binSize;
+  if (min === max) max = min + binSize;
+  const bins = [];
+  for (let b = min; b < max; b += binSize) {
+    bins.push({ range: `${b}-${b + binSize - 1}`, count: 0, jobs: [] });
+  }
+  filteredAllJobs.value.forEach(job => {
+    const minS = job?.salary?.job_min_salary ?? job?.job_min_salary ?? null;
+    const maxS = job?.salary?.job_max_salary ?? job?.job_max_salary ?? null;
+    if (minS == null && maxS == null) return;
+    const mid = (minS != null && maxS != null) ? (Number(minS) + Number(maxS)) / 2
+               : (minS != null ? Number(minS) : Number(maxS));
+    if (isNaN(mid) || mid <= 0) return;
+    const idx = Math.floor((mid - min) / binSize);
+    if (bins[idx]) {
+      bins[idx].count++;
+      bins[idx].jobs.push(job.job_title);
+    }
+  });
+  return bins;
+});
+const binsToUse = computed(() => (props.histogramBins && props.histogramBins.length) ? props.histogramBins : computedBins.value);
+const histCategories = computed(() => (binsToUse.value ?? []).map(b => b.range));
+const histCounts = computed(() => (binsToUse.value ?? []).map(b => b.count));
 const histogramOption = computed(() => ({
   tooltip: {
     trigger: "axis",
     formatter: params => {
-      const idx = params[0].dataIndex
-      const bin = props.histogramBins[idx]
-      if (!bin) return ''
-      const jobs = bin.jobs?.length ? `<br/>Jobs:<br/>${bin.jobs.join('<br/>')}` : ''
-      return `${bin.range}<br/>Count: ${bin.count}${jobs}`
+      const idx = params[0].dataIndex;
+      const bin = (binsToUse.value ?? [])[idx];
+      if (!bin) return '';
+      const jobs = bin.jobs?.length ? `<br/>Jobs:<br/>${bin.jobs.join('<br/>')}` : '';
+      return `${bin.range}<br/>Count: ${bin.count}${jobs}`;
     }
   },
   grid: { left: 50, right: 30, top: 40, bottom: 80 },
   xAxis: {
     type: "category",
     data: histCategories.value,
-    name: "Salary Range",
-    axisLabel: { rotate: 35, fontSize: 11, lineHeight: 14 }
+    name: "Salary Range (₱)",
+    nameLocation: "middle",
+    nameGap: 65,
+    axisLabel: { rotate: 35, fontSize: 12, color: "#374151", lineHeight: 16, overflow: "truncate", width: 120 }
   },
-  yAxis: { type: "value", name: "Jobs" },
-  series: [{
-    name: "Jobs",
-    type: "bar",
-    data: histCounts.value,
-    itemStyle: { color: "#6366F1" }
-  }]
+  yAxis: { type: "value", name: "Jobs", nameLocation: "middle", nameGap: 30, axisLabel: { fontSize: 12, color: "#374151" } },
+  series: [{ name: "Jobs", type: "bar", data: histCounts.value, itemStyle: { color: "#6366F1" }, emphasis: { itemStyle: { color: "#4338CA" } } }],
 }));
 
-// --- JobPerformance logic ---
-const genderPieOption = {
-  tooltip: { trigger: "item" },
-  legend: { top: "bottom" },
+// --- JobPerformance logic (server-filtered; will refresh via router.get) ---
+const genderPieOption = computed(() => ({
+  tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+  legend: { type: "scroll", bottom: 0, left: "center", orient: "horizontal", textStyle: { color: "#374151", fontSize: 13 }, padding: [5, 0, 0, 0] },
   series: [{
     name: "Gender",
     type: "pie",
-    radius: "60%",
-    data: Object.entries(props.genderCounts).map(([name, value]) => ({ name, value })),
-    label: { formatter: "{b}: {c} ({d}%)" }
+    radius: ["45%", "70%"],
+    center: ["50%", "50%"],
+    minAngle: 5,
+    avoidLabelOverlap: true,
+    labelLine: { show: true, length: 12, length2: 8, smooth: true },
+    label: { show: true, formatter: "{b}: {d}%", color: "#374151", fontWeight: "bold", fontSize: 13, overflow: "break" },
+    data: Object.entries(props.genderCounts || {}).map(([name, value]) => ({
+      name, value,
+      itemStyle: { color: name.toLowerCase().includes("female") ? "#EC4899" : name.toLowerCase().includes("male") ? "#3B82F6" : "#A3A3A3" }
+    })),
   }]
-};
-const ethnicityPieOption = {
-  tooltip: { trigger: "item" },
-  legend: { top: "bottom" },
-  series: [{
-    name: "Ethnicity",
-    type: "pie",
-    radius: "60%",
-    data: Object.entries(props.ethnicityCounts).map(([name, value]) => ({ name, value })),
-    label: { formatter: "{b}: {c} ({d}%)" }
-  }]
-};
-const stackedOptionPerf = {
-  tooltip: { trigger: "axis" },
-  legend: { data: props.genders },
-  xAxis: { type: "category", data: props.jobRoles, name: "Job Role" },
-  yAxis: { type: "value", name: "Applicants" },
-  series: props.genders.map(gender => ({
-    name: gender,
-    type: "bar",
-    stack: "total",
-    data: props.jobRoles.map(role => props.roleGenderData[gender][role] || 0),
-  }))
-};
+}));
+const ethnicityPieOption = computed(() => {
+  const raw = props.ethnicityCounts || {};
+  const palette = ["#F59E42","#60A5FA","#10B981","#F472B6","#6366F1","#EC4899","#3B82F6","#A3A3A3","#FBBF24","#34D399","#818CF8","#F87171","#F9A8D4","#6EE7B7","#FDE68A","#C7D2FE"];
+  return {
+    tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+    legend: { type: "scroll", bottom: 0, left: "center", orient: "horizontal", textStyle: { color: "#374151", fontSize: 13 }, padding: [5, 0, 0, 0] },
+    series: [{
+      name: "Ethnicity",
+      type: "pie",
+      radius: ["45%","70%"],
+      center: ["50%","50%"],
+      minAngle: 5,
+      avoidLabelOverlap: true,
+      labelLine: { show: true, length: 12, length2: 5, smooth: true },
+      label: { show: true, formatter: "{b}: {d}%", color: "#374151", fontWeight: "bold", fontSize: 13, overflow: "break" },
+      data: Object.entries(raw)
+        .filter(([name, value]) => !!name && value > 0)
+        .map(([name, value], idx) => ({ name: String(name).trim(), value, itemStyle: { color: palette[idx % palette.length] } })),
+    }]
+  };
+});
 
+// Quick insights
 const topDepartment = computed(() => {
-  if (!props.departmentCounts?.length) return null;
-  const max = Math.max(...props.departmentCounts.map(d => d.total));
-  return props.departmentCounts.filter(d => d.total === max).map(d => d.department);
+  const jobs = filteredAllJobs.value;
+  if (!jobs.length) return null;
+  const byDept = jobs.reduce((acc,j)=>{ const d=deptNameOf(j)||'N/A'; acc[d]=(acc[d]||0)+1; return acc; }, {});
+  const max = Math.max(...Object.values(byDept));
+  return Object.entries(byDept).filter(([,v])=>v===max).map(([k])=>k);
 });
-
-const quickInsights = computed(() => {
-  return [
-    {
-      icon: 'fa-briefcase',
-      title: 'Active Listings',
-      main: props.activeListings ?? 0,
-      note: `${(props.totalOpenings ?? 0) - (props.activeListings ?? 0)} inactive`
-    },
-    {
-      icon: 'fa-layer-group',
-      title: 'Top Job Type',
-      main: topType.value,
-      note: `${Object.values(typeCountsLocal.value).reduce((a,b)=>a+b,0)} typed entries`
-    },
-    {
-      icon: 'fa-building',
-      title: 'Top Department',
-      main: topDepartment.value ? topDepartment.value.join(', ') : '—',
-      note: topDepartment.value ? 'Highest openings' : 'No dept data'
-    },
-    {
-      icon: 'fa-users',
-      title: 'Gender Split',
-      main: Object.entries(props.genderCounts || {}).map(([k,v])=>`${k[0]}:${v}`).join('  '),
-      note: 'Applicants by gender'
-    },
-    {
-      icon: 'fa-chart-line',
-      title: 'Peak Month',
-      main: props.jobPostingTrends?.length
-        ? props.jobPostingTrends.reduce((a,b)=> b.total > a.total ? b : a).month
-        : '—',
-      note: 'Most postings'
-    },
-  ];
-});
-
-// OPTIONAL: small helper for header capitalization
+const quickInsights = computed(() => ([
+  { icon: 'fa-briefcase', title: 'Active Listings', main: props.activeListings ?? 0, note: `${(props.totalOpenings ?? 0) - (props.activeListings ?? 0)} inactive` },
+  { icon: 'fa-layer-group', title: 'Top Job Type', main: topType.value, note: `${Object.values(typeCountsLocal.value).reduce((a,b)=>a+b,0)} typed entries` },
+  { icon: 'fa-building', title: 'Top Department', main: topDepartment.value ? topDepartment.value.join(', ') : '—', note: topDepartment.value ? 'Highest openings' : 'No dept data' },
+  { icon: 'fa-users', title: 'Gender Split', main: Object.entries(props.genderCounts || {}).map(([k,v])=>`${k[0]}:${v}`).join('  '), note: 'Applicants by gender' },
+  { icon: 'fa-chart-line', title: 'Peak Month', main: (monthsLocal.value?.length ? monthsLocal.value[ (monthsLocal.value.length-1) ] : '—'), note: 'Most postings' },
+]));
 const capitalize = s => (s || '').replace(/\b\w/g,m=>m.toUpperCase());
 
+const overallSummary = computed(() => {
+  const total = filteredAllJobs.value.length;
+  if (!total) return "No job postings match the current filters. Consider adjusting filters or reviewing posting activity.";
 
+  const open = filteredAllJobs.value.filter(j => j.status === "open").length;
+  const closed = total - open;
+  const topDept = topDepartment.value ? topDepartment.value.join(", ") : "N/A";
+  const peakMonths = monthsLocal.value.length ? monthsLocal.value.slice(-1) : ["N/A"];
+  
+  return `Summary: A total of ${total} job postings were found, with ${open} still active and ${closed} closed. 
+  The department with the highest postings is ${topDept}, while the most common job type is "${topType.value}". 
+  Posting activity peaked during ${peakMonths.join(", ")}. Use this insight to balance job distribution and schedule postings more effectively.`;
+});
 </script>
 
 <template>
   <AppLayout title="Jobs Dashboard">
     <div class="min-h-screen bg-gray-50 py-8 px-4">
-      <!-- Filters (compact) -->
+      <!-- Filters (overall, affect all charts/tables) -->
       <div class="max-w-7xl mx-auto mb-8">
-        <div class="bg-white border border-gray-200 rounded-xl px-4 py-3 grid gap-4 md:grid-cols-8 lg:grid-cols-10 items-end">
+        <div class="bg-white border border-gray-200 rounded-xl px-4 py-2 grid gap-4 md:grid-cols-9 lg:grid-cols-12 items-end">
           <div class="col-span-2">
             <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">Date Preset</label>
-            <select v-model="datePreset" class="w-full h-8 text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+            <select v-model="datePreset" class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
               <option value="last_7">Last 7 Days</option>
               <option value="last_30">Last 30 Days</option>
               <option value="this_month">This Month</option>
@@ -591,40 +550,49 @@ const capitalize = s => (s || '').replace(/\b\w/g,m=>m.toUpperCase());
           </div>
           <div v-if="datePreset==='custom'" class="col-span-2">
             <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">Start</label>
-            <input type="date" v-model="dateFrom" class="w-full h-8 text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+            <input type="date" v-model="dateFrom" class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white" />
           </div>
           <div v-if="datePreset==='custom'" class="col-span-2">
             <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">End</label>
-            <input type="date" v-model="dateTo" class="w-full h-8 text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
+            <input type="date" v-model="dateTo" class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white" />
           </div>
-          <div>
+          <div class="col-span-2">
             <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">Exp. Level</label>
-            <select v-model="experienceLevel" class="w-full h-8 text-sm border-gray-300 rounded-md">
+            <select v-model="experienceLevel" class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
               <option value="">All</option>
               <option v-for="lvl in filterOptions.experience_levels" :key="lvl" :value="lvl">{{ lvl }}</option>
             </select>
           </div>
-          <div>
+          <div class="col-span-2">
             <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">Environment</label>
-            <select v-model="workEnvironment" class="w-full h-8 text-sm border-gray-300 rounded-md">
+            <select v-model="workEnvironment" class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
               <option value="">All</option>
               <option v-for="we in filterOptions.work_environments.filter(we => isNaN(Number(we.environment_type)))"
                       :key="we.environment_type" :value="we.environment_type">{{ we.environment_type }}</option>
             </select>
           </div>
-          <div>
+          <div class="col-span-2">
             <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">Job Type</label>
-            <select v-model="selectedType" class="w-full h-8 text-sm border-gray-300 rounded-md">
+            <select v-model="selectedType" class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
               <option value="">All</option>
               <option v-for="jt in jobTypes" :key="jt.id" :value="jt.type">{{ jt.type }}</option>
             </select>
           </div>
-          <div>
+          <div >
             <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">Status</label>
-            <select v-model="selectedStatus" class="w-full h-8 text-sm border-gray-300 rounded-md">
+            <select v-model="selectedStatus" class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
               <option value="">All</option>
               <option value="Active">Active</option>
               <option value="Closed">Closed</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-[11px] font-semibold text-gray-500 tracking-wide mb-1">Department</label>
+            <select
+              v-model="selectedDepartment"
+              class="w-full text-sm border-gray-300 rounded-md min-h-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+              <option value="">All</option>
+              <option v-for="dept in (departments || [])" :key="dept" :value="dept">{{ dept }}</option>
             </select>
           </div>
           <div class="flex justify-end">
@@ -671,18 +639,14 @@ const capitalize = s => (s || '').replace(/\b\w/g,m=>m.toUpperCase());
                   <td class="py-2 pr-4 capitalize">{{ job.status }}</td>
                   <td class="py-2 pr-4">{{ job.job_experience_level || '—' }}</td>
                   <td class="py-2 pr-4">
-                    <!-- Department: try job.department, fallback to '—' -->
-                    {{ job.department || '—' }}
+                      {{
+                        job.department && typeof job.department === 'object'
+                          ? job.department.department_name || '—'
+                          : job.department || '—'
+                      }}
                   </td>
                   <td class="py-2 pr-4">
-                    <!-- Salary Range: try job.salary, fallback to job.job_min_salary/job.job_max_salary -->
-                    <span v-if="job.salary && (job.salary.job_min_salary || job.salary.job_max_salary)">
-                      {{ job.salary.job_min_salary || '—' }} - {{ job.salary.job_max_salary || '—' }}
-                    </span>
-                    <span v-else-if="job.job_min_salary || job.job_max_salary">
-                      {{ job.job_min_salary || '—' }} - {{ job.job_max_salary || '—' }}
-                    </span>
-                    <span v-else>—</span>
+                    {{ salaryRangeText(job) }}
                   </td>
                   <td v-if="filtersActive" class="py-2 pr-4">{{ job.job_vacancies ?? '—' }}</td>
                   <td v-if="filtersActive" class="py-2 pr-4">{{ job.roles_filled ?? '—' }}</td>
@@ -773,43 +737,57 @@ const capitalize = s => (s || '').replace(/\b\w/g,m=>m.toUpperCase());
         </div>
         
         <!-- Row 3: Employment Type, Dept Role Levels (Stacked), Diversity -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 class="text-sm font-semibold text-gray-700 mb-4">Monthly Posting Trend</h3>
-              <VueECharts :option="lineOption" style="height:260px" />
-              <div class="mt-4 text-[11px] text-gray-600 leading-snug" v-html="summaryInsightTrend"></div>
+         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <!-- 75% column -->
+          <div class="lg:col-span-3 bg-white border border-gray-200 rounded-xl p-6  shadow-sm">
+            <div class="space-y-6">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-700 mb-3">Monthly Posting Trend & Department Activity</h3>
+                <VueECharts :option="lineOption" class="w-full" style="height:280px" />
+              </div>
+              <div class="border-t border-gray-100">
+                <VueECharts :option="areaOption" class="w-full" style="height:380px" />
+              </div>
+              <div class="text-[11px] text-gray-600 leading-snug" v-html="summaryInsightTrend"></div>
             </div>
-            <div class="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 class="text-sm font-semibold text-gray-700 mb-4">Salary Ranges (Box Plot)</h3>
-              <VueECharts v-if="boxPlotData.length" :option="boxPlotOption" style="height:260px" />
-              <div v-else class="h-[260px] flex items-center justify-center text-gray-400 text-xs">No salary data</div>
-            </div>
-          <div class="bg-white border border-gray-200 rounded-xl p-6">
-            <h3 class="text-sm font-semibold text-gray-700 mb-4">Employment Type Share</h3>
-            <VueECharts :option="pieOptionEmp" style="height:260px" />
           </div>
-          
-          <div class="bg-white border border-gray-200 rounded-xl p-6 space-y-6">
-            <div>
-              <h3 class="text-sm font-semibold text-gray-700 mb-3">Gender Diversity</h3>
-              <VueECharts :option="genderPieOption" style="height:110px" />
+
+          <!-- 25% column -->
+          <div class="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col justify-center space-y-6" style="min-height:640px;">
+            <div class="flex flex-col justify-center h-[50%]">
+              <h3 class="text-sm font-semibold text-gray-700 mb-3 text-center">Gender Diversity</h3>
+              <div class="grid place-items-center">
+                <VueECharts
+                  :option="genderPieOption"
+                  class="w-full max-w-[260px] mx-auto"
+                  style="height:260px" />
+              </div>
             </div>
-            <div v-if="ethnicities.length">
-              <h3 class="text-sm font-semibold text-gray-700 mb-3">Ethnicity Diversity</h3>
-              <VueECharts :option="ethnicityPieOption" style="height:110px" />
+            <div v-if="ethnicityPieOption.series[0].data.length" class="border-t border-gray-100 pt-4 flex flex-col justify-center h-[50%]">
+              <h3 class="text-sm font-semibold text-gray-700 mb-3 text-center">Ethnicity Diversity</h3>
+              <div class="grid place-items-center">
+                <VueECharts
+                  :option="ethnicityPieOption"
+                  class="w-full max-w-[260px] mx-auto"
+                  style="height:260px" />
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Full Width: Histogram + Job Table -->
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <div class="bg-white border border-gray-200 rounded-xl p-6 xl:col-span-1">
-            <h3 class="text-sm font-semibold text-gray-700 mb-4">Salary Distribution</h3>
-            <VueECharts v-if="histogramBins.length" :option="histogramOption" style="height:300px" />
+        <div class="bg-white border border-gray-200 rounded-xl p-6 xl:col-span-1">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4">Salary Distribution</h3>
+          <div class="w-full">
+            <VueECharts v-if="histogramBins.length" :option="histogramOption" style="height:300px; width:100%;" />
             <div v-else class="h-[300px] flex items-center justify-center text-gray-400 text-xs">No histogram data</div>
           </div>
         </div>
 
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-green-900 mt-8">
+          <p class="font-semibold mb-1">📊 Summary Insight:</p>
+          <p v-html="overallSummary"></p>
+        </div>
       </div>
     </div>
   </AppLayout>

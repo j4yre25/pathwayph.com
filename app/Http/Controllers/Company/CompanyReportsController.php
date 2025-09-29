@@ -56,14 +56,15 @@ class CompanyReportsController extends Controller
         $user = auth()->user();
         $companyId = $user->hr->company_id;
 
-        // --- 1. Overview (JobOverview.vue) ---
+        // --- Filters ---
         $datePreset      = $request->query('date_preset','last_30');
         $dateFromInput   = $request->query('date_from');
         $dateToInput     = $request->query('date_to');
         $experienceLevel = $request->query('experience_level');
-        $workEnvironment = $request->query('work_environment'); 
+        $workEnvironment = $request->query('work_environment');
+        $departmentsSel  = $request->query('departments', []);
 
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         $dateFrom = null; $dateTo = null;
         if ($datePreset !== 'custom') {
             switch ($datePreset) {
@@ -74,28 +75,37 @@ class CompanyReportsController extends Controller
                 case 'overall': default: $dateFrom = null; $dateTo = null;
             }
         } else {
-            $dateFrom = $dateFromInput ? \Carbon\Carbon::parse($dateFromInput)->startOfDay() : null;
-            $dateTo   = $dateToInput ? \Carbon\Carbon::parse($dateToInput)->endOfDay()   : null;
+            $dateFrom = $dateFromInput ? Carbon::parse($dateFromInput)->startOfDay() : null;
+            $dateTo   = $dateToInput ? Carbon::parse($dateToInput)->endOfDay()   : null;
         }
 
         $select = [
-            'id','job_title','job_type','status',
-            'job_experience_level','job_vacancies','created_at'
+            'id',
+            'job_title',
+            'job_type',
+            'status',
+            'job_experience_level',
+            'job_vacancies',
+            'created_at',
+            'department_id',      
+            'job_min_salary',     
+            'job_max_salary',     
         ];
-        if (\Schema::hasColumn('jobs','work_environment')) {
+        if (Schema::hasColumn('jobs','work_environment')) {
             $select[] = 'work_environment';
         }
 
+        // --- Base Query with Filters ---
         $jobsQuery = Job::where('company_id',$companyId)
             ->select($select)
-            ->with(['jobTypes:id,type','workEnvironments:id,environment_type'])
+            ->with(['jobTypes:id,type','workEnvironments:id,environment_type','department:id,department_name', 'salary'])
             ->when($dateFrom, fn($q)=>$q->where('created_at','>=',$dateFrom))
             ->when($dateTo, fn($q)=>$q->where('created_at','<=',$dateTo))
             ->when($experienceLevel, fn($q,$lvl)=>$q->where('job_experience_level',$lvl))
             ->when($workEnvironment, function($q) use ($workEnvironment) {
                 $vals = is_array($workEnvironment) ? array_filter($workEnvironment) : [$workEnvironment];
                 if (!count($vals)) return;
-                if (\Schema::hasColumn('jobs','work_environment')) {
+                if (Schema::hasColumn('jobs','work_environment')) {
                     $q->where(function($qq) use ($vals) {
                         $qq->whereIn('work_environment', $vals);
                     });
@@ -103,23 +113,29 @@ class CompanyReportsController extends Controller
                 $q->orWhereHas('workEnvironments', function($wq) use ($vals) {
                     $wq->whereIn('environment_type', $vals);
                 });
+            })
+            ->when($departmentsSel, function($q) use ($departmentsSel) {
+                $depts = is_array($departmentsSel) ? $departmentsSel : [$departmentsSel];
+                $q->whereHas('department', fn($dq)=>$dq->whereIn('department_name', $depts));
             });
 
         $filteredJobs = $jobsQuery->get();
 
         $allJobs = Job::where('company_id',$companyId)
             ->select($select)
-            ->with(['jobTypes:id,type','workEnvironments:id,environment_type'])
+            ->with(['jobTypes:id,type',
+                    'workEnvironments:id,environment_type',
+                    'department:id,department_name',        
+                    'salary'])
             ->get();
 
-        $experienceLevels = $allJobs->pluck('job_experience_level')
-            ->filter()->unique()->sort()->values()->toArray();
+        $experienceLevels = $allJobs->pluck('job_experience_level')->filter()->unique()->sort()->values()->toArray();
 
         $workEnvironments = [];
-        if (\Schema::hasTable('work_environments')) {
+        if (Schema::hasTable('work_environments')) {
             $workEnvironments = \App\Models\WorkEnvironment::select('id', 'environment_type')->get()->toArray();
         }
-        if (\Schema::hasColumn('jobs','work_environment')) {
+        if (Schema::hasColumn('jobs','work_environment')) {
             $legacy = $allJobs->pluck('work_environment')->filter()->unique()->map(fn($v) => ['id' => $v, 'environment_type' => $v])->values()->toArray();
             $workEnvironments = array_merge($workEnvironments, $legacy);
         }
@@ -148,20 +164,29 @@ class CompanyReportsController extends Controller
             ? (($dateFrom?->format('Y-m-d') ?? '—').' to '.($dateTo?->format('Y-m-d') ?? '—'))
             : ucfirst(str_replace('_',' ',$datePreset));
 
-        // --- 2. Department (DeptWise.vue) ---
+        // --- Department Counts (Filtered) ---
         $departmentCounts = Job::selectRaw('departments.department_name as department, COUNT(jobs.id) as total')
             ->join('departments', 'jobs.department_id', '=', 'departments.id')
             ->where('jobs.company_id', $companyId)
+            ->when($departmentsSel, function($q) use ($departmentsSel) {
+                $depts = is_array($departmentsSel) ? $departmentsSel : [$departmentsSel];
+                $q->whereIn('departments.department_name', $depts);
+            })
             ->where('jobs.status', 'open')
             ->groupBy('departments.department_name')
             ->get();
 
+        // --- Role Levels (Filtered) ---
         $roleLevels = ['Entry-level', 'Intermediate', 'Mid-level', 'Senior/Executive'];
         $stackedData = [];
         foreach ($roleLevels as $level) {
             $stackedData[$level] = Job::selectRaw('departments.department_name as department, COUNT(jobs.id) as total')
                 ->join('departments', 'jobs.department_id', '=', 'departments.id')
                 ->where('jobs.company_id', $companyId)
+                ->when($departmentsSel, function($q) use ($departmentsSel) {
+                    $depts = is_array($departmentsSel) ? $departmentsSel : [$departmentsSel];
+                    $q->whereIn('departments.department_name', $depts);
+                })
                 ->where('jobs.status', 'open')
                 ->where('jobs.job_experience_level', $level)
                 ->groupBy('departments.department_name')
@@ -180,15 +205,10 @@ class CompanyReportsController extends Controller
             ->get();
         $stackedData['allJobs'] = $allJobsDept;
 
-        // --- 3. Trends (JobPostTrends.vue) ---
+        // --- Trends (Filtered) ---
         $departments = \App\Models\Department::whereHas('jobs', function ($q) use ($companyId) {
             $q->where('company_id', $companyId);
-        })
-            ->pluck('department_name')
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
+        })->pluck('department_name')->filter()->unique()->values()->toArray();
 
         $jobsList = Job::with('department')
             ->where('company_id', $companyId)
@@ -232,13 +252,17 @@ class CompanyReportsController extends Controller
             ];
         })->values();
 
-        // --- 4. Employment Type (EmployType.vue) ---
+        // --- Employment Type (Filtered) ---
         $types = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'];
         $typeCountsEmp = [];
         foreach ($types as $type) {
             $typeCountsEmp[$type] = Job::where('company_id', $companyId)
                 ->whereHas('jobTypes', function ($query) use ($type) {
                     $query->where('type', $type);
+                })
+                ->when($departmentsSel, function($q) use ($departmentsSel) {
+                    $depts = is_array($departmentsSel) ? $departmentsSel : [$departmentsSel];
+                    $q->whereHas('department', fn($dq)=>$dq->whereIn('department_name', $depts));
                 })
                 ->count();
         }
@@ -258,140 +282,67 @@ class CompanyReportsController extends Controller
             }
         }
 
-        // --- 5. Salary Insights (SalaryInsights.vue) ---
-        $roles = Job::where('company_id', $companyId)
-            ->select('job_title')
-            ->distinct()
-            ->pluck('job_title')
-            ->toArray();
-
-        $boxPlotData = [];
-        foreach ($roles as $role) {
-            $jobsForRole = Job::where('company_id', $companyId)
-                ->where('job_title', $role)
-                ->with('salary')
-                ->get();
-
-            $salaries = [];
-            foreach ($jobsForRole as $job) {
-                if ($job->salary) {
-                    if (!is_null($job->salary->job_min_salary)) $salaries[] = (float)$job->salary->job_min_salary;
-                    if (!is_null($job->salary->job_max_salary)) $salaries[] = (float)$job->salary->job_max_salary;
-                } else {
-                    if (!is_null($job->job_min_salary)) $salaries[] = (float)$job->job_min_salary;
-                    if (!is_null($job->job_max_salary)) $salaries[] = (float)$job->job_max_salary;
-                }
-            }
-            $salaries = collect($salaries)->filter(fn($v) => $v > 0)->sort()->values();
-            $n = $salaries->count();
-            if ($n === 0) continue;
-            $p = function($percent) use ($n) {
-                if ($n === 1) return 0;
-                $idx = ($n - 1) * $percent;
-                return (int)round($idx);
-            };
-            $min   = $salaries->first();
-            $max   = $salaries->last();
-            $q1    = $salaries->get($p(0.25));
-            $median= $salaries->get($p(0.50));
-            $q3    = $salaries->get($p(0.75));
-            $boxPlotData[] = [
-                'role' => $role,
-                'values' => [$min, $q1, $median, $q3, $max],
-            ];
-        }
-
+        // --- Salary Distribution (Histogram only, no boxplot) ---
         $allJobsSalary = Job::where('company_id', $companyId)->with('salary')->get();
         $allSalaries = [];
-        foreach ($allJobsSalary as $job) {
-            $minS = null;
-            $maxS = null;
-            if ($job->salary) {
-                $minS = $job->salary->job_min_salary;
-                $maxS = $job->salary->job_max_salary;
-            } else {
-                $minS = $job->job_min_salary;
-                $maxS = $job->job_max_salary;
-            }
-            $minS = is_numeric($minS) ? (float)$minS : null;
-            $maxS = is_numeric($maxS) ? (float)$maxS : null;
-            if (!is_null($minS) && !is_null($maxS)) {
-                $allSalaries[] = ($minS + $maxS) / 2;
-            } elseif (!is_null($minS)) {
-                $allSalaries[] = $minS;
-            } elseif (!is_null($maxS)) {
-                $allSalaries[] = $maxS;
-            }
-        }
-        $allSalaries = array_values(array_filter($allSalaries, fn($v) => $v > 0));
-        $binSize = 10000;
-        $minSalary = count($allSalaries) ? floor(min($allSalaries) / $binSize) * $binSize : 0;
-        $maxSalary = count($allSalaries) ? ceil(max($allSalaries) / $binSize) * $binSize : 0;
-        if ($minSalary === $maxSalary) {
-            $maxSalary = $minSalary + $binSize;
-        }
-        $bins = [];
-        for ($b = $minSalary; $b < $maxSalary; $b += $binSize) {
-            $bins[] = [
-                'range' => $b . '-' . ($b + $binSize - 1),
-                'count' => 0,
-                'jobs' => [],
-            ];
-        }
         foreach ($allJobsSalary as $job) {
             $minS = $job->salary->job_min_salary ?? $job->job_min_salary;
             $maxS = $job->salary->job_max_salary ?? $job->job_max_salary;
             $minS = is_numeric($minS) ? (float)$minS : null;
             $maxS = is_numeric($maxS) ? (float)$maxS : null;
-            if (is_null($minS) && is_null($maxS)) continue;
-            if (!is_null($minS) && !is_null($maxS)) {
-                $mid = ($minS + $maxS) / 2;
-            } else {
-                $mid = !is_null($minS) ? $minS : $maxS;
+            if (!is_null($minS) && !is_null($maxS)) $allSalaries[] = ($minS+$maxS)/2;
+            elseif (!is_null($minS)) $allSalaries[] = $minS;
+            elseif (!is_null($maxS)) $allSalaries[] = $maxS;
+        }
+        $allSalaries = array_values(array_filter($allSalaries, fn($v)=>$v>0));
+        $bins = [];
+        if (count($allSalaries)) {
+            $binSize = 10000;
+            $minSalary = floor(min($allSalaries) / $binSize) * $binSize;
+            $maxSalary = ceil(max($allSalaries) / $binSize) * $binSize;
+            if ($minSalary === $maxSalary) $maxSalary = $minSalary + $binSize;
+            for ($b = $minSalary; $b < $maxSalary; $b += $binSize) {
+                $bins[] = ['range'=>$b.'-'.($b+$binSize-1), 'count'=>0, 'jobs'=>[]];
             }
-            if ($mid <= 0) continue;
-            $index = (int) floor(($mid - $minSalary) / $binSize);
-            if (!isset($bins[$index])) continue;
-            $bins[$index]['count']++;
-            $bins[$index]['jobs'][] = $job->job_title;
+            foreach ($allJobsSalary as $job) {
+                $minS = $job->salary->job_min_salary ?? $job->job_min_salary;
+                $maxS = $job->salary->job_max_salary ?? $job->job_max_salary;
+                $minS = is_numeric($minS) ? (float)$minS : null;
+                $maxS = is_numeric($maxS) ? (float)$maxS : null;
+                if (is_null($minS) && is_null($maxS)) continue;
+                $mid = (!is_null($minS) && !is_null($maxS)) ? (($minS+$maxS)/2) : (!is_null($minS) ? $minS : $maxS);
+                if ($mid <= 0) continue;
+                $index = (int) floor(($mid - $minSalary) / $binSize);
+                if (!isset($bins[$index])) continue;
+                $bins[$index]['count']++;
+                $bins[$index]['jobs'][] = $job->job_title;
+            }
         }
 
-        // --- 6. Performance (JobPerformance.vue) ---
-        $genders = ['Male', 'Female'];
+        // --- Performance (filtered applications) ---
+        $filteredJobIds = $filteredJobs->pluck('id');
+        $appsBase = JobApplication::whereIn('job_id', $filteredJobIds)
+            ->when($dateFrom, fn($q)=>$q->where('created_at','>=',$dateFrom))
+            ->when($dateTo, fn($q)=>$q->where('created_at','<=',$dateTo));
+
+        $genders = ['Male','Female'];
         $genderCounts = [];
         foreach ($genders as $gender) {
-            $genderCounts[$gender] = JobApplication::whereHas('job', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })->whereHas('graduate', function ($q) use ($gender) {
-                $q->where('gender', $gender);
-            })->count();
+            $genderCounts[$gender] = (clone $appsBase)
+                ->whereHas('graduate', fn($q)=>$q->where('gender',$gender))
+                ->count();
         }
         $ethnicities = Graduate::select('ethnicity')->distinct()->pluck('ethnicity')->toArray();
         $ethnicityCounts = [];
         foreach ($ethnicities as $ethnicity) {
-            $ethnicityCounts[$ethnicity] = JobApplication::whereHas('job', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })->whereHas('graduate', function ($q) use ($ethnicity) {
-                $q->where('ethnicity', $ethnicity);
-            })->count();
-        }
-        $jobRoles = array_values(Job::where('company_id', $companyId)->pluck('job_title')->unique()->toArray());
-        $roleGenderData = [];
-        foreach ($genders as $gender) {
-            $roleGenderData[$gender] = [];
-            foreach ($jobRoles as $jobRole) {
-                $roleGenderData[$gender][$jobRole] = JobApplication::whereHas('job', function ($q) use ($companyId, $jobRole) {
-                    $q->where('company_id', $companyId)
-                        ->where('job_title', $jobRole);
-                })->whereHas('graduate', function ($q) use ($gender) {
-                    $q->where('gender', $gender);
-                })->count();
-            }
+            if (!$ethnicity) continue;
+            $ethnicityCounts[$ethnicity] = (clone $appsBase)
+                ->whereHas('graduate', fn($q)=>$q->where('ethnicity',$ethnicity))
+                ->count();
         }
 
-        // --- Return all data to the combined dashboard page ---
+        // --- Return all data to the dashboard page ---
         return Inertia::render('Company/Reports/JobsReport', [
-            // Overview
             'totalOpenings' => $totalOpeningsFiltered,
             'activeListings'=> $activeListingsFiltered,
             'rolesFilled'   => $rolesFilledFiltered,
@@ -407,7 +358,8 @@ class CompanyReportsController extends Controller
                 'date_from' => $dateFromInput,
                 'date_to' => $dateToInput,
                 'experience_level' => $experienceLevel,
-                'work_environment' => $workEnvironments,
+                'work_environment' => $request->query('work_environment', ''),
+                'departments' => $departmentsSel,
                 'date_range_label' => $dateRangeLabel,
             ],
             'filterOptions' => [
@@ -434,19 +386,13 @@ class CompanyReportsController extends Controller
             'departmentsEmp' => $departmentsEmp,
             'columnData' => $columnData,
             'types' => $types,
-            // Salary Insights
-            'boxPlotData' => $boxPlotData,
+            // Salary Distribution (histogram only)
             'histogramBins' => $bins,
             // Performance
             'genderCounts' => $genderCounts,
             'ethnicityCounts' => $ethnicityCounts,
-            'jobRoles' => $jobRoles,
-            'roleGenderData' => $roleGenderData,
-            'genders' => $genders,
-            'ethnicities' => $ethnicities,
         ]);
     }
-
     public function overview(Request $request)
     {
         $user = auth()->user();
@@ -612,55 +558,6 @@ class CompanyReportsController extends Controller
         ]);
     }
 
-    public function department(Request $request)
-    {
-        $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
-
-        // Bar Chart: Number of job openings per department
-        $departmentCounts = Job::selectRaw('departments.department_name as department, COUNT(jobs.id) as total')
-            ->join('departments', 'jobs.department_id', '=', 'departments.id')
-            ->where('jobs.company_id', $companyId)
-            ->where('jobs.status', 'open')
-            ->groupBy('departments.department_name')
-            ->get();
-
-        // Stacked Column Chart: Job postings by role level per department
-        $roleLevels = ['Entry-level', 'Intermediate', 'Mid-level', 'Senior/Executive'];
-        $stackedData = [];
-        foreach ($roleLevels as $level) {
-            $stackedData[$level] = Job::selectRaw('departments.department_name as department, COUNT(jobs.id) as total')
-                ->join('departments', 'jobs.department_id', '=', 'departments.id')
-                ->where('jobs.company_id', $companyId)
-                ->where('jobs.status', 'open')
-                ->where('jobs.job_experience_level', $level)
-                ->groupBy('departments.department_name')
-                ->pluck('total', 'department')
-                ->toArray();
-        }
-
-        // All jobs for filtering and listing (with department and role level)
-        $allJobs = Job::select([
-            'jobs.id',
-            'jobs.job_title',
-            'departments.department_name as department',
-            'jobs.job_experience_level',
-            'jobs.status'
-        ])
-            ->join('departments', 'jobs.department_id', '=', 'departments.id')
-            ->where('jobs.company_id', $companyId)
-            ->get();
-
-        // Attach allJobs to stackedData for frontend filtering
-        $stackedData['allJobs'] = $allJobs;
-
-        return Inertia::render('Company/Reports/DeptWise', [
-            'departmentCounts' => $departmentCounts,
-            'stackedData' => $stackedData,
-            'roleLevels' => $roleLevels,
-        ]);
-    }
 
     public function hiringFunnel(Request $request)
     {
@@ -957,98 +854,6 @@ class CompanyReportsController extends Controller
             ],
             'departments' => $departments,
             'jobs' => $jobs,
-        ]);
-    }
-
-    public function trends(Request $request)
-    {
-        $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
-
-
-        $selectedDepartment = $request->input('department', '');
-        $status = $request->input('status', '');
-        $dateFrom = $request->input('date_from', '');
-        $dateTo = $request->input('date_to', '');
-        $perPage = 10;
-
-        // Get all departments for filter dropdown
-        $departments = \App\Models\Department::whereHas('jobs', function ($q) use ($companyId) {
-            $q->where('company_id', $companyId);
-        })
-            ->pluck('department_name')
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
-
-        // Filter jobs by department if selected
-        $jobsQuery = Job::with('department')
-            ->where('company_id', $companyId)
-            ->when($selectedDepartment, function ($q) use ($selectedDepartment) {
-                $q->whereHas('department', function ($q2) use ($selectedDepartment) {
-                    $q2->where('department_name', $selectedDepartment);
-                });
-            })
-            ->when($status, fn($q) => $q->where('status', $status))
-            ->when($dateFrom, fn($q) => $q->whereDate('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn($q) => $q->whereDate('created_at', '<=', $dateTo))
-            ->orderBy('created_at', 'desc');
-
-        $jobsList = $jobsQuery->paginate($perPage)->through(function ($job) {
-            return [
-                'id' => $job->id,
-                'title' => $job->job_title,
-                'created_at' => $job->created_at->format('Y-m-d'),
-                'department' => $job->department ? $job->department->department_name : '',
-                'status' => $job->status,
-            ];
-        });
-        // Line Chart: Job postings over time
-        $monthlyPostings = Job::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as total")
-            ->where('company_id', $companyId)
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
-
-        // Area Chart: Job posting activity by department
-        $areaData = Job::selectRaw("departments.department_name AS department, DATE_FORMAT(jobs.created_at, '%Y-%m') AS month, COUNT(jobs.id) AS total")
-            ->join('departments', 'jobs.department_id', '=', 'departments.id')
-            ->where('jobs.company_id', $companyId)
-            ->groupBy('departments.department_name', 'month')
-            ->orderBy('month')
-            ->get();
-
-        $grouped = $areaData->groupBy('department');
-        $months = $areaData->pluck('month')->unique()->sort()->values();
-
-        $areaChartSeries = $grouped->map(function ($entries, $dept) use ($months) {
-            $monthMap = $entries->keyBy('month');
-            $data = $months->map(fn($m) => $monthMap[$m]->total ?? 0);
-            return [
-                'name' => $dept,
-                'type' => 'line',
-                'areaStyle' => [],
-                'stack' => 'total',
-                'data' => $data,
-            ];
-        })->values();
-
-        return Inertia::render('Company/Reports/JobPostTrends', [
-            'jobsList' => $jobsList,
-            'filters' => [
-                'department' => $selectedDepartment,
-                'status' => $status,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-            ],
-            'statuses' => ['open', 'closed', 'draft'],
-            'jobPostingTrends' => $monthlyPostings,
-            'areaChartLabels' => $months,
-            'areaChartSeries' => $areaChartSeries,
-            'departments' => $departments,
-            'selectedDepartment' => $selectedDepartment,
         ]);
     }
 
@@ -1377,191 +1182,6 @@ class CompanyReportsController extends Controller
         ]);
     }
 
-    public function employmentType(Request $request)
-    {
-        $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
-
-        // Pie Chart: Job openings by employment type
-        $types = ['Full-time', 'Part-time', 'Contract', 'Freelance', 'Internship'];
-        $typeCounts = [];
-        foreach ($types as $type) {
-            $typeCounts[$type] = Job::where('company_id', $companyId)
-                ->whereHas('jobTypes', function ($query) use ($type) {
-                    $query->where('type', $type);
-                })
-                ->count();
-        }
-
-        // Column Chart: Job types across departments
-        $departments = \App\Models\Department::pluck('department_name');
-        $columnData = [];
-        foreach ($types as $type) {
-            $columnData[$type] = [];
-            foreach ($departments as $dept) {
-                $columnData[$type][$dept] = Job::where('company_id', $companyId)
-                    ->whereHas('jobTypes', function ($query) use ($type) {
-                        $query->where('type', $type);
-                    })
-                    ->whereHas('department', function ($q) use ($dept) {
-                        $q->where('department_name', $dept);
-                    })
-                    ->count();
-            }
-        }
-
-        return Inertia::render('Company/Reports/EmployType', [
-            'typeCounts' => $typeCounts,
-            'departments' => $departments,
-            'columnData' => $columnData,
-            'types' => $types,
-        ]);
-    }
-
-    public function salaryInsights(Request $request)
-    {
-        $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
-
-        // Distinct roles
-        $roles = Job::where('company_id', $companyId)
-            ->select('job_title')
-            ->distinct()
-            ->pluck('job_title')
-            ->toArray();
-
-        $boxPlotData = [];
-
-        foreach ($roles as $role) {
-            $jobsForRole = Job::where('company_id', $companyId)
-                ->where('job_title', $role)
-                ->with('salary')
-                ->get();
-
-            $salaries = [];
-
-            foreach ($jobsForRole as $job) {
-                // Prefer related salary record
-                if ($job->salary) {
-                    if (!is_null($job->salary->job_min_salary)) $salaries[] = (float)$job->salary->job_min_salary;
-                    if (!is_null($job->salary->job_max_salary)) $salaries[] = (float)$job->salary->job_max_salary;
-                } else {
-                    // Fallback: direct columns on jobs table
-                    if (!is_null($job->job_min_salary)) $salaries[] = (float)$job->job_min_salary;
-                    if (!is_null($job->job_max_salary)) $salaries[] = (float)$job->job_max_salary;
-                }
-            }
-
-            $salaries = collect($salaries)->filter(fn($v) => $v > 0)->sort()->values();
-            $n = $salaries->count();
-            if ($n === 0) continue;
-
-            // Helper for percentile index
-            $p = function($percent) use ($n) {
-                if ($n === 1) return 0;
-                $idx = ($n - 1) * $percent;
-                return (int)round($idx);
-            };
-
-            $min   = $salaries->first();
-            $max   = $salaries->last();
-            $q1    = $salaries->get($p(0.25));
-            $median= $salaries->get($p(0.50));
-            $q3    = $salaries->get($p(0.75));
-
-            $boxPlotData[] = [
-                'role' => $role,
-                'values' => [$min, $q1, $median, $q3, $max],
-            ];
-        }
-
-        // Histogram (use midpoint of range; fallback to job columns too)
-        $allJobs = Job::where('company_id', $companyId)->with('salary')->get();
-
-        $allSalaries = [];
-        foreach ($allJobs as $job) {
-            $minS = null;
-            $maxS = null;
-
-            if ($job->salary) {
-                $minS = $job->salary->job_min_salary;
-                $maxS = $job->salary->job_max_salary;
-            } else {
-                $minS = $job->job_min_salary;
-                $maxS = $job->job_max_salary;
-            }
-
-            // Normalize numeric
-            $minS = is_numeric($minS) ? (float)$minS : null;
-            $maxS = is_numeric($maxS) ? (float)$maxS : null;
-
-            if (!is_null($minS) && !is_null($maxS)) {
-                $allSalaries[] = ($minS + $maxS) / 2;
-            } elseif (!is_null($minS)) {
-                $allSalaries[] = $minS;
-            } elseif (!is_null($maxS)) {
-                $allSalaries[] = $maxS;
-            }
-        }
-
-        $allSalaries = array_values(array_filter($allSalaries, fn($v) => $v > 0));
-
-        if (count($allSalaries) === 0) {
-            \Log::info('SalaryInsights: no salary data (including fallback) for company', ['company_id' => $companyId]);
-            return Inertia::render('Company/Reports/SalaryInsights', [
-                'boxPlotData' => $boxPlotData,
-                'histogramBins' => [],
-            ]);
-        }
-
-        $binSize = 10000;
-        $minSalary = floor(min($allSalaries) / $binSize) * $binSize;
-        $maxSalary = ceil(max($allSalaries) / $binSize) * $binSize;
-        if ($minSalary === $maxSalary) {
-            $maxSalary = $minSalary + $binSize;
-        }
-
-        $bins = [];
-        for ($b = $minSalary; $b < $maxSalary; $b += $binSize) {
-            $bins[] = [
-                'range' => $b . '-' . ($b + $binSize - 1),
-                'count' => 0,
-                'jobs' => [],
-            ];
-        }
-
-        // Populate bins (use same salary midpoint logic)
-        foreach ($allJobs as $job) {
-            $minS = $job->salary->job_min_salary ?? $job->job_min_salary;
-            $maxS = $job->salary->job_max_salary ?? $job->job_max_salary;
-
-            $minS = is_numeric($minS) ? (float)$minS : null;
-            $maxS = is_numeric($maxS) ? (float)$maxS : null;
-
-            if (is_null($minS) && is_null($maxS)) continue;
-
-            if (!is_null($minS) && !is_null($maxS)) {
-                $mid = ($minS + $maxS) / 2;
-            } else {
-                $mid = !is_null($minS) ? $minS : $maxS;
-            }
-
-            if ($mid <= 0) continue;
-
-            $index = (int) floor(($mid - $minSalary) / $binSize);
-            if (!isset($bins[$index])) continue;
-            $bins[$index]['count']++;
-            $bins[$index]['jobs'][] = $job->job_title;
-        }
-
-        return Inertia::render('Company/Reports/SalaryInsights', [
-            'boxPlotData' => $boxPlotData,
-            'histogramBins' => $bins,
-        ]);
-    }
-
     public function diversity(Request $request)
     {
         $user = auth()->user();
@@ -1860,7 +1480,7 @@ class CompanyReportsController extends Controller
             }
         } else {
             $dateFrom = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : null;
-            $dateTo   = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
+            $dateTo = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
         }
 
         // Fetch applications (include legacy stage variants, then normalize)
@@ -2104,7 +1724,10 @@ class CompanyReportsController extends Controller
         // Sources
         $departments = \App\Models\Department::whereHas('jobs',fn($q)=>$q->where('company_id',$companyId))
             ->pluck('department_name')->unique()->values();
-        $jobs = Job::where('company_id',$companyId)->select('id','job_title')->orderBy('job_title')->get();
+        $jobs = Job::where('company_id',$companyId)
+            ->select('id','job_title')
+            ->orderBy('job_title')
+            ->get();
         $experienceLevels = ['fresh','entry','mid','intermediate','senior'];
 
           // --- Normalization / Safety ---
@@ -2159,8 +1782,7 @@ class CompanyReportsController extends Controller
     public function interviewProgress(Request $request)
     {
         $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
+        $companyId = $user->hr->company_id;
 
         // Funnel Chart: Count of applicants at each stage
         $stages = ['screened', 'interview_1', 'interview_2', 'final_selection'];
@@ -2283,7 +1905,7 @@ class CompanyReportsController extends Controller
             }
         } else {
             $dateFrom = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : null;
-            $dateTo   = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
+            $dateTo = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
         }
 
         // Stage normalization
@@ -2507,64 +2129,6 @@ class CompanyReportsController extends Controller
         ]);
     }
 
-    public function performance(Request $request)
-    {
-        $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
-
-        // 1. Pie Chart: Diversity of applicants (gender, ethnicity, etc.)
-        // Assumes JobApplication has 'gender' and 'ethnicity' columns
-        $genders = ['Male', 'Female'];
-        $genderCounts = [];
-        foreach ($genders as $gender) {
-            $genderCounts[$gender] = JobApplication::whereHas('job', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })->whereHas('graduate', function ($q) use ($gender) {
-                $q->where('gender', $gender);
-            })->count();
-        }
-
-        // For ethnicity
-        $ethnicities = Graduate::select('ethnicity')->distinct()->pluck('ethnicity')->toArray();
-
-        $ethnicityCounts = [];
-        foreach ($ethnicities as $ethnicity) {
-            $ethnicityCounts[$ethnicity] = JobApplication::whereHas('job', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })->whereHas('graduate', function ($q) use ($ethnicity) {
-                $q->where('ethnicity', $ethnicity);
-            })->count();
-        }
-
-
-        // 2. Stacked Column Chart: Diversity stats across job roles
-        $jobRoles = array_values(Job::where('company_id', $companyId)->pluck('job_title')->unique()->toArray());
-        $roleGenderData = [];
-        foreach ($genders as $gender) {
-            $roleGenderData[$gender] = [];
-            foreach ($jobRoles as $jobRole) {
-                $roleGenderData[$gender][$jobRole] = JobApplication::whereHas('job', function ($q) use ($companyId, $jobRole) {
-                    $q->where('company_id', $companyId)
-                        ->where('job_title', $jobRole);
-                })->whereHas('graduate', function ($q) use ($gender) {
-                    $q->where('gender', $gender);
-                })->count();
-            }
-        }
-
-        // You can do the same for departments if needed
-
-        return Inertia::render('Company/Reports/JobPerformance', [
-            'genderCounts' => $genderCounts,
-            'ethnicityCounts' => $ethnicityCounts,
-            'jobRoles' => $jobRoles,
-            'roleGenderData' => $roleGenderData,
-            'genders' => $genders,
-            'ethnicities' => $ethnicities,
-        ]);
-    }
-
     public function feedback(Request $request)
     {
 
@@ -2652,6 +2216,9 @@ class CompanyReportsController extends Controller
         ]);
     }
 
+
+
+    
     public function academicPerformance(Request $request)
     {
 
