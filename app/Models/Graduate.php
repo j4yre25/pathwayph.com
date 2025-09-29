@@ -96,7 +96,7 @@ class Graduate extends Model
 
     public function experience()
     {
-        return $this->hasMany(Experience::class);
+        return $this->hasMany(Experience::class, 'graduate_id');
     }
 
     public function projects()
@@ -143,9 +143,9 @@ class Graduate extends Model
     }
 
     public function jobSearchHistory()
-{
-    return $this->hasMany(JobSearchHistory::class);
-}
+    {
+        return $this->hasMany(JobSearchHistory::class);
+    }
     // (Optionally keep old relation name if used elsewhere)
     // public function referralExports() { return $this->referrals()->whereNotNull('certificate_path'); }
 }

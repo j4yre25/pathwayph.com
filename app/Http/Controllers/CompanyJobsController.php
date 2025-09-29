@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\WorkEnvironment;
 use App\Notifications\JobInviteNotification;
 use App\Notifications\NewJobPostingNotification;
+use App\Notifications\NewCompanyJobPostedNotification;
 use App\Services\JobCreationService;
 use App\Services\ApplicantScreeningService;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class CompanyJobsController extends Controller
 {
     public function index(User $user)
     {
-        $jobs = Job::with(['salary','locations','workEnvironments','jobTypes'])
+        $jobs = Job::with(['salary', 'locations', 'workEnvironments', 'jobTypes'])
             ->where('company_id', $user->hr->company_id)
             ->orderByRaw('is_approved DESC')
             ->orderBy('created_at', 'desc')
@@ -47,6 +48,14 @@ class CompanyJobsController extends Controller
             'jobs' => $jobs,
         ]);
     }
+
+    protected function abortIfOnHold($user = null)
+{
+    $user = $user ?: auth()->user();
+    if ($user->status === 'on_hold') {
+        abort(403, 'Your company account is currently on hold. Please contact PESO for assistance.');
+    }
+}
 
 
 
@@ -72,13 +81,13 @@ class CompanyJobsController extends Controller
             'programs' => $programs,
             'authUser' => $authUser,
             'skills' => $skills,
-            'departments' => $departments,  
+            'departments' => $departments,
         ]);
     }
 
     public function archivedlist(User $user)
     {
-        $all_jobs = Job::with('user','jobTypes')->onlyTrashed()->get();
+        $all_jobs = Job::with('user', 'jobTypes')->onlyTrashed()->get();
 
         return Inertia::render('Company/Jobs/Index/ArchivedList', [
             'all_jobs' => $all_jobs
@@ -87,16 +96,16 @@ class CompanyJobsController extends Controller
 
     public function manage(User $user)
     {
-         $jobs = Job::with([
+        $jobs = Job::with([
             'jobTypes:id,type',
             'locations:id,address',
             'workEnvironments:id,environment_type',
             'salary'
         ])
-        ->where('company_id', $user->hr->company_id)
-        ->orderByRaw('is_approved DESC') // prioritize approved jobs
-        ->orderBy('created_at', 'desc')            // then by latest
-        ->get();
+            ->where('company_id', $user->hr->company_id)
+            ->orderByRaw('is_approved DESC') // prioritize approved jobs
+            ->orderBy('created_at', 'desc')            // then by latest
+            ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
             'jobs' => $jobs,
@@ -105,6 +114,8 @@ class CompanyJobsController extends Controller
 
     public function store(Request $request, User $user)
     {
+            $this->abortIfOnHold($user);
+
         $validated = $request->validate([
             'job_title' => [
                 'required',
@@ -162,7 +173,7 @@ class CompanyJobsController extends Controller
         $jobService = new JobCreationService();
         $new_job = $jobService->createJob($validated, $user);
 
-        $new_job->is_approved = 1;
+        $new_job->is_approved = null; // Pending admin approval
         $new_job->status = 'open';
         $new_job->save();
 
@@ -170,6 +181,11 @@ class CompanyJobsController extends Controller
 
         // Notify graduates of the new job posting
         $this->notifyGraduates($new_job);
+
+        $pesoUsers = User::where('role', 'peso')->get();
+        foreach ($pesoUsers as $pesoUser) {
+            $pesoUser->notify(new NewCompanyJobPostedNotification($new_job));
+        }
 
 
         return redirect()
@@ -181,7 +197,8 @@ class CompanyJobsController extends Controller
     {
         return Inertia::render('Company/Jobs/Index/BatchUploadPreview');
     }
-    public function fuzzyFind($model, $column, $value) {
+    public function fuzzyFind($model, $column, $value)
+    {
         if (!$value) return null;
         // Try exact match (case-insensitive)
         $record = $model::whereRaw('LOWER(' . $column . ') = ?', [strtolower(trim($value))])->first();
@@ -204,6 +221,8 @@ class CompanyJobsController extends Controller
     // 2. Batch Upload Handler
     public function batchUpload(Request $request)
     {
+            $this->abortIfOnHold(auth()->user());
+
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt,xlsx,xls',
         ]);
@@ -283,7 +302,7 @@ class CompanyJobsController extends Controller
             }
 
             // --- Program ---
-            $row['program_id'] = []; 
+            $row['program_id'] = [];
             if (!empty($row['program_name'])) {
                 $programNames = array_map('trim', explode(',', $row['program_name']));
                 foreach ($programNames as $progName) {
@@ -322,9 +341,9 @@ class CompanyJobsController extends Controller
             $row['job_type'] = !empty($jobTypeIds) ? $jobTypeIds[0] : null;
 
             // --- Experience Level normalize ---
-            $allowed = ['Entry-level','Intermediate','Mid-level','Senior/Executive'];
+            $allowed = ['Entry-level', 'Intermediate', 'Mid-level', 'Senior/Executive'];
             $input = strtolower(trim($row['job_experience_level'] ?? ''));
-            $matched = collect($allowed)->first(function($level) use ($input) {
+            $matched = collect($allowed)->first(function ($level) use ($input) {
                 $levelLower = strtolower($level);
                 return $levelLower === $input
                     || str_contains($levelLower, $input)
@@ -354,7 +373,11 @@ class CompanyJobsController extends Controller
                     $row['job_deadline'] = $this->excelSerialToDate($row['job_deadline']);
                 } else {
                     $date = str_replace(['/', '.'], '-', $row['job_deadline']);
-                    try { $carbon = Carbon::createFromFormat('Y-m-d', $date); } catch (\Exception $e) { $carbon = null; }
+                    try {
+                        $carbon = Carbon::createFromFormat('Y-m-d', $date);
+                    } catch (\Exception $e) {
+                        $carbon = null;
+                    }
                     $row['job_deadline'] = $carbon ? $carbon->format('Y-m-d') : null;
                 }
             } else {
@@ -404,12 +427,14 @@ class CompanyJobsController extends Controller
             ]);
 
             // Extra check: if not negotiable, min/max must be present and valid
-            $validator->after(function($v) use ($row) {
+            $validator->after(function ($v) use ($row) {
                 if (empty($row['is_negotiable'])) {
                     if ($row['job_min_salary'] === null) $v->errors()->add('job_min_salary', 'Min salary is required when not negotiable.');
                     if ($row['job_max_salary'] === null) $v->errors()->add('job_max_salary', 'Max salary is required when not negotiable.');
-                    if ($row['job_min_salary'] !== null && $row['job_max_salary'] !== null
-                        && (float)$row['job_min_salary'] > (float)$row['job_max_salary']) {
+                    if (
+                        $row['job_min_salary'] !== null && $row['job_max_salary'] !== null
+                        && (float)$row['job_min_salary'] > (float)$row['job_max_salary']
+                    ) {
                         $v->errors()->add('job_min_salary', 'Min salary cannot exceed max salary.');
                     }
                 }
@@ -481,7 +506,7 @@ class CompanyJobsController extends Controller
     {
         return response()->download(public_path('templates/job_template.xlsx'));
     }
-    
+
     public function view(Job $job)
     {
         $job->load([
@@ -538,7 +563,7 @@ class CompanyJobsController extends Controller
                     'profile_photo' => $job->company->profile_photo_path ? Storage::url($job->company->profile_photo_path) : null,
                     'cover_photo' => $job->company->cover_photo_path ? Storage::url($job->company->cover_photo_path) : null,
                 ],
-                'programs' => $job->programs->pluck('name')->toArray(), 
+                'programs' => $job->programs->pluck('name')->toArray(),
                 'status' => $job->status,
             ],
             'user' => Auth::user(),
@@ -594,6 +619,8 @@ class CompanyJobsController extends Controller
 
     public function update(Request $request, Job $job)
     {
+            $this->abortIfOnHold(auth()->user());
+
         $validated = $request->validate([
             'job_title' => [
                 'required',
@@ -710,7 +737,7 @@ class CompanyJobsController extends Controller
     {
         $service = new ApplicantScreeningService();
 
-        $job->loadMissing(['company','programs','jobTypes','locations']);
+        $job->loadMissing(['company', 'programs', 'jobTypes', 'locations']);
         $companyIdForInvite = $job->company_id ?? $job->company->id ?? null;
 
         $programIds = $job->programs->pluck('id');
@@ -776,8 +803,10 @@ class CompanyJobsController extends Controller
                 if (!$graduate->user) continue;
                 if (isset($alreadyInvited[$graduate->id])) continue;
 
-                if (method_exists($graduate, 'jobApplications') &&
-                    $graduate->jobApplications()->where('job_id', $job->id)->exists()) {
+                if (
+                    method_exists($graduate, 'jobApplications') &&
+                    $graduate->jobApplications()->where('job_id', $job->id)->exists()
+                ) {
                     continue;
                 }
 
@@ -844,7 +873,7 @@ class CompanyJobsController extends Controller
         return $newInvites;
     }
 
-    
+
     public function restore($job)
     {
         $job = Job::withTrashed()->findOrFail($job);

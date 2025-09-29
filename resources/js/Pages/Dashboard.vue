@@ -392,7 +392,6 @@ function submitReferral() {
                             <thead>
                                 <tr class="text-gray-600">
                                     <th class="py-2 px-2 text-left">Title</th>
-                                    <th class="py-2 px-2 text-left">Sector</th>
                                     <th class="py-2 px-2 text-left">Employer</th>
                                     <th class="py-2 px-2 text-left">Date Posted</th>
                                 </tr>
@@ -400,7 +399,6 @@ function submitReferral() {
                             <tbody>
                                 <tr v-for="job in recentJobs" :key="job.title" class="hover:bg-gray-50 transition">
                                     <td class="py-2 px-2">{{ job.title }}</td>
-                                    <td class="py-2 px-2">{{ job.sector }}</td>
                                     <td class="py-2 px-2">{{ job.employer }}</td>
                                     <td class="py-2 px-2">{{ job.date_posted }}</td>
                                 </tr>
@@ -428,6 +426,7 @@ function submitReferral() {
                             </tbody>
                         </table>
                     </div>
+                    
                 </div>
             </div>
 
@@ -453,7 +452,7 @@ function submitReferral() {
                 </div>
             </div>
 
-            <!-- In-demand Categories Table -->
+            <!-- In-demand Categories Table
             <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <div class="bg-white rounded-lg shadow p-6">
                     <h4 class="font-semibold mb-3 text-gray-800">In-demand Categories According to Sector</h4>
@@ -473,7 +472,7 @@ function submitReferral() {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </div> -->
             <!-- Quick Actions -->
 
         </div>

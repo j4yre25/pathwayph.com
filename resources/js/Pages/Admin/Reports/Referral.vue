@@ -14,10 +14,9 @@ const selectedSource = ref('')
 
 
 const reportTypes = [
-    { value: 'funnel', label: 'Referral Success Rate' },
+    { value: 'referralsuccess', label: 'Referral Success Rate' },
     { value: 'trends', label: 'Referral Trends Over Time' },
     { value: 'performance', label: 'Referral Performance by Role' },
-    { value: 'reasons', label: 'Reason for Referral Success' },
 ]
 const selectedReport = ref(null)
 
@@ -246,6 +245,65 @@ const stackedColumnOption = computed(() => {
 });
 
 
+// Funnel Analytics Summary
+const funnelSummary = computed(() => {
+    const funnel = analyticsData.value.funnelData ?? [];
+    let summary = "<ul class='list-disc ml-6 mb-2'>";
+    if (funnel.length) {
+        funnel.forEach((stage, idx) => {
+            const label = stage.name ?? `Stage ${idx + 1}`;
+            summary += `<li>${label}: <strong>${stage.value ?? stage.count ?? 0}</strong></li>`;
+        });
+        const hired = funnel.find(f => (f.name ?? '').toLowerCase() === 'hired')?.value ?? 0;
+        const total = funnel[0]?.value ?? 0;
+        if (total) {
+            const rate = ((hired / total) * 100).toFixed(1);
+            summary += `<li>Overall referral-to-hire rate: <strong>${rate}%</strong></li>`;
+        }
+    } else {
+        summary += "<li>No funnel data available.</li>";
+    }
+    summary += "</ul>";
+    return summary;
+});
+
+// Referral Trends Summary
+const trendsSummary = computed(() => {
+    const line = analyticsData.value.lineTrendData ?? [];
+    let summary = "<ul class='list-disc ml-6 mb-2'>";
+    if (line.length) {
+        const first = line[0]?.count ?? 0;
+        const last = line[line.length - 1]?.count ?? 0;
+        if (last > first) {
+            summary += `<li>Referrals increased from <strong>${first}</strong> to <strong>${last}</strong> over time.</li>`;
+        } else if (last < first) {
+            summary += `<li>Referrals decreased from <strong>${first}</strong> to <strong>${last}</strong> over time.</li>`;
+        } else {
+            summary += `<li>Referrals remained stable at <strong>${first}</strong>.</li>`;
+        }
+    } else {
+        summary += "<li>No referral trend data available.</li>";
+    }
+    summary += "</ul>";
+    return summary;
+});
+
+// Referral Performance by Role Summary
+const performanceSummary = computed(() => {
+    const stats = analyticsData.value.roleStats ?? [];
+    let summary = "<ul class='list-disc ml-6 mb-2'>";
+    if (stats.length) {
+        const topRole = stats.reduce((a, b) => (b.hired > a.hired ? b : a));
+        summary += `<li>Role with most hires: <strong>${topRole.role}</strong> (${topRole.hired} hired)</li>`;
+        const topReferred = stats.reduce((a, b) => (b.referred > a.referred ? b : a));
+        summary += `<li>Most referred role: <strong>${topReferred.role}</strong> (${topReferred.referred} referrals)</li>`;
+    } else {
+        summary += "<li>No role performance data available.</li>";
+    }
+    summary += "</ul>";
+    return summary;
+});
+
 </script>
 
 <template>
@@ -348,7 +406,7 @@ const stackedColumnOption = computed(() => {
             </div>
 
             <!-- Funnel Chart -->
-            <div v-if="selectedReport === 'funnel' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
+            <div v-if="selectedReport === 'referralsuccess' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
                 <h3 class="text-lg font-semibold mb-6 text-gray-700">Funnel Analytics</h3>
                 <template v-if="(analyticsData.funnelData ?? []).length">
                     <VueECharts :option="funnelOption" style="height: 400px; width: 100%;" />
@@ -356,6 +414,23 @@ const stackedColumnOption = computed(() => {
                 <template v-else>
                     <div class="text-gray-400 text-center py-8">No funnel data available.</div>
                 </template>
+
+                <!-- Analytics Summary Card for Funnel -->
+                <div class="mt-8 flex justify-center">
+                    <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
+                        <div class="flex items-center px-6 pt-6 pb-2">
+                            <svg class="w-6 h-6 text-blue-500 mr-2" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 3v18h18M9 17V9m4 8V5m4 12v-6" />
+                            </svg>
+                            <span class="text-lg font-semibold text-gray-800">Analytics Summary</span>
+                        </div>
+                        <div class="px-6 pb-6 text-gray-700 leading-relaxed">
+                            <span v-html="funnelSummary"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
 
@@ -370,21 +445,56 @@ const stackedColumnOption = computed(() => {
                     <h3 class="text-lg font-semibold mb-6 text-gray-700">Area Chart</h3>
                     <VueECharts :option="areaTrendOption" style="height: 400px; width: 100%;" />
                 </div>
+
+
+                <div class="mt-8 flex justify-center">
+                    <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
+                        <div class="flex items-center px-6 pt-6 pb-2">
+                            <svg class="w-6 h-6 text-green-500 mr-2" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 3v18h18M9 17V9m4 8V5m4 12v-6" />
+                            </svg>
+                            <span class="text-lg font-semibold text-gray-800">Analytics Summary</span>
+                        </div>
+                        <div class="px-6 pb-6 text-gray-700 leading-relaxed">
+                            <span v-html="trendsSummary"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
 
 
             <!-- Referral Performance by Role -->
             <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                <h3 class="text-lg font-semibold mb-6 text-gray-700">Clustered Bar Chart</h3>
-                <VueECharts :option="roleStatsOption" style="height: 400px; width: 100%;" />
-            </div>
 
-            <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                <h3 class="text-lg font-semibold mb-6 text-gray-700">Stacked Column Chart</h3>
-                <VueECharts :option="stackedRoleStatsOption" style="height: 400px; width: 100%;" />
-            </div>
+                <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
+                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Clustered Bar Chart</h3>
+                    <VueECharts :option="roleStatsOption" style="height: 400px; width: 100%;" />
+                </div>
 
+                <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
+                    <h3 class="text-lg font-semibold mb-6 text-gray-700">Stacked Column Chart</h3>
+                    <VueECharts :option="stackedRoleStatsOption" style="height: 400px; width: 100%;" />
+                </div>
+
+                <div class="mt-8 flex justify-center">
+                    <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
+                        <div class="flex items-center px-6 pt-6 pb-2">
+                            <svg class="w-6 h-6 text-purple-500 mr-2" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 3v18h18M9 17V9m4 8V5m4 12v-6" />
+                            </svg>
+                            <span class="text-lg font-semibold text-gray-800">Analytics Summary</span>
+                        </div>
+                        <div class="px-6 pb-6 text-gray-700 leading-relaxed">
+                            <span v-html="performanceSummary"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
 
             <!-- Reason for Referral Success -->
@@ -399,7 +509,8 @@ const stackedColumnOption = computed(() => {
 
 
             <div v-if="selectedReport === 'reasons' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
-                <h3 class="text-lg font-semibold mb-6 text-gray-700">Stacked Column Chart (Feedback by Match Score)</h3>
+                <h3 class="text-lg font-semibold mb-6 text-gray-700">Stacked Column Chart (Feedback by Match Score)
+                </h3>
                 <VueECharts :option="stackedColumnOption" style="height: 400px; width: 100%;" />
             </div>
         </Container>

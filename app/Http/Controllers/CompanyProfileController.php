@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Notifications\NewCompanyRegisteredNotification;
 use Illuminate\Support\Facades\Storage;
 
 class CompanyProfileController extends Controller
@@ -363,6 +365,11 @@ class CompanyProfileController extends Controller
         $user->is_approved = null;
         $user->has_completed_information = true;
         $user->save();
+
+        $pesoUsers = User::where('role', 'peso')->get();
+        foreach ($pesoUsers as $pesoUser) {
+            $pesoUser->notify(new NewCompanyRegisteredNotification($company));
+        }
 
         session(['information_completed' => true]);
         return back()->with('information_saved', true);
