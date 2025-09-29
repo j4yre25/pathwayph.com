@@ -1023,6 +1023,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
+    Route::get('/graduate/jobs/{job}', [GraduateJobsController::class, 'show'])->name('graduate.jobs.show');
     Route::get('/graduate-jobs/recommendations', [GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
     Route::post('/apply-for-job', [GraduateJobsController::class, 'applyForJob'])->name('apply-for-job');
     Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
