@@ -21,7 +21,7 @@ class CompanyDepartmentController extends Controller
         return inertia('Company/ManageHR/Index/Department/Index', [
             'departments' => $departments,
             'hr' => $hr,
-            ]);
+        ]);
     }
 
     public function store(Request $request)
