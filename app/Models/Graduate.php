@@ -141,6 +141,11 @@ class Graduate extends Model
     {
         return $this->hasMany(\App\Models\Referral::class, 'graduate_id');
     }
+
+    public function jobSearchHistory()
+{
+    return $this->hasMany(JobSearchHistory::class);
+}
     // (Optionally keep old relation name if used elsewhere)
     // public function referralExports() { return $this->referrals()->whereNotNull('certificate_path'); }
 }
