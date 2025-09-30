@@ -2,7 +2,7 @@
 import Graduate from '@/Layouts/AppLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import { ref, onMounted, computed } from 'vue';
-import { useForm, usePage, router } from '@inertiajs/vue3';
+import { useForm, usePage, router, Link  } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
@@ -11,7 +11,7 @@ import axios from 'axios';
 // Props and Page Data
 const { props } = usePage();
 const appliedJobIds = props.appliedJobIds ?? [];
-
+const jobOffers = ref(props.jobOffers ?? []);
 
 // Tabs and toggle state
 const activeTab = ref('jobs'); // 'jobs' or 'applications'
@@ -69,6 +69,9 @@ const filteredJobs = computed(() => {
 // Jobs the user has applied for
 const myApplications = ref(props.myApplications ?? []);
 
+console.log('props.myApplications =>', props.myApplications);
+console.log('myApplications (reactive) =>', myApplications.value);
+
 // Toggle to show/hide applied jobs
 function toggleShowApplied() {
     router.get(window.location.pathname, { showApplied: showApplied.value }, { preserveScroll: true });
@@ -110,6 +113,8 @@ function fetchJobs() {
         preserveScroll: true,
         onSuccess: (page) => {
             jobsForm.jobs = page.props.jobs.data || [];
+            // update offers if backend returned them
+            jobOffers.value = page.props.jobOffers ?? jobOffers.value;
             jobsForm.loading = false;
         },
         onFinish: () => {
@@ -291,6 +296,17 @@ onMounted(() => {
                                 <span v-if="appliedJobIds.length"
                                     class="ml-2 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">
                                     {{ appliedJobIds.length }}
+                                </span>
+                            </button>
+                            <button :class="[
+
+                                'px-4 py-2 rounded-t-lg font-semibold transition',
+                                activeTab === 'offers' ? 'bg-indigo-600 text-white shadow' : 'bg-gray-100 text-gray-700'
+                            ]" @click="activeTab = 'offers'">
+                                <i class="fas fa-gift mr-2"></i> Job Offers
+                                <span v-if="props.jobOffers && props.jobOffers.length"
+                                    class="ml-2 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-bold">
+                                    {{ props.jobOffers.length }}
                                 </span>
                             </button>
                         </div>
@@ -515,7 +531,7 @@ onMounted(() => {
                         </div>
 
                         <!-- My Applications Tab -->
-                        <div v-else>
+                        <div v-if="activeTab === 'applications'">
                             <h2 class="text-xl font-semibold mb-4">My Applications</h2>
                             <div v-if="!myApplications.length" class="text-center py-8 text-gray-500">
                                 <i class="fas fa-info-circle text-2xl mb-2"></i>
@@ -527,10 +543,10 @@ onMounted(() => {
                                     <div class="flex justify-between items-center mb-2">
                                         <div>
                                             <h3 class="text-lg font-semibold text-indigo-900">{{ job.job_title }}</h3>
-                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p> </div>
-                                        <span
-                                            class="px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700">
-                                            Applied
+                                            <p class="text-sm text-gray-600">{{ job.company?.company_name || 'Unknown Company' }}</p>
+                                        </div>
+                                        <span class="px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700">
+                                            {{ job.application ? job.application.status : 'applied' }}
                                         </span>
                                     </div>
                                     <div class="flex items-center text-gray-600 mb-2">
@@ -575,6 +591,56 @@ onMounted(() => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Job Offers Tab -->
+                        <div v-if="activeTab === 'offers'">
+                          <h2 class="text-xl font-semibold mb-4">Job Offers</h2>
+                          <div v-if="!jobOffers.length" class="text-center py-8 text-gray-500">
+                            <i class="fas fa-gift text-2xl mb-2"></i>
+                            You have no job offers yet.
+                          </div>
+                          <div v-else class="grid grid-cols-1 gap-6">
+                           <div v-for="offer in jobOffers" :key="offer.id">
+                                <Link :href="route('graduate.job.offers.show', offer.id)" class="block bg-yellow-50 border border-yellow-200 rounded-lg p-6 shadow-sm hover:shadow-md transition">
+                                <div class="flex justify-between items-center mb-2">
+                                    <div>
+                                    <h3 class="text-lg font-semibold text-yellow-900">{{ offer.job_title }}</h3>
+                                    <p class="text-sm text-gray-600">{{ offer.company?.company_name || 'Unknown Company' }}</p>
+                                    </div>
+                                    <span :class="[
+                                        'px-3 py-1 text-xs font-bold rounded-full',
+                                        offer.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                                        offer.status === 'declined' ? 'bg-red-100 text-red-700' :
+                                        'bg-yellow-100 text-yellow-700'
+                                        ]">
+                                        {{ offer.status === 'accepted' ? 'Accepted' : offer.status === 'declined' ? 'Declined' : 'Offer' }}
+                                    </span>
+                                </div>
+
+                                <div class="text-gray-700 mb-2">
+                                    <div v-if="offer.body">
+                                    <strong>Message:</strong> {{ offer.body }}
+                                    </div>
+                                    <div v-if="offer.file_url" class="mt-3">
+                                    <template v-if="offer.file_url.match(/\.(png|jpe?g|gif)$/i)">
+                                        <img :src="offer.file_url" class="w-32 h-20 object-cover rounded" />
+                                    </template>
+                                    <template v-else-if="offer.file_url.match(/\.pdf$/i)">
+                                        <div class="w-32 h-20 flex items-center justify-center bg-white border rounded text-sm text-gray-700">
+                                        PDF Preview
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <div class="w-32 h-20 flex items-center justify-center bg-white border rounded text-sm text-gray-700">
+                                        Attachment
+                                        </div>
+                                    </template>
+                                    </div>
+                                </div>
+                                </Link>
+                            </div>
+                          </div>
                         </div>
 
                         <!-- Job Details Modal -->

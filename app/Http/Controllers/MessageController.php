@@ -99,13 +99,13 @@ class MessageController extends Controller
                     'isMine' => (int)$m->sender_id === $uid,
                     'body' => $m->content,
                     'type' => $m->message_type,
-                    'created_at' => optional($m->created_at)->format('M d, Y h:i A'),
+                    'created_at' => $m->created_at, // Use raw timestamp for Vue
                     'sender_name' => $senderName,
                     'sender_avatar_url' => $avatarPath ? Storage::url($avatarPath) : null,
                     'meta' => $m->meta ?? [],
                     'status' => $m->status,
                 ];
-            }),
+            })->values()->toArray(),
             'request' => $lastRequest ? [
                 'id' => $lastRequest->id,
                 'canRespond' => (bool)$canRespond,
