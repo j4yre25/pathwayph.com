@@ -12,22 +12,40 @@ use Inertia\Inertia;
 
 class ManageUsersController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with([
-            'company',       // relationship: company()
-            'institution',   // relationship: institution()
-            'peso',          // relationship: peso()
+        // Build the base query with relationships
+        $query = User::with([
+            'company',
+            'institution',
+            'peso',
         ])
             ->whereIn('role', ['company', 'institution', 'peso'])
-            ->where('has_completed_information', 1)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->where('has_completed_information', 1);
 
-        // Append full name and organization name using related models
+        // Apply filters
+        if ($request->filled('role') && $request->role !== 'all') {
+            $query->where('role', $request->role);
+        }
+        if ($request->filled('status') && $request->status !== 'all') {
+            // Assuming 'active' means is_approved = 1, 'inactive' means is_approved = 0
+            $query->where('is_approved', $request->status === 'active' ? 1 : 0);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Clone for KPI counts
+        $filteredQuery = (clone $query);
+
+        // Paginate
+        $users = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+        // Transform users for display (keep your switch logic)
         $users->getCollection()->transform(function ($user) {
-
-
             switch ($user->role) {
                 case 'company':
                     $user->full_name = $user->hr
@@ -62,32 +80,28 @@ class ManageUsersController extends Controller
             return $user;
         });
 
-        $totalUsers = User::whereIn('role', ['company', 'institution', 'peso'])->count();
-        $approvedCount = User::whereIn('role', ['company', 'institution'])->where('is_approved', 1)->count();
-        $pendingCount = User::whereIn('role', ['company', 'institution', 'peso'])->whereNull('is_approved')->count();
-        $disapprovedCount = User::whereIn('role', ['company', 'institution', 'peso'])->where('is_approved', 0)->count();
+        // KPIs based on filtered users
+        $totalUsers = (clone $filteredQuery)->count();
+        $approvedCount = (clone $filteredQuery)->where('is_approved', 1)->count();
+        $pendingCount = (clone $filteredQuery)->whereNull('is_approved')->count();
+        $disapprovedCount = (clone $filteredQuery)->where('is_approved', 0)->count();
 
         return Inertia::render('Admin/ManageUsers/Index/Index', [
-            'all_users' => array_merge(
-                $users->toArray(),
-                [
-                    'approved_count' => $approvedCount,
-                    'pending_count' => $pendingCount,
-                    'disapproved_count' => $disapprovedCount,
-                    'total' => $totalUsers,
-                ]
-            ),
+            'all_users' => $users,
+            'kpi' => [
+                'total' => $totalUsers,
+                'approved' => $approvedCount,
+                'pending' => $pendingCount,
+                'disapproved' => $disapprovedCount,
+            ],
         ]);
     }
 
     public function list(Request $request)
     {
-        $users = User::with([
-            'company',
-            'institution',
-            'peso',
-        ])
+        $users = User::with(['company', 'institution', 'peso'])
             ->where('role', '!=', 'graduate')
+            ->where('has_completed_information', 1)
             ->when($request->role && $request->role !== 'all', function ($query) use ($request) {
                 $query->where('role', $request->role);
             })
@@ -98,11 +112,13 @@ class ManageUsersController extends Controller
                 $query->whereDate('created_at', '<=', $request->date_to);
             })
             ->when($request->status && $request->status !== 'all', function ($query) use ($request) {
-                $query->where('is_approved', $request->status === 'active');
+                // Use 1 for active, 0 for inactive
+                $query->where('is_approved', $request->status === 'active' ? 1 : 0);
             })
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
+            ->paginate(10)
+            ->withQueryString();
+            
         $users->getCollection()->transform(function ($user) {
             switch ($user->role) {
                 case 'company':
@@ -229,6 +245,22 @@ class ManageUsersController extends Controller
         // $user_id = $request->user()->id;
 
         return redirect()->route('admin.manage_users')->with('flash.banner', 'User archived successfully.');
+    }
+
+    public function hold(User $user)
+    {
+        $user->status = 'on_hold';
+        $user->save();
+
+        return redirect()->back()->with('flash.banner', 'User set to On Hold.');
+    }
+
+    public function unhold(User $user)
+    {
+        $user->status = 'active';
+        $user->save();
+
+        return redirect()->back()->with('flash.banner', 'User removed from On Hold.');
     }
 
     public function restore($user)
@@ -441,19 +473,19 @@ class ManageUsersController extends Controller
     }
 
     public function downloadCompanyVerification($companyId)
-{
-    $company = \App\Models\Company::findOrFail($companyId);
+    {
+        $company = \App\Models\Company::findOrFail($companyId);
 
-    if (!$company->verification_file_path) {
-        abort(404, 'Verification file not found.');
+        if (!$company->verification_file_path) {
+            abort(404, 'Verification file not found.');
+        }
+
+        $filePath = $company->verification_file_path; // e.g. verification-documents/filename.pdf
+
+        if (!\Storage::disk('public')->exists($filePath)) {
+            abort(404, 'Verification file not found.');
+        }
+
+        return \Storage::disk('public')->download($filePath);
     }
-
-    $filePath = $company->verification_file_path; // e.g. verification-documents/filename.pdf
-
-    if (!\Storage::disk('public')->exists($filePath)) {
-        abort(404, 'Verification file not found.');
-    }
-
-    return \Storage::disk('public')->download($filePath);
-}
 }

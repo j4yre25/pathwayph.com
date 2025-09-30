@@ -323,14 +323,14 @@ class DashboardController extends Controller
         $graduate = $user->graduate;
 
         $applicationIds = \App\Models\JobApplication::where('graduate_id', $graduate->id)->pluck('id');
-        
+
         // Detect action key column (supports either 'action_key' or 'action')
         $actionTableExists = Schema::hasTable('job_application_action_logs');
         $actionCol = $actionTableExists
-            ? (Schema::hasColumn('job_application_action_logs','action_key') ? 'action_key'
-            : (Schema::hasColumn('job_application_action_logs','action') ? 'action' : null))
+            ? (Schema::hasColumn('job_application_action_logs', 'action_key') ? 'action_key'
+                : (Schema::hasColumn('job_application_action_logs', 'action') ? 'action' : null))
             : null;
-        
+
         // Example queries, adjust as needed
         $jobsApplied = \App\Models\JobApplication::where('graduate_id', $graduate->id)->count();
         $referralsMade = \App\Models\Referral::where('graduate_id', $graduate->id)->count();
@@ -373,132 +373,132 @@ class DashboardController extends Controller
 
         $dateFilter = request('date_filter', 'this_month');
 
-            if ($dateFilter === 'this_year') {
-                $labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        if ($dateFilter === 'this_year') {
+            $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-                $appsByMonth = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+            $appsByMonth = \App\Models\JobApplication::where('graduate_id', $graduate->id)
+                ->whereYear('created_at', now()->year)
+                ->selectRaw('MONTH(created_at) as period, COUNT(*) as cnt')
+                ->groupBy('period')
+                ->pluck('cnt', 'period')
+                ->all();
+
+            $interviewsByMonth = [];
+            $rejectedByMonth = [];
+            if ($actionCol) {
+                $interviewsByMonth = DB::table('job_application_action_logs')
+                    ->whereIn('job_application_id', $applicationIds)
+                    ->whereIn($actionCol, ['schedule_interview', 'reschedule_interview'])
                     ->whereYear('created_at', now()->year)
                     ->selectRaw('MONTH(created_at) as period, COUNT(*) as cnt')
                     ->groupBy('period')
                     ->pluck('cnt', 'period')
                     ->all();
 
-                $interviewsByMonth = [];
-                $rejectedByMonth = [];
-                if ($actionCol) {
-                    $interviewsByMonth = DB::table('job_application_action_logs')
-                        ->whereIn('job_application_id', $applicationIds)
-                        ->whereIn($actionCol, ['schedule_interview','reschedule_interview'])
-                        ->whereYear('created_at', now()->year)
-                        ->selectRaw('MONTH(created_at) as period, COUNT(*) as cnt')
-                        ->groupBy('period')
-                        ->pluck('cnt', 'period')
-                        ->all();
-
-                    $rejectedByMonth = DB::table('job_application_action_logs')
-                        ->whereIn('job_application_id', $applicationIds)
-                        ->whereIn($actionCol, ['reject','reject_withdraw'])
-                        ->whereYear('created_at', now()->year)
-                        ->selectRaw('MONTH(created_at) as period, COUNT(*) as cnt')
-                        ->groupBy('period')
-                        ->pluck('cnt', 'period')
-                        ->all();
-                }
-
-                $applicationSent = [];
-                $interviews = [];
-                $rejected = [];
-                for ($m = 1; $m <= 12; $m++) {
-                    $applicationSent[] = (int)($appsByMonth[$m] ?? 0);
-                    $interviews[]      = (int)($interviewsByMonth[$m] ?? 0);
-                    $rejected[]        = (int)($rejectedByMonth[$m] ?? 0);
-                }
-
-                $vacancyStats = [
-                    'labels' => $labels,
-                    'applicationSent' => $applicationSent,
-                    'interviews' => $interviews,
-                    'rejected' => $rejected,
-                ];
-            } elseif ($dateFilter === 'this_week') {
-                $startOfWeek = now()->startOfWeek();
-                $labels = [];
-                $applicationSent = [];
-                $interviews = [];
-                $rejected = [];
-
-                for ($i = 0; $i < 7; $i++) {
-                    $date = $startOfWeek->copy()->addDays($i);
-                    $labels[] = $date->format('M d');
-
-                    $applicationSent[] = (int)\App\Models\JobApplication::where('graduate_id', $graduate->id)
-                        ->whereDate('created_at', $date->toDateString())
-                        ->count();
-
-                    $interviews[] = $actionCol ? (int)DB::table('job_application_action_logs')
-                        ->whereIn('job_application_id', $applicationIds)
-                        ->whereIn($actionCol, ['schedule_interview','reschedule_interview'])
-                        ->whereDate('created_at', $date->toDateString())
-                        ->count() : 0;
-
-                    $rejected[] = $actionCol ? (int)DB::table('job_application_action_logs')
-                        ->whereIn('job_application_id', $applicationIds)
-                        ->whereIn($actionCol, ['reject','reject_withdraw'])
-                        ->whereDate('created_at', $date->toDateString())
-                        ->count() : 0;
-                }
-
-                $vacancyStats = [
-                    'labels' => $labels,
-                    'applicationSent' => $applicationSent,
-                    'interviews' => $interviews,
-                    'rejected' => $rejected,
-                ];
-            } else {
-                $startOfMonth = now()->startOfMonth();
-                $endOfMonth = now()->endOfMonth();
-
-                $labels = [];
-                $applicationSent = [];
-                $interviews = [];
-                $rejected = [];
-
-                $weekStart = $startOfMonth->copy();
-                $weekIndex = 1;
-                while ($weekStart->lte($endOfMonth) && $weekIndex <= 5) {
-                    $weekEnd = min($weekStart->copy()->endOfWeek(), $endOfMonth);
-                    $labels[] = 'Week ' . $weekIndex;
-
-                    $applicationSent[] = (int)\App\Models\JobApplication::where('graduate_id', $graduate->id)
-                        ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
-                        ->count();
-
-                    $interviews[] = $actionCol ? (int)DB::table('job_application_action_logs')
-                        ->whereIn('job_application_id', $applicationIds)
-                        ->whereIn($actionCol, ['schedule_interview','reschedule_interview'])
-                        ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
-                        ->count() : 0;
-
-                    $rejected[] = $actionCol ? (int)DB::table('job_application_action_logs')
-                        ->whereIn('job_application_id', $applicationIds)
-                        ->whereIn($actionCol, ['reject','reject_withdraw'])
-                        ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
-                        ->count() : 0;
-
-                    $weekStart = $weekEnd->copy()->addDay()->startOfDay();
-                    $weekIndex++;
-                }
-
-                $vacancyStats = [
-                    'labels' => $labels,
-                    'applicationSent' => $applicationSent,
-                    'interviews' => $interviews,
-                    'rejected' => $rejected,
-                ];
+                $rejectedByMonth = DB::table('job_application_action_logs')
+                    ->whereIn('job_application_id', $applicationIds)
+                    ->whereIn($actionCol, ['reject', 'reject_withdraw'])
+                    ->whereYear('created_at', now()->year)
+                    ->selectRaw('MONTH(created_at) as period, COUNT(*) as cnt')
+                    ->groupBy('period')
+                    ->pluck('cnt', 'period')
+                    ->all();
             }
 
+            $applicationSent = [];
+            $interviews = [];
+            $rejected = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $applicationSent[] = (int)($appsByMonth[$m] ?? 0);
+                $interviews[]      = (int)($interviewsByMonth[$m] ?? 0);
+                $rejected[]        = (int)($rejectedByMonth[$m] ?? 0);
+            }
+
+            $vacancyStats = [
+                'labels' => $labels,
+                'applicationSent' => $applicationSent,
+                'interviews' => $interviews,
+                'rejected' => $rejected,
+            ];
+        } elseif ($dateFilter === 'this_week') {
+            $startOfWeek = now()->startOfWeek();
+            $labels = [];
+            $applicationSent = [];
+            $interviews = [];
+            $rejected = [];
+
+            for ($i = 0; $i < 7; $i++) {
+                $date = $startOfWeek->copy()->addDays($i);
+                $labels[] = $date->format('M d');
+
+                $applicationSent[] = (int)\App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereDate('created_at', $date->toDateString())
+                    ->count();
+
+                $interviews[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                    ->whereIn('job_application_id', $applicationIds)
+                    ->whereIn($actionCol, ['schedule_interview', 'reschedule_interview'])
+                    ->whereDate('created_at', $date->toDateString())
+                    ->count() : 0;
+
+                $rejected[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                    ->whereIn('job_application_id', $applicationIds)
+                    ->whereIn($actionCol, ['reject', 'reject_withdraw'])
+                    ->whereDate('created_at', $date->toDateString())
+                    ->count() : 0;
+            }
+
+            $vacancyStats = [
+                'labels' => $labels,
+                'applicationSent' => $applicationSent,
+                'interviews' => $interviews,
+                'rejected' => $rejected,
+            ];
+        } else {
+            $startOfMonth = now()->startOfMonth();
+            $endOfMonth = now()->endOfMonth();
+
+            $labels = [];
+            $applicationSent = [];
+            $interviews = [];
+            $rejected = [];
+
+            $weekStart = $startOfMonth->copy();
+            $weekIndex = 1;
+            while ($weekStart->lte($endOfMonth) && $weekIndex <= 5) {
+                $weekEnd = min($weekStart->copy()->endOfWeek(), $endOfMonth);
+                $labels[] = 'Week ' . $weekIndex;
+
+                $applicationSent[] = (int)\App\Models\JobApplication::where('graduate_id', $graduate->id)
+                    ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
+                    ->count();
+
+                $interviews[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                    ->whereIn('job_application_id', $applicationIds)
+                    ->whereIn($actionCol, ['schedule_interview', 'reschedule_interview'])
+                    ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
+                    ->count() : 0;
+
+                $rejected[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                    ->whereIn('job_application_id', $applicationIds)
+                    ->whereIn($actionCol, ['reject', 'reject_withdraw'])
+                    ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
+                    ->count() : 0;
+
+                $weekStart = $weekEnd->copy()->addDay()->startOfDay();
+                $weekIndex++;
+            }
+
+            $vacancyStats = [
+                'labels' => $labels,
+                'applicationSent' => $applicationSent,
+                'interviews' => $interviews,
+                'rejected' => $rejected,
+            ];
+        }
+
         $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
-        
+
         $jobsAligned = 0;
 
         foreach ($jobs as $job) {
@@ -813,7 +813,7 @@ class DashboardController extends Controller
             ],
             'recommendedJobs' => $recommendedJobs,
             'featuredCompanies' => $featuredCompanies,
-            'recent_activities' => $user->notifications()->latest()->take(10)->get(), 
+            'recent_activities' => $user->notifications()->latest()->take(10)->get(),
 
         ];
     }
@@ -824,8 +824,15 @@ class DashboardController extends Controller
 
     private function getTopSectorsChartOption()
     {
-
-        $topSectors = \App\Models\Sector::withCount('jobs')
+        // Only count jobs that have a company (company_id is not null)
+        $topSectors = \App\Models\Sector::select('sectors.id', 'sectors.name')
+            ->leftJoin('jobs', function ($join) {
+                $join->on('jobs.sector_id', '=', 'sectors.id')
+                    ->whereNotNull('jobs.company_id'); // Only jobs posted by companies
+            })
+            ->whereNull('jobs.deleted_at')
+            ->selectRaw('sectors.name, COUNT(jobs.id) as jobs_count')
+            ->groupBy('sectors.id', 'sectors.name')
             ->orderByDesc('jobs_count')
             ->take(5)
             ->get()
@@ -968,7 +975,7 @@ class DashboardController extends Controller
         if ($employerMetric === 'referrals') {
             $topCompanies = \App\Models\Company::select('companies.id', 'companies.company_name')
                 ->join('jobs', 'jobs.company_id', '=', 'companies.id')
-                ->join('referral_exports', 'referral_exports.job_invitation_id', '=', 'jobs.id')
+                ->join('referral', 'referrals.job_invitation_id', '=', 'jobs.id')
                 ->selectRaw('companies.company_name, COUNT(referral_exports.id) as referral_count')
                 ->groupBy('companies.id', 'companies.company_name')
                 ->orderByDesc('referral_count')
@@ -1021,7 +1028,10 @@ class DashboardController extends Controller
         ];
 
         $topSectors = \App\Models\Sector::select('sectors.id', 'sectors.name')
-            ->leftJoin('jobs', 'jobs.sector_id', '=', 'sectors.id')
+            ->leftJoin('jobs', function ($join) {
+                $join->on('jobs.sector_id', '=', 'sectors.id')
+                    ->whereNotNull('jobs.company_id'); // Only jobs posted by companies
+            })
             ->whereNull('jobs.deleted_at')
             ->selectRaw('sectors.name, COUNT(jobs.id) as jobs_count')
             ->groupBy('sectors.id', 'sectors.name')
@@ -1032,7 +1042,7 @@ class DashboardController extends Controller
                 'name' => $sector->name,
                 'value' => $sector->jobs_count,
             ])
-            ->toArray();
+            ->toArray();    
 
         $topSectorsChartOption = [
             'tooltip' => ['trigger' => 'item'],

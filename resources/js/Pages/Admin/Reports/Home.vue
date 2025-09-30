@@ -39,7 +39,7 @@ import { Users, BarChart2, Briefcase, Share2 } from 'lucide-vue-next';
             </div>
           </Link>
           <Link
-            :href="route('institutions.reports.career')"
+            :href="route('peso.reports.careers')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-purple-100"
           >
             <div class="flex flex-col items-center">
@@ -48,7 +48,7 @@ import { Users, BarChart2, Briefcase, Share2 } from 'lucide-vue-next';
             </div>
           </Link>
           <Link
-            :href="route('institutions.reports.skill')"
+            :href="route('peso.reports.diversity')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-pink-100"
           >
             <div class="flex flex-col items-center">
@@ -57,7 +57,7 @@ import { Users, BarChart2, Briefcase, Share2 } from 'lucide-vue-next';
             </div>
           </Link>
           <Link
-            :href="route('institutions.reports.graduate')"
+            :href="route('peso.reports.jobmarket')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-cyan-100"
           >
             <div class="flex flex-col items-center">

@@ -16,6 +16,8 @@ class CompanyJobApplicantController extends Controller
 {
     public function index(Request $request)
     {
+            $this->abortIfOnHold(auth()->user());
+
         $user = Auth::user();
         $company = Company::where('user_id', $user->id)->firstOrFail();
         $companyId = $company->id;
@@ -124,5 +126,15 @@ class CompanyJobApplicantController extends Controller
             ],
         ]);
     }
+
+    protected function abortIfOnHold($user = null)
+{
+    $user = $user ?: auth()->user();
+    if ($user->status === 'on_hold') {
+        abort(403, 'Your company account is currently on hold. Please contact PESO for assistance.');
+    }
+}
+
+
 }
 
