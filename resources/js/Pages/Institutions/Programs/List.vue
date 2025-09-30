@@ -2,9 +2,11 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import { ref, computed, watch } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage,router } from '@inertiajs/vue3';
 
 const page = usePage();
+const userId = page.props.auth?.user?.id;
+
 
 const props = defineProps({
   programs: Array
@@ -29,14 +31,16 @@ watch(selectedStatus, () => {
   <AppLayout title="Manage Programs">
     <Container class="py-6 space-y-6">
       <!-- Header Section -->
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center">
-          <i class="fas fa-book text-blue-500 text-xl mr-2"></i>
-          <h1 class="text-2xl font-bold text-gray-800">Manage Programs</h1>
-        </div>
-
-      </div>
-      <p class="text-sm text-gray-500 mb-6">View and manage all programs in the system.</p>
+       <div>
+            <div class="flex items-center">
+                    <button @click="$inertia.get(route('programs',{ user: userId }))" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <i class="fas fa-book text-blue-500 text-xl mr-2"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Manage Program</h1>
+                </div>
+                <p class="text-sm text-gray-500 mb-1">View and manage all programs in the system.</p>
+            </div>
 
       <!-- Filter Section -->
       <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 flex flex-wrap items-center gap-4">

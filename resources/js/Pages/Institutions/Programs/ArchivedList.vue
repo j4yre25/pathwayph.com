@@ -16,10 +16,6 @@ const userId = page.props.auth.user.id;
 const showModal = ref(false);
 const programToRestore = ref(null);
 
-const goBack = () => {
-  router.visit(route('programs.index', { user: userId }));
-};
-
 const restoreProgram = () => {
   router.post(
     route('programs.restore', { id: programToRestore.value.id }),
@@ -43,7 +39,7 @@ const confirmRestore = (program) => {
     <template #header>
       <div>
         <div class="flex items-center">
-        <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+        <button @click="$inertia.get(route('programs',{ user: userId }))" class="mr-4 text-gray-600 hover:text-gray-900 transition">
           <i class="fas fa-chevron-left"></i>
         </button>
           <i class="fas fa-archive text-orange-500 text-xl mr-2"></i>

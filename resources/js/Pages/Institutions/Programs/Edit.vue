@@ -5,13 +5,16 @@ import FormSection from '@/Components/FormSection.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { ref, computed, watch } from 'vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
+    show: Boolean,
     institutionProgram: Object,
     degrees: Array,
 });
+
+const emit = defineEmits(['close', 'updated']);
 
 const form = useForm({
     name: props.institutionProgram.program?.name || '',
@@ -19,46 +22,6 @@ const form = useForm({
     program_code: props.institutionProgram.program_code || '',
     duration: props.institutionProgram.duration || '',
     duration_time: props.institutionProgram.duration_time || '',
-});
-
-const selectedDegree = computed(() =>
-    props.degrees.find(d => d.id === form.degree_id)
-);
-
-const degreeType = computed(() => selectedDegree.value?.type || '');
-
-const showProgramCode = computed(() =>
-    ['Bachelor of Science', 'Bachelor of Arts', 'Master of Science', 'Master of Arts', 'Associate'].includes(degreeType.value)
-);
-
-const showDuration = computed(() =>
-    ['Associate'].includes(degreeType.value)
-);
-
-// Watch for degree change to set initials
-watch(() => form.degree_id, () => {
-    if (!selectedDegree.value) return;
-    const initials = {
-        'Bachelor of Science': 'BS',
-        'Bachelor of Arts': 'BA',
-        'Associate': 'AS',
-        'Master of Science': 'MS',
-        'Master of Arts': 'MA',
-        'Doctoral': 'PhD',
-        'Diploma': 'D',
-    }[degreeType.value] || '';
-    if (showProgramCode.value) {
-        // Only set if empty or matches previous initials
-        if (!form.program_code || form.program_code.length <= initials.length) {
-            form.program_code = initials;
-        }
-    } else {
-        form.program_code = '';
-    }
-    if (!showDuration.value) {
-        form.duration = '';
-        form.duration_time = '';
-    }
 });
 
 // Watch for institutionProgram prop to update form values
@@ -77,92 +40,80 @@ watch(
 const updateProgram = () => {
     form.put(route('programs.update', { id: props.institutionProgram.id }), {
         preserveScroll: true,
+        onSuccess: () => emit('updated'), // This triggers the reload in Index.vue
     });
 };
 </script>
 
 <template>
-    <AppLayout title="Edit Program">
-        <template #header>Edit Program</template>
-
-        <Container class="py-8">
-            <FormSection @submitted="updateProgram">
-                <template #title>Program Details</template>
-                <template #description>Update the program name or degree.</template>
-
-                <template #form>
-                    <div class="col-span-6 sm:col-span-4">
-                        <InputLabel for="name" value="Program Name" />
-                        <input
-                            id="name"
-                            v-model="form.name"
-                            type="text"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
-                            placeholder="ex.Computer Science"/>
-                        <InputError :message="form.errors.name" class="mt-2" />
-                    </div>
-
-                    <div class="col-span-6 sm:col-span-4 mt-4">
-                        <InputLabel for="degree_id" value="Degree" />
-                        <select
-                            id="degree_id"
-                            v-model="form.degree_id"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
-                        >
-                            <option disabled value="">Select Degree</option>
-                            <option v-for="degree in degrees" :key="degree.id" :value="degree.id">
-                                {{ degree.type }}
-                            </option>
-                        </select>
-                        <InputError :message="form.errors.degree_id" class="mt-2" />
-                    </div>
-
-                    <div v-if="showProgramCode" class="col-span-6 sm:col-span-4 mt-4">
-                        <InputLabel for="program_code" value="Program Code" />
-                        <input
-                            id="program_code"
-                            v-model="form.program_code"
-                            required
-                            type="text"
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
-                            placeholder="e.g. BSCS-001, ASCT-2Y001"/>
-                        <InputError :message="form.errors.program_code" class="mt-2" />
-                    </div>
-
-                    <div v-if="showDuration" class="col-span-6 sm:col-span-4 mt-4">
-                        <InputLabel for="duration" value="Duration" />
-                        <select
-                            id="duration"
-                            v-model="form.duration"
-                            required
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
-                        >
-                            <option value="">Select</option>
-                            <option value="Year">Year</option>
-                            <option value="Month">Month</option>
-                        </select>
-                        <InputError :message="form.errors.duration" class="mt-2" />
-
-                        <InputLabel for="duration_time" value="Duration Time" class="mt-4" />
-                        <input
-                            id="duration_time"
-                            type="number"
-                            v-model="form.duration_time"
-                            min="1"
-                            max="12"
-                            required
-                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring focus:ring-indigo-200"
-                            placeholder="1,2,etc..."/>
-                        <InputError :message="form.errors.duration_time" class="mt-2" />
-                    </div>
-                </template>
-
-                <template #actions>
-                    <PrimaryButton :disabled="form.processing" :class="{ 'opacity-25': form.processing }">
-                        Update
-                    </PrimaryButton>
-                </template>
-            </FormSection>
-        </Container>
-    </AppLayout>
+  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
+      <h2 class="text-xl font-bold mb-4">Edit Program</h2>
+      <form @submit.prevent="updateProgram">
+        <div class="mb-4">
+          <InputLabel for="name" value="Program Name" />
+          <input
+            id="name"
+            v-model="form.name"
+            type="text"
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            placeholder="ex. Computer Science"
+          />
+        </div>
+        <div class="mb-4">
+          <InputLabel for="degree_id" value="Degree" />
+          <select
+            id="degree_id"
+            v-model="form.degree_id"
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+          >
+            <option disabled value="">Select Degree</option>
+            <option v-for="degree in degrees" :key="degree.id" :value="degree.id">
+              {{ degree.type }}
+            </option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <InputLabel for="program_code" value="Program Code" />
+          <input
+            id="program_code"
+            v-model="form.program_code"
+            type="text"
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            placeholder="e.g. BSCS-001, ASCT-2Y001"
+          />
+        </div>
+        <div class="mb-4">
+          <InputLabel for="duration" value="Duration" />
+          <select
+            id="duration"
+            v-model="form.duration"
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+          >
+            <option value="">Select</option>
+            <option value="Year">Year</option>
+            <option value="Month">Month</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <InputLabel for="duration_time" value="Duration Time" />
+          <input
+            id="duration_time"
+            type="number"
+            v-model="form.duration_time"
+            min="1"
+            max="12"
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+            placeholder="1,2,etc..."
+          />
+        </div>
+        <div class="flex justify-end">
+          <PrimaryButton :disabled="form.processing" :class="{ 'opacity-25': form.processing }">
+            Update
+          </PrimaryButton>
+          <button type="button" @click="emit('close')" class="ml-2 px-4 py-2 border rounded text-gray-700 bg-gray-100">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>
