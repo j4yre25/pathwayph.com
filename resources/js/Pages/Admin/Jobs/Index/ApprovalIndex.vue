@@ -6,10 +6,15 @@ import PrimaryButton from '@/Components/PrimaryButton.vue'
 import { ref, computed } from 'vue'
 import '@fortawesome/fontawesome-free/css/all.css'
 import { Link } from '@inertiajs/vue3'
+import Modal from '@/Components/Modal.vue'
+
 
 const props = defineProps({
     jobs: Object, // Now an object with data, links, meta, etc.
 })
+
+const isSuccessModalOpen = ref(false)
+const successMessage = ref('')
 
 const allJobs = computed(() => props.jobs.data ?? [])
 
@@ -58,6 +63,8 @@ function approveJob(job) {
         onFinish: () => {
             isActionLoading.value = false
             activeJobId.value = null
+            successMessage.value = 'Job approved successfully. The company has been notified.'
+            isSuccessModalOpen.value = true
         },
         onError: (err) => {
             actionError.value = err
@@ -74,6 +81,8 @@ function disapproveJob(job) {
         onFinish: () => {
             isActionLoading.value = false
             activeJobId.value = null
+            successMessage.value = 'Job disapproved. The company has been notified.'
+            isSuccessModalOpen.value = true
         },
         onError: (err) => {
             actionError.value = err
@@ -159,7 +168,8 @@ function disapproveJob(job) {
                             searchQuery = '';
                         companyQuery = '';
                         selectedStatus = '';
-                        " class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
+                        "
+                            class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
                             <i class="fas fa-undo mr-2"></i> Reset Filter
                         </button>
                     </div>
@@ -250,7 +260,7 @@ function disapproveJob(job) {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-gray-500 text-sm">{{ new Date(job.created_at).toLocaleDateString()
-                                        }}</span>
+                                    }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span v-if="job.is_approved === 1"
@@ -299,4 +309,18 @@ function disapproveJob(job) {
             </div>
         </Container>
     </AppLayout>
+
+
+    <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+        <div class="p-6">
+            <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
+                <i class="fas fa-check text-green-500 text-xl"></i>
+            </div>
+            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Success</h2>
+            <p class="text-center text-gray-600">{{ successMessage }}</p>
+            <div class="mt-6 flex justify-center">
+                <PrimaryButton @click="isSuccessModalOpen = false">OK</PrimaryButton>
+            </div>
+        </div>
+    </Modal>
 </template>
