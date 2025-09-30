@@ -150,6 +150,9 @@ function submitForm() {
 
       <form @submit.prevent="submitForm" class="space-y-5">
         <!-- Personal Info -->
+         <h2 class="text-m font-semibold text-gray-800 mb-4">
+        Personal Information
+      </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-gray-600">
@@ -247,6 +250,9 @@ function submitForm() {
         </div>
 
         <!-- Academic Info -->
+         <h2 class="text-m font-semibold text-gray-800 mb-4">
+        Academic Information
+      </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="block text-xs font-medium text-gray-600">
@@ -307,6 +313,9 @@ function submitForm() {
         </div>
 
         <!-- Employment Info -->
+         <h2 class="text-m font-semibold text-gray-800 mb-4">
+        Employment Information
+      </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-gray-600">

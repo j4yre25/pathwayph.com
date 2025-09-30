@@ -103,6 +103,7 @@ class GraduateController extends Controller
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
             ->join('institution_school_years', 'graduates.school_year_id', '=', 'institution_school_years.id')
             ->join('school_years', 'institution_school_years.school_year_range_id', '=', 'school_years.id')
+            ->leftJoin('companies', 'graduates.company_id', '=', 'companies.id') // <-- Add this line
             ->where('users.role', 'graduate')
             ->where('graduates.institution_id', $institutionId)
             ->where('users.is_approved', true)
@@ -124,7 +125,8 @@ class GraduateController extends Controller
                 'graduates.current_job_title',
                 'graduates.employment_status',
                 'users.email',
-                'graduates.company_id'
+                'graduates.company_id',
+                'companies.company_name as company_name' // <-- Add this line
             );
 
         // Apply filters from request
@@ -148,7 +150,7 @@ class GraduateController extends Controller
             $query->where('graduates.program_id', $request->input('program'));
         }
 
-        $graduates = $query->orderBy('graduates.created_at', 'desc')->paginate(30)->withQueryString();
+        $graduates = $query->orderBy('graduates.created_at', 'desc')->paginate(15)->withQueryString();
 
         // Fetch programs via the pivot table
         $programs = DB::table('institution_programs')
@@ -183,8 +185,8 @@ class GraduateController extends Controller
             ->distinct()
             ->pluck('title');
 
-        $companies = \App\Models\Company::select('id', 'company_name')->get();
-        $sectors = \App\Models\Sector::select('id', 'name')->get();
+        $companies = Company::select('id', 'company_name')->get();
+        $sectors = Sector::select('id', 'name')->get();
 
         return Inertia::render('Graduates/Index', [
             'graduates' => $graduates, // This is now a paginator object
