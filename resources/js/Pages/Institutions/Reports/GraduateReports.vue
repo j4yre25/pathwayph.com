@@ -38,6 +38,16 @@ const aligned = ref(0);
 const misaligned = ref(0);
 const loading = ref(true);
 
+const directlyAligned = computed(() =>
+  graduates.value.filter(g => g.alignment_category === 'Directly aligned').length
+);
+const partiallyAligned = computed(() =>
+  graduates.value.filter(g => g.alignment_category === 'Partially aligned').length
+);
+const misalignedCount = computed(() =>
+  graduates.value.filter(g => g.alignment_category === 'Misaligned').length
+);
+
 function fetchGraduateData() {
   loading.value = true;
   axios.get(route('institutions.reports.graduate.data'), {
@@ -179,13 +189,20 @@ const graduateTrendsSummary = computed(() => {
 });
 // Graduate Alignment Over Time
 const alignmentTrends = computed(() => {
-  // { [school_year_range]: { aligned: count, misaligned: count } }
+  // { [school_year_range]: { directlyAligned, partiallyAligned, misaligned } }
   const trends = {};
   graduates.value.forEach(g => {
     if (g.school_year_range) {
-      if (!trends[g.school_year_range]) trends[g.school_year_range] = { aligned: 0, misaligned: 0 };
-      if (g.alignment === 'Aligned') trends[g.school_year_range].aligned += 1;
-      else if (g.alignment === 'Misaligned') trends[g.school_year_range].misaligned += 1;
+      if (!trends[g.school_year_range]) {
+        trends[g.school_year_range] = {
+          directlyAligned: 0,
+          partiallyAligned: 0,
+          misaligned: 0
+        };
+      }
+      if (g.alignment_category === 'Directly aligned') trends[g.school_year_range].directlyAligned += 1;
+      else if (g.alignment_category === 'Partially aligned') trends[g.school_year_range].partiallyAligned += 1;
+      else if (g.alignment_category === 'Misaligned') trends[g.school_year_range].misaligned += 1;
     }
   });
   return Object.entries(trends)
@@ -195,9 +212,17 @@ const alignmentTrends = computed(() => {
 
 const alignmentTrendsSummary = computed(() => {
   if (!alignmentTrends.value.length) return 'No alignment trend data available.';
-  const best = alignmentTrends.value.reduce((a, b) => ((b.aligned / (b.aligned + b.misaligned || 1)) > (a.aligned / (a.aligned + a.misaligned || 1)) ? b : a), { aligned: 0, misaligned: 0 });
-  const percent = best.aligned + best.misaligned > 0 ? ((best.aligned / (best.aligned + best.misaligned)) * 100).toFixed(1) : 0;
-  return `The year "${best.year}" had the highest alignment rate at ${percent}%, showing the best match between graduate jobs and mapped career opportunities.`;
+  // Find the year with the highest directly aligned rate
+  const best = alignmentTrends.value.reduce((a, b) => {
+    const aTotal = a.directlyAligned + a.partiallyAligned + a.misaligned;
+    const bTotal = b.directlyAligned + b.partiallyAligned + b.misaligned;
+    const aRate = aTotal > 0 ? a.directlyAligned / aTotal : 0;
+    const bRate = bTotal > 0 ? b.directlyAligned / bTotal : 0;
+    return bRate > aRate ? b : a;
+  }, { directlyAligned: 0, partiallyAligned: 0, misaligned: 0 });
+  const total = best.directlyAligned + best.partiallyAligned + best.misaligned;
+  const percent = total > 0 ? ((best.directlyAligned / total) * 100).toFixed(1) : 0;
+  return `The year "${best.year}" had the highest direct alignment rate at ${percent}%, showing the best match between graduate jobs and mapped career opportunities.`;
 });
 // Graduate Outcomes by Term
 const outcomesByTerm = computed(() => {
@@ -327,14 +352,18 @@ const genderEmploymentSummary = computed(() => {
         </div>
 
         <!-- Alignment KPI Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
           <div class="bg-blue-100 rounded-xl shadow p-6 flex flex-col items-center">
-            <span class="text-2xl font-bold text-blue-700">{{ aligned }}</span>
-            <span class="text-gray-600">Aligned Graduates</span>
+            <span class="text-2xl font-bold text-blue-700">{{ directlyAligned }}</span>
+            <span class="text-gray-600">Directly Aligned</span>
+          </div>
+          <div class="bg-yellow-100 rounded-xl shadow p-6 flex flex-col items-center">
+            <span class="text-2xl font-bold text-yellow-700">{{ partiallyAligned }}</span>
+            <span class="text-gray-600">Partially Aligned</span>
           </div>
           <div class="bg-pink-100 rounded-xl shadow p-6 flex flex-col items-center">
-            <span class="text-2xl font-bold text-pink-700">{{ misaligned }}</span>
-            <span class="text-gray-600">Misaligned Graduates</span>
+            <span class="text-2xl font-bold text-pink-700">{{ misalignedCount }}</span>
+            <span class="text-gray-600">Misaligned</span>
           </div>
         </div>
 
@@ -497,11 +526,12 @@ const genderEmploymentSummary = computed(() => {
           <h2 class="text-xl font-semibold mb-4 text-cyan-700">Graduate Alignment Over Time</h2>
           <VueECharts v-if="alignmentTrends.length" :option="{
             tooltip: { trigger: 'axis' },
-            legend: { data: ['Aligned', 'Misaligned'] },
+            legend: { data: ['Directly aligned', 'Partially aligned', 'Misaligned'] },
             xAxis: { type: 'category', data: alignmentTrends.map(t => t.year) },
             yAxis: { type: 'value', name: 'Graduate Count' },
             series: [
-              { name: 'Aligned', type: 'bar', stack: 'total', data: alignmentTrends.map(t => t.aligned), itemStyle: { color: '#3b82f6' } },
+              { name: 'Directly aligned', type: 'bar', stack: 'total', data: alignmentTrends.map(t => t.directlyAligned), itemStyle: { color: '#3b82f6' } },
+              { name: 'Partially aligned', type: 'bar', stack: 'total', data: alignmentTrends.map(t => t.partiallyAligned), itemStyle: { color: '#facc15' } },
               { name: 'Misaligned', type: 'bar', stack: 'total', data: alignmentTrends.map(t => t.misaligned), itemStyle: { color: '#f472b6' } }
             ]
           }" autoresize style="width: 100%; height: 300px;" />
