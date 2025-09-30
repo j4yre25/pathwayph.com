@@ -421,7 +421,12 @@ const genderEmploymentSummary = computed(() => {
                 <td class="px-4 py-2">{{ g.employment_status }}</td>
                 <td class="px-4 py-2">{{ g.current_job_title }}</td>
                 <td class="px-4 py-2">
-                  <span :class="{
+                  <span
+                    v-if="g.employment_status === 'Unemployed' || (g.current_job_title && g.current_job_title.toLowerCase() === 'n/a')"
+                    class="text-gray-500 font-semibold">
+                    UNEMPLOYED
+                  </span>
+                  <span v-else :class="{
                     'text-blue-700 font-semibold': g.alignment_category === 'Directly aligned',
                     'text-yellow-700 font-semibold': g.alignment_category === 'Partially aligned',
                     'text-pink-700 font-semibold': g.alignment_category === 'Misaligned'

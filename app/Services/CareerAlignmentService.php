@@ -10,6 +10,24 @@ class CareerAlignmentService
 {
     public static function score(Graduate $graduate)
     {
+        // If unemployed, show UNEMPLOYED and skip calculation
+        if (
+            strtolower($graduate->employment_status) === 'unemployed' ||
+            strtolower($graduate->current_job_title) === 'n/a'
+        ) {
+            $graduate->alignment_score = null;
+            $graduate->save();
+
+            return [
+                'score' => null,
+                'percentage' => null,
+                'alignment' => 'UNEMPLOYED',
+                'degreeMatch' => null,
+                'skillsMatch' => null,
+                'careerOpportunityMatch' => null,
+            ];
+        }
+
         // Degree Match: Check if graduate's job title matches any career opportunity for their degree program
         $degreeMatch = 0;
         $jobTitle = strtolower($graduate->current_job_title ?? '');
