@@ -19,7 +19,7 @@ const props = defineProps({
           v-for="t in threads"
           :key="t.conversation_id"
           :href="route('messages.show', t.conversation_id)"
-          class="flex items-center gap-4 p-4 hover:bg-gray-50"
+          class="flex items-center gap-4 p-4 hover:bg-blue-50 transition"
         >
           <img :src="t.avatar_url || '/images/default-logo.png'"
                class="w-12 h-12 rounded-full object-cover border" />

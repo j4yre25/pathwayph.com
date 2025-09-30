@@ -4,8 +4,8 @@ return [
     'cache_seconds' => 30,
 
     'stages' => [
-        'applying' => [
-            'label' => 'Applying',
+        'applied' => [
+            'label' => 'Applied',
             'description' => 'Application received.',
             'actions' => [
                 'move_next',

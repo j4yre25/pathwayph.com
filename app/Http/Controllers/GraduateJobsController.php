@@ -4,12 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Job;
 use App\Models\JobApplication;
+use App\Models\JobOffer;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ApplicantScreeningService;
+
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
+use App\Notifications\OfferAcceptedNotification;
+use App\Notifications\OfferDeclinedNotification;
 
 class GraduateJobsController extends Controller
 {
@@ -19,7 +27,7 @@ class GraduateJobsController extends Controller
         $user = Auth::user();
         $appliedJobIds = [];
         if ($user && $user->graduate) {
-            $appliedJobIds = \App\Models\JobApplication::where('graduate_id', $user->graduate->id)
+            $appliedJobIds = JobApplication::where('graduate_id', $user->graduate->id)
                 ->pluck('job_id')
                 ->toArray();
         }
@@ -71,9 +79,42 @@ class GraduateJobsController extends Controller
             ->withQueryString();
 
         
+        $graduateId = $user && $user->graduate ? $user->graduate->id : null;
+
         $myApplications = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
             ->whereIn('id', $appliedJobIds)
-            ->get();
+            ->get()
+            ->map(function ($j) use ($user, $graduateId) {
+                // find the application record for this graduate & job
+                $application = JobApplication::where('graduate_id', $graduateId)
+                    ->where('job_id', $j->id)
+                    ->first();
+
+                return [
+                    'id' => $j->id,
+                    'job_title' => $j->job_title,
+                    'company' => $j->company ? [
+                        'id' => $j->company->id,
+                        'company_name' => $j->company->company_name,
+                    ] : null,
+                    'locations' => $j->locations ? $j->locations->map(fn($l) => ['address' => $l->address])->values()->all() : [],
+                    'jobTypes' => $j->jobTypes ? $j->jobTypes->map(fn($t) => ['type' => $t->type])->values()->all() : [],
+                    'job_experience_level' => $j->job_experience_level,
+                    'salary' => $j->salary ? [
+                        'job_min_salary' => $j->salary->job_min_salary ?? null,
+                        'job_max_salary' => $j->salary->job_max_salary ?? null,
+                        'salary_type' => $j->salary->salary_type ?? null,
+                    ] : null,
+                    // application-specific fields
+                    'application' => $application ? [
+                        'id' => $application->id,
+                        'status' => $application->status,
+                        'stage' => $application->stage,
+                        'applied_at' => $application->applied_at?->toDateTimeString() ?? null,
+                    ] : null,
+                ];
+            })->values()->toArray();
+
         // Clean skills field before sending to Inertia
         $jobs->getCollection()->transform(function ($job) {
             // Decode JSON skills if stored as string, or use as is if array
@@ -135,6 +176,33 @@ class GraduateJobsController extends Controller
             return $job;
         });
 
+        $jobOffers = [];
+        if ($user && $user->graduate) {
+            $graduateId = $user->graduate->id;
+            $jobOffers = JobOffer::with(['application.job.company', 'message'])
+                ->whereHas('application', fn($q) => $q->where('graduate_id', $graduateId))
+                ->latest()
+                ->get()
+                ->map(function ($o) {
+                    return [
+                        'id' => $o->id,
+                        'job_title' => $o->job_title ?? optional($o->application->job)->job_title,
+                        'company' => $o->application && $o->application->job && $o->application->job->company
+                            ? [
+                                'id' => $o->application->job->company->id,
+                                'company_name' => $o->application->job->company->company_name,
+                            ] : null,
+                        'body' => $o->body,
+                        'file_url' => $o->file_path ? Storage::url($o->file_path) : null,
+                        'start_date' => $o->start_date?->toDateString(),
+                        'status' => $o->status,
+                        'responded_at' => $o->responded_at?->toISOString(),
+                        // include original application id so frontend can call accept/decline routes
+                        'application_id' => $o->job_application_id,
+                    ];
+                })->values()->toArray();
+        }
+
         return Inertia::render('Frontend/JobSearch', [
             'jobs' => $jobs,
             'appliedJobIds' => $appliedJobIds,
@@ -145,6 +213,7 @@ class GraduateJobsController extends Controller
             'jobTypes' => $jobTypes,
             'locations' => $locations,
             'experienceLevels' => $experienceLevels,
+            'jobOffers' => $jobOffers, 
         ]);
     }
     public function search(Request $request)
@@ -159,7 +228,7 @@ class GraduateJobsController extends Controller
         $user = Auth::user();
         $appliedJobIds = [];
         if ($user && $user->graduate) {
-            $appliedJobIds = \App\Models\JobApplication::where('graduate_id', $user->graduate->id)
+            $appliedJobIds = JobApplication::where('graduate_id', $user->graduate->id)
                 ->pluck('job_id')
                 ->toArray();
         }
@@ -222,9 +291,41 @@ class GraduateJobsController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $graduateId = $user && $user->graduate ? $user->graduate->id : null;
+
         $myApplications = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
             ->whereIn('id', $appliedJobIds)
-            ->get();
+            ->get()
+            ->map(function ($j) use ($user, $graduateId) {
+                // find the application record for this graduate & job
+                $application = JobApplication::where('graduate_id', $graduateId)
+                    ->where('job_id', $j->id)
+                    ->first();
+
+                return [
+                    'id' => $j->id,
+                    'job_title' => $j->job_title,
+                    'company' => $j->company ? [
+                        'id' => $j->company->id,
+                        'company_name' => $j->company->company_name,
+                    ] : null,
+                    'locations' => $j->locations ? $j->locations->map(fn($l) => ['address' => $l->address])->values()->all() : [],
+                    'jobTypes' => $j->jobTypes ? $j->jobTypes->map(fn($t) => ['type' => $t->type])->values()->all() : [],
+                    'job_experience_level' => $j->job_experience_level,
+                    'salary' => $j->salary ? [
+                        'job_min_salary' => $j->salary->job_min_salary ?? null,
+                        'job_max_salary' => $j->salary->job_max_salary ?? null,
+                        'salary_type' => $j->salary->salary_type ?? null,
+                    ] : null,
+                    // application-specific fields
+                    'application' => $application ? [
+                        'id' => $application->id,
+                        'status' => $application->status,
+                        'stage' => $application->stage,
+                        'applied_at' => $application->applied_at?->toDateTimeString() ?? null,
+                    ] : null,
+                ];
+            })->values()->toArray();
 
         // Clean skills field before sending to Inertia
         $jobs->getCollection()->transform(function ($job) {
@@ -280,7 +381,7 @@ class GraduateJobsController extends Controller
             // Calculate match_percentage for each job
             $match = 0;
             if ($user && $user->graduate) {
-                $screening = (new \App\Services\ApplicantScreeningService())->screen($user->graduate, $job);
+                $screening = (new ApplicantScreeningService())->screen($user->graduate, $job);
                 $match = $screening['match_percentage'] ?? 0;
             }
             $job->match_percentage = $match;
@@ -305,6 +406,33 @@ class GraduateJobsController extends Controller
             return $job;
         });
 
+         $jobOffers = [];
+        if ($user && $user->graduate) {
+            $graduateId = $user->graduate->id;
+            $jobOffers = JobOffer::with(['application.job.company', 'message'])
+                ->whereHas('application', fn($q) => $q->where('graduate_id', $graduateId))
+                ->latest()
+                ->get()
+                ->map(function ($o) {
+                    return [
+                        'id' => $o->id,
+                        'job_title' => $o->job_title ?? optional($o->application->job)->job_title,
+                        'company' => $o->application && $o->application->job && $o->application->job->company
+                            ? [
+                                'id' => $o->application->job->company->id,
+                                'company_name' => $o->application->job->company->company_name,
+                            ] : null,
+                        'body' => $o->body,
+                        'file_url' => $o->file_path ? Storage::url($o->file_path) : null,
+                        'start_date' => $o->start_date?->toDateString(),
+                        'status' => $o->status,
+                        'responded_at' => $o->responded_at?->toISOString(),
+                        // include original application id so frontend can call accept/decline routes
+                        'application_id' => $o->job_application_id,
+                    ];
+                })->values()->toArray();
+        }
+
         return Inertia::render('Frontend/JobSearch', [
             'jobs' => $jobs,
             'appliedJobIds' => $appliedJobIds,
@@ -315,6 +443,7 @@ class GraduateJobsController extends Controller
             'jobTypes' => $jobTypes,
             'locations' => $locations,
             'experienceLevels' => $experienceLevels,
+            'jobOffers' => $jobOffers,
         ]);
     }
 
@@ -482,136 +611,6 @@ class GraduateJobsController extends Controller
         return response()->json(['recommendations' => $recommendations]);
     }
 
-    public function show(Job $job)
-    {
-        $job->load(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary']);
-
-        // Normalize skills
-        if (is_string($job->skills)) {
-            $decoded = json_decode($job->skills, true);
-            $job->skills = is_array($decoded) ? array_map(fn($s) => trim(str_replace(['[', ']', '"', "'"], '', $s)), $decoded) : [];
-        } elseif (!is_array($job->skills)) {
-            $job->skills = [];
-        }
-
-        // Map Job Types to names
-        $jobTypeNames = [];
-        if ($job->relationLoaded('jobTypes') && $job->jobTypes && $job->jobTypes->count()) {
-            // expects JobType has a 'type' column
-            $jobTypeNames = $job->jobTypes->pluck('type')->filter()->values()->all();
-        } elseif (is_array($job->job_type)) {
-            $jobTypeNames = array_values(array_filter($job->job_type, fn($v) => !is_null($v) && $v !== ''));
-        } elseif (is_string($job->job_type) && $job->job_type !== '') {
-            $jobTypeNames = [ $job->job_type ];
-        }
-
-        // Map Work Environment IDs to labels
-        $workEnvMap = [
-            1 => 'On-site',
-            2 => 'Remote',
-            3 => 'Hybrid',
-        ];
-        $we = $job->work_environment;
-
-        // Convert to array of values
-        if (is_string($we)) {
-            $json = json_decode($we, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) {
-                $we = $json;
-            } else {
-                $we = array_map('trim', array_filter(explode(',', $we)));
-            }
-        } elseif ($we === null) {
-            $we = [];
-        } elseif (!is_array($we)) {
-            $we = [$we];
-        }
-
-        // Map to labels if numeric ids, keep text if already labels
-        $workEnvLabels = collect($we)->map(function ($v) use ($workEnvMap) {
-            if (is_numeric($v)) {
-                $v = (int)$v;
-                return $workEnvMap[$v] ?? (string)$v;
-            }
-            return (string)$v;
-        })->filter()->values()->all();
-
-        // Attach normalized fields to job payload
-        $job->setAttribute('job_type_names', $jobTypeNames);
-        $job->setAttribute('work_environment_labels', $workEnvLabels);
-
-        $application = null;
-        if (Auth::check() && Auth::user()->graduate) {
-            $application = \App\Models\JobApplication::where('graduate_id', Auth::user()->graduate->id)
-                ->where('job_id', $job->id)
-                ->first();
-        }
-
-        return Inertia::render('Frontend/GraduateJobDetails', [
-            'job' => $job,
-            'application' => $application ? [
-                'status' => $application->status,
-                'stage' => $application->stage,
-                'applied_at' => $application->applied_at,
-                'interview_date' => $application->interview_date,
-                'match_percentage' => $application->match_percentage,
-                'screening_label' => $application->screening_label,
-                'screening_feedback' => $application->screening_feedback,
-            ] : null,
-        ]);
-    }
-    // public function oneClickApply(Request $request)
-    // {
-    //     if (!Auth::check()) {
-    //         return response()->json(['error' => 'Unauthenticated'], 401);
-    //     }
-    //     $user = Auth::user();
-    //     $graduate = $user->graduate;
-
-    //     // Get latest resume 
-    //     $resume = \App\Models\Resume::where('graduate_id', $graduate->id)->latest()->first();
-    //     $coverLetter = $graduate->cover_letter ?? '';
-
-    //     $application = \App\Models\JobApplication::create([
-    //         'user_id' => auth()->id(),
-    //         'graduate_id' => $graduate->id,
-    //         'job_id' => $request->job_id,
-    //         'status' => 'applied',
-    //         'stage' => 'screening',
-    //         'applied_at' => now(),
-    //         'resume_id' => $resume ? $resume->id : null,
-    //         'cover_letter' => $coverLetter,
-    //     ]);
-
-    //     // Eager load relationships for screening
-    //     $application->load([
-    //         'graduate.education',
-    //         'graduate.experience',
-    //         'graduate.graduateSkills.skill',
-    //         'graduate.employmentPreference'
-    //     ]);
-
-    //     $job = $application->job;
-    //     $graduate = $application->graduate;
-
-    //     $screening = (new \App\Services\ApplicantScreeningService())->screen($graduate, $job);
-
-    //     $application->screening_label = $screening['screening_label'];
-    //     $application->is_shortlisted = $screening['is_shortlisted'];
-    //     $application->status = $screening['status'];
-    //     $application->stage = 'Screening';
-    //     $application->screening_feedback = $screening['screening_feedback'];
-    //     $application->match_percentage = $screening['match_percentage'];
-    //     $application->save();
-
-    //     // Notify applicant if rejected
-    //     if (in_array($application->status, ['rejected', 'shortlisted']) && $graduate->user) {
-    //         $graduate->user->notify(new \App\Notifications\ApplicationStatusUpdated($application, $application->status));
-    //     }
-
-    //     return response()->json(['success' => true, 'message' => 'Applied with your latest resume and cover letter!']);
-    // }
-
     public function applyForJob(Request $request)
     {
         $user = Auth::user();
@@ -672,7 +671,7 @@ class GraduateJobsController extends Controller
         } else {
             // Otherwise stay in Applied/Applying
             $application->status = 'applied';
-            $application->stage = 'applying';
+            $application->stage = 'applied';
         }
 
         $application->save();
@@ -680,7 +679,7 @@ class GraduateJobsController extends Controller
         return back()->with('success', 'Application submitted successfully.');
     }
 
-    public function requestReferral(Request $request)
+     public function requestReferral(Request $request)
     {
         $user = auth()->user();
         $graduate = $user->graduate;
@@ -693,5 +692,306 @@ class GraduateJobsController extends Controller
         ]);
 
         return back()->with('success', 'Referral request sent!');
+    }
+
+
+    public function show(Job $job)
+    {
+        $job->load(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary']);
+
+        // Normalize skills
+        if (is_string($job->skills)) {
+            $decoded = json_decode($job->skills, true);
+            $job->skills = is_array($decoded) ? array_map(fn($s) => trim(str_replace(['[', ']', '"', "'"], '', $s)), $decoded) : [];
+        } elseif (!is_array($job->skills)) {
+            $job->skills = [];
+        }
+
+        // Map Job Types to names
+        $jobTypeNames = [];
+        if ($job->relationLoaded('jobTypes') && $job->jobTypes && $job->jobTypes->count()) {
+            // expects JobType has a 'type' column
+            $jobTypeNames = $job->jobTypes->pluck('type')->filter()->values()->all();
+        } elseif (is_array($job->job_type)) {
+            $jobTypeNames = array_values(array_filter($job->job_type, fn($v) => !is_null($v) && $v !== ''));
+        } elseif (is_string($job->job_type) && $job->job_type !== '') {
+            $jobTypeNames = [ $job->job_type ];
+        }
+
+        // Map Work Environment IDs to labels
+        $workEnvMap = [
+            1 => 'On-site',
+            2 => 'Remote',
+            3 => 'Hybrid',
+        ];
+        $we = $job->work_environment;
+
+        // Convert to array of values
+        if (is_string($we)) {
+            $json = json_decode($we, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) {
+                $we = $json;
+            } else {
+                $we = array_map('trim', array_filter(explode(',', $we)));
+            }
+        } elseif ($we === null) {
+            $we = [];
+        } elseif (!is_array($we)) {
+            $we = [$we];
+        }
+
+        // Map to labels if numeric ids, keep text if already labels
+        $workEnvLabels = collect($we)->map(function ($v) use ($workEnvMap) {
+            if (is_numeric($v)) {
+                $v = (int)$v;
+                return $workEnvMap[$v] ?? (string)$v;
+            }
+            return (string)$v;
+        })->filter()->values()->all();
+
+        // Attach normalized fields to job payload
+        $job->setAttribute('job_type_names', $jobTypeNames);
+        $job->setAttribute('work_environment_labels', $workEnvLabels);
+
+        $application = null;
+        if (Auth::check() && Auth::user()->graduate) {
+            $application = JobApplication::where('graduate_id', Auth::user()->graduate->id)
+                ->where('job_id', $job->id)
+                ->first();
+        }
+        
+
+        return Inertia::render('Frontend/GraduateJobDetails', [
+            'job' => $job,
+            'application' => $application ? [
+                'status' => $application->status,
+                'stage' => $application->stage,
+                'applied_at' => $application->applied_at,
+                'interview_date' => $application->interview_date,
+                'match_percentage' => $application->match_percentage,
+                'screening_label' => $application->screening_label,
+                'screening_feedback' => $application->screening_feedback,
+            ] : null,
+        ]);
+    }
+
+    public function offers(Request $request)
+    {
+        $user = Auth::user();
+        $jobOffers = [];
+        if ($user && $user->graduate) {
+            $graduateId = $user->graduate->id;
+            $jobOffers = JobOffer::with(['application.job.company'])
+                ->whereHas('application', fn($q) => $q->where('graduate_id', $graduateId))
+                ->latest()
+                ->get()
+                ->map(function ($o) {
+                    $company = optional($o->application->job->company);
+                    return [
+                        'id' => $o->id,
+                        'application_id' => $o->job_application_id,
+                        'job_title' => $o->job_title ?: optional($o->application->job)->job_title,
+                        'company' => $company ? [
+                            'id' => $company->id,
+                            'company_name' => $company->company_name,
+                        ] : null,
+                        'body' => $o->body,
+                        'file_path' => $o->file_path ? Storage::url($o->file_path) : null,
+                        'status' => $o->status,
+                        'created_at' => $o->created_at?->toDateTimeString(),
+                    ];
+                })->values()->toArray();
+        }
+
+        return Inertia::render('Frontend/JobSearch', [
+            'jobOffers' => $jobOffers,
+        ]);
+    }
+    public function showOffer(Request $request, $id)
+    {
+        $user = Auth::user();
+        $offer = JobOffer::with(['application.job.company'])->findOrFail($id);
+
+        // basic ownership check - ensure it belongs to this graduate
+        if (!$user || !$user->graduate || ($offer->application->graduate_id ?? null) !== $user->graduate->id) {
+            abort(403);
+        }
+
+        $company = optional($offer->application->job->company);
+        $hrName = $offer->hr_name ?? $company->company_name ?? 'HR'; // fallback
+
+        return Inertia::render('Frontend/JobOffers/Show', [
+            'offer' => [
+                'id' => $offer->id,
+                'application_id' => $offer->job_application_id,
+                'job_title' => $offer->job_title ?: optional($offer->application->job)->job_title,
+                'company' => $company ? ['id' => $company->id, 'company_name' => $company->company_name] : null,
+                'hr_name' => $hrName,
+                'body' => $offer->body,
+                'file_path' => $offer->file_path ? Storage::url($offer->file_path) : null,
+                'status' => $offer->status,
+                'created_at' => $offer->created_at?->toDateTimeString(),
+            ],
+        ]);
+    }
+
+    public function acceptOffer(Request $request, $id)
+    {
+        $user = Auth::user();
+        $offer = JobOffer::findOrFail($id);
+        $application = JobApplication::find($offer->job_application_id);
+
+        if (!$user || !$user->graduate || ($offer->application->graduate_id ?? null) !== $user->graduate->id) {
+            abort(403);
+        }
+
+        $message = $request->input('message', 'I accept this offer. Thank you.');
+        $offer->status = JobOffer::STATUS_ACCEPTED;
+        $application->status = 'offer_accepted';
+        $offer->responded_at = now();
+        $offer->save();
+
+        // Insert action log (if table exists) so CompanyApplicationController will surface it
+        try {
+            if (Schema::hasTable('job_application_action_logs')) {
+                DB::table('job_application_action_logs')->insert([
+                    'job_application_id' => $offer->job_application_id,
+                    'user_id' => $user->id,
+                    'action_key' => 'offer_accepted',
+                    'event' => 'offer_accepted',
+                    'payload' => json_encode([
+                        'offer_id' => $offer->id,
+                        'message' => $message,
+                    ]),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to insert job_application_action_logs for offer accept: '.$e->getMessage());
+        }
+
+        // Notify employer HR users associated with the job's company
+       try {
+        $application = $offer->application()->with('job')->first();
+        $companyId = $application->job->company_id ?? null;
+
+        if ($companyId) {
+            $hrUserIds = DB::table('human_resources')
+                ->where('company_id', $companyId)
+                ->pluck('user_id')
+                ->filter()
+                ->unique()
+                ->toArray();
+
+            Log::info('Offer notify hrUserIds', ['company_id' => $companyId, 'hrUserIds' => $hrUserIds]);
+
+            if (!empty($hrUserIds)) {
+                $users = User::whereIn('id', $hrUserIds)->get();
+                Log::info('Offer notify users found', ['count' => $users->count()]);
+
+                $url = url('/company/applicants/'.$application->id); // employer target
+
+                foreach ($users as $u) {
+                    try {
+                        // use instance notify to ensure delivery to database channel
+                        $u->notify(new OfferAcceptedNotification($application, $offer, $message, $url));
+                        Log::info('Notification sent to user', ['user_id' => $u->id, 'offer_id' => $offer->id]);
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to notify user '.$u->id, ['error' => $e->getMessage()]);
+                    }
+                }
+            } else {
+                Log::warning('No HR user ids found for company', ['company_id' => $companyId]);
+            }
+        } else {
+            Log::warning('No company associated with application when notifying HR', ['application_id' => $application->id ?? null]);
+        }
+    } catch (\Throwable $e) {
+        Log::warning('Failed to notify HR on offer accept/decline: '.$e->getMessage());
+    }
+
+        return back()->with('success', 'Offer accepted.');
+    }
+
+    public function declineOffer(Request $request, $id)
+    {
+        $user = Auth::user();
+        $offer = JobOffer::findOrFail($id);
+        $application = JobApplication::find($offer->job_application_id);
+
+         // basic ownership check - ensure it belongs to this graduate
+        if (!$user || !$user->graduate || ($offer->application->graduate_id ?? null) !== $user->graduate->id) {
+            abort(403);
+        }
+
+        $message = $request->input('message', 'I decline this offer. Thank you for the opportunity.');
+        $application->status = 'offer_declined';
+
+        $offer->status = JobOffer::STATUS_DECLINED ?? 'declined';
+        $offer->responded_at = now();
+        $offer->save();
+
+        // Insert action log (if table exists)
+        try {
+            if (Schema::hasTable('job_application_action_logs')) {
+                DB::table('job_application_action_logs')->insert([
+                    'job_application_id' => $offer->job_application_id,
+                    'user_id' => $user->id,
+                    'action_key' => 'offer_declined',
+                    'event' => 'offer_declined',
+                    'payload' => json_encode([
+                        'offer_id' => $offer->id,
+                        'message' => $message,
+                    ]),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to insert job_application_action_logs for offer decline: '.$e->getMessage());
+        }
+
+        // Notify employer HR users associated with the job's company
+       try {
+            $application = $offer->application()->with('job')->first();
+            $companyId = $application->job->company_id ?? null;
+
+            if ($companyId) {
+                $hrUserIds = DB::table('human_resources')
+                    ->where('company_id', $companyId)
+                    ->pluck('user_id')
+                    ->filter()
+                    ->unique()
+                    ->toArray();
+
+                Log::info('Offer notify hrUserIds', ['company_id' => $companyId, 'hrUserIds' => $hrUserIds]);
+
+                if (!empty($hrUserIds)) {
+                    $users = User::whereIn('id', $hrUserIds)->get();
+                    Log::info('Offer notify users found', ['count' => $users->count()]);
+
+                    $url = url('/company/applicants/'.$application->id); // employer target
+
+                    foreach ($users as $u) {
+                        try {
+                            // use instance notify to ensure delivery to database channel
+                            $u->notify(new OfferDeclinedNotification($application, $offer, $message, $url));
+                            Log::info('Notification sent to user', ['user_id' => $u->id, 'offer_id' => $offer->id]);
+                        } catch (\Throwable $e) {
+                            Log::error('Failed to notify user '.$u->id, ['error' => $e->getMessage()]);
+                        }
+                    }
+                } else {
+                    Log::warning('No HR user ids found for company', ['company_id' => $companyId]);
+                }
+            } else {
+                Log::warning('No company associated with application when notifying HR', ['application_id' => $application->id ?? null]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to notify HR on offer accept/decline: '.$e->getMessage());
+        }
+
+        return back()->with('success', 'Offer declined.');
     }
 }
