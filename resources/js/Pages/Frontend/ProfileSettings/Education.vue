@@ -15,23 +15,23 @@ const props = defineProps({
   educationEntries: { type: Array, default: () => [] },
   archivedEducationEntries: { type: Array, default: () => [] },
   institutions: { type: Array, default: () => [] },
-  educationLevels: { type: Array, default: () => [] }, 
+  educationLevels: { type: Array, default: () => [] },
 })
 
 // Combo-box local state 
-const institutionInput = ref('') 
-const degreeInput = ref('')      
-const fieldInput = ref('')       
-const levelInput = ref('')        
+const institutionInput = ref('')
+const degreeInput = ref('')
+const fieldInput = ref('')
+const levelInput = ref('')
 
 const showInstSug = ref(false)
 const showDegSug = ref(false)
 const showProgSug = ref(false)
 const showLevelSug = ref(false)
 
-const selectedInstitution = ref(null) 
-const selectedDegree = ref(null)      
-const selectedLevel = ref(null)       
+const selectedInstitution = ref(null)
+const selectedDegree = ref(null)
+const selectedLevel = ref(null)
 
 // Helpers
 const norm = s => (s || '').toString().toLowerCase().trim()
@@ -69,7 +69,7 @@ const filteredLevels = computed(() => {
 
 // Keep form fields in sync with combo inputs (UPDATED mappings)
 watch(institutionInput, (val) => {
-  education.value.school_name = val || ''             
+  education.value.school_name = val || ''
   // clear dependant selections if text no longer matches selected
   const sel = selectedInstitution.value
   if (!sel || norm(sel.name) !== norm(val)) {
@@ -77,23 +77,23 @@ watch(institutionInput, (val) => {
     degreeInput.value = ''
     fieldInput.value = ''
     selectedDegree.value = null
-    education.value.level_of_education = ''           
-    education.value.program = ''                      
+    education.value.level_of_education = ''
+    education.value.program = ''
   }
 })
 
 watch(degreeInput, (val) => {
-  education.value.level_of_education = val || ''       
+  education.value.level_of_education = val || ''
   const sel = selectedDegree.value
   if (!sel || norm(sel.type) !== norm(val)) {
     selectedDegree.value = null
     fieldInput.value = ''
-    education.value.program = ''                       
+    education.value.program = ''
   }
 })
 
 watch(fieldInput, (val) => {
-  education.value.program = val || ''                  
+  education.value.program = val || ''
 })
 
 watch(levelInput, (val) => {
@@ -119,14 +119,14 @@ function selectInstitution(inst) {
 
 function selectDegree(deg) {
   selectedDegree.value = deg
-  degreeInput.value = deg.type          
+  degreeInput.value = deg.type
   fieldInput.value = ''
   education.value.program = ''
   showDegSug.value = false
 }
 
 function selectProgram(prog) {
-  fieldInput.value = prog.name          
+  fieldInput.value = prog.name
   education.value.program = prog.name
   showProgSug.value = false
 }
@@ -156,23 +156,41 @@ const openUpdateEducationModal = (entry) => {
   education.value = {
     id: entry.id,
     education_id: entry.education_id || null,
-    school_name: entry.school_name || '',               
-    level_of_education: entry.level_of_education || '', 
-    program: entry.program || '',                      
+    school_name: entry.school_name || '',
+    level_of_education: entry.level_of_education || '',
+    program: entry.program || '',
     start_date: entry.start_date ? new Date(entry.start_date) : null,
     end_date: entry.end_date ? new Date(entry.end_date) : null,
     description: entry.description || '',
     is_current: !entry.end_date ? true : !!entry.is_current,
-    achievement: entry.achievement || '',               
+    achievement: entry.achievement || '',
     noAchievements: !entry.achievement
   }
+  // Set institution input and try to select the institution object
+  institutionInput.value = education.value.school_name
+  selectedInstitution.value = (props.institutions || []).find(i => i.name === education.value.school_name) || null
+
+  // Set degree input and try to select the degree object
+  degreeInput.value = education.value.level_of_education
+  if (selectedInstitution.value) {
+    selectedDegree.value = (selectedInstitution.value.degrees || []).find(d => d.type === education.value.level_of_education) || null
+  } else {
+    selectedDegree.value = null
+  }
+
+  // Set field input and try to select the program object
+  fieldInput.value = education.value.program
+  if (selectedInstitution.value && selectedDegree.value) {
+    // Try to select the program object if it exists
+    // This is optional and only for advanced suggestion features
+    // const programObj = (selectedInstitution.value.programs || []).find(
+    //   p => p.degree_id === selectedDegree.value.id && p.name === education.value.program
+    // )
+    // You can set selectedProgram.value = programObj if you use it
+  }
+
   levelInput.value = education.value.level_of_education
   selectedLevel.value = null
-  institutionInput.value = education.value.school_name
-  degreeInput.value = ''   // UI helper only
-  fieldInput.value = education.value.program
-  selectedInstitution.value = null
-  selectedDegree.value = null
   isUpdateEducationModalOpen.value = true
 }
 
@@ -222,15 +240,15 @@ watch(() => props.activeSection, (newValue) => {
 
 // State for form (UPDATED keys)
 const education = ref({
-  education_id: null,            
-  school_name: '',               
-  level_of_education: '',        
-  program: '',                   
+  education_id: null,
+  school_name: '',
+  level_of_education: '',
+  program: '',
   start_date: null,
   end_date: null,
   description: '',
   is_current: false,
-  achievement: '',              
+  achievement: '',
   noAchievements: false,
 })
 
@@ -569,7 +587,8 @@ const graduatePrimaryEducation = computed(() => {
         <h3 class="text-lg font-medium text-center text-gray-900 mb-2">Error</h3>
         <p class="text-center text-gray-600">{{ errorMessage }}</p>
         <div class="mt-6 flex justify-center">
-          <DangerButton type="button" class="bg-red-500 hover:bg-red-600 transition-colors text-white px-4 py-2 rounded-md"
+          <DangerButton type="button"
+            class="bg-red-500 hover:bg-red-600 transition-colors text-white px-4 py-2 rounded-md"
             @click="modals.isErrorOpen = false">
             Close
           </DangerButton>
@@ -616,24 +635,19 @@ const graduatePrimaryEducation = computed(() => {
         <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
         <div class="mt-6 flex justify-center space-x-2">
           <SecondaryButton type="button" @click="closeConfirm">Cancel</SecondaryButton>
-          <DangerButton
-            v-if="confirmModal.type === 'delete'"
-            type="button"
-            @click="confirmModal.confirmAction"
-          >Delete</DangerButton>
-          <PrimaryButton
-            v-else
-            type="button"
+          <DangerButton v-if="confirmModal.type === 'delete'" type="button" @click="confirmModal.confirmAction">Delete
+          </DangerButton>
+          <PrimaryButton v-else type="button"
             :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
-            @click="confirmModal.confirmAction"
-          >{{ confirmModal.confirmLabel }}</PrimaryButton>
+            @click="confirmModal.confirmAction">{{ confirmModal.confirmLabel }}</PrimaryButton>
         </div>
       </div>
     </Modal>
-    
+
     <!-- Education Section -->
     <div class="bg-white rounded-lg shadow-sm border border-blue-100 overflow-hidden transition-all duration-300 mb-6">
-      <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
+      <div
+        class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-white border-b border-blue-100">
         <div class="flex items-center">
           <div class="bg-blue-100 p-2 rounded-full mr-3">
             <i class="fas fa-graduation-cap text-blue-600"></i>
@@ -646,25 +660,27 @@ const graduatePrimaryEducation = computed(() => {
             <i class="fas fa-plus mr-2"></i>
             Add Education
           </PrimaryButton>
-            <button
-              class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center text-sm"
-              @click="toggleArchivedEducation">
-              <i class="fas" :class="showArchivedEducation ? 'fa-eye-slash' : 'fa-eye'"></i>
-              <span class="ml-1">{{ showArchivedEducation ? 'Hide Archived' : 'Show Archived' }}</span>
-            </button>
+          <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded flex items-center text-sm"
+            @click="toggleArchivedEducation">
+            <i class="fas" :class="showArchivedEducation ? 'fa-eye-slash' : 'fa-eye'"></i>
+            <span class="ml-1">{{ showArchivedEducation ? 'Hide Archived' : 'Show Archived' }}</span>
+          </button>
         </div>
       </div>
       <div class="p-4">
         <!-- Active Education Entries -->
         <div>
           <div v-if="educationEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div v-for="entry in educationEntries" :key="entry.id" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+            <div v-for="entry in educationEntries" :key="entry.id"
+              class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
               <div class="space-y-2">
                 <div class="border-b pb-2">
                   <h2 class="text-xl font-bold text-blue-900">{{ entry.school_name || 'Unknown Institution' }}</h2>
                   <p class="text-gray-700">
                     <span class="font-medium">{{ entry.level_of_education || '—' }}</span>
-                    <span v-if="entry.program"> — <span class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">{{ entry.program }}</span></span>
+                    <span v-if="entry.program"> — <span
+                        class="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full">{{ entry.program
+                        }}</span></span>
                   </p>
                 </div>
                 <div class="flex items-center text-gray-600 mt-2">
@@ -678,7 +694,7 @@ const graduatePrimaryEducation = computed(() => {
                   <strong>
                     <i class="fas fa-info-circle text-blue-500 mr-2"></i> Description:
                   </strong>
-                  <p class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400 mt-1">{{ entry.description || 'No description provided' }}</p>
+                  <p class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400 mt-1">{{ entry.description || 'Nodescription provided' }}</p>
                 </div>
                 <div class="mt-3">
                   <strong>
@@ -697,18 +713,17 @@ const graduatePrimaryEducation = computed(() => {
                 </div>
               </div>
               <div class="absolute top-8 right-4 flex space-x-2">
-                <button class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150" 
+                <button
+                  class="inline-flex items-center px-2 py-1 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition ease-in-out duration-150"
                   @click="openUpdateModal(entry)">
                   <i class="fas fa-edit"></i>
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   class="inline-flex items-center px-2 py-1 bg-amber-100 border border-amber-300 rounded-md text-xs text-amber-700 hover:bg-amber-200"
                   @click="archiveEducation(entry)">
                   <i class="fas fa-archive"></i>
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md text-xs text-red-700 hover:bg-red-200"
                   @click="deleteEducation(entry)">
                   <i class="fas fa-trash"></i>
@@ -718,7 +733,8 @@ const graduatePrimaryEducation = computed(() => {
           </div>
         </div>
       </div>
-      <div v-if="showArchivedEducation" class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+      <div v-if="showArchivedEducation"
+        class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
         <h4 class="text-sm font-semibold text-gray-600 mb-3 flex items-center">
           <i class="fas fa-archive mr-2 text-gray-500"></i> Archived Education
         </h4>
@@ -730,30 +746,31 @@ const graduatePrimaryEducation = computed(() => {
                 <h2 class="text-lg font-bold text-gray-800">{{ entry.school_name || 'Unknown Institution' }}</h2>
                 <p class="text-gray-600 text-sm">
                   <span class="font-medium">{{ entry.level_of_education || '—' }}</span>
-                  <span v-if="entry.program"> — 
+                  <span v-if="entry.program"> —
                     <span class="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded-full">{{ entry.program }}</span>
                   </span>
                 </p>
               </div>
               <div class="flex items-center text-gray-600 text-sm">
                 <i class="far fa-calendar-alt mr-2"></i>
-                <span>{{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ? formatDisplayDate(entry.end_date) : 'present' }}</span>
+                <span>{{ formatDisplayDate(entry.start_date) }} - {{ entry.end_date ? formatDisplayDate(entry.end_date)
+                  : 'present' }}</span>
               </div>
               <div class="text-xs text-gray-500">
-                {{ (entry.description || '').slice(0,120) || 'No description provided' }}<span v-if="(entry.description||'').length>120">...</span>
+                {{ (entry.description || '').slice(0, 120) || 'No description provided' }}<span
+                  v-if="(entry.description || '').length > 120">...</span>
               </div>
             </div>
-            <div class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wide">
+            <div
+              class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wide">
               Archived
             </div>
             <div class="absolute top-2 right-2 flex space-x-2">
-              <button
-                class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full"
+              <button class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full"
                 @click="unarchiveEducation(entry)">
                 <i class="fas fa-undo"></i>
               </button>
-              <button
-                class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full"
+              <button class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full"
                 @click="deleteEducation(entry)">
                 <i class="fas fa-trash"></i>
               </button>
@@ -769,7 +786,8 @@ const graduatePrimaryEducation = computed(() => {
 
 
     <!-- Add Education Modal -->
-    <div v-if="isAddEducationModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="isAddEducationModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Add Education</h2>
@@ -782,26 +800,16 @@ const graduatePrimaryEducation = computed(() => {
           <form @submit.prevent="addEducation">
             <!-- Level of Education: new combo box -->
             <div class="mb-4 relative">
-              <label class="block text-gray-700 font-medium mb-2">Level of Education <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="levelInput"
-                @focus="showLevelSug = true"
+              <label class="block text-gray-700 font-medium mb-2">Level of Education <span
+                  class="text-red-500">*</span></label>
+              <input type="text" v-model="levelInput" @focus="showLevelSug = true"
                 @blur="() => setTimeout(() => showLevelSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Select or type level (e.g., Bachelor's, Master's)"
-                required
-              />
-              <ul
-                v-if="showLevelSug && filteredLevels.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="lvl in filteredLevels"
-                  :key="lvl.id"
-                  @mousedown.prevent="selectLevel(lvl)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                placeholder="Select or type level (e.g., Bachelor's, Master's)" required />
+              <ul v-if="showLevelSug && filteredLevels.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="lvl in filteredLevels" :key="lvl.id" @mousedown.prevent="selectLevel(lvl)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ lvl.name }}
                 </li>
               </ul>
@@ -812,26 +820,16 @@ const graduatePrimaryEducation = computed(() => {
 
             <!-- Institution: suggestive dropdown -->
             <div class="mb-4 relative">
-              <label class="block text-gray-700 font-medium mb-2">Institution <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="institutionInput"
-                @focus="showInstSug = true"
+              <label class="block text-gray-700 font-medium mb-2">Institution <span
+                  class="text-red-500">*</span></label>
+              <input type="text" v-model="institutionInput" @focus="showInstSug = true"
                 @blur="() => setTimeout(() => showInstSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Type to search or enter a new institution"
-                required
-              />
-              <ul
-                v-if="showInstSug && filteredInstitutions.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="i in filteredInstitutions"
-                  :key="i.id"
-                  @mousedown.prevent="selectInstitution(i)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                placeholder="Type to search or enter a new institution" required />
+              <ul v-if="showInstSug && filteredInstitutions.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="i in filteredInstitutions" :key="i.id" @mousedown.prevent="selectInstitution(i)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ i.name }}
                 </li>
               </ul>
@@ -843,25 +841,15 @@ const graduatePrimaryEducation = computed(() => {
             <!-- Degree: suggestive dropdown filtered by institution (or free text) -->
             <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="degreeInput"
-                @focus="showDegSug = true"
+              <input type="text" v-model="degreeInput" @focus="showDegSug = true"
                 @blur="() => setTimeout(() => showDegSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 :placeholder="selectedInstitution ? 'Type to search degree' : 'Type a degree (select institution to see suggestions)'"
-                required
-              />
-              <ul
-                v-if="showDegSug && filteredDegrees.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="d in filteredDegrees"
-                  :key="d.id"
-                  @mousedown.prevent="selectDegree(d)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                required />
+              <ul v-if="showDegSug && filteredDegrees.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="d in filteredDegrees" :key="d.id" @mousedown.prevent="selectDegree(d)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ d.type }}
                 </li>
               </ul>
@@ -869,26 +857,17 @@ const graduatePrimaryEducation = computed(() => {
 
             <!-- Field of Study: suggestive dropdown filtered by degree (or free text) -->
             <div class="mb-4 relative">
-              <label class="block text-gray-700 font-medium mb-2">Field of Study <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="fieldInput"
-                @focus="showProgSug = true"
+              <label class="block text-gray-700 font-medium mb-2">Field of Study <span
+                  class="text-red-500">*</span></label>
+              <input type="text" v-model="fieldInput" @focus="showProgSug = true"
                 @blur="() => setTimeout(() => showProgSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 :placeholder="selectedDegree ? 'Type to search program' : 'Type a field (select degree to see suggestions)'"
-                required
-              />
-              <ul
-                v-if="showProgSug && filteredPrograms.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="p in filteredPrograms"
-                  :key="p.id"
-                  @mousedown.prevent="selectProgram(p)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                required />
+              <ul v-if="showProgSug && filteredPrograms.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="p in filteredPrograms" :key="p.id" @mousedown.prevent="selectProgram(p)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ p.name }}
                 </li>
               </ul>
@@ -915,15 +894,14 @@ const graduatePrimaryEducation = computed(() => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="education.description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                rows="3" placeholder="Describe your experience..."></textarea>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" rows="3"
+                placeholder="Describe your experience..."></textarea>
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Achievements</label>
               <textarea v-model="education.achievement"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                rows="3" placeholder="List honors, awards, and scholarships..."
-                :disabled="education.noAchievements"></textarea>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" rows="3"
+                placeholder="List honors, awards, and scholarships..." :disabled="education.noAchievements"></textarea>
               <div class="mt-2">
                 <input type="checkbox" id="no-achievements" v-model="education.noAchievements"
                   @change="handleNoAchievements" />
@@ -957,26 +935,16 @@ const graduatePrimaryEducation = computed(() => {
           <form @submit.prevent="updateEducation">
             <!-- Institution: suggestive dropdown -->
             <div class="mb-4 relative">
-              <label class="block text-gray-700 font-medium mb-2">Institution <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="institutionInput"
-                @focus="showInstSug = true"
+              <label class="block text-gray-700 font-medium mb-2">Institution <span
+                  class="text-red-500">*</span></label>
+              <input type="text" v-model="institutionInput" @focus="showInstSug = true"
                 @blur="() => setTimeout(() => showInstSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Type to search or enter a new institution"
-                required
-              />
-              <ul
-                v-if="showInstSug && filteredInstitutions.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="i in filteredInstitutions"
-                  :key="i.id"
-                  @mousedown.prevent="selectInstitution(i)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                placeholder="Type to search or enter a new institution" required />
+              <ul v-if="showInstSug && filteredInstitutions.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="i in filteredInstitutions" :key="i.id" @mousedown.prevent="selectInstitution(i)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ i.name }}
                 </li>
               </ul>
@@ -988,25 +956,15 @@ const graduatePrimaryEducation = computed(() => {
             <!-- Degree: suggestive dropdown filtered by institution (or free text) -->
             <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Degree <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="degreeInput"
-                @focus="showDegSug = true"
+              <input type="text" v-model="degreeInput" @focus="showDegSug = true"
                 @blur="() => setTimeout(() => showDegSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 :placeholder="selectedInstitution ? 'Type to search degree' : 'Type a degree (select institution to see suggestions)'"
-                required
-              />
-              <ul
-                v-if="showDegSug && filteredDegrees.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="d in filteredDegrees"
-                  :key="d.id"
-                  @mousedown.prevent="selectDegree(d)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                required />
+              <ul v-if="showDegSug && filteredDegrees.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="d in filteredDegrees" :key="d.id" @mousedown.prevent="selectDegree(d)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ d.type }}
                 </li>
               </ul>
@@ -1014,26 +972,17 @@ const graduatePrimaryEducation = computed(() => {
 
             <!-- Field of Study: suggestive dropdown filtered by degree (or free text) -->
             <div class="mb-4 relative">
-              <label class="block text-gray-700 font-medium mb-2">Field of Study <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="fieldInput"
-                @focus="showProgSug = true"
+              <label class="block text-gray-700 font-medium mb-2">Field of Study <span
+                  class="text-red-500">*</span></label>
+              <input type="text" v-model="fieldInput" @focus="showProgSug = true"
                 @blur="() => setTimeout(() => showProgSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 :placeholder="selectedDegree ? 'Type to search program' : 'Type a field (select degree to see suggestions)'"
-                required
-              />
-              <ul
-                v-if="showProgSug && filteredPrograms.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="p in filteredPrograms"
-                  :key="p.id"
-                  @mousedown.prevent="selectProgram(p)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                required />
+              <ul v-if="showProgSug && filteredPrograms.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="p in filteredPrograms" :key="p.id" @mousedown.prevent="selectProgram(p)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ p.name }}
                 </li>
               </ul>
@@ -1041,26 +990,16 @@ const graduatePrimaryEducation = computed(() => {
 
             <!-- Level of Education: new combo box -->
             <div class="mb-4 relative">
-              <label class="block text-gray-700 font-medium mb-2">Level of Education <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="levelInput"
-                @focus="showLevelSug = true"
+              <label class="block text-gray-700 font-medium mb-2">Level of Education <span
+                  class="text-red-500">*</span></label>
+              <input type="text" v-model="levelInput" @focus="showLevelSug = true"
                 @blur="() => setTimeout(() => showLevelSug = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Select or type level (e.g., Bachelor's, Master's)"
-                required
-              />
-              <ul
-                v-if="showLevelSug && filteredLevels.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="lvl in filteredLevels"
-                  :key="lvl.id"
-                  @mousedown.prevent="selectLevel(lvl)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                placeholder="Select or type level (e.g., Bachelor's, Master's)" required />
+              <ul v-if="showLevelSug && filteredLevels.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="lvl in filteredLevels" :key="lvl.id" @mousedown.prevent="selectLevel(lvl)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ lvl.name }}
                 </li>
               </ul>
@@ -1092,16 +1031,15 @@ const graduatePrimaryEducation = computed(() => {
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="education.description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                rows="3" placeholder="Describe your experience..."></textarea>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" rows="3"
+                placeholder="Describe your experience..."></textarea>
             </div>
 
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Achievements</label>
               <textarea v-model="education.achievement"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                rows="3" placeholder="List honors, awards, and scholarships..."
-                :disabled="education.noAchievements"></textarea>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" rows="3"
+                placeholder="List honors, awards, and scholarships..." :disabled="education.noAchievements"></textarea>
               <div class="mt-2">
                 <input type="checkbox" id="no-achievements" v-model="education.noAchievements"
                   @change="handleNoAchievements" />
@@ -1123,10 +1061,11 @@ const graduatePrimaryEducation = computed(() => {
 
     <!-- Graduate School Information (institution-added, read-only) -->
     <div v-if="graduatePrimaryEducation && (graduatePrimaryEducation.school_name || graduatePrimaryEducation.program)"
-         class="mb-6">
+      class="mb-6">
       <div class="p-4 pt-0">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
+          <div
+            class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
             <div class="space-y-2">
               <div class="border-b pb-2">
                 <h2 class="text-xl font-bold text-blue-900 flex items-center">
@@ -1157,19 +1096,20 @@ const graduatePrimaryEducation = computed(() => {
                 </p>
               </div>
 
-                <div class="mt-3">
-                  <strong>
-                    <i class="fas fa-trophy text-blue-500 mr-2"></i> Achievements:
-                  </strong>
-                  <span class="block bg-gray-50 p-2 rounded mt-1">
-                    None
-                  </span>
-                </div>
+              <div class="mt-3">
+                <strong>
+                  <i class="fas fa-trophy text-blue-500 mr-2"></i> Achievements:
+                </strong>
+                <span class="block bg-gray-50 p-2 rounded mt-1">
+                  None
+                </span>
+              </div>
             </div>
 
             <!-- Read-only badge -->
             <div class="absolute top-4 right-4">
-              <span class="text-[10px] uppercase tracking-wide px-2 py-1 rounded bg-gray-200 text-gray-600 font-semibold">
+              <span
+                class="text-[10px] uppercase tracking-wide px-2 py-1 rounded bg-gray-200 text-gray-600 font-semibold">
                 Read Only
               </span>
             </div>
@@ -1186,21 +1126,32 @@ const graduatePrimaryEducation = computed(() => {
   0% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
   }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Input focus effects with glow */
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   animation: pulse 1.5s ease-in-out;
   transition: all 0.3s ease;
 }
