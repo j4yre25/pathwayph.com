@@ -12,6 +12,8 @@ const props = defineProps({
   terms: Array,
   genders: Array,
   careerOpportunities: Array,
+  companies: Array, // <-- Add this
+  sectors: Array,   // <-- Add this
 });
 
 const isModalOpen = ref(false);
@@ -46,9 +48,12 @@ function normalize(val) {
 // Computed property for filtered graduates
 const filteredGraduates = computed(() => {
   return (props.graduates.data || []).filter(g => {
-    // Name filter (searches full name)
-    const name = `${g.first_name ?? ''} ${g.middle_name ?? ''} ${g.last_name ?? ''}`.toLowerCase();
-    if (filters.value.name && !name.includes(filters.value.name.toLowerCase())) return false;
+    // Name filter (searches full name, supports multi-word search, substring match)
+    if (filters.value.name) {
+      const search = filters.value.name.toLowerCase().replace(/\s+/g, ' ').trim();
+      const fullName = `${g.first_name ?? ''} ${g.middle_name ?? ''} ${g.last_name ?? ''}`.toLowerCase().replace(/\s+/g, ' ').trim();
+      if (!fullName.includes(search)) return false;
+    }
 
     // Year filter (case-insensitive, by year_graduated)
     if (filters.value.year && normalize(g.year_graduated) !== normalize(filters.value.year)) return false;
@@ -211,13 +216,13 @@ function cancelArchive() {
               <option value="">All Genders</option>
               <option v-for="g in genders" :key="g" :value="g">{{ g }}</option>
             </select>
-            <select v-model="filters.careerOpportunity" class="rounded-lg border-gray-300">
-              <option value="">All Career Opportunities</option>
-              <option v-for="c in careerOpportunities" :key="c" :value="c">{{ c }}</option>
-            </select>
             <select v-model="filters.program" class="rounded-lg border-gray-300">
               <option value="">All Programs</option>
               <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+            <select v-model="filters.careerOpportunity" class="rounded-lg border-gray-300">
+              <option value="">All Career Opportunities</option>
+              <option v-for="c in careerOpportunities" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
           <!-- Graduate Table -->
@@ -277,7 +282,9 @@ function cancelArchive() {
       :graduate="selectedGraduate"
       :programs="programs"
       :years="years"
-      :insti-users="instiUsers"
+      :terms="terms"
+      :companies="companies"
+      :sectors="sectors"
       @close="closeModal"
     />
     

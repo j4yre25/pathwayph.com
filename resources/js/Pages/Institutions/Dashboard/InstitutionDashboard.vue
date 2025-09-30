@@ -64,11 +64,9 @@ const uniqueSchoolYears = computed(() => {
 // Unique terms
 const uniqueTerms = computed(() => {
   const seen = new Set();
-  return (props.schoolYears || []).filter(sy => {
-    if (!sy.term || seen.has(sy.term)) return false;
-    seen.add(sy.term);
-    return true;
-  });
+  return (props.schoolYears || [])
+    .map(sy => sy.term)
+    .filter(term => term && !seen.has(term) && seen.add(term));
 });
 
 const employed = computed(() => props.summary.employed || 0);
@@ -146,115 +144,126 @@ watch([schoolYearFilter, termFilter, genderFilter], ([sy, term, gender]) => {
 </script>
 <template>
   <Applayout>
-    <div class="min-h-screen bg-[#eaf6f6] p-6">
-      <!-- Filters aligned right -->
-      <div class="flex mb-6">
-        <div class="flex gap-4 ml-auto items-center">
-          <!-- School Year Range Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">School Year</label>
-            <select v-model="schoolYearFilter" class="rounded border-gray-300">
-              <option value="">All</option>
-              <option v-for="sy in uniqueSchoolYears" :key="sy.id" :value="sy.id">
-                {{ sy.range }}
-              </option>
-            </select>
-          </div>
-          <!-- Term Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Term</label>
-            <select v-model="termFilter" class="rounded border-gray-300">
-              <option value="">All</option>
-              <option v-for="sy in uniqueTerms" :key="sy.term" :value="sy.term">
-                {{ sy.term }}
-              </option>
-            </select>
-          </div>
-          <!-- Gender Filter -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-            <select v-model="genderFilter" class="rounded border-gray-300">
-              <option value="">All</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
+    <div class="min-h-screen bg-gray-50 p-6">
+      <!-- Filters -->
+      <div class="flex justify-end gap-4 mb-8">
+        <!-- School Year -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">School Year</label>
+          <select
+            v-model="schoolYearFilter"
+            class="w-40 rounded-lg border-gray-300 shadow-sm focus:ring-teal-500 focus:border-teal-500 text-sm"
+          >
+            <option value="">All</option>
+            <option v-for="sy in uniqueSchoolYears" :key="sy.id" :value="sy.id">
+              {{ sy.range }}
+            </option>
+          </select>
+        </div>
+        <!-- Term -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Term</label>
+          <select
+            v-model="termFilter"
+            class="w-32 rounded-lg border-gray-300 shadow-sm focus:ring-teal-500 focus:border-teal-500 text-sm"
+          >
+            <option value="">All</option>
+            <option v-for="term in uniqueTerms" :key="term" :value="term">
+              {{ term }}
+            </option>
+          </select>
+        </div>
+        <!-- Gender -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Gender</label>
+          <select
+            v-model="genderFilter"
+            class="w-32 rounded-lg border-gray-300 shadow-sm focus:ring-teal-500 focus:border-teal-500 text-sm"
+          >
+            <option value="">All</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
         </div>
       </div>
 
-      <!-- Top Overview Cards -->
-      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="flex items-center bg-[#d6f5f5] p-5 rounded-xl shadow-sm">
-          <Briefcase class="h-8 w-8 text-teal-700" />
+      <!-- Overview Cards -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
+        <div class="bg-white rounded-xl p-5 shadow hover:shadow-md transition flex items-center">
+          <Briefcase class="h-10 w-10 text-teal-600" />
           <div class="ml-4">
-            <p class="text-sm text-gray-600">Total Programs</p>
-            <p class="text-2xl font-bold">{{ props.summary.total_programs }}</p>
+            <p class="text-xs text-gray-500">Total Programs</p>
+            <p class="text-2xl font-bold text-gray-800">{{ props.summary.total_programs }}</p>
           </div>
         </div>
-        <div class="flex items-center bg-[#d6f5f5] p-5 rounded-xl shadow-sm">
-          <Users class="h-8 w-8 text-blue-700" />
+        <div class="bg-white rounded-xl p-5 shadow hover:shadow-md transition flex items-center">
+          <Users class="h-10 w-10 text-blue-600" />
           <div class="ml-4">
-            <p class="text-sm text-gray-600">Total Graduates</p>
-            <p class="text-2xl font-bold">{{ props.summary.total_graduates }}</p>
+            <p class="text-xs text-gray-500">Total Graduates</p>
+            <p class="text-2xl font-bold text-gray-800">{{ props.summary.total_graduates }}</p>
           </div>
         </div>
-        <div class="flex items-center bg-[#d6f5f5] p-5 rounded-xl shadow-sm">
-          <Briefcase class="h-8 w-8 text-green-700" />
+        <div class="bg-white rounded-xl p-5 shadow hover:shadow-md transition flex items-center">
+          <Briefcase class="h-10 w-10 text-green-600" />
           <div class="ml-4">
-            <p class="text-sm text-gray-600">Employed Graduates</p>
-            <p class="text-2xl font-bold">{{ props.summary.employed }}</p>
+            <p class="text-xs text-gray-500">Employed</p>
+            <p class="text-2xl font-bold text-gray-800">{{ props.summary.employed }}</p>
           </div>
         </div>
-        <div class="flex items-center bg-[#ffe6e6] p-5 rounded-xl shadow-sm">
-          <Ban class="h-8 w-8 text-red-600" />
+        <div class="bg-white rounded-xl p-5 shadow hover:shadow-md transition flex items-center">
+          <Briefcase class="h-10 w-10 text-yellow-500" />
           <div class="ml-4">
-            <p class="text-sm text-gray-600">Unemployed Graduates</p>
-            <p class="text-2xl font-bold">{{ props.summary.unemployed }}</p>
+            <p class="text-xs text-gray-500">Underemployed</p>
+            <p class="text-2xl font-bold text-gray-800">{{ props.summary.underemployed }}</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl p-5 shadow hover:shadow-md transition flex items-center">
+          <Ban class="h-10 w-10 text-red-500" />
+          <div class="ml-4">
+            <p class="text-xs text-gray-500">Unemployed</p>
+            <p class="text-2xl font-bold text-gray-800">{{ props.summary.unemployed }}</p>
           </div>
         </div>
       </section>
+
       <!-- Middle Section -->
-      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <!-- Employment Percentage -->
-        <div class="bg-white p-6 rounded-xl shadow-sm flex flex-col items-center justify-center w-full max-w-md mx-auto">
-          <h4 class="text-lg font-semibold text-gray-600 mb-6">
-            Employment Percentage
-          </h4>
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <!-- Employment Pie -->
+        <div class="bg-white p-6 rounded-xl shadow hover:shadow-md transition flex flex-col items-center">
+          <h4 class="text-base font-semibold text-gray-700 mb-4">Employment Distribution</h4>
           <VueECharts
             :option="employmentPieOption"
             style="height: 220px; width: 100%; max-width: 280px"
           />
           <div class="mt-6 text-center">
-            <div class="text-3xl font-bold text-green-700">{{ employmentRate }}%</div>
-            <div class="text-gray-500">Employment Rate</div>
+            <p class="text-3xl font-bold text-green-600">{{ employmentRate }}%</p>
+            <p class="text-sm text-gray-500">Employment Rate</p>
           </div>
         </div>
 
         <!-- Top Programs -->
-        <div class="bg-white p-6 rounded-xl shadow-sm lg:col-span-2">
-          <p class="text-base font-semibold text-gray-700 mb-4">
-            Top Programs with High Employment
-          </p>
-          <ul class="space-y-5">
+        <div class="bg-white p-6 rounded-xl shadow hover:shadow-md transition lg:col-span-2">
+          <h4 class="text-base font-semibold text-gray-700 mb-4">Top Programs with High Employment</h4>
+          <ul class="space-y-6">
             <li
               v-for="prog in props.topProgramsEmployment"
               :key="prog.program_name"
               class="flex flex-col"
             >
-              <div class="flex justify-between items-center mb-1 flex-wrap gap-2">
-                <span class="font-semibold text-gray-800">{{ prog.program_name }}</span>
-                <span class="text-xs text-gray-500">{{ prog.degree }}</span>
-                <span class="text-sm text-green-700 font-bold">{{ prog.percent }}%</span>
+              <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+                <span class="font-medium text-gray-800">{{ prog.program_name }}</span>
+                <span class="text-xs text-gray-400 italic">{{ prog.degree }}</span>
+                <span class="text-sm font-semibold text-green-600">{{ prog.percent }}%</span>
               </div>
-              <div class="w-full bg-gray-200 rounded-full h-3">
+              <div class="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  class="bg-green-400 h-3 rounded-full transition-all duration-300"
+                  class="bg-gradient-to-r from-green-500 to-teal-400 h-2 rounded-full transition-all duration-300"
                   :style="{ width: prog.percent + '%' }"
                 ></div>
               </div>
-              <div class="flex justify-between text-xs text-gray-500 mt-1">
+              <div class="flex justify-between text-xs text-gray-400 mt-1">
                 <span>Employed: {{ prog.employed }}</span>
-                <span>Total Graduates: {{ prog.total }}</span>
+                <span>Total: {{ prog.total }}</span>
               </div>
             </li>
             <li v-if="props.topProgramsEmployment.length === 0" class="text-center text-gray-400 py-6">
