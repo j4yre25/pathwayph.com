@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 export function useSkills(form, propsSkills) {
   const newSkill = ref('');
   const isFocused = ref(false);
+  const showSuggestions = ref(false); // <-- add this
+
 
   const filteredSkills = computed(() => {
     if (!newSkill.value.trim()) return [];
@@ -18,6 +20,8 @@ export function useSkills(form, propsSkills) {
     if (newSkill.value.trim() !== '') {
       form.skills.push(newSkill.value.trim());
       newSkill.value = '';
+      showSuggestions.value = false; // optionally hide suggestions after add
+
     }
   };
 
@@ -32,6 +36,7 @@ export function useSkills(form, propsSkills) {
 
   return {
     newSkill,
+    showSuggestions, // <-- return this
     isFocused,
     filteredSkills,
     addSkill,
