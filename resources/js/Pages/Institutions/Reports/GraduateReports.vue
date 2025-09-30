@@ -256,30 +256,30 @@ const genderEmploymentSummary = computed(() => {
       ).length;
     });
   });
- // Find which gender has higher employment, underemployment, unemployment
+  // Find which gender has higher employment, underemployment, unemployment
   const moreEmployed =
     counts['Male']['Employed'] > counts['Female']['Employed']
       ? 'male'
       : counts['Male']['Employed'] < counts['Female']['Employed']
-      ? 'female'
-      : 'both male and female';
+        ? 'female'
+        : 'both male and female';
   const moreUnderemployed =
     counts['Male']['Underemployed'] > counts['Female']['Underemployed']
       ? 'male'
       : counts['Male']['Underemployed'] < counts['Female']['Underemployed']
-      ? 'female'
-      : 'both male and female';
+        ? 'female'
+        : 'both male and female';
   const moreUnemployed =
     counts['Male']['Unemployed'] > counts['Female']['Unemployed']
       ? 'male'
       : counts['Male']['Unemployed'] < counts['Female']['Unemployed']
-      ? 'female'
-      : 'both male and female';
-      // Compose narrative
+        ? 'female'
+        : 'both male and female';
+  // Compose narrative
   let summary = '';
   if (counts['Male']['Employed'] === 0 && counts['Female']['Employed'] === 0 &&
-      counts['Male']['Underemployed'] === 0 && counts['Female']['Underemployed'] === 0 &&
-      counts['Male']['Unemployed'] === 0 && counts['Female']['Unemployed'] === 0) {
+    counts['Male']['Underemployed'] === 0 && counts['Female']['Underemployed'] === 0 &&
+    counts['Male']['Unemployed'] === 0 && counts['Female']['Unemployed'] === 0) {
     summary = 'There are no graduates with employment data available for gender comparison.';
   } else {
     summary = `Among graduates, ${moreEmployed} graduates have the highest employment rate, while ${moreUnderemployed} graduates experience more underemployment, and ${moreUnemployed} graduates face higher unemployment. These patterns highlight how employment outcomes can differ by gender, suggesting the need for ongoing support to ensure equitable opportunities for all graduates.`;
@@ -388,7 +388,8 @@ const genderEmploymentSummary = computed(() => {
           <!-- Alignment Filter -->
           <select v-model="filters.alignment" class="rounded-lg border-gray-300">
             <option value="">All Alignment</option>
-            <option value="Aligned">Aligned</option>
+            <option value="Directly aligned">Directly aligned</option>
+            <option value="Partially aligned">Partially aligned</option>
             <option value="Misaligned">Misaligned</option>
           </select>
         </div>
@@ -420,10 +421,20 @@ const genderEmploymentSummary = computed(() => {
                 <td class="px-4 py-2">{{ g.employment_status }}</td>
                 <td class="px-4 py-2">{{ g.current_job_title }}</td>
                 <td class="px-4 py-2">
-                  <span :class="{
-                    'text-blue-700 font-semibold': g.alignment === 'Aligned',
-                    'text-pink-700 font-semibold': g.alignment === 'Misaligned'
-                  }">{{ g.alignment }}</span>
+                  <span
+                    v-if="g.employment_status === 'Unemployed' || (g.current_job_title && g.current_job_title.toLowerCase() === 'n/a')"
+                    class="text-gray-500 font-semibold">
+                    UNEMPLOYED
+                  </span>
+                  <span v-else :class="{
+                    'text-blue-700 font-semibold': g.alignment_category === 'Directly aligned',
+                    'text-yellow-700 font-semibold': g.alignment_category === 'Partially aligned',
+                    'text-pink-700 font-semibold': g.alignment_category === 'Misaligned'
+                  }">
+                    {{ g.alignment_score !== null ? g.alignment_score + '%' : 'N/A' }}
+                    <br>
+                    <small>{{ g.alignment_category || 'N/A' }}</small>
+                  </span>
                 </td>
               </tr>
               <tr v-if="paginatedGraduates.length === 0">
