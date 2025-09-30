@@ -174,7 +174,7 @@ class DashboardController extends Controller
 
     /* ==========================================================
      |  INSTITUTION DASHBOARD
-     ========================================================== */
+     ==========================================================+ */
     private function handleInstitutionDashboard($user, $filters)
     {
         $institution = Institution::where('user_id', $user->id)->first();
@@ -193,32 +193,6 @@ class DashboardController extends Controller
                 'degree' => $item->degree->type ?? null,
             ]);
 
-        // Graduates
-        $graduates = Graduate::where('institution_id', $institutionId)
-            ->when($filters['school_year_id'] ?? null, fn($q, $sy) => $q->where('school_year_id', $sy))
-            ->when($filters['term'] ?? null, fn($q, $term) => $q->whereHas('schoolYear', fn($sq) => $sq->where('term', $term)))
-            ->when($filters['gender'] ?? null, fn($q, $gender) => $q->where('gender', $gender))
-            ->with('schoolYear')
-            ->get()
-            ->map(fn($g) => [
-                'first_name' => $g->first_name,
-                'middle_name' => $g->middle_name,
-                'last_name' => $g->last_name,
-                'program_id' => $g->program_id,
-                'current_job_title' => $g->current_job_title,
-                'employment_status' => ucfirst($g->employment_status),
-                'gender' => $g->gender,
-                'school_year_id' => $g->school_year_id,
-                'school_year_range' => $g->schoolYear?->school_year_range,
-            ]);
-
-        // Career opportunities from graduates
-        $careerOpportunities = $graduates
-            ->pluck('current_job_title')
-            ->filter(fn($title) => $title && $title !== 'N/A')
-            ->unique()
-            ->values();
-
         // School years
         $schoolYears = InstitutionSchoolYear::with('schoolYear')
             ->where('institution_id', $institutionId)
@@ -228,6 +202,64 @@ class DashboardController extends Controller
                 'range' => $item->schoolYear->school_year_range,
                 'term' => $item->term,
             ]);
+
+        // Get selected school year range and term from filters
+        $schoolYearId = $filters['school_year_id'] ?? null;
+        $term = $filters['term'] ?? null;
+
+        // Find the selected school year range value
+        $selectedSchoolYearRange = null;
+        if ($schoolYearId) {
+            $selectedSchoolYear = $schoolYears->firstWhere('id', $schoolYearId);
+            $selectedSchoolYearRange = $selectedSchoolYear ? $selectedSchoolYear['range'] : null;
+        }
+
+        // Graduates query with school year and term filter (like GraduateReports)
+        $graduatesQuery = Graduate::where('institution_id', $institutionId)
+            ->with(['schoolYear', 'institutionSchoolYear']);
+
+        if ($selectedSchoolYearRange && $term) {
+            $graduatesQuery->whereHas('institutionSchoolYear', function ($q) use ($selectedSchoolYearRange, $term) {
+                $q->whereHas('schoolYear', function ($q2) use ($selectedSchoolYearRange) {
+                    $q2->where('school_year_range', $selectedSchoolYearRange);
+                })->where('term', $term);
+            });
+        } elseif ($selectedSchoolYearRange) {
+            $graduatesQuery->whereHas('institutionSchoolYear', function ($q) use ($selectedSchoolYearRange) {
+                $q->whereHas('schoolYear', function ($q2) use ($selectedSchoolYearRange) {
+                    $q2->where('school_year_range', $selectedSchoolYearRange);
+                });
+            });
+        } elseif ($term) {
+            $graduatesQuery->whereHas('institutionSchoolYear', function ($q) use ($term) {
+                $q->where('term', $term);
+            });
+        }
+
+        if ($filters['gender'] ?? null) {
+            $graduatesQuery->where('gender', $filters['gender']);
+        }
+
+        $graduates = $graduatesQuery->get()
+            ->map(fn($g) => [
+                'first_name' => $g->first_name,
+                'middle_name' => $g->middle_name,
+                'last_name' => $g->last_name,
+                'program_id' => $g->program_id,
+                'current_job_title' => $g->current_job_title,
+                'employment_status' => ucfirst($g->employment_status),
+                'gender' => $g->gender,
+                'school_year_id' => $g->school_year_id,
+                'school_year_range' => $g->institutionSchoolYear?->schoolYear?->school_year_range,
+                'term' => $g->institutionSchoolYear?->term,
+            ]);
+
+        // Career opportunities from graduates
+        $careerOpportunities = $graduates
+            ->pluck('current_job_title')
+            ->filter(fn($title) => $title && $title !== 'N/A')
+            ->unique()
+            ->values();
 
         // Institution career opportunities
         $institutionCareerOpportunities = InstitutionCareerOpportunity::with(['careerOpportunity', 'program'])
@@ -274,7 +306,6 @@ class DashboardController extends Controller
 
         $activeJobListings = \App\Models\Job::where('status', 'open')->count();
 
-
         $recentJobs = Job::where('status', 'open')
             ->with(['company', 'sector', 'category', 'locations']) // Use correct relationships
             ->orderBy('created_at', 'desc')
@@ -290,7 +321,6 @@ class DashboardController extends Controller
                     'date_posted' => $job->created_at->format('Y-m-d'),
                 ];
             });
-
 
         return [
             'userNotApproved' => !$user->is_approved,
@@ -314,6 +344,8 @@ class DashboardController extends Controller
             'topProgramsEmployment' => $programEmploymentStats,
         ];
     }
+
+
 
     /* ==========================================================
      |  GRADUATE DASHBOARD

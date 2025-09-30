@@ -12,20 +12,20 @@ import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage();
 const userId = page.props.auth?.user?.id
-const programs = ref([...page.props.programs]);
+
 
 const selectedProgram = ref(null);
 const open = ref(false);
 const showEditModal = ref(false);
 
 // Stats for display
-const totalPrograms = computed(() => programs.value.length);
+const totalPrograms = computed(() => page.props.programs.length);
 const uniqueDegrees = computed(() => {
-  const degrees = new Set(programs.value.map(p => p.program?.degree?.type).filter(Boolean));
+  const degrees = new Set(page.props.programs.map(p => p.program?.degree?.type).filter(Boolean));
   return degrees.size;
 });
 const uniqueProgramCodes = computed(() => {
-  const codes = new Set(programs.value.map(p => p.program_code).filter(Boolean));
+  const codes = new Set(page.props.programs.map(p => p.program_code).filter(Boolean));
   return codes.size;
 });
 
@@ -187,7 +187,7 @@ const handleProgramUpdated = () => {
             </thead>
             <tbody class="divide-y divide-gray-200">
               <tr
-                v-for="prog in programs"
+                v-for="prog in page.props.programs"
                 :key="prog.id"
                 class="hover:bg-gray-50 transition-colors"
               >
@@ -218,7 +218,7 @@ const handleProgramUpdated = () => {
                   </button>
                 </td>
               </tr>
-              <tr v-if="programs.length === 0">
+              <tr v-if="page.props.programs.length === 0">
                 <td colspan="4" class="py-12 text-center">
                   <i class="fas fa-book text-gray-300 text-5xl mb-4"></i>
                   <h3 class="text-lg font-medium text-gray-700">No programs found</h3>

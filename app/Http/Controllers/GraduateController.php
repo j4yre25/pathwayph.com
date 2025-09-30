@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Actions\Fortify\CreateNewGraduate;
 use App\Models\Graduate;
+use App\Models\Company;
+use App\Models\Sector;
 use App\Models\Program;
 use App\Models\SchoolYear;
 use App\Models\User;
@@ -101,6 +103,7 @@ class GraduateController extends Controller
             ->join('programs', 'graduates.program_id', '=', 'programs.id')
             ->join('institution_school_years', 'graduates.school_year_id', '=', 'institution_school_years.id')
             ->join('school_years', 'institution_school_years.school_year_range_id', '=', 'school_years.id')
+            ->leftJoin('companies', 'graduates.company_id', '=', 'companies.id') // <-- Add this line
             ->where('users.role', 'graduate')
             ->where('graduates.institution_id', $institutionId)
             ->where('users.is_approved', true)
@@ -121,17 +124,15 @@ class GraduateController extends Controller
                 'institution_school_years.term as term',
                 'graduates.current_job_title',
                 'graduates.employment_status',
-                'users.email'
+                'users.email',
+                'graduates.company_id',
+                'companies.company_name as company_name' // <-- Add this line
             );
 
         // Apply filters from request
         if ($request->filled('name') && $request->input('name') !== 'all') {
-            $name = $request->input('name');
-            $query->where(function($q) use ($name) {
-                $q->where('graduates.first_name', 'like', "%$name%")
-                  ->orWhere('graduates.middle_name', 'like', "%$name%")
-                  ->orWhere('graduates.last_name', 'like', "%$name%");
-            });
+            $name = trim($request->input('name'));
+            $query->where(DB::raw("CONCAT(graduates.first_name, ' ', graduates.middle_name, ' ', graduates.last_name)"), 'like', "%$name%");
         }
         if ($request->filled('year') && $request->input('year') !== 'all') {
             $query->where('school_years.school_year_range', $request->input('year'));
@@ -149,7 +150,7 @@ class GraduateController extends Controller
             $query->where('graduates.program_id', $request->input('program'));
         }
 
-        $graduates = $query->orderBy('graduates.created_at', 'desc')->paginate(30)->withQueryString();
+        $graduates = $query->orderBy('graduates.created_at', 'desc')->paginate(15)->withQueryString();
 
         // Fetch programs via the pivot table
         $programs = DB::table('institution_programs')
@@ -184,6 +185,9 @@ class GraduateController extends Controller
             ->distinct()
             ->pluck('title');
 
+        $companies = Company::select('id', 'company_name')->get();
+        $sectors = Sector::select('id', 'name')->get();
+
         return Inertia::render('Graduates/Index', [
             'graduates' => $graduates, // This is now a paginator object
             'programs' => $programs,
@@ -191,6 +195,8 @@ class GraduateController extends Controller
             'terms' => $terms,
             'genders' => ['Male', 'Female'],
             'careerOpportunities' => $careerOpportunities,
+            'companies' => $companies,
+            'sectors' => $sectors,
             'filters' => $request->only(['name', 'year', 'term', 'gender', 'careerOpportunity', 'program']),
         ]);
     }
@@ -244,6 +250,7 @@ class GraduateController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'program_id' => 'required|exists:programs,id',
             'graduate_year_graduated' => 'required|exists:school_years,school_year_range',
+            'graduate_term' => 'required|string|max:20',
             'employment_status' => 'required|in:Employed,Underemployed,Unemployed',
             'current_job_title' => [
                 'nullable',
@@ -261,28 +268,31 @@ class GraduateController extends Controller
             'dob' => 'required|date|before_or_equal:' . now()->subYears(18)->format('Y-m-d'),
             'gender' => 'required|in:Male,Female',
             'contact_number' => 'required|digits_between:10,15|regex:/^9\d{9}$/',
+            'company_not_found' => 'boolean',
+            'company_id' => 'nullable|exists:companies,id',
+            'company_name' => 'nullable|string|max:255',
+            'other_company_name' => 'nullable|required_if:company_not_found,true|string|max:255',
+            'other_company_sector' => 'nullable|required_if:company_not_found,true|exists:sectors,id',
         ]);
 
-        $schoolYearId = DB::table('school_years')
-            ->where('school_year_range', $validated['graduate_year_graduated'])
-            ->value('id');
-
-        if ($validated['employment_status'] === 'Unemployed') {
-            $validated['current_job_title'] = 'N/A';
-        }
-
-        $graduate->update([
+        $updateData = [
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'middle_name' => $validated['middle_name'],
             'program_id' => $validated['program_id'],
-            'school_year_id' => $schoolYearId,
+            'school_year_id' => $this->getInstitutionSchoolYearId($validated['graduate_year_graduated'], $validated['graduate_term'], $graduate->institution_id),
             'employment_status' => $validated['employment_status'],
             'current_job_title' => $validated['current_job_title'],
             'dob' => $validated['dob'],
             'gender' => $validated['gender'],
             'contact_number' => $validated['contact_number'],
-        ]);
+            'company_id' => $validated['company_not_found'] ? null : $validated['company_id'],
+            'company_name' => $validated['company_not_found'] ? null : $validated['company_name'],
+            'other_company_name' => $validated['company_not_found'] ? $validated['other_company_name'] : null,
+            'other_company_sector' => $validated['company_not_found'] ? $validated['other_company_sector'] : null,
+        ];
+
+        $graduate->update($updateData);
 
         return redirect()->back()->with('flash.banner', 'Graduate updated successfully.');
     }

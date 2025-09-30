@@ -17,12 +17,23 @@ class ProgramController extends Controller
     {
         $user = Auth::user();
         $institution = Institution::where('user_id', $user->id)->first();
+
         $programs = InstitutionProgram::with('program.degree')
             ->where('institution_id', $institution?->id)
             ->get();
 
+        // Pass only degrees for this institution
+        $degrees = \App\Models\InstitutionDegree::with('degree')
+            ->where('institution_id', $institution->id)
+            ->whereNull('deleted_at')
+            ->get()
+            ->pluck('degree')
+            ->map(fn($d) => ['id' => $d->id, 'type' => $d->type])
+            ->values();
+
         return Inertia::render('Institutions/Programs/Index', [
             'programs' => $programs,
+            'degrees' => $degrees,
         ]);
     }
 
@@ -172,7 +183,15 @@ class ProgramController extends Controller
             ->where('institution_id', $institution?->id)
             ->findOrFail($id);
 
-        $degrees = Degree::all();
+        // Fetch only degrees linked to this institution
+        $degrees = [];
+        if ($institution) {
+            $degrees = \App\Models\InstitutionDegree::with('degree')
+                ->where('institution_id', $institution->id)
+                ->whereNull('deleted_at')
+                ->get()
+                ->pluck('degree');
+        }
 
         return Inertia::render('Institutions/Programs/Edit', [
             'institutionProgram' => $institutionProgram,
@@ -188,9 +207,35 @@ class ProgramController extends Controller
         $request->validate([
             'name' => ['required', 'string'],
             'degree_id' => ['required', 'exists:degrees,id'],
+            'program_code' => ['required', 'string', 'max:20'],
+            'duration' => ['nullable', 'in:Month,Year'],
+            'duration_time' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
 
-        // Check if program exists globally
+        // Check for duplicate program name in this institution (excluding current)
+        $duplicateName = InstitutionProgram::where('institution_id', $institution->id)
+            ->whereHas('program', function($q) use ($request) {
+                $q->where('name', $request->name)
+                  ->where('degree_id', $request->degree_id);
+            })
+            ->where('id', '!=', $id)
+            ->exists();
+
+        if ($duplicateName) {
+            return back()->with(['flash.banner' => 'This program name and degree already exists for your institution.']);
+        }
+
+        // Check for duplicate program code in this institution (excluding current)
+        $duplicateCode = InstitutionProgram::where('institution_id', $institution->id)
+            ->where('program_code', $request->program_code)
+            ->where('id', '!=', $id)
+            ->exists();
+
+        if ($duplicateCode) {
+            return back()->with(['flash.banner' => 'This program code already exists for your institution.']);
+        }
+
+        // Find or create the program globally
         $program = Program::withTrashed()
             ->where('name', $request->name)
             ->where('degree_id', $request->degree_id)
@@ -203,22 +248,14 @@ class ProgramController extends Controller
             ]);
         }
 
-        // Check for duplicate in institution_programs
-        $exists = InstitutionProgram::withTrashed()
-            ->where('institution_id', $institution->id)
-            ->where('program_id', $program->id)
-            ->where('id', '!=', $id)
-            ->exists();
-
-        if ($exists) {
-            return back()->with(['flash.banner' => 'This program already exists for your institution.']);
-        }
-
         $institutionProgram = InstitutionProgram::where('institution_id', $institution->id)->findOrFail($id);
 
         $institutionProgram->update([
             'program_id' => $program->id,
             'degree_id' => $request->degree_id,
+            'program_code' => $request->program_code,
+            'duration' => $request->duration,
+            'duration_time' => $request->duration_time,
         ]);
 
         return redirect()->back()->with('flash.banner', 'Program updated.');
