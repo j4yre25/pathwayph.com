@@ -35,7 +35,7 @@ use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompanyHRRegisterController;
 use App\Http\Controllers\CompanyJobsController;
 use App\Http\Controllers\CompanyApplicationController;
-use App\Http\Controllers\CompanyManageHRController;
+use App\Http\Controllers\CompanyHRDeptController;
 use App\Http\Controllers\CompanyDepartmentController;
 use App\Http\Controllers\CompanyJobBatchUploadController;
 use App\Http\Controllers\Company\CompanyReportsController;
@@ -350,25 +350,26 @@ Route::prefix('company')->middleware(['auth'])->group(function () {
 
 // Manage HR Accounts 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/company/manage-hrs', [CompanyManageHRController::class, 'index'])->name('company.manage-hrs');
-    Route::get('/company/manage-hrs/{id}/edit', [CompanyManageHRController::class, 'edit'])->name('company.manage-hrs.edit');
-    Route::put('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'update'])->name('company.manage-hrs.update');
-    Route::delete('/company/manage-hrs/{id}', [CompanyManageHRController::class, 'destroy'])->name('company.manage-hrs.destroy');
+    Route::get('/company/manage-hrs', [CompanyHRDeptController::class, 'hrDept'])->name('company.manage-hrs');
+    Route::get('/company/manage-hrs/{id}/edit', [CompanyHRDeptController::class, 'editHR'])->name('company.manage-hrs.edit');
+    Route::put('/company/manage-hrs/{id}', [CompanyHRDeptController::class, 'updateHR'])->name('company.manage-hrs.update');
+    Route::delete('/company/manage-hrs/{id}', [CompanyHRDeptController::class, 'destroyHR'])->name('company.manage-hrs.destroy');
 });
 
 //Deparment Routes
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', 'can:manage users'])->group(function () {
-    Route::get('/company/departments', [CompanyDepartmentController::class, 'index'])->name('company.departments.index');
-    Route::post('/company/departments', [CompanyDepartmentController::class, 'store'])->name('company.departments.store');
-    Route::post('/company/departments/batch', [CompanyDepartmentController::class, 'batchStore'])->name('company.departments.batch');
-    Route::post('/company/departments/batch-upload', [CompanyDepartmentController::class, 'batchUpload'])->name('company.departments.batch.upload');
-    Route::get('/company/departments/batch-template', [CompanyDepartmentController::class, 'downloadTemplate'])->name('company.departments.batch.template');
-    Route::get('/company/departments/manage', [CompanyDepartmentController::class, 'manage'])->name('company.departments.manage');
-    Route::get('/company/departments/archived', [CompanyDepartmentController::class, 'archived'])->name('company.departments.archived');
-    Route::post('/company/departments/restore/{id}', [CompanyDepartmentController::class, 'restore'])->name('company.departments.restore');
-    Route::put('/company/departments/{department}', [CompanyDepartmentController::class, 'update'])->name('company.departments.update');
-    Route::delete('/company/departments/{department}', [CompanyDepartmentController::class, 'destroy'])->name('company.departments.destroy');
+    Route::post('/company/departments', [CompanyHRDeptController::class, 'storeDept'])->name('company.departments.store');
+    Route::post('/company/departments/batch', [CompanyHRDeptController::class, 'batchStore'])->name('company.departments.batch');
+    Route::post('/company/departments/batch-upload', [CompanyHRDeptController::class, 'batchUpload'])->name('company.departments.batch.upload');
+    Route::get('/company/departments/batch-template', [CompanyHRDeptController::class, 'downloadTemplate'])->name('company.departments.batch.template');
+    Route::get('/company/departments/manage', [CompanyHRDeptController::class, 'manageDept'])->name('company.departments.manage');
+    Route::get('/company/departments/archived', [CompanyHRDeptController::class, 'archivedDept'])->name('company.departments.archived');
+    Route::post('/company/departments/restore/{id}', [CompanyHRDeptController::class, 'restoreDept'])->name('company.departments.restore');
+    Route::put('/company/departments/{department}', [CompanyHRDeptController::class, 'updateDept'])->name('company.departments.update');
+    Route::delete('/company/departments/{department}', [CompanyHRDeptController::class, 'destroyDept'])->name('company.departments.destroy');
+    Route::delete('/company/departments/{id}/force', [CompanyHRDeptController::class, 'forceDeleteDept'])->name('company.departments.forceDelete');
 });
+
 // Company Profile 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     // View Company Profile
@@ -1029,6 +1030,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::get('/job-search', [GraduateJobsController::class, 'search'])->name('job.search');
+    Route::get('/graduate/jobs/{job}', [GraduateJobsController::class, 'show'])->name('graduate.jobs.show');
     Route::get('/graduate-jobs/recommendations', [GraduateJobsController::class, 'recommendations'])->name('graduate-jobs.recommendations');
     Route::post('/apply-for-job', [GraduateJobsController::class, 'applyForJob'])->name('apply-for-job');
     Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');

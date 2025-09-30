@@ -101,6 +101,39 @@ class GraduateJobsController extends Controller
 
             return $job;
         });
+        $jobs->getCollection()->transform(function ($job) use ($user) {
+            // Decode JSON skills if stored as string, or use as is if array
+            $skillsArray = [];
+            if (is_string($job->skills)) {
+                $decoded = json_decode($job->skills, true);
+                $skillsArray = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($job->skills)) {
+                $skillsArray = $job->skills;
+            }
+
+
+            // Clean each skill
+            $cleanSkills = array_map(function ($skill) {
+                $skill = trim($skill);
+                // Remove spaces inside the skill (turn "P y t h o n" into "Python")
+                $skill = preg_replace('/\s+/', '', $skill);
+                // Remove any brackets or quotes
+                $skill = str_replace(['[', ']', '"', "'"], '', $skill);
+                return $skill;
+            }, $skillsArray);
+
+            // Assign back clean skills
+            $job->skills = $cleanSkills;
+
+            // Calculate match_percentage for each job
+            $match = 0;
+            if ($user && $user->graduate) {
+                $screening = (new ApplicantScreeningService())->screen($user->graduate, $job);
+                $match = $screening['match_percentage'] ?? 0;
+            }
+            $job->match_percentage = $match;
+            return $job;
+        });
 
         return Inertia::render('Frontend/JobSearch', [
             'jobs' => $jobs,
@@ -220,6 +253,57 @@ class GraduateJobsController extends Controller
 
             return $job;
         });
+        $jobs->getCollection()->transform(function ($job) use ($user, $jobTypes) {
+            // Decode JSON skills if stored as string, or use as is if array
+            $skillsArray = [];
+            if (is_string($job->skills)) {
+                $decoded = json_decode($job->skills, true);
+                $skillsArray = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($job->skills)) {
+                $skillsArray = $job->skills;
+            }
+
+
+            // Clean each skill
+            $cleanSkills = array_map(function ($skill) {
+                $skill = trim($skill);
+                // Remove spaces inside the skill (turn "P y t h o n" into "Python")
+                $skill = preg_replace('/\s+/', '', $skill);
+                // Remove any brackets or quotes
+                $skill = str_replace(['[', ']', '"', "'"], '', $skill);
+                return $skill;
+            }, $skillsArray);
+
+            // Assign back clean skills
+            $job->skills = $cleanSkills;
+
+            // Calculate match_percentage for each job
+            $match = 0;
+            if ($user && $user->graduate) {
+                $screening = (new \App\Services\ApplicantScreeningService())->screen($user->graduate, $job);
+                $match = $screening['match_percentage'] ?? 0;
+            }
+            $job->match_percentage = $match;
+
+            // Attach job_type_names
+            if ($job->relationLoaded('jobTypes') && $job->jobTypes && $job->jobTypes->count()) {
+                $job->job_type_names = $job->jobTypes->pluck('type')->filter()->values()->all();
+            } elseif (is_array($job->job_type)) {
+                // If job_type is array of IDs, map to names
+                $job->job_type_names = collect($job->job_type)->map(function ($id) use ($jobTypes) {
+                    return $jobTypes[$id] ?? null;
+                })->filter()->values()->all();
+            } elseif (is_numeric($job->job_type)) {
+                // If job_type is a single ID
+                $job->job_type_names = [$jobTypes[$job->job_type] ?? null];
+            } elseif (is_string($job->job_type) && $job->job_type !== '') {
+                $job->job_type_names = [$job->job_type];
+            } else {
+                $job->job_type_names = [];
+            }
+
+            return $job;
+        });
 
         return Inertia::render('Frontend/JobSearch', [
             'jobs' => $jobs,
@@ -266,12 +350,12 @@ class GraduateJobsController extends Controller
         $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
         $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
 
-        $pastKeywords = \App\Models\JobSearchHistory::where('graduate_id', $graduate->id)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->pluck('keywords')
-            ->unique()
-            ->toArray();
+        // $pastKeywords = \App\Models\JobSearchHistory::where('graduate_id', $graduate->id)
+        //     ->orderBy('created_at', 'desc')
+        //     ->limit(10)
+        //     ->pluck('keywords')
+        //     ->unique()
+        //     ->toArray();
 
         // Build the recommendation query
         $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
@@ -363,20 +447,20 @@ class GraduateJobsController extends Controller
                 $score++;
             }
 
-            // Past Search Keywords
-            $criteria++;
-            $pastKeywordMatch = false;
-            foreach ($pastKeywords as $keyword) {
-                if (
-                    stripos($job->job_title, $keyword) !== false ||
-                    stripos($job->job_description, $keyword) !== false
-                ) {
-                    $labels[] = 'Past Search';
-                    $pastKeywordMatch = true;
-                    break;
-                }
-            }
-            if ($pastKeywordMatch) $score++;
+            // // Past Search Keywords
+            // $criteria++;
+            // $pastKeywordMatch = false;
+            // foreach ($pastKeywords as $keyword) {
+            //     if (
+            //         stripos($job->job_title, $keyword) !== false ||
+            //         stripos($job->job_description, $keyword) !== false
+            //     ) {
+            //         $labels[] = 'Past Search';
+            //         $pastKeywordMatch = true;
+            //         break;
+            //     }
+            // }
+            // if ($pastKeywordMatch) $score++;
 
             // Only include jobs with at least one label (i.e., a match)
             if (!empty($labels)) {
@@ -398,6 +482,84 @@ class GraduateJobsController extends Controller
         return response()->json(['recommendations' => $recommendations]);
     }
 
+    public function show(Job $job)
+    {
+        $job->load(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary']);
+
+        // Normalize skills
+        if (is_string($job->skills)) {
+            $decoded = json_decode($job->skills, true);
+            $job->skills = is_array($decoded) ? array_map(fn($s) => trim(str_replace(['[', ']', '"', "'"], '', $s)), $decoded) : [];
+        } elseif (!is_array($job->skills)) {
+            $job->skills = [];
+        }
+
+        // Map Job Types to names
+        $jobTypeNames = [];
+        if ($job->relationLoaded('jobTypes') && $job->jobTypes && $job->jobTypes->count()) {
+            // expects JobType has a 'type' column
+            $jobTypeNames = $job->jobTypes->pluck('type')->filter()->values()->all();
+        } elseif (is_array($job->job_type)) {
+            $jobTypeNames = array_values(array_filter($job->job_type, fn($v) => !is_null($v) && $v !== ''));
+        } elseif (is_string($job->job_type) && $job->job_type !== '') {
+            $jobTypeNames = [ $job->job_type ];
+        }
+
+        // Map Work Environment IDs to labels
+        $workEnvMap = [
+            1 => 'On-site',
+            2 => 'Remote',
+            3 => 'Hybrid',
+        ];
+        $we = $job->work_environment;
+
+        // Convert to array of values
+        if (is_string($we)) {
+            $json = json_decode($we, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) {
+                $we = $json;
+            } else {
+                $we = array_map('trim', array_filter(explode(',', $we)));
+            }
+        } elseif ($we === null) {
+            $we = [];
+        } elseif (!is_array($we)) {
+            $we = [$we];
+        }
+
+        // Map to labels if numeric ids, keep text if already labels
+        $workEnvLabels = collect($we)->map(function ($v) use ($workEnvMap) {
+            if (is_numeric($v)) {
+                $v = (int)$v;
+                return $workEnvMap[$v] ?? (string)$v;
+            }
+            return (string)$v;
+        })->filter()->values()->all();
+
+        // Attach normalized fields to job payload
+        $job->setAttribute('job_type_names', $jobTypeNames);
+        $job->setAttribute('work_environment_labels', $workEnvLabels);
+
+        $application = null;
+        if (Auth::check() && Auth::user()->graduate) {
+            $application = \App\Models\JobApplication::where('graduate_id', Auth::user()->graduate->id)
+                ->where('job_id', $job->id)
+                ->first();
+        }
+
+        return Inertia::render('Frontend/GraduateJobDetails', [
+            'job' => $job,
+            'application' => $application ? [
+                'status' => $application->status,
+                'stage' => $application->stage,
+                'applied_at' => $application->applied_at,
+                'interview_date' => $application->interview_date,
+                'match_percentage' => $application->match_percentage,
+                'screening_label' => $application->screening_label,
+                'screening_feedback' => $application->screening_feedback,
+            ] : null,
+        ]);
+    }
     // public function oneClickApply(Request $request)
     // {
     //     if (!Auth::check()) {
@@ -495,18 +657,26 @@ class GraduateJobsController extends Controller
         ]);
 
         $job = $application->job;
-        
         $screening = (new ApplicantScreeningService())->screen($graduate, $job);
 
-        $application->is_shortlisted = $screening['is_shortlisted'];
-        $application->status = $screening['status'];
-        $application->stage = 'Screening';
-        $application->screening_label = $screening['screening_label'];
-        $application->screening_feedback = $screening['screening_feedback'];
-        $application->match_percentage = $screening['match_percentage'];
+        $application->is_shortlisted = $screening['is_shortlisted'] ?? false;
+        $application->screening_label = $screening['screening_label'] ?? null;
+        $application->screening_feedback = $screening['screening_feedback'] ?? null;
+        $application->match_percentage = $screening['match_percentage'] ?? 0;
+
+        // Set status/stage as required:
+        if (($screening['match_percentage'] ?? 0) >= 60) {
+            // High match → move to Screening
+            $application->status = 'screening';
+            $application->stage = 'screening';
+        } else {
+            // Otherwise stay in Applied/Applying
+            $application->status = 'applied';
+            $application->stage = 'applying';
+        }
+
         $application->save();
 
-        
         return back()->with('success', 'Application submitted successfully.');
     }
 

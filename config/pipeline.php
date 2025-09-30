@@ -4,13 +4,12 @@ return [
     'cache_seconds' => 30,
 
     'stages' => [
-        'applied' => [
-            'label' => 'Applied',
+        'applying' => [
+            'label' => 'Applying',
             'description' => 'Application received.',
             'actions' => [
                 'move_next',
                 'reject',
-                'view_profile',
                 'add_tag_comment',
             ],
         ],
@@ -81,7 +80,6 @@ return [
         'reject_withdraw' => ['label'=>'Withdraw / Reject','type'=>'transition','to'=>'rejected','icon'=>'fa-ban text-red-600'],
         'hire'            => ['label'=>'Mark as Hired','type'=>'transition','to'=>'hired','icon'=>'fa-user-check'],
 
-        'view_profile'      => ['label'=>'View Profile','type'=>'view','icon'=>'fa-id-card'],
         'add_tag_comment'   => ['label'=>'Tag / Comment','type'=>'modal','modal'=>'tags','icon'=>'fa-tag'],
         'request_more_info' => ['label'=>'Request More Info','type'=>'action','event'=>'request_info','icon'=>'fa-inbox'],
         'keep_stage'        => ['label'=>'Keep in Stage','type'=>'noop','icon'=>'fa-pause'],
