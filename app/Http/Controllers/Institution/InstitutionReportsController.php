@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Institution;
 use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use App\Services\CareerAlignmentService;
 
 class InstitutionReportsController extends Controller
 {
@@ -192,7 +193,22 @@ class InstitutionReportsController extends Controller
         }
 
         $graduates = $graduatesQuery->get()->map(function ($g) use ($institution) {
-            $instSchoolYear = $g->institutionSchoolYear; // Use InstitutionSchoolYear relationship
+            // If alignment_score is null, calculate and update it
+            if ($g->alignment_score === null) {
+                $alignment = CareerAlignmentService::score($g);
+                $alignment_score = $alignment['percentage'];
+                $alignment_category = $alignment['alignment'];
+            } else {
+                $alignment_score = $g->alignment_score;
+                // Determine category from score
+                if ($alignment_score >= 80) {
+                    $alignment_category = 'Directly aligned';
+                } elseif ($alignment_score >= 60) {
+                    $alignment_category = 'Partially aligned';
+                } else {
+                    $alignment_category = 'Misaligned';
+                }
+            }
 
             // Alignment logic as before...
             $programCareerOpportunities = \App\Models\InstitutionCareerOpportunity::with('careerOpportunity')
@@ -222,9 +238,9 @@ class InstitutionReportsController extends Controller
                 'middle_name' => $g->middle_name,
                 'last_name' => $g->last_name,
                 'gender' => $g->gender,
-                'school_year_id' => $instSchoolYear?->schoolYear?->id,
-                'school_year_range' => $instSchoolYear?->schoolYear?->school_year_range,
-                'term' => $instSchoolYear?->term,
+                'school_year_id' => $g->institutionSchoolYear?->schoolYear?->id,
+                'school_year_range' => $g->institutionSchoolYear?->schoolYear?->school_year_range,
+                'term' => $g->institutionSchoolYear?->term,
                 'degree' => $g->program?->degree?->type,
                 'degree_id' => $g->program?->degree?->id,
                 'program' => $g->program?->name,
@@ -234,15 +250,18 @@ class InstitutionReportsController extends Controller
                 'graduateSkills' => $g->graduateSkills,
                 'careerGoals' => $g->careerGoals,
                 'internshipPrograms' => $g->internshipPrograms,
-                'alignment' => $alignmentStatus,
+                'alignment_score' => $alignment_score,
+                'alignment_category' => $alignment_category,
             ];
         });
 
         // Alignment filtering
-        if ($alignment === 'Aligned') {
-            $graduates = $graduates->where('alignment', 'Aligned')->values();
+        if ($alignment === 'Directly aligned') {
+            $graduates = $graduates->where('alignment_category', 'Directly aligned')->values();
+        } elseif ($alignment === 'Partially aligned') {
+            $graduates = $graduates->where('alignment_category', 'Partially aligned')->values();
         } elseif ($alignment === 'Misaligned') {
-            $graduates = $graduates->where('alignment', 'Misaligned')->values();
+            $graduates = $graduates->where('alignment_category', 'Misaligned')->values();
         }
 
         // For charting and summary
