@@ -216,6 +216,8 @@ class GraduateProfileController extends Controller
             }
         }
 
+
+        $sector = null;
         if ($request->company_not_found) {
             $sectorId = $request->input('other_company_sector');
             $sector = \App\Models\Sector::find($sectorId);

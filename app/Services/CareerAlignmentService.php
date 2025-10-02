@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Graduate;
@@ -30,8 +31,7 @@ class CareerAlignmentService
 
         // Degree Match: Check if graduate's job title matches any career opportunity for their degree program
         $degreeMatch = 0;
-        $jobTitle = strtolower($graduate->current_job_title ?? '');
-
+        $jobTitle = strtolower((string) ($graduate->current_job_title ?? ''));
         $degreeCareerOpportunities = InstitutionCareerOpportunity::where('institution_id', $graduate->institution_id)
             ->where('program_id', $graduate->program_id)
             ->with('careerOpportunity')
@@ -50,7 +50,10 @@ class CareerAlignmentService
         }
 
         // Skills Match
-        $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->map(fn($s) => strtolower($s))->toArray();
+        $graduateSkills = $graduate->graduateSkills
+            ->pluck('skill.name')
+            ->map(fn($s) => strtolower((string) $s))
+            ->toArray();
         $institutionSkills = InstitutionSkill::where('institution_id', $graduate->institution_id)
             ->where('career_opportunity_id', $graduate->career_opportunity_id ?? null)
             ->where('skill_id', '!=', null)
