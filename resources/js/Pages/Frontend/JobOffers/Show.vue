@@ -107,10 +107,13 @@ function viewApplication() {
         <div class="mt-4">
           <h4 class="font-medium text-gray-800 mb-2">Message</h4>
           <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded border border-gray-100">
+            Start date: {{ offer.start_date  }}
+          </div>
+          <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50 p-4 rounded border border-gray-100">
             {{ offer.body || 'No message provided.' }}
           </div>
         </div>
-
+        
         <div v-if="offer.file_path" class="mt-6">
           <h4 class="font-medium text-gray-800 mb-3">Preview</h4>
 

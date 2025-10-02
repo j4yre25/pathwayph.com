@@ -827,6 +827,7 @@ class GraduateJobsController extends Controller
                 'job_title' => $offer->job_title ?: optional($offer->application->job)->job_title,
                 'company' => $company ? ['id' => $company->id, 'company_name' => $company->company_name] : null,
                 'hr_name' => $hrName,
+                'start_date' => $offer->start_date ? $offer->start_date->format('F j, Y') : null,
                 'body' => $offer->body,
                 'file_path' => $offer->file_path ? Storage::url($offer->file_path) : null,
                 'status' => $offer->status,
@@ -848,6 +849,7 @@ class GraduateJobsController extends Controller
         $message = $request->input('message', 'I accept this offer. Thank you.');
         $offer->status = JobOffer::STATUS_ACCEPTED;
         $application->status = 'offer_accepted';
+        $application->save();
         $offer->responded_at = now();
         $offer->save();
 
@@ -927,7 +929,7 @@ class GraduateJobsController extends Controller
 
         $message = $request->input('message', 'I decline this offer. Thank you for the opportunity.');
         $application->status = 'offer_declined';
-
+        $application->save();
         $offer->status = JobOffer::STATUS_DECLINED ?? 'declined';
         $offer->responded_at = now();
         $offer->save();
