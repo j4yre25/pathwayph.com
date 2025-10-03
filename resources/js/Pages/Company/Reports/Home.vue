@@ -21,7 +21,7 @@ import { Users, BarChart2, Briefcase, Share2 } from 'lucide-vue-next';
             </div>
           </Link>
           <Link
-            :href="route('peso.reports.referral')"
+            :href="route('company.reports.recruitment')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-green-100"
           >
             <div class="flex flex-col items-center">
