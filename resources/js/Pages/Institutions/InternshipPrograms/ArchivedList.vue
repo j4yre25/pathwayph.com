@@ -38,7 +38,7 @@ const confirmRestore = (item) => {
 };
 
 const goBack = () => {
-  window.history.back();
+  router.visit(route('internship-programs.index'));
 };
 
 const stats = computed(() => {

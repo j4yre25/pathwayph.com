@@ -767,11 +767,6 @@ onMounted(() => {
                       Admin Registration
                     </DropdownLink>
 
-                    <DropdownLink v-if="page.props.auth.user.role === 'institution'"
-                      :href="route('careerofficer.register')">
-                      Career Officer Registration
-                    </DropdownLink>
-
                     <DropdownLink v-if="page.props.auth.user.role === 'company'" :href="route('company.profile')">
                       Profile
                     </DropdownLink>

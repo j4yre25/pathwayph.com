@@ -21,18 +21,12 @@ class InternshipProgramController extends Controller
             ->when($request->program_id, fn($q) => $q->whereHas('programs', fn($q2) => $q2->where('program_id', $request->program_id)))
             ->when($request->career_opportunity_id, fn($q) => $q->whereHas('careerOpportunities', fn($q2) => $q2->where('career_opportunity_id', $request->career_opportunity_id)))
             ->when($request->skills, fn($q) => $q->whereHas('skills', fn($q2) => $q2->where('name', 'like', '%' . $request->skills . '%')))
-            ->when($request->status, function ($q) use ($request) {
-                if ($request->status === 'active')
-                    $q->where('is_active', true);
-                if ($request->status === 'inactive')
-                    $q->where('is_active', false);
-            })
-            ->withTrashed();
+            ;
 
         $programs = $institution->institutionPrograms()->with('program')->get()->map(fn($ip) => $ip->program)->unique('id')->values();
         $careerOpportunities = $institution->institutionCareerOpportunities()->with('careerOpportunity')->get()->map(fn($ico) => $ico->careerOpportunity)->unique('id')->values();
         $skills = $institution->institutionSkills()->with('skill')->get()->map(fn($is) => $is->skill)->unique('id')->values();
-        $graduates = Graduate::where('institution_id', $institution->id)->get();
+        $graduates = Graduate::with('program')->where('institution_id', $institution->id)->get();
 
         return Inertia::render('Institutions/InternshipPrograms/Index', [
             'internshipPrograms' => $query->get(),
@@ -51,11 +45,14 @@ class InternshipProgramController extends Controller
         $programs = $institution->institutionPrograms()->with('program')->get()->map(fn($ip) => $ip->program)->unique('id')->values();
         $careerOpportunities = $institution->institutionCareerOpportunities()->with('careerOpportunity')->get()->map(fn($ico) => $ico->careerOpportunity)->unique('id')->values();
         $skills = $institution->institutionSkills()->with('skill')->get()->map(fn($is) => $is->skill)->unique('id')->values();
+        $graduates = Graduate::with('program')->where('institution_id', $institution->id)->get(); // <-- Add this
+
 
         return Inertia::render('Institutions/InternshipPrograms/Create', [
             'programs' => $programs,
             'careerOpportunities' => $careerOpportunities,
             'skills' => $skills,
+            'graduates' => $graduates,
         ]);
     }
 
@@ -72,6 +69,8 @@ class InternshipProgramController extends Controller
             'career_opportunity_id.*' => 'exists:career_opportunities,id',
             'skill_id' => 'required|array|min:1',
             'skill_id.*' => 'exists:skills,id',
+            'graduate_ids' => 'required|array',
+            'graduate_ids.*' => 'exists:graduates,id',
         ]);
 
         $internship = InternshipProgram::create([
@@ -79,9 +78,14 @@ class InternshipProgramController extends Controller
             'institution_id' => $institution->id,
             'is_active' => true,
         ]);
+
         $internship->programs()->sync($request->program_id);
         $internship->careerOpportunities()->sync($request->career_opportunity_id);
         $internship->skills()->sync($request->skill_id);
+
+        if ($request->graduate_ids) {
+            $internship->graduates()->sync($request->graduate_ids);
+        }
 
         return back()->with('flash.banner', 'Internship program added.');
     }
@@ -193,7 +197,7 @@ class InternshipProgramController extends Controller
         $careerOpportunities = $institution->institutionCareerOpportunities()->with('careerOpportunity')->get()->map(fn($ico) => $ico->careerOpportunity)->unique('id')->values();
 
         // Query internship programs with relationships
-        $query = InternshipProgram::with(['programs', 'careerOpportunities', 'skills'])
+        $query = InternshipProgram::with(['programs', 'careerOpportunities', 'skills', 'graduates'])
             ->where('institution_id', $institution->id);
 
         if ($programFilter) {
@@ -223,41 +227,44 @@ class InternshipProgramController extends Controller
         $user = Auth::user();
         $institution = Institution::where('user_id', $user->id)->firstOrFail();
 
-        $internshipPrograms = InternshipProgram::with(['programs', 'careerOpportunities', 'graduates'])
+        // Get graduates with program name and job title
+        $graduates = \DB::table('graduates')
+            ->join('users', 'graduates.user_id', '=', 'users.id')
+            ->join('programs', 'graduates.program_id', '=', 'programs.id')
+            ->where('graduates.institution_id', $institution->id)
+            ->whereNull('graduates.deleted_at')
+            ->select(
+                'graduates.id as id',
+                'graduates.first_name',
+                'graduates.last_name',
+                'graduates.program_id',
+                'programs.name as program_name',
+                'graduates.current_job_title'
+            )
+            ->get();
+
+        // Get internship programs with assigned graduates
+        $internshipPrograms = InternshipProgram::with(['graduates', 'programs', 'careerOpportunities'])
             ->where('institution_id', $institution->id)
             ->get();
 
-        $graduates = Graduate::where('institution_id', $institution->id)->get();
-
         // Get institution's programs
         $programs = $institution->institutionPrograms()
-            ->with('program.degree')
+            ->with('program')
             ->get()
-            ->map(function ($ip) {
-                return [
-                    'id' => $ip->program->id,
-                    'name' => $ip->program->name,
-                    'degree' => $ip->degree ? $ip->degree->type : null,
-                ];
-            });
+            ->map(fn($ip) => ['id' => $ip->program->id, 'name' => $ip->program->name]);
 
-        // Get institution's career opportunities (with program_id)
+        // Get institution's career opportunities
         $careerOpportunities = $institution->institutionCareerOpportunities()
-            ->with(['careerOpportunity', 'program'])
+            ->with('careerOpportunity')
             ->get()
-            ->map(function ($ico) {
-                return [
-                    'id' => $ico->careerOpportunity->id,
-                    'title' => $ico->careerOpportunity->title,
-                    'program_id' => $ico->program_id,
-                ];
-            });
+            ->map(fn($ico) => ['id' => $ico->careerOpportunity->id, 'title' => $ico->careerOpportunity->title]);
 
         return Inertia::render('Institutions/InternshipPrograms/AssignInternship', [
             'internshipPrograms' => $internshipPrograms,
             'graduates' => $graduates,
             'programs' => $programs,
-            'institutionCareerOpportunities' => $careerOpportunities,
+            'careerOpportunities' => $careerOpportunities,
         ]);
     }
 

@@ -77,165 +77,214 @@ function closeEditModal() {
   <AppLayout title="Manage Internship Programs">
     <template #header>
       <div class="flex items-center">
-        <i class="fas fa-briefcase text-blue-500 text-xl mr-2"></i>
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Manage Internship Programs</h2>
+        <i class="fas fa-briefcase text-blue-600 text-2xl mr-3"></i>
+        <h2 class="font-extrabold text-2xl text-gray-800 leading-tight">Internship Program Management</h2>
       </div>
     </template>
 
-    <div class="py-8">
+    <div class="py-10 bg-gray-50 min-h-screen">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <!-- Stats Summary -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 relative overflow-hidden">
-            <div class="flex justify-between items-start">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          
+          <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-300">
+            <div class="flex justify-between items-center">
               <div>
-                <h3 class="text-gray-600 text-sm font-medium mb-2">Total Programs</h3>
-                <p class="text-3xl font-bold text-gray-800">{{ internshipPrograms.length }}</p>
+                <h3 class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Total Programs</h3>
+                <p class="text-4xl font-extrabold text-gray-900">{{ internshipPrograms.length }}</p>
               </div>
-              <div class="bg-blue-100 rounded-full p-3 flex items-center justify-center">
-                <i class="fas fa-briefcase text-blue-600"></i>
+              <div class="bg-blue-500/10 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-briefcase text-blue-600 text-xl"></i>
               </div>
             </div>
           </div>
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500 relative overflow-hidden">
-            <div class="flex justify-between items-start">
+          
+          <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow duration-300">
+            <div class="flex justify-between items-center">
               <div>
-                <h3 class="text-gray-600 text-sm font-medium mb-2">Active Programs</h3>
-                <p class="text-3xl font-bold text-gray-800">{{ internshipPrograms.filter(ip => !ip.deleted_at).length }}</p>
+                <h3 class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Active Programs</h3>
+                <p class="text-4xl font-extrabold text-gray-900">{{ internshipPrograms.filter(ip => !ip.deleted_at).length }}</p>
               </div>
-              <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
-                <i class="fas fa-check-circle text-green-600"></i>
+              <div class="bg-green-500/10 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-check-circle text-green-600 text-xl"></i>
               </div>
             </div>
           </div>
-          <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500 relative overflow-hidden">
-            <div class="flex justify-between items-start">
+          
+          <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow duration-300">
+            <div class="flex justify-between items-center">
               <div>
-                <h3 class="text-gray-600 text-sm font-medium mb-2">Archived Programs</h3>
-                <p class="text-3xl font-bold text-gray-800">{{ internshipPrograms.filter(ip => ip.deleted_at).length }}</p>
+                <h3 class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Archived Programs</h3>
+                <p class="text-4xl font-extrabold text-gray-900">{{ internshipPrograms.filter(ip => ip.deleted_at).length }}</p>
               </div>
-              <div class="bg-purple-100 rounded-full p-3 flex items-center justify-center">
-                <i class="fas fa-archive text-purple-600"></i>
+              <div class="bg-purple-500/10 rounded-full p-3 flex items-center justify-center">
+                <i class="fas fa-archive text-purple-600 text-xl"></i>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- Main Content -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
-          <!-- Action Buttons -->
-          <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200">
+        <div class="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
+          
+          <div class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 bg-white">
             <div class="flex items-center">
-              <h3 class="text-lg font-semibold text-gray-800">Internship Programs</h3>
-              <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ internshipPrograms.length }} total</span>
+              <h3 class="text-xl font-bold text-gray-800">Program Index</h3>
+              <span class="ml-3 text-xs font-semibold text-blue-600 bg-blue-100 rounded-full px-3 py-1">{{ internshipPrograms.length }} Total</span>
             </div>
-            <div class="flex w-full sm:w-auto space-x-3 mt-3 sm:mt-0">
+            
+            <div class="flex flex-wrap gap-3 mt-4 sm:mt-0">
               <Link :href="route('internship-programs.create')" 
-                    class="text-sm px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200 flex items-center">
-                <i class="fas fa-plus-circle text-white mr-2"></i> Add Internship
+                    class="text-sm px-4 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center shadow-md hover:shadow-lg">
+                <i class="fas fa-plus-circle text-white mr-2"></i> Add New
               </Link>
+              
               <Link :href="route('internship-programs.list')" 
-                    class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
-                <i class="fas fa-list text-blue-500 mr-2"></i> All Internship
+                    class="text-sm px-4 py-2.5 rounded-lg bg-white border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors duration-200 flex items-center shadow-sm">
+                <i class="fas fa-list text-blue-500 mr-2"></i> All Internships
+              </Link>
+              
+              <Link :href="route('internship-programs.assign-page')" 
+                    class="text-sm px-4 py-2.5 rounded-lg bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition-colors duration-200 flex items-center shadow-md hover:shadow-lg">
+                <i class="fas fa-user-plus text-white mr-2"></i> Assign Graduates
               </Link>
               <Link :href="route('internship-programs.archivedlist', { status: 'inactive' })" 
-                    class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
-                <i class="fas fa-archive text-gray-500 mr-2"></i> Archived
-              </Link>
-              <Link :href="route('internship-programs.assign-page')" 
-                    class="text-sm px-4 py-2 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center">
-                <i class="fas fa-user-plus text-indigo-500 mr-2"></i> Assign Graduates
+                    class="text-sm px-4 py-2.5 rounded-lg bg-white border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors duration-200 flex items-center shadow-sm">
+                <i class="fas fa-archive text-gray-500 mr-2"></i> View Archived
               </Link>
             </div>
           </div>
 
-          <!-- Filters Section -->
-          <div class="p-4 border-b border-gray-200 bg-gray-50">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="p-6 border-b border-gray-100 bg-gray-50">
+            <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center">
+                <i class="fas fa-search text-gray-400 mr-2"></i> Filter Programs
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Program</label>
-                <select v-model="filters.program_id" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                  <option value="">All Programs</option>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Related Program</label>
+                <select v-model="filters.program_id" class="w-full border-gray-300 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500/50">
+                  <option value="">All Academic Programs</option>
                   <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.name }}</option>
                 </select>
               </div>
+              
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Career Opportunity</label>
-                <select v-model="filters.career_opportunity_id" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Career Opportunity</label>
+                <select v-model="filters.career_opportunity_id" class="w-full border-gray-300 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500/50">
                   <option value="">All Career Opportunities</option>
                   <option v-for="c in careerOpportunities" :key="c.id" :value="c.id">{{ c.title }}</option>
                 </select>
               </div>
+              
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Skills</label>
-                <input v-model="filters.skills" type="text" placeholder="e.g. Vue, Laravel" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+                <label class="block text-xs font-medium text-gray-500 mb-1">Skills (Comma Separated)</label>
+                <input v-model="filters.skills" type="text" placeholder="e.g. Vue, Laravel, Python" class="w-full border-gray-300 rounded-lg text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500/50" />
               </div>
-              <div class="mt-4 flex justify-end space-x-2">
-                <button @click="() => { filters.program_id = ''; filters.career_opportunity_id = ''; filters.skills = ''; applyFilters(); }" 
-                        class="px-3 py-2 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+              
+              <div class="pt-5 flex justify-end space-x-3">
+                <SecondaryButton @click="() => { filters.program_id = ''; filters.career_opportunity_id = ''; filters.skills = ''; applyFilters(); }" 
+                                 class="!py-2.5">
                   <i class="fas fa-times mr-1"></i> Clear
-                </button>
-                <button @click="applyFilters" 
-                        class="px-3 py-2 text-xs rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200">
+                </SecondaryButton>
+                <PrimaryButton @click="applyFilters" 
+                               class="!py-2.5">
                   <i class="fas fa-filter mr-1"></i> Apply Filter
-                </button>
+                </PrimaryButton>
               </div>
             </div>
           </div>
 
-          <!-- Internship Programs Table -->
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead>
-                <tr class="bg-gray-50">
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Career Opportunity</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skills</th>
-                  <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <tr class="bg-gray-100/70">
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Title</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Program(s)</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Career Opportunity</th>
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Skills</th>
+                  <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="ip in internshipPrograms" :key="ip.id" :class="{ 'bg-gray-50': ip.deleted_at }" class="hover:bg-gray-50 transition-colors duration-150">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ ip.title }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div class="flex flex-wrap gap-1">
-                      <span v-for="(p, idx) in ip.programs" :key="p.id" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <tbody class="bg-white divide-y divide-gray-100">
+                
+                <tr v-for="ip in internshipPrograms" :key="ip.id" 
+                    :class="{ 'bg-red-50/50 border-l-4 border-red-500/50 text-gray-500 italic': ip.deleted_at, 'hover:bg-gray-50 transition-colors duration-150': !ip.deleted_at }" 
+                    class="transition-all duration-150">
+                  
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {{ ip.title }}
+                    <span v-if="ip.deleted_at" class="ml-2 text-xs font-semibold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">Archived</span>
+                  </td>
+                  
+                  <td class="px-6 py-4 text-sm">
+                    <div class="flex flex-wrap gap-2">
+                      <span v-for="(p, index) in ip.programs" :key="p.id" 
+                            v-show="index < 2"
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
                         {{ p.name }}
                       </span>
+                      <span v-if="ip.programs.length > 2"
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500 text-white">
+                        +{{ ip.programs.length - 2 }} more
+                      </span>
                     </div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div class="flex flex-wrap gap-1">
-                      <span v-for="(c, idx) in ip.career_opportunities" :key="c.id" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  
+                  <td class="px-6 py-4 text-sm">
+                    <div class="flex flex-wrap gap-2">
+                      <span v-for="(c, index) in ip.career_opportunities" :key="c.id" 
+                            v-show="index < 2"
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
                         {{ c.title }}
                       </span>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div class="flex flex-wrap gap-1">
-                      <span v-for="(s, idx) in ip.skills" :key="s.id" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        {{ s.name }}
+                      <span v-if="ip.career_opportunities.length > 2"
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500 text-white">
+                        +{{ ip.career_opportunities.length - 2 }} more
                       </span>
                     </div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link :href="route('internship-programs.edit', ip.id)" class="text-blue-600 hover:text-blue-900 mr-3">
+                  
+                  <td class="px-6 py-4 text-sm">
+                    <div class="flex flex-wrap gap-2">
+                      <span v-for="(s, index) in ip.skills" :key="s.id" 
+                            v-show="index < 2"
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                        {{ s.name }}
+                      </span>
+                      <span v-if="ip.skills.length > 2"
+                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500 text-white">
+                        +{{ ip.skills.length - 2 }} more
+                      </span>
+                    </div>
+                  </td>
+                  
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-base font-medium space-x-3">
+                    <Link :href="route('internship-programs.edit', ip.id)" 
+                          title="Edit Program"
+                          class="text-blue-500 hover:text-blue-700 transition-colors">
                       <i class="fas fa-edit"></i>
                     </Link>
-                    <button v-if="!ip.deleted_at" @click="() => confirmArchive(ip)" class="text-red-600 hover:text-red-900">
+                    
+                    <button v-if="!ip.deleted_at" @click="() => confirmArchive(ip)" 
+                            title="Archive Program"
+                            class="text-red-500 hover:text-red-700 transition-colors">
                       <i class="fas fa-archive"></i>
                     </button>
-                    <button v-else @click="() => restoreProgram(ip.id)" class="text-green-600 hover:text-green-900">
-                      <i class="fas fa-undo"></i>
+                    
+                    <button v-else @click="() => restoreProgram(ip.id)" 
+                            title="Restore Program"
+                            class="text-green-500 hover:text-green-700 transition-colors">
+                      <i class="fas fa-undo-alt"></i>
                     </button>
                   </td>
                 </tr>
+                
                 <tr v-if="internshipPrograms.length === 0">
-                  <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                    <div class="flex flex-col items-center justify-center py-6">
-                      <i class="fas fa-folder-open text-gray-400 text-4xl mb-2"></i>
-                      <p>No internship programs found.</p>
+                  <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                    <div class="flex flex-col items-center justify-center">
+                      <i class="fas fa-folder-open text-gray-300 text-5xl mb-4"></i>
+                      <p class="text-lg font-semibold">No internship programs match the current filters.</p>
+                      <p class="text-sm text-gray-400 mt-1">Try clearing your filters or adding a new program.</p>
                     </div>
                   </td>
                 </tr>
@@ -245,7 +294,6 @@ function closeEditModal() {
         </div>
       </div>
 
-      <!-- Confirmation Modal -->
       <ConfirmationModal :show="showConfirmModal" @close="cancelArchive">
         <template #title>
           <div class="flex items-center">
@@ -257,26 +305,25 @@ function closeEditModal() {
           <div class="mt-2">
             <p class="text-sm text-gray-600">
               Are you sure you want to archive the internship program
-              <span class="font-semibold text-gray-900">"{{ programToArchive?.title }}"</span>?
+              <span class="font-bold text-gray-900">"{{ programToArchive?.title }}"</span>?
             </p>
-            <p class="text-sm text-gray-500 mt-2">
+            <p class="text-xs text-gray-500 mt-2">
               This action will remove the program from active listings. You can restore it later if needed.
             </p>
           </div>
         </template>
         <template #footer>
           <div class="flex justify-end space-x-3">
-            <button @click="cancelArchive" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <SecondaryButton @click="cancelArchive">
               Cancel
-            </button>
-            <button @click="archiveConfirmed" class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+            </SecondaryButton>
+            <DangerButton @click="archiveConfirmed">
               Archive
-            </button>
+            </DangerButton>
           </div>
         </template>
       </ConfirmationModal>
       
-      <!-- Edit Modal -->
       <InternshipProgramEditModal 
         :show="showEditModal" 
         :internship-program="programToEdit" 
