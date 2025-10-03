@@ -4,11 +4,15 @@ import { ref, onMounted, computed } from 'vue'
 import VueECharts from 'vue-echarts'
 import axios from 'axios'
 import Container from '@/Components/Container.vue'
+import { usePage } from '@inertiajs/vue3';
 
 const loading = ref(false)
 const analyticsData = ref({})
-
-const reportType = ref('demographics') // 'demographics' or 'alignment' or 'employer'
+const page = usePage();
+if (page?.props?.query?.reportType) {
+    reportType.value = page.props.query.reportType;
+}
+const reportType = ref('job-seeker-demographics') // 'demographics' or 'alignment' or 'employer'
 
 const reportTypes = [
     { key: 'demographics', label: 'Gender & Diversity Metrics' },
@@ -334,239 +338,261 @@ const jobSeekerSummary = computed(() => {
 
             <!-- Demographics Section -->
             <div v-if="reportType === 'demographics'">
-                <!-- Stacked Column: Employment by Gender -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-chart-bar text-blue-500"></i>
-                        Employment by Gender <span class="font-bold text-blue-600">(Stacked Column)</span>
-                    </h3>
-                    <div v-if="loading" class="flex justify-center items-center py-16">
-                        <span class="loader mr-3"></span>
-                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
-                    </div>
-                    <div v-else>
-                        <VueECharts v-if="analyticsData.employmentByGender && analyticsData.employmentByGender.length"
-                            :option="genderStackedOption" style="height: 400px; width: 100%;" />
-                        <div v-else class="text-gray-400 text-center py-12">No gender data available.</div>
-                    </div>
+
+                <div v-if="loading" class="flex justify-center items-center py-16">
+                    <span class="loader mr-3"></span>
+                    <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
                 </div>
 
-                <!-- Pie Chart: Diversity Groups in Industry (first industry as example) -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-chart-pie text-green-500"></i>
-                        Diversity Groups in Industry <span class="font-bold text-green-600">(Pie Chart)</span>
-                    </h3>
-                    <div v-if="loading" class="flex justify-center items-center py-16">
-                        <span class="loader mr-3"></span>
-                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                <div v-else>
+
+                    <!-- Stacked Column: Employment by Gender -->
+                    <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-chart-bar text-blue-500"></i>
+                            Employment by Gender <span class="font-bold text-blue-600">(Stacked Column)</span>
+                        </h3>
+                        <div v-if="loading" class="flex justify-center items-center py-16">
+                            <span class="loader mr-3"></span>
+                            <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                        </div>
+                        <div v-else>
+                            <VueECharts
+                                v-if="analyticsData.employmentByGender && analyticsData.employmentByGender.length"
+                                :option="genderStackedOption" style="height: 400px; width: 100%;" />
+                            <div v-else class="text-gray-400 text-center py-12">No gender data available.</div>
+                        </div>
                     </div>
-                    <div v-else>
+
+                    <!-- Pie Chart: Diversity Groups in Industry (first industry as example) -->
+                    <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-green-500"></i>
+                            Diversity Groups in Industry <span class="font-bold text-green-600">(Pie Chart)</span>
+                        </h3>
+
                         <VueECharts
                             v-if="analyticsData.diversityIndustryPie && analyticsData.diversityIndustryPie.length"
                             :option="diversityPieOption" style="height: 400px; width: 100%;" />
                         <div v-else class="text-gray-400 text-center py-12">No diversity data available.</div>
                     </div>
-                </div>
 
-                <!-- Analytics Summary Card for Demographics -->
-                <div class="mt-8 flex justify-center">
-                    <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
-                        <div class="flex items-center px-6 pt-6 pb-2">
-                            <svg class="w-6 h-6 text-blue-500 mr-2" fill="none" stroke="currentColor" stroke-width="2"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 3v18h18M9 17V9m4 8V5m4 12v-6" />
-                            </svg>
-                            <span class="text-lg font-semibold text-gray-800">Analytics Summary</span>
-                        </div>
-                        <div class="px-6 pb-6 text-gray-700 leading-relaxed">
-                            <span v-html="demographicsSummary"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
-            <div v-if="reportType === 'job-seeker-demographics'">
-
-                <!-- Clustered Bar Chart: Job Seekers by Age, Education, Experience -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <i class="fas fa-user-clock text-blue-500"></i>
-                        Job Seekers by Age <span class="font-bold text-blue-600">(Bar Chart)</span>
-                    </h3>
-                    <VueECharts v-if="analyticsData.clusteredBarData" :option="{
-                        tooltip: { trigger: 'axis' },
-                        xAxis: { type: 'category', data: Object.keys(analyticsData.clusteredBarData?.age ?? {}) },
-                        yAxis: { type: 'value', name: 'Count' },
-                        series: [{
-                            name: 'Age',
-                            type: 'bar',
-                            data: Object.values(analyticsData.clusteredBarData?.age ?? {}),
-                            itemStyle: { color: '#60a5fa' }
-                        }]
-                    }" style="height: 300px; width: 100%;" />
-                </div>
-
-                <!-- Education Bar Chart -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <i class="fas fa-user-graduate text-green-500"></i>
-                        Job Seekers by Education <span class="font-bold text-green-600">(Bar Chart)</span>
-                    </h3>
-                    <VueECharts v-if="analyticsData.clusteredBarData" :option="{
-                        tooltip: { trigger: 'axis' },
-                        xAxis: { type: 'category', data: Object.keys(analyticsData.clusteredBarData?.education ?? {}) },
-                        yAxis: { type: 'value', name: 'Count' },
-                        series: [{
-                            name: 'Education',
-                            type: 'bar',
-                            data: Object.values(analyticsData.clusteredBarData?.education ?? {}),
-                            itemStyle: { color: '#34d399' }
-                        }]
-                    }" style="height: 300px; width: 100%;" />
-                </div>
-
-                <!-- Experience Bar Chart -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <i class="fas fa-briefcase text-yellow-500"></i>
-                        Job Seekers by Experience <span class="font-bold text-yellow-600">(Bar Chart)</span>
-                    </h3>
-                    <VueECharts v-if="analyticsData.clusteredBarData" :option="{
-                        tooltip: { trigger: 'axis' },
-                        xAxis: { type: 'category', data: Object.keys(analyticsData.clusteredBarData?.experience ?? {}) },
-                        yAxis: { type: 'value', name: 'Count' },
-                        series: [{
-                            name: 'Experience',
-                            type: 'bar',
-                            data: Object.values(analyticsData.clusteredBarData?.experience ?? {}),
-                            itemStyle: { color: '#f59e42' }
-                        }]
-                    }" style="height: 300px; width: 100%;" />
-                </div>
-
-                <!-- Line Chart: Job Applications Trends by Demographic Group -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-chart-line text-green-500"></i>
-                        Job Applications Trends <span class="font-bold text-green-600">(Line Chart)</span>
-                    </h3>
-                    <div v-if="loading" class="flex justify-center items-center py-16">
-                        <span class="loader mr-3"></span>
-                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
-                    </div>
-                    <div v-else>
-                        <VueECharts v-if="analyticsData.lineDemographicTrends" :option="lineDemographicOption"
-                            style="height: 400px; width: 100%;" />
-                        <div v-else class="text-gray-400 text-center py-12">No trend data available.</div>
-                    </div>
-                </div>
-
-                <!-- Bar Chart: Referred Candidates by Age -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-chart-bar text-yellow-500"></i>
-                        Referred Candidates by Age <span class="font-bold text-yellow-600">(Bar Chart)</span>
-                    </h3>
-                    <div v-if="loading" class="flex justify-center items-center py-16">
-                        <span class="loader mr-3"></span>
-                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
-                    </div>
-                    <div v-else>
-                        <VueECharts v-if="analyticsData.barReferralDemographics" :option="barReferralAgeOption"
-                            style="height: 400px; width: 100%;" />
-                        <div v-else class="text-gray-400 text-center py-12">No referral demographic data available.
-                        </div>
-                    </div>
-                </div>
-                <!-- Bar Chart: Referred Candidates by Gender -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-chart-bar text-blue-500"></i>
-                        Referred Candidates by Gender <span class="font-bold text-blue-600">(Bar Chart)</span>
-                    </h3>
-                    <div v-if="loading" class="flex justify-center items-center py-16">
-                        <span class="loader mr-3"></span>
-                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
-                    </div>
-                    <div v-else>
-                        <VueECharts v-if="analyticsData.barReferralDemographics" :option="barReferralGenderOption"
-                            style="height: 400px; width: 100%;" />
-                        <div v-else class="text-gray-400 text-center py-12">No referral gender data available.</div>
-                    </div>
-                </div>
-
-                <!-- Bar Chart: Referred Candidates by Education -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-chart-bar text-green-500"></i>
-                        Referred Candidates by Education <span class="font-bold text-green-600">(Bar Chart)</span>
-                    </h3>
-                    <div v-if="loading" class="flex justify-center items-center py-16">
-                        <span class="loader mr-3"></span>
-                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
-                    </div>
-                    <div v-else>
-                        <VueECharts v-if="analyticsData.barReferralDemographics" :option="barReferralEducationOption"
-                            style="height: 400px; width: 100%;" />
-                        <div v-else class="text-gray-400 text-center py-12">No referral education data available.</div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                        <i class="fas fa-braille text-purple-500"></i>
-                        Demographic Attributes vs Referral Success <span class="font-bold text-purple-600">(Radar
-                            Charts)</span>
-                    </h3>
-                    <div v-if="loading" class="flex justify-center items-center py-16">
-                        <span class="loader mr-3"></span>
-                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
-                    </div>
-                    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <!-- Age Radar Chart -->
-                        <div>
-                            <div class="text-center font-semibold mb-2 text-gray-700">Age</div>
-                            <VueECharts v-if="analyticsData.radarDemographicData" :option="radarDemographicOption"
-                                style="height: 300px; width: 100%;" />
-                            <div v-else class="text-gray-400 text-center py-12">No age radar data available.</div>
-                        </div>
-                        <!-- Gender Radar Chart -->
-                        <div>
-                            <div class="text-center font-semibold mb-2 text-gray-700">Gender</div>
-                            <VueECharts v-if="analyticsData.radarGenderData" :option="radarGenderOption"
-                                style="height: 300px; width: 100%;" />
-                            <div v-else class="text-gray-400 text-center py-12">No gender radar data available.</div>
-                        </div>
-                        <!-- Education Radar Chart -->
-                        <div>
-                            <div class="text-center font-semibold mb-2 text-gray-700">Education</div>
-                            <VueECharts v-if="analyticsData.radarEducationData" :option="radarEducationOption"
-                                style="height: 300px; width: 100%;" />
-                            <div v-else class="text-gray-400 text-center py-12">No education radar data available.</div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Analytics Summary Card for Job Seeker Demographics -->
-                <div class="mt-8 flex justify-center">
-                    <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
-                        <div class="flex items-center px-6 pt-6 pb-2">
-                            <svg class="w-6 h-6 text-green-500 mr-2" fill="none" stroke="currentColor" stroke-width="2"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M3 3v18h18M9 17V9m4 8V5m4 12v-6" />
-                            </svg>
-                            <span class="text-lg font-semibold text-gray-800">Analytics Summary</span>
-                        </div>
-                        <div class="px-6 pb-6 text-gray-700 leading-relaxed">
-                            <span v-html="jobSeekerSummary"></span>
+                    <!-- Analytics Summary Card for Demographics -->
+                    <div class="mt-8 flex justify-center">
+                        <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
+                            <div class="flex items-center px-6 pt-6 pb-2">
+                                <svg class="w-6 h-6 text-blue-500 mr-2" fill="none" stroke="currentColor"
+                                    stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 3v18h18M9 17V9m4 8V5m4 12v-6" />
+                                </svg>
+                                <span class="text-lg font-semibold text-gray-800">Analytics Summary</span>
+                            </div>
+                            <div class="px-6 pb-6 text-gray-700 leading-relaxed">
+                                <span v-html="demographicsSummary"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+
+
+                <div v-if="reportType === 'job-seeker-demographics'">
+                    <div v-if="loading" class="flex justify-center items-center py-16">
+                        <span class="loader mr-3"></span>
+                        <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                    </div>
+
+                    <div v-else>
+
+                        <!-- Clustered Bar Chart: Job Seekers by Age, Education, Experience -->
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-user-clock text-blue-500"></i>
+                                Job Seekers by Age <span class="font-bold text-blue-600">(Bar Chart)</span>
+                            </h3>
+                            <VueECharts v-if="analyticsData.clusteredBarData" :option="{
+                                tooltip: { trigger: 'axis' },
+                                xAxis: { type: 'category', data: Object.keys(analyticsData.clusteredBarData?.age ?? {}) },
+                                yAxis: { type: 'value', name: 'Count' },
+                                series: [{
+                                    name: 'Age',
+                                    type: 'bar',
+                                    data: Object.values(analyticsData.clusteredBarData?.age ?? {}),
+                                    itemStyle: { color: '#60a5fa' }
+                                }]
+                            }" style="height: 300px; width: 100%;" />
+                        </div>
+
+                        <!-- Education Bar Chart -->
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-user-graduate text-green-500"></i>
+                                Job Seekers by Education <span class="font-bold text-green-600">(Bar Chart)</span>
+                            </h3>
+                            <VueECharts v-if="analyticsData.clusteredBarData" :option="{
+                                tooltip: { trigger: 'axis' },
+                                xAxis: { type: 'category', data: Object.keys(analyticsData.clusteredBarData?.education ?? {}) },
+                                yAxis: { type: 'value', name: 'Count' },
+                                series: [{
+                                    name: 'Education',
+                                    type: 'bar',
+                                    data: Object.values(analyticsData.clusteredBarData?.education ?? {}),
+                                    itemStyle: { color: '#34d399' }
+                                }]
+                            }" style="height: 300px; width: 100%;" />
+                        </div>
+
+                        <!-- Experience Bar Chart -->
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-briefcase text-yellow-500"></i>
+                                Job Seekers by Experience <span class="font-bold text-yellow-600">(Bar Chart)</span>
+                            </h3>
+                            <VueECharts v-if="analyticsData.clusteredBarData" :option="{
+                                tooltip: { trigger: 'axis' },
+                                xAxis: { type: 'category', data: Object.keys(analyticsData.clusteredBarData?.experience ?? {}) },
+                                yAxis: { type: 'value', name: 'Count' },
+                                series: [{
+                                    name: 'Experience',
+                                    type: 'bar',
+                                    data: Object.values(analyticsData.clusteredBarData?.experience ?? {}),
+                                    itemStyle: { color: '#f59e42' }
+                                }]
+                            }" style="height: 300px; width: 100%;" />
+                        </div>
+
+                        <!-- Line Chart: Job Applications Trends by Demographic Group -->
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <i class="fas fa-chart-line text-green-500"></i>
+                                Job Applications Trends <span class="font-bold text-green-600">(Line Chart)</span>
+                            </h3>
+                            <div v-if="loading" class="flex justify-center items-center py-16">
+                                <span class="loader mr-3"></span>
+                                <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                            </div>
+                            <div v-else>
+                                <VueECharts v-if="analyticsData.lineDemographicTrends" :option="lineDemographicOption"
+                                    style="height: 400px; width: 100%;" />
+                                <div v-else class="text-gray-400 text-center py-12">No trend data available.</div>
+                            </div>
+                        </div>
+
+                        <!-- Bar Chart: Referred Candidates by Age -->
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <i class="fas fa-chart-bar text-yellow-500"></i>
+                                Referred Candidates by Age <span class="font-bold text-yellow-600">(Bar Chart)</span>
+                            </h3>
+                            <div v-if="loading" class="flex justify-center items-center py-16">
+                                <span class="loader mr-3"></span>
+                                <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                            </div>
+                            <div v-else>
+                                <VueECharts v-if="analyticsData.barReferralDemographics" :option="barReferralAgeOption"
+                                    style="height: 400px; width: 100%;" />
+                                <div v-else class="text-gray-400 text-center py-12">No referral demographic data
+                                    available.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Bar Chart: Referred Candidates by Gender -->
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <i class="fas fa-chart-bar text-blue-500"></i>
+                                Referred Candidates by Gender <span class="font-bold text-blue-600">(Bar Chart)</span>
+                            </h3>
+                            <div v-if="loading" class="flex justify-center items-center py-16">
+                                <span class="loader mr-3"></span>
+                                <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                            </div>
+                            <div v-else>
+                                <VueECharts v-if="analyticsData.barReferralDemographics"
+                                    :option="barReferralGenderOption" style="height: 400px; width: 100%;" />
+                                <div v-else class="text-gray-400 text-center py-12">No referral gender data available.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bar Chart: Referred Candidates by Education -->
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <i class="fas fa-chart-bar text-green-500"></i>
+                                Referred Candidates by Education <span class="font-bold text-green-600">(Bar
+                                    Chart)</span>
+                            </h3>
+                            <div v-if="loading" class="flex justify-center items-center py-16">
+                                <span class="loader mr-3"></span>
+                                <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                            </div>
+                            <div v-else>
+                                <VueECharts v-if="analyticsData.barReferralDemographics"
+                                    :option="barReferralEducationOption" style="height: 400px; width: 100%;" />
+                                <div v-else class="text-gray-400 text-center py-12">No referral education data
+                                    available.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <i class="fas fa-braille text-purple-500"></i>
+                                Demographic Attributes vs Referral Success <span
+                                    class="font-bold text-purple-600">(Radar
+                                    Charts)</span>
+                            </h3>
+                            <div v-if="loading" class="flex justify-center items-center py-16">
+                                <span class="loader mr-3"></span>
+                                <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
+                            </div>
+                            <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <!-- Age Radar Chart -->
+                                <div>
+                                    <div class="text-center font-semibold mb-2 text-gray-700">Age</div>
+                                    <VueECharts v-if="analyticsData.radarDemographicData"
+                                        :option="radarDemographicOption" style="height: 300px; width: 100%;" />
+                                    <div v-else class="text-gray-400 text-center py-12">No age radar data available.
+                                    </div>
+                                </div>
+                                <!-- Gender Radar Chart -->
+                                <div>
+                                    <div class="text-center font-semibold mb-2 text-gray-700">Gender</div>
+                                    <VueECharts v-if="analyticsData.radarGenderData" :option="radarGenderOption"
+                                        style="height: 300px; width: 100%;" />
+                                    <div v-else class="text-gray-400 text-center py-12">No gender radar data available.
+                                    </div>
+                                </div>
+                                <!-- Education Radar Chart -->
+                                <div>
+                                    <div class="text-center font-semibold mb-2 text-gray-700">Education</div>
+                                    <VueECharts v-if="analyticsData.radarEducationData" :option="radarEducationOption"
+                                        style="height: 300px; width: 100%;" />
+                                    <div v-else class="text-gray-400 text-center py-12">No education radar data
+                                        available.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Analytics Summary Card for Job Seeker Demographics -->
+                        <div class="mt-8 flex justify-center">
+                            <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
+                                <div class="flex items-center px-6 pt-6 pb-2">
+                                    <svg class="w-6 h-6 text-green-500 mr-2" fill="none" stroke="currentColor"
+                                        stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M3 3v18h18M9 17V9m4 8V5m4 12v-6" />
+                                    </svg>
+                                    <span class="text-lg font-semibold text-gray-800">Analytics Summary</span>
+                                </div>
+                                <div class="px-6 pb-6 text-gray-700 leading-relaxed">
+                                    <span v-html="jobSeekerSummary"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
         </Container>
     </AppLayout>

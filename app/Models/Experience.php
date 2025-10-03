@@ -54,4 +54,9 @@ class Experience extends Model
     {
         return $this->belongsTo(\App\Models\Company::class, 'company_id');
     }
+
+    public function graduate()
+    {
+        return $this->belongsTo(Graduate::class, 'graduate_id');
+    }
 }

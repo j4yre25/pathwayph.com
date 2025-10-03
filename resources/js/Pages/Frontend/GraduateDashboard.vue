@@ -21,6 +21,18 @@ const props = defineProps({
   vacancyStats: Object,
 });
 
+function goToReferrals() {
+  router.get(route('graduate.referrals'));
+}
+
+function goToJobsAligned() {
+  router.get(route('job.search'));
+}
+
+function goToInterviewsScheduled() {
+  router.get(route('job.search'), { tab: 'applications' });
+}
+
 // Filter toggles
 const showApplicationSent = ref(true);
 const showInterviews = ref(true);
@@ -124,7 +136,7 @@ const chartOption = computed(() => {
 watch(dateFilter, (v) => {
   console.log('Date filter changed:', v)
   router.reload({
-    only: ['vacancyStats','kpi'],
+    only: ['vacancyStats', 'kpi'],
     data: { date_filter: v },
     preserveScroll: true,
     preserveState: true,
@@ -154,6 +166,9 @@ function closeCompanyModal() {
   selectedCompany.value = null;
 }
 
+function goToJobsApplied() {
+  router.get(route('job.search'), { tab: 'applications' });
+}
 // Show job details modal
 function viewJobDetails(job) {
   selectedJob.value = job;
@@ -258,16 +273,18 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <!-- Jobs Applied -->
           <div
-            class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
-            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2">
+            class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+            @click="goToJobsApplied" title="View jobs you have applied for">
+            <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2">
               <i class="fas fa-file-alt text-white"></i>
             </div>
-            <span class="text-blue-700 text-xs font-medium text-center">Jobs Applied</span>
-            <span class="text-blue-900 text-3xl font-bold">{{ kpi.jobsApplied ?? 0 }}</span>
+            <span class="text-indigo-700 text-xs font-medium text-center">Jobs Applied</span>
+            <span class="text-indigo-900 text-lg font-bold">{{ kpi.jobsApplied }}</span>
           </div>
           <!-- Referrals Made -->
           <div
-            class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
+            class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px] cursor-pointer hover:shadow-lg transition"
+            @click="goToReferrals" title="View your job referrals">
             <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
               <i class="fas fa-share-square text-white"></i>
             </div>
@@ -276,16 +293,19 @@ onMounted(() => {
           </div>
           <!-- Jobs Aligned -->
           <div
-            class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
+            class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px] cursor-pointer hover:shadow-lg transition"
+            @click="goToJobsAligned" title="View jobs aligned to your profile">
             <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2">
               <i class="fas fa-check-circle text-white"></i>
             </div>
             <span class="text-indigo-700 text-xs font-medium text-center">Jobs Aligned</span>
             <span class="text-indigo-900 text-3xl font-bold">{{ kpi.jobsAligned ?? 0 }}</span>
           </div>
-           <!-- Interviews Scheduled -->
-          <div 
-            class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
+
+          <!-- Interviews Scheduled -->
+          <div
+            class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px] cursor-pointer hover:shadow-lg transition"
+            @click="goToInterviewsScheduled" title="View your scheduled interviews">
             <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
               <i class="fas fa-calendar-check text-white"></i>
             </div>
@@ -325,20 +345,17 @@ onMounted(() => {
               </h3>
               <div class="flex items-center gap-4">
                 <!-- Filter toggles -->
-                <button
-                  @click="showApplicationSent = !showApplicationSent"
+                <button @click="showApplicationSent = !showApplicationSent"
                   :class="['flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition', showApplicationSent ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500']">
                   <span class="w-3 h-3 rounded-full" :style="{ background: '#4F46E5' }"></span>
                   Application Sent
                 </button>
-                <button
-                  @click="showInterviews = !showInterviews"
+                <button @click="showInterviews = !showInterviews"
                   :class="['flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition', showInterviews ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">
                   <span class="w-3 h-3 rounded-full" :style="{ background: '#10B981' }"></span>
                   Interviews
                 </button>
-                <button
-                  @click="showRejected = !showRejected"
+                <button @click="showRejected = !showRejected"
                   :class="['flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition', showRejected ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500']">
                   <span class="w-3 h-3 rounded-full" :style="{ background: '#EF4444' }"></span>
                   Rejected

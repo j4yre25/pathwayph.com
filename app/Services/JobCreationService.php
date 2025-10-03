@@ -87,7 +87,7 @@ class JobCreationService
 
             'job_title' => $validated['job_title'],
             'location' => $location ? $location->id : ($validated['location_id'] ?? null),
-            'is_approved' => 1,
+            'is_approved' => null,
             'job_type' => $validated['job_type'] ?? null,
             'job_experience_level' => $validated['job_experience_level'] ?? null,
             'work_environment' => $validated['work_environment'] ?? $validated['work_environment_id'] ?? null,
@@ -109,19 +109,7 @@ class JobCreationService
 
     private function generateJobCodes($sectorId, $categoryId,User $user, $jobTitle): array
     {
-        // $sector = $sectorId ? Sector::find($sectorId) : null;
-        // $category = $categoryId ? Category::find($categoryId) : null;
-        // $sectorCode = $sector ? $sector->sector_id : 'SEC';
-        // $divisionCodes = $sector ? $sector->division_codes : 'DIV';
-        // $categoryCode = $category ? $category->division_code : 'CAT';
-        // $initials = collect(explode(' ', $jobTitle))
-        //     ->map(fn($word) => Str::substr($word, 0, 1))
-        //     ->implode('');
-        // $initials = strtoupper($initials);
-        // $jobCode = "{$sectorCode}{$divisionCodes}{$initials}-{$categoryCode}";
-        // $jobCount = Job::count() + 1;
-        // $jobID = str_pad($jobCount, 3, '0', STR_PAD_LEFT);
-        // return [$jobCode, $jobID];
+        
 
          $company = $user->company;
         $sector = $company ? $company->sector : null;

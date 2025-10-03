@@ -150,7 +150,7 @@ const updateSkill = () => {
     skillForm.graduate_skills_name = skillName.value;
   skillForm.graduate_skills_proficiency_type = skillProficiencyType.value;
   skillForm.graduate_skills_type = skillType.value;
-  skillForm.graduate_skills_years_experience = yearsExperience.value;F
+  skillForm.graduate_skills_years_experience = yearsExperience.value;
   if (!skillProficiencyType.value) {
     alert("Please select a proficiency type.");
     return;

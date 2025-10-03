@@ -95,25 +95,24 @@ class JobApplication extends Model
      */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
     }
 
     /**
      * Get the graduate that owns the job application.
      */ 
-    public function graduate()
+     public function graduate()
     {
-        return $this->belongsTo(Graduate::class);
+        return $this->belongsTo(\App\Models\Graduate::class, 'graduate_id');
     }
 
     /**
      * Get the job that the application is for.
      */
-    public function job()
+     public function job()
     {
-        return $this->belongsTo(Job::class);
+        return $this->belongsTo(\App\Models\Job::class, 'job_id');
     }
-
     /**
      * Get the resume used for the application.
      */

@@ -57,122 +57,133 @@ class ManageJobReferralsController extends Controller
         $successfulReferrals = $query->clone()->where('status', 'success')->count(); // <-- use 'success' status
         $successRate = $totalReferrals > 0 ? round(($successfulReferrals / $totalReferrals) * 100, 2) : 0;
         // Prepare data for Vue
-        $referralData = $referrals->getCollection()->map(function ($ref) {
-            $matchScore = 0;
-            $matchDetails = [];
-            $criteria = 0;
-            $graduate = $ref->graduate;
-            $job = $ref->job;
+       $referralData = $referrals->getCollection()->map(function ($ref) {
+    $matchScore = 0;
+    $matchDetails = [];
+    $graduate = $ref->graduate;
+    $job = $ref->job;
 
-            if ($graduate && $job) {
-                // Skills
-                $criteria++;
-                $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
-                $jobSkills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
-                $skillMatch = false;
-                foreach ($graduateSkills as $skill) {
-                    if (stripos(json_encode($jobSkills), $skill) !== false) {
-                        $matchDetails[] = 'Skills';
-                        $skillMatch = true;
-                        break;
-                    }
-                }
-                if ($skillMatch) $matchScore++;
+    // Define weights (keep consistent with recommendations)
+    $weights = [
+        'skills' => 3,
+        'education' => 2,
+        'experience' => 2,
+        'job_type' => 1,
+        'location' => 1,
+        'work_environment' => 1,
+        'min_salary' => 1,
+        'max_salary' => 1,
+        'salary_type' => 1,
+        'keywords' => 2, // m10: search keywords
+    ];
+    $totalWeight = array_sum($weights);
 
-                // Education (Program)
-                $criteria++;
-                $program = $graduate->program_id ? \App\Models\Program::find($graduate->program_id)->name ?? null : null;
-                $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
-                if ($educationMatch) {
-                    $matchDetails[] = 'Education';
-                    $matchScore++;
-                }
+    // All mi are binary (1 or 0)
+    $mi = [
+        'skills' => 0,
+        'education' => 0,
+        'experience' => 0,
+        'job_type' => 0,
+        'location' => 0,
+        'work_environment' => 0,
+        'min_salary' => 0,
+        'max_salary' => 0,
+        'salary_type' => 0,
+        'keywords' => 0,
+    ];
 
-                // Experience
-                $criteria++;
-                $experiences = $graduate->experience ? $graduate->experience->pluck('job_title')->filter()->unique()->toArray() : [];
-                $experienceMatch = false;
-                foreach ($experiences as $title) {
-                    if (stripos($job->job_title, $title) !== false) {
-                        $matchDetails[] = 'Experience';
-                        $experienceMatch = true;
-                        break;
-                    }
-                }
-                if ($experienceMatch) $matchScore++;
-
-                // Preferred Job Type
-                $criteria++;
-                $preferences = $graduate->employmentPreference;
-                $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
-                $jobTypeMatch = in_array($job->job_type, $preferredJobTypes);
-                if ($jobTypeMatch) {
-                    $matchDetails[] = 'Preferred Job Type';
-                    $matchScore++;
-                }
-
-                // Preferred Location
-                $criteria++;
-                $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
-                $locationMatch = in_array($job->location, $preferredLocations);
-                if ($locationMatch) {
-                    $matchDetails[] = 'Preferred Location';
-                    $matchScore++;
-                }
-
-                // Preferred Work Environment
-                $criteria++;
-                $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
-                $workEnvMatch = in_array($job->work_environment, $preferredWorkEnvironments);
-                if ($workEnvMatch) {
-                    $matchDetails[] = 'Preferred Work Environment';
-                    $matchScore++;
-                }
-
-                // Preferred Min Salary
-                $criteria++;
-                $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
-                $minSalaryMatch = $minSalary && $job->job_min_salary >= $minSalary;
-                if ($minSalaryMatch) {
-                    $matchDetails[] = 'Preferred Min Salary';
-                    $matchScore++;
-                }
-
-                // Preferred Max Salary
-                $criteria++;
-                $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
-                $maxSalaryMatch = $maxSalary && $job->job_max_salary <= $maxSalary;
-                if ($maxSalaryMatch) {
-                    $matchDetails[] = 'Preferred Max Salary';
-                    $matchScore++;
-                }
-
-                // Preferred Salary Type
-                $criteria++;
-                $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
-                $salaryTypeMatch = $salaryType && stripos($job->job_salary_type, $salaryType) !== false;
-                if ($salaryTypeMatch) {
-                    $matchDetails[] = 'Preferred Salary Type';
-                    $matchScore++;
-                }
-
-                // Past Search Keywords
-                $criteria++;
-                $pastKeywords = $graduate->jobSearchHistory ? $graduate->jobSearchHistory->pluck('keywords')->unique()->toArray() : [];
-                $pastKeywordMatch = false;
-                foreach ($pastKeywords as $keyword) {
-                    if (
-                        stripos($job->job_title, $keyword) !== false ||
-                        stripos($job->job_description, $keyword) !== false
-                    ) {
-                        $matchDetails[] = 'Past Search';
-                        $pastKeywordMatch = true;
-                        break;
-                    }
-                }
-                if ($pastKeywordMatch) $matchScore++;
+    if ($graduate && $job) {
+        // m1: Skills
+        $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
+        $jobSkills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
+        foreach ($graduateSkills as $skill) {
+            if (stripos(json_encode($jobSkills), $skill) !== false) {
+                $mi['skills'] = 1;
+                $matchDetails[] = 'Skills';
+                break;
             }
-            $match_percentage = $criteria > 0 ? round(($matchScore / $criteria) * 100) : 0;
+        }
+
+        // m2: Education
+        $program = $graduate->program_id ? \App\Models\Program::find($graduate->program_id)->name ?? null : null;
+        if ($program && stripos($job->job_requirements, $program) !== false) {
+            $mi['education'] = 1;
+            $matchDetails[] = 'Education';
+        }
+
+        // m3: Experience
+        $experiences = $graduate->experience ? $graduate->experience->pluck('job_title')->filter()->unique()->toArray() : [];
+        foreach ($experiences as $title) {
+            if (stripos($job->job_title, $title) !== false) {
+                $mi['experience'] = 1;
+                $matchDetails[] = 'Experience';
+                break;
+            }
+        }
+
+        // m4: Preferred Job Type
+        $preferences = $graduate->employmentPreference;
+        $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
+        if (in_array($job->job_type, $preferredJobTypes)) {
+            $mi['job_type'] = 1;
+            $matchDetails[] = 'Preferred Job Type';
+        }
+
+        // m5: Preferred Location
+        $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
+        if (in_array($job->location, $preferredLocations)) {
+            $mi['location'] = 1;
+            $matchDetails[] = 'Preferred Location';
+        }
+
+        // m6: Preferred Work Environment
+        $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
+        if (in_array($job->work_environment, $preferredWorkEnvironments)) {
+            $mi['work_environment'] = 1;
+            $matchDetails[] = 'Preferred Work Environment';
+        }
+
+        // m7: Preferred Min Salary
+        $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
+        if ($minSalary && $job->job_min_salary >= $minSalary) {
+            $mi['min_salary'] = 1;
+            $matchDetails[] = 'Preferred Min Salary';
+        }
+
+        // m8: Preferred Max Salary
+        $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
+        if ($maxSalary && $job->job_max_salary <= $maxSalary) {
+            $mi['max_salary'] = 1;
+            $matchDetails[] = 'Preferred Max Salary';
+        }
+
+        // m9: Preferred Salary Type
+        $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
+        if ($salaryType && stripos($job->job_salary_type, $salaryType) !== false) {
+            $mi['salary_type'] = 1;
+            $matchDetails[] = 'Preferred Salary Type';
+        }
+
+        // m10: Search Keywords (from job search history)
+        $pastKeywords = $graduate->jobSearchHistory ? $graduate->jobSearchHistory->pluck('keywords')->unique()->toArray() : [];
+        foreach ($pastKeywords as $keyword) {
+            if (
+                stripos($job->job_title, $keyword) !== false ||
+                stripos($job->job_description, $keyword) !== false
+            ) {
+                $mi['keywords'] = 1;
+                $matchDetails[] = 'Past Search';
+                break;
+            }
+        }
+    }
+
+    // Calculate weighted score
+    $score = 0;
+    foreach ($weights as $key => $weight) {
+        $score += $mi[$key] * $weight;
+    }
+    $match_percentage = $totalWeight > 0 ? round(($score / $totalWeight) * 100) : 0;
 
             return [
                 'id' => $ref->id,
@@ -185,8 +196,9 @@ class ManageJobReferralsController extends Controller
                 'status' => $ref->status,
                 'referred_at' => $ref->created_at ? $ref->created_at->toDateString() : '',
                 'hired_at' => $ref->status === 'hired' && $ref->updated_at ? $ref->updated_at->toDateString() : null,
-                'match_score' => $matchScore,
+                'match_score' => $score,
                 'match_details' => $matchDetails,
+                'certificate_path' => $ref->certificate_path,
                 'match_percentage' => $match_percentage,
             ];
         });
@@ -194,12 +206,18 @@ class ManageJobReferralsController extends Controller
         // Replace the paginator's collection with the mapped data
         $referrals->setCollection($referralData);
 
+
         return Inertia::render('Admin/ManageJobReferrals', [
             'referrals' => $referrals,
             'totalReferrals' => $totalReferrals,
             'successfulReferrals' => $successfulReferrals,
             'successRate' => $successRate,
-            'search' => $request->search,
+            'filters' => [
+                'status' => $request->status,
+                'company' => $request->company,
+                'candidate' => $request->candidate,
+                'search' => $request->search,
+            ],
         ]);
     }
 
@@ -223,6 +241,8 @@ class ManageJobReferralsController extends Controller
                 'company_address' => $company->address ?? '',
                 'photo' => $graduate->photo_url ?? '/default-photo.png', // adjust as needed
                 'graduate_id' => $graduate->user_id,
+                'referral_id' => $referral->id, // <-- ADD THIS
+
             ]
         ]);
     }
@@ -244,7 +264,7 @@ class ManageJobReferralsController extends Controller
                 return response()->json(['error' => 'No certificate file uploaded'], 400);
             }
 
-            $path = $request->file('certificate')->store('private/certificates');
+            $path = $request->file('certificate')->store('certificates', 'private');
             \Log::info('Certificate stored at:', ['path' => $path]);
 
             $user = \App\Models\User::find($request->graduate_id);
@@ -255,15 +275,9 @@ class ManageJobReferralsController extends Controller
 
             $referral = \App\Models\Referral::find($request->referral_id);
             if ($referral) {
-                \Log::info('Updating referral', [
-                    'id' => $referral->id,
-                    'certificate_path' => $path,
-                    'status' => 'success'
-                ]);
-                $referral->certificate_path = $path;
+                $referral->certificate_path = $path; // e.g. 'certificates/filename.pdf'
                 $referral->status = 'success';
                 $referral->save();
-                \Log::info('Referral after save', $referral->toArray());
             }
 
             return redirect()->back()->with('success', 'Certificate uploaded successfully.');
@@ -281,6 +295,32 @@ class ManageJobReferralsController extends Controller
         }
         return Storage::download($path);
     }
+
+    public function downloadCertificate(Referral $referral)
+    {
+        if (!$referral->certificate_path || !Storage::exists($referral->certificate_path)) {
+            abort(404);
+        }
+        // Optionally, add authorization here if needed
+        return Storage::download($referral->certificate_path);
+    }
+
+    public function viewCertificate(Referral $referral)
+    {
+        if (!$referral->certificate_path || !\Storage::disk('private')->exists($referral->certificate_path)) {
+            abort(404);
+        }
+        $mime = \Storage::disk('private')->mimeType($referral->certificate_path);
+        $headers = [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . basename($referral->certificate_path) . '"'
+        ];
+        return response()->file(
+            storage_path('app/private/' . $referral->certificate_path),
+            $headers
+        );
+    }
+
 
     public function markSuccess(Referral $referral)
     {

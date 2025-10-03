@@ -175,15 +175,29 @@ const logout = () => {
 
 async function openNotification(notif) {
   try {
+    // mark single notification as read on server
     if (!notif.read_at) {
       await axios.post(route('notifications.markOne', notif.id))
       const idx = localNotifications.value.findIndex(n => n.id === notif.id)
       if (idx !== -1) localNotifications.value[idx].read_at = new Date().toISOString()
       if (unreadDisplay.value > 0) localUnread.value = Math.max(0, unreadDisplay.value - 1)
     }
-    if (notif.link) window.location.href = notif.link
+
+    // normalize data payload
+    const data = notif.data ?? {}
+    // prefer explicit url, then payload url/link, then legacy link
+    const target = notif.url || data.url || data.link || notif.link || null
+
+    // For company notifications we expect application url in payload; fall back to target
+    if (target) {
+      // navigate to the url (preserves normal behavior)
+      window.location.href = target
+    } else {
+      // No URL: open notifications list page
+      window.location.href = route('notifications.index')
+    }
   } catch (e) {
-    console.warn(e)
+    console.warn('openNotification error', e)
   }
 }
 
@@ -296,6 +310,10 @@ onMounted(() => {
                 <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('job.search')"
                   :active="route().current('job.search')" :disabled="!page.props.auth.user.is_approved">
                   Find Jobs
+                </NavLink>
+                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.referrals')"
+                  :active="route().current('graduate.referrals')" :disabled="!page.props.auth.user.is_approved">
+                  Referrals
                 </NavLink>
 
               </div>
@@ -493,25 +511,49 @@ onMounted(() => {
                               @click.stop="markAllNotifications" v-if="unreadDisplay > 0">Mark all read</button>
                           </div>
                           <div class="max-h-96 overflow-y-auto divide-y">
-                            <div v-for="notif in localNotifications" :key="notif.id"
-                              class="p-3 cursor-pointer hover:bg-gray-50" @click.stop="openNotification(notif)">
-                              <div class="flex justify-between items-start gap-2">
-                                <div class="flex-1">
-                                  <div class="font-semibold text-sm"
-                                    :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
-                                    {{ notif.title }}
-                                  </div>
-                                  <div class="text-xs text-gray-600 mt-0.5" v-html="notif.body"></div>
+                             <div v-for="notif in localNotifications" :key="notif.id"
+                                class="p-3 cursor-pointer hover:bg-gray-50" @click.stop="openNotification(notif)">
+                              <div class="flex items-start gap-3">
+                                <!-- left avatar / icon -->
+                                <div class="w-10 h-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-gray-700">
+                                  <template v-if="notif.data && notif.data.graduate_id">
+                                    <i class="fas fa-user-graduate"></i>
+                                  </template>
+                                  <template v-else>
+                                    <i class="fas fa-info-circle"></i>
+                                  </template>
                                 </div>
-                                <span v-if="!notif.read_at"
-                                  class="inline-block w-2 h-2 rounded-full bg-indigo-500 mt-1"></span>
-                              </div>
-                              <div class="text-[10px] text-gray-400 mt-1">{{ notif.created_at }}</div>
-                              <div v-if="notif.status === 'job_invite'" class="mt-2">
-                                <span
-                                  class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-medium">
-                                  Job Invite
-                                </span>
+
+                                <div class="flex-1 min-w-0">
+                                  <!-- Company-specific visual: show title + subtitle when company user -->
+                                  <div v-if="page.props.auth.user.role === 'company'">
+                                    <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                      {{ notif.title || (notif.data && notif.data.title) || 'Notification' }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-1">
+                                      {{ (notif.data && notif.data.subtitle) || notif.subtitle || (notif.data && notif.data.body) || notif.body || '' }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 mt-2">{{ notif.created_at }}</div>
+                                  </div>
+
+                                  <!-- Default (non-company) layout -->
+                                  <div v-else>
+                                    <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                      {{ notif.title || (notif.data && notif.data.title) || 'Notification' }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-1 line-clamp-2">
+                                      {{ (notif.data && notif.data.body) || notif.body || '' }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 mt-1">{{ notif.created_at }}</div>
+                                  </div>
+                                </div>
+
+                                <!-- CTA badge for company so it's obvious -->
+                                <div v-if="page.props.auth.user.role === 'company'" class="ms-3 flex items-center">
+                                  <span class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[11px] font-medium">
+                                    View Applicant
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>

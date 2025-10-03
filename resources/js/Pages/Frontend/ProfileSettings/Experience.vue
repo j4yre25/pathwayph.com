@@ -7,7 +7,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import Datepicker from 'vue3-datepicker';
-import { isValid } from 'date-fns';
+import { parseISO,isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 // Define props
@@ -19,6 +19,15 @@ const props = defineProps({
   locations: { type: Array, default: () => [] },
 })
 
+const toDateOrNull = (val) => {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  const d = parseISO(val);
+  return isValid(d) ? d : null;
+};
+
+const successMessage = ref('');
+const errorMessage = ref('');
 const isSuccessModalOpen = ref(false);
 const isErrorModalOpen = ref(false);
 const isDuplicateModalOpen = ref(false);
@@ -149,22 +158,22 @@ const openAddExperienceModal = () => {
 
 // When opening Update modal, seed the input with displayed company
 const openUpdateExperienceModal = (experienceEntry) => {
-  resetExperience()
+  resetExperience();
   experience.value = {
     id: experienceEntry.id,
     title: experienceEntry.title,
-    company: experienceEntry.company, // display string
-    start_date: experienceEntry.start_date ? formatDate(experienceEntry.start_date) : null,
-    end_date: experienceEntry.is_current ? null : (experienceEntry.end_date ? formatDate(experienceEntry.end_date) : null),
+    company: experienceEntry.company || experienceEntry.company_name || '',
+    start_date: toDateOrNull(experienceEntry.start_date),
+    end_date: experienceEntry.is_current ? null : toDateOrNull(experienceEntry.end_date),
     address: experienceEntry.address || '',
     description: experienceEntry.description || 'No description provided',
     employment_type: experienceEntry.employment_type || '',
     is_current: experienceEntry.is_current
-  }
-  companySearchUpdate.value = experienceEntry.company || ''
-  stillInRole.value = experienceEntry.is_current
-  isUpdateExperienceModalOpen.value = true
-}
+  };
+  companySearchUpdate.value = experienceEntry.company || experienceEntry.company_name || '';
+  stillInRole.value = experienceEntry.is_current;
+  isUpdateExperienceModalOpen.value = true;
+};
 
 const locationSearchAdd = ref('');
 const showLocationSuggestionsAdd = ref(false);
@@ -238,8 +247,12 @@ const updateExperience = () => {
       resetExperience()
       companySearchUpdate.value = ''
       isUpdateExperienceModalOpen.value = false
+      successMessage.value = 'Experience updated successfully.'
+      isSuccessModalOpen.value = true
     },
     onError: (errors) => {
+      errorMessage.value = 'An error occurred while updating the experience. Please check the form and try again.'
+      isErrorModalOpen.value = true
       console.error('Error updating experience:', errors)
     },
   })
@@ -889,6 +902,7 @@ experienceForm.graduate_experience_address = selectedLocation
         </div>
       </div>
     </div>
+
   </div>
 </template>
 

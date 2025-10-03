@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use App\Models\Messages;
+use App\Models\JobOffer;
+use App\Models\Experience;
+use App\Models\Graduate;
 
 class PipelineActionExecutor
 {
@@ -45,6 +48,7 @@ class PipelineActionExecutor
             'hire'            => 'Marked as hired',
             'reject','reject_withdraw' => 'Application rejected'.(!empty($payload['reason']) ? ': '.$payload['reason'] : ''),
             default => ucfirst(str_replace('_',' ', $key)),
+            
         };
     }
 
@@ -116,6 +120,21 @@ class PipelineActionExecutor
                         $application->forceFill(['archived_at'=>now()])->save();
                     } elseif (Schema::hasColumn('job_applications','is_archived')) {
                         $application->forceFill(['is_archived'=>1])->save();
+                    }
+                }
+
+                 // Ensure application.status reflects hired and perform hire side-effects
+                if ($to === 'hired') {
+                    try {
+                        $application->status = 'hired';
+                        $application->save();
+                        // Perform side-effects: update graduate, add experience, etc.
+                        $this->handleHireAction($application);
+                    } catch (\Throwable $e) {
+                        Log::error('handleHireAction failed', [
+                            'application_id' => $application->id ?? null,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
                 }
 
@@ -285,6 +304,111 @@ class PipelineActionExecutor
                 'error'=>$e->getMessage(),
             ]);
             throw $e;
+        }
+    }
+
+    /**
+     * Create experience and update graduate when an application is hired.
+     *
+     * Call this after you persist the "hired" stage/status on the JobApplication.
+     *
+     * @param  JobApplication  $application
+     * @return void
+     */
+    public function handleHireAction(JobApplication $application): void
+    {
+        if (! $application || ! $application->id) {
+            Log::warning('handleHireAction called with invalid application', ['application'=>$application]);
+            return;
+        }
+
+        DB::beginTransaction();
+        try {
+            // Ensure relations
+            $application->loadMissing(['job.company', 'job.locations', 'graduate']);
+
+            Log::info('handleHireAction start', ['application_id' => $application->id]);
+
+            // find the most relevant offer for this application
+            $offer = JobOffer::where('job_application_id', $application->id)->latest()->first();
+
+            // determine start date (prefer offer.start_date if available)
+            $startDate = $offer && $offer->start_date ? $offer->start_date->toDateString() : now()->toDateString();
+
+            // update application status to 'hired'
+            $application->status = 'hired';
+            $application->save();
+            Log::info('Application status set to hired', ['application_id' => $application->id]);
+
+            $graduate = $application->graduate;
+            if (! $graduate) {
+                Log::warning('handleHireAction: no graduate relation found', ['application_id' => $application->id]);
+                DB::commit();
+                return;
+            }
+
+            // determine job title and company name (prefer offer values)
+            $jobTitle = $offer && !empty($offer->job_title) ? $offer->job_title : optional($application->job)->job_title;
+            $companyName = optional($application->job->company)->company_name ?? null;
+
+            // update graduate current job title and employment_status
+            $gradUpdates = [];
+            if ($jobTitle) $gradUpdates['current_job_title'] = $jobTitle;
+            $gradUpdates['employment_status'] = 'employed';
+            if (!empty($gradUpdates)) {
+                $graduate->update($gradUpdates);
+                Log::info('Graduate updated', ['graduate_id' => $graduate->id, 'updates' => $gradUpdates]);
+            }
+
+            /* Experience creation/update is currently commented out.
+               Only update graduate employment_status and current_job_title as requested.
+
+            // mark any existing current experiences as not current
+            Experience::where('graduate_id', $graduate->id)
+                ->where('is_current', true)
+                ->update([
+                    'is_current' => false,
+                    'end_date' => $startDate,
+                ]);
+            Log::info('Previous experiences marked not current', ['graduate_id' => $graduate->id]);
+
+            // avoid creating duplicate current experience - use updateOrCreate
+            $experienceData = [
+                'graduate_id'  => $graduate->id,
+                'title'        => $jobTitle,
+                'company_name' => $companyName,
+            ];
+
+            $jobDescription = optional($application->job)->job_description ?? ($offer->body ?? null);
+            $address = null;
+            try {
+                $firstLocation = optional($application->job)->locations()->first();
+                if ($firstLocation) $address = $firstLocation->address ?? null;
+            } catch (\Throwable $e) {
+                $address = null;
+            }
+
+            $attrs = [
+                'description' => $jobDescription,
+                'start_date'  => $startDate,
+                'end_date'    => null,
+                'is_current'  => true,
+                'address'     => $address,
+            ];
+
+            $exp = Experience::updateOrCreate($experienceData, $attrs);
+            Log::info('Experience created/updated', ['experience_id' => $exp->id ?? null, 'graduate_id' => $graduate->id]);
+            */
+
+            Log::info('Experience creation skipped (commented) - only updating graduate fields', ['graduate_id' => $graduate->id]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('handleHireAction failed for application '.$application->id.': '.$e->getMessage(), [
+                'application_id' => $application->id,
+                'exception' => $e,
+            ]);
         }
     }
 

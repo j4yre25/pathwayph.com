@@ -59,6 +59,9 @@ const selectedWorkEnvironmentLabel = computed(() => {
     return found ? found.environment_type : 'Not provided';
 });
 
+const isSuccessModalOpen = ref(false);
+const successMessage = ref('');
+
 const form = useForm({
     job_title: '',
     location: '',
@@ -142,6 +145,8 @@ watch(() => form.job_vacancies, (vacancies) => {
 const { validateLocation } = useWorkEnvironmentValidation(form);
 const { newSkill, showSuggestions, filteredSkills, addSkill, removeSkill, selectSuggestion, filterSuggestions } = useSkills(form, props.skills);
 
+console.log('newSkill:', newSkill);
+
 const showMissingFieldsModal = ref(false);
 const missingFields = ref([]);
 
@@ -181,15 +186,27 @@ const createJob = () => {
     }
 
     form.post(route('company.jobs.store', { user: page.props.auth.user.id }), {
-        onSuccess: () => {
-            router.visit(route('company.jobs', { user: page.props.auth.user.id }));
+        onSuccess: (inertiaPage) => {
+            const invitedCount = inertiaPage.props.flash?.job_invited_count ?? 0;
+            const plural = invitedCount === 1 ? 'graduate' : 'graduates';
+            const verb = invitedCount === 1 ? 'is' : 'are';
+            successMessage.value = `Job submitted for PESO approval. ${invitedCount} ${plural} ${verb} possible to be invited.`;
+            isSuccessModalOpen.value = true;
+            form.reset();
         },
         onError: (errors) => {
             console.log('Validation errors:', errors);
+        },
+        onFinish: () => {
+            form.processing = false;
         }
     });
 
-    
+
+}
+
+function onSkillFocus() {
+    showSuggestions.value = true;
 }
 
 </script>
@@ -213,7 +230,7 @@ const createJob = () => {
 
             </div>
         </template>
-        
+
         <!-- Modal for missing required fields -->
         <Modal :model-value="showMissingFieldsModal" @close="showMissingFieldsModal = false">
             <template #header>
@@ -237,10 +254,7 @@ const createJob = () => {
                 </div>
             </template>
             <template #footer>
-                <PrimaryButton
-                    class="bg-red-600 hover:bg-red-700 border-none"
-                    @click="showMissingFieldsModal = false"
-                >
+                <PrimaryButton class="bg-red-600 hover:bg-red-700 border-none" @click="showMissingFieldsModal = false">
                     <i class="fas fa-times mr-2"></i> Close
                 </PrimaryButton>
             </template>
@@ -367,32 +381,33 @@ const createJob = () => {
                                     <InputError class="mt-2" :message="form.errors.work_environment" />
                                 </div>
 
-                            <!-- Department Field -->
-                            <div>
-                                <InputLabel for="department_id">
-                                    Department
-                                    <span v-if="props.departments && props.departments.length" class="text-pink-500">*</span>
-                                </InputLabel>
-                                <template v-if="props.departments && props.departments.length">
-                                    <select id="department_id"
-                                        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                                        v-model="form.department_id"
-                                        required
-                                    >
-                                        <option value="">Select Department</option>
-                                        <option v-for="dep in props.departments" :key="dep.id" :value="dep.id">
-                                            {{ dep.department_name }}
-                                        </option>
-                                    </select>
-                                    <InputError class="mt-2" :message="form.errors.department_id" />
-                                </template>
-                                <template v-else>
-                                    <div class="mt-2 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
-                                        No departments found for your company.<br>
-                                        You can add a department in the HR & Departments tab. This field will be required once a department is added.
-                                    </div>
-                                </template>
-                            </div>
+                                <!-- Department Field -->
+                                <div>
+                                    <InputLabel for="department_id">
+                                        Department
+                                        <span v-if="props.departments && props.departments.length"
+                                            class="text-pink-500">*</span>
+                                    </InputLabel>
+                                    <template v-if="props.departments && props.departments.length">
+                                        <select id="department_id"
+                                            class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                                            v-model="form.department_id" required>
+                                            <option value="">Select Department</option>
+                                            <option v-for="dep in props.departments" :key="dep.id" :value="dep.id">
+                                                {{ dep.department_name }}
+                                            </option>
+                                        </select>
+                                        <InputError class="mt-2" :message="form.errors.department_id" />
+                                    </template>
+                                    <template v-else>
+                                        <div
+                                            class="mt-2 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
+                                            No departments found for your company.<br>
+                                            You can add a department in the HR & Departments tab. This field will be
+                                            required once a department is added.
+                                        </div>
+                                    </template>
+                                </div>
 
                             </div>
                             <!-- Job Location (disabled if Remote is selected) -->
@@ -400,9 +415,8 @@ const createJob = () => {
                                 <InputLabel for="location">
                                     Job Location <span class="text-pink-500" v-if="form.work_environment != 2">*</span>
                                 </InputLabel>
-                                <TextInput id="location" type="text" class="mt-1 block w-full"
-                                    v-model="form.location" :disabled="form.work_environment == 2"
-                                    :required="form.work_environment != 2"
+                                <TextInput id="location" type="text" class="mt-1 block w-full" v-model="form.location"
+                                    :disabled="form.work_environment == 2" :required="form.work_environment != 2"
                                     :placeholder="form.work_environment == 2 ? 'Remote job — no location needed' : 'Enter job location'" />
                                 <InputError class="mt-2" :message="form.errors.location" />
                             </div>
@@ -450,7 +464,8 @@ const createJob = () => {
                                         Minimum Salary <span class="text-pink-500" v-if="!form.is_negotiable">*</span>
                                     </InputLabel>
                                     <div class="relative mt-1">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
                                         <TextInput id="job_min_salary" type="number" class="pl-7 block w-full"
@@ -464,7 +479,8 @@ const createJob = () => {
                                         Maximum Salary <span class="text-pink-500" v-if="!form.is_negotiable">*</span>
                                     </InputLabel>
                                     <div class="relative mt-1">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <span class="text-gray-500 sm:text-sm">₱</span>
                                         </div>
                                         <TextInput id="max_salary" type="number" class="pl-7 block w-full"
@@ -513,13 +529,13 @@ const createJob = () => {
                             <!-- Skills -->
                             <div>
                                 <InputLabel for="skills">
-                                    Skills  <span class="text-pink-500">*</span>
+                                    Skills <span class="text-pink-500">*</span>
                                 </InputLabel>
                                 <div class="relative">
                                     <div class="flex mt-1">
-                                        <TextInput id="skills" type="text" class="block w-full" v-model="newSkill"
+                                        <input id="skills" type="text" class="block w-full" v-model="newSkill"
                                             placeholder="Enter a skill" @input="filterSuggestions"
-                                            @keyup.enter.prevent="addSkill" @focus="showSuggestions = true" />
+                                            @keyup.enter.prevent="addSkill" @focus="onSkillFocus" />
                                         <PrimaryButton type="button" @click="addSkill" class="ml-2">
                                             Add
                                         </PrimaryButton>
@@ -726,4 +742,21 @@ const createJob = () => {
             </div>
         </Container>
     </AppLayout>
+
+    <!-- Success Modal -->
+    <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+        <div class="p-6">
+            <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
+                <i class="fas fa-check text-green-500 text-xl"></i>
+            </div>
+            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Awaiting PESO Approval</h2>
+            <p class="text-center text-gray-600 whitespace-pre-line">{{ successMessage }}</p>
+            <div class="mt-6 flex justify-center">
+                <PrimaryButton
+                    @click="() => { isSuccessModalOpen = false; router.visit(route('company.jobs', { user: page.props.auth.user.id })); }">
+                    OK
+                </PrimaryButton>
+            </div>
+        </div>
+    </Modal>
 </template>

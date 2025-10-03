@@ -6,19 +6,25 @@ import PrimaryButton from '@/Components/PrimaryButton.vue'
 import { ref, computed } from 'vue'
 import '@fortawesome/fontawesome-free/css/all.css'
 import { Link } from '@inertiajs/vue3'
+import Modal from '@/Components/Modal.vue'
+
 
 const props = defineProps({
     jobs: Object, // Now an object with data, links, meta, etc.
+    kpiTotals: Object,
 })
+
+const isSuccessModalOpen = ref(false)
+const successMessage = ref('')
 
 const allJobs = computed(() => props.jobs.data ?? [])
 
 const kpi = computed(() => {
     return {
-        total: allJobs.value.length,
-        open: allJobs.value.filter(j => j.status === 'open').length,
-        closed: allJobs.value.filter(j => j.status === 'closed').length,
-        expired: allJobs.value.filter(j => j.status === 'expired').length,
+        total: props.kpiTotals?.total ?? 0,
+        open: props.kpiTotals?.open ?? 0,
+        closed: props.kpiTotals?.closed ?? 0,
+        expired: props.kpiTotals?.expired ?? 0,
     }
 })
 
@@ -58,6 +64,8 @@ function approveJob(job) {
         onFinish: () => {
             isActionLoading.value = false
             activeJobId.value = null
+            successMessage.value = 'Job approved successfully. The company has been notified.'
+            isSuccessModalOpen.value = true
         },
         onError: (err) => {
             actionError.value = err
@@ -74,6 +82,8 @@ function disapproveJob(job) {
         onFinish: () => {
             isActionLoading.value = false
             activeJobId.value = null
+            successMessage.value = 'Job disapproved. The company has been notified.'
+            isSuccessModalOpen.value = true
         },
         onError: (err) => {
             actionError.value = err
@@ -159,7 +169,8 @@ function disapproveJob(job) {
                             searchQuery = '';
                         companyQuery = '';
                         selectedStatus = '';
-                        " class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
+                        "
+                            class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
                             <i class="fas fa-undo mr-2"></i> Reset Filter
                         </button>
                     </div>
@@ -236,6 +247,9 @@ function disapproveJob(job) {
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status</th>
                                 <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Vacancies</th>
+                                <th
                                     class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions</th>
                             </tr>
@@ -250,15 +264,26 @@ function disapproveJob(job) {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-gray-500 text-sm">{{ new Date(job.created_at).toLocaleDateString()
-                                        }}</span>
+                                    }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span v-if="job.is_approved === 1"
-                                        class="px-3 py-1.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Approved</span>
+                                    <template v-if="job.is_approved === 1">
+                                        <span v-if="job.status === 'open'"
+                                            class="px-3 py-1.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Approved
+                                            & Active</span>
+                                        <span v-else
+                                            class="px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-200 text-gray-700">Approved
+                                            & Closed</span>
+                                    </template>
                                     <span v-else-if="job.is_approved === 0"
                                         class="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Disapproved</span>
                                     <span v-else
                                         class="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                </td>
+
+                                <td class="px-6 py-4 whitespace-nowrap">
+
+                                    <div class="text-gray-700">{{ job.job_vacancies }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="flex items-center justify-end space-x-2">
@@ -299,4 +324,18 @@ function disapproveJob(job) {
             </div>
         </Container>
     </AppLayout>
+
+
+    <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
+        <div class="p-6">
+            <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
+                <i class="fas fa-check text-green-500 text-xl"></i>
+            </div>
+            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Success</h2>
+            <p class="text-center text-gray-600">{{ successMessage }}</p>
+            <div class="mt-6 flex justify-center">
+                <PrimaryButton @click="isSuccessModalOpen = false">OK</PrimaryButton>
+            </div>
+        </div>
+    </Modal>
 </template>

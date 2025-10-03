@@ -3,11 +3,10 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import Container from '@/Components/Container.vue';
 import { usePage } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import DangerButton from '@/Components/DangerButton.vue';
-import { router } from '@inertiajs/vue3';
 import ConfirmationModal from '@/Components/ConfirmationModal.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 import Papa from 'papaparse';
@@ -21,7 +20,16 @@ const props = defineProps({
 });
 
 // Tab system
-const activeTab = ref('hr-officers');
+const initialTab = (() => {
+  try {
+    const qs = new URLSearchParams(page.url.split('?')[1] || '');
+    const t = qs.get('tab');
+    return t === 'departments' ? 'departments' : 'hr-officers';
+  } catch (e) {
+    return 'hr-officers';
+  }
+})();
+const activeTab = ref(initialTab);
 
 // Filter states
 const searchQuery = ref('');
@@ -53,13 +61,33 @@ const filteredHRs = computed(() => {
         return matchesSearch && matchesStatus;
     });
 });
-
 const filteredDepartments = computed(() => {
     if (!props.departments) return [];
     return props.departments.filter(dept => {
         const matchesSearch = dept.department_name.toLowerCase().includes(searchQuery.value.toLowerCase());
         return matchesSearch;
     });
+});
+
+// Pagination (10 per page)
+const perPage = 10;
+
+// HR pagination
+const currentPageHR = ref(1);
+const totalPagesHR = computed(() => Math.max(1, Math.ceil(filteredHRs.value.length / perPage)));
+const pagesHR = computed(() => Array.from({ length: totalPagesHR.value }, (_, i) => i + 1));
+const paginatedHRs = computed(() => {
+  const start = (currentPageHR.value - 1) * perPage;
+  return filteredHRs.value.slice(start, start + perPage);
+});
+
+// Departments pagination
+const currentPageDept = ref(1);
+const totalPagesDept = computed(() => Math.max(1, Math.ceil(filteredDepartments.value.length / perPage)));
+const pagesDept = computed(() => Array.from({ length: totalPagesDept.value }, (_, i) => i + 1));
+const paginatedDepartments = computed(() => {
+  const start = (currentPageDept.value - 1) * perPage;
+  return filteredDepartments.value.slice(start, start + perPage);
 });
 
 // Reset filters
@@ -69,10 +97,19 @@ function resetFilters() {
     selectedDepartment.value = '';
 }
 
-// Tab switching
+// Reset page when filters change
+watch(searchQuery, () => {
+  currentPageHR.value = 1;
+  currentPageDept.value = 1;
+});
+watch(selectedStatus, () => { currentPageHR.value = 1; });
+
+// When switching tab, keep page sane
 function switchTab(tab) {
     activeTab.value = tab;
     resetFilters();
+    currentPageHR.value = 1;
+    currentPageDept.value = 1;
 }
 
 // Department modal functions
@@ -351,49 +388,78 @@ const archiveUser = () => {
                 <div class="p-6">
                     <!-- HR Officers Tab -->
                     <div v-if="activeTab === 'hr-officers'">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full">
-                                <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
-                                    <tr>
-                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Full Name</th>
-                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email Address</th>
-                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact Details</th>
-                                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100 bg-white">
-                                    <tr v-for="hr in filteredHRs" :key="hr.User_Email" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="text-sm font-semibold text-gray-900">{{ hr.HR_Name }}</span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="text-sm text-gray-700">{{ hr.User_Email }}</span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="text-sm text-gray-700">{{ hr.Mob_Num }}</span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span :class="hr.Status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border shadow-sm">
-                                                <i :class="hr.Status === 'active' ? 'fas fa-check-circle mr-1.5' : 'fas fa-times-circle mr-1.5'"></i>
-                                                {{ hr.Status }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="filteredHRs.length === 0">
-                                        <td colspan="4" class="px-6 py-12 text-center">
-                                            <div class="flex flex-col items-center">
-                                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                                    <i class="fas fa-search text-gray-400 text-2xl"></i>
-                                                </div>
-                                                <p class="text-gray-500 text-lg font-medium">No HR officers found</p>
-                                                <p class="text-gray-400 text-sm mt-1">Try adjusting your search criteria</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full">
+      <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 text-sm font-semibold text-gray-700">
+        <tr>
+          <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Full Name</th>
+          <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email Address</th>
+          <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact Details</th>
+          <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <tr v-for="hr in paginatedHRs" :key="hr.User_Email" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="text-sm font-semibold text-gray-900">{{ hr.HR_Name }}</span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="text-sm text-gray-700">{{ hr.User_Email }}</span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="text-sm text-gray-700">{{ hr.Mob_Num }}</span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span :class="hr.Status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border shadow-sm">
+              <i :class="hr.Status === 'active' ? 'fas fa-check-circle mr-1.5' : 'fas fa-times-circle mr-1.5'"></i>
+              {{ hr.Status }}
+            </span>
+          </td>
+        </tr>
+        <tr v-if="filteredHRs.length === 0">
+          <td colspan="4" class="px-6 py-12 text-center">
+            <div class="flex flex-col items-center">
+              <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-search text-gray-400 text-2xl"></i>
+              </div>
+              <p class="text-gray-500 text-lg font-medium">No HR officers found</p>
+              <p class="text-gray-400 text-sm mt-1">Try adjusting your search criteria</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- HR pagination -->
+  <div v-if="filteredHRs.length > 0 && totalPagesHR > 1" class="flex items-center justify-between px-6 py-3 bg-white border-t border-gray-100">
+    <button
+      class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+      :disabled="currentPageHR === 1"
+      @click="currentPageHR--"
+    >
+      Prev
+    </button>
+    <div class="space-x-1">
+      <button
+        v-for="p in pagesHR"
+        :key="p"
+        class="px-3 py-1 text-sm rounded border"
+        :class="p === currentPageHR ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-50'"
+        @click="currentPageHR = p"
+      >
+        {{ p }}
+      </button>
+    </div>
+    <button
+      class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+      :disabled="currentPageHR === totalPagesHR"
+      @click="currentPageHR++"
+    >
+      Next
+    </button>
+  </div>
+</div>
 
                     <!-- Departments Tab -->
                     <div v-if="activeTab === 'departments'">
@@ -406,7 +472,7 @@ const archiveUser = () => {
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 bg-white">
-                                    <tr v-for="dept in filteredDepartments" :key="dept.id" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
+                                    <tr v-for="dept in paginatedDepartments" :key="dept.id" class="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 group">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="text-sm font-semibold text-gray-900">{{ dept.department_name }}</span>
                                         </td>
@@ -428,6 +494,35 @@ const archiveUser = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Departments pagination -->
+  <div v-if="filteredDepartments.length > 0 && totalPagesDept > 1" class="flex items-center justify-between px-6 py-3 bg-white border-t border-gray-100">
+    <button
+      class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+      :disabled="currentPageDept === 1"
+      @click="currentPageDept--"
+    >
+      Prev
+    </button>
+    <div class="space-x-1">
+      <button
+        v-for="p in pagesDept"
+        :key="p"
+        class="px-3 py-1 text-sm rounded border"
+        :class="p === currentPageDept ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-50'"
+        @click="currentPageDept = p"
+      >
+        {{ p }}
+      </button>
+    </div>
+    <button
+      class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+      :disabled="currentPageDept === totalPagesDept"
+      @click="currentPageDept++"
+    >
+      Next
+    </button>
+  </div>
                     </div>
                 </div>
             </div>
