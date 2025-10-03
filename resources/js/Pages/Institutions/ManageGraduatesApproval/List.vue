@@ -144,102 +144,84 @@ const formatDate = (dateString) => {
 
 <template>
     <AppLayout title="Graduate List">
-        <template #header>
-            <div>
+        <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            
+            <div class="flex items-center justify-between mb-8">
                 <div class="flex items-center">
-                    <button @click="$inertia.get(route('graduates.index'))" class="mr-4 text-gray-600 hover:text-gray-900 transition">
-                        <i class="fas fa-chevron-left"></i>
+                    <button @click="$inertia.get(route('graduates.index'))" class="mr-4 p-2 text-gray-500 hover:text-blue-600 transition duration-150 ease-in-out rounded-full hover:bg-gray-100">
+                        <i class="fas fa-arrow-left text-xl"></i>
                     </button>
-                    <i class="fas fa-user-graduate text-blue-500 text-xl mr-2"></i>
-                    <h2 class="text-2xl font-bold text-gray-800">Graduate List</h2>
+                    <div class="flex flex-col">
+                        <h1 class="text-3xl font-extrabold text-gray-900 flex items-center">
+                            <i class="fas fa-user-graduate text-blue-600 text-2xl mr-3"></i>
+                            Graduate Directory
+                        </h1>
+                        <p class="text-sm text-gray-500 mt-1">View and manage all graduate records, apply filters, and track statuses.</p>
+                    </div>
                 </div>
-                <p class="text-sm text-gray-500 mb-1">Manage and filter graduate records by program, date, and status.</p>
             </div>
-        </template>
 
-            <Container class="py-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div v-for="(stat, index) in stats" :key="index" 
                     :class="[
-                        'bg-white rounded-lg shadow-sm p-6 relative overflow-hidden',
-                        stat.border
+                        'bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 p-5 relative overflow-hidden',
+                        stat.border, 'border-l-4' // Using border-l-4 for a strong accent line
                     ]">
-                    <div class="flex justify-between items-start">
+                    <div class="flex justify-between items-center">
                         <div>
-                            <h3 class="text-gray-600 text-sm font-medium mb-2">{{ stat.title }}</h3>
-                            <p class="text-3xl font-bold text-gray-800">{{ stat.value }}</p>
+                            <h3 class="text-gray-500 text-xs font-semibold uppercase mb-1">{{ stat.title }}</h3>
+                            <p class="text-3xl font-extrabold text-gray-900">{{ stat.value }}</p>
                         </div>
-                        <div :class="[stat.iconBg, 'rounded-full p-3 flex items-center justify-center']">
-                            <i :class="[stat.icon, stat.iconColor]"></i>
+                        <div :class="[stat.iconBg, 'rounded-full p-3 flex items-center justify-center bg-opacity-70']">
+                            <i :class="[stat.icon, stat.iconColor, 'text-xl']"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Filter Section -->
-            <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-filter text-blue-500 mr-2"></i>
-                    Filter Graduates
+            <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-5 flex items-center border-b pb-3">
+                    <i class="fas fa-filter text-blue-600 mr-2"></i>
+                    Refine Search Filters
                 </h3>
-                <form @submit.prevent="applyFilters" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <!-- Program Filter -->
-                    <div class="flex flex-col">
-                        <label for="program" class="text-sm font-medium text-gray-700 mb-1">Program</label>
-                        <div class="relative">
-                            <select v-model="filters.program" id="program"
-                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none">
-                                <option value="all">All Programs</option>
-                                <option v-for="program in programs" :key="program" :value="program">
-                                    {{ program }}
-                                </option>
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
-                            </div>
-                        </div>
+                <form @submit.prevent="applyFilters" class="grid grid-cols-1 md:grid-cols-5 gap-5 items-end">
+                    
+                    <div class="col-span-1">
+                        <label for="program" class="text-sm font-medium text-gray-700 mb-1 block">Program</label>
+                        <select v-model="filters.program" id="program"
+                            class="w-full shadow-sm pl-3 pr-10 py-2.5 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition">
+                            <option value="all">All Programs</option>
+                            <option v-for="program in programs" :key="program" :value="program">
+                                {{ program }}
+                            </option>
+                        </select>
                     </div>
 
-                    <!-- Date Filters -->
-                    <div class="flex flex-col">
-                        <label for="date_from" class="text-sm font-medium text-gray-700 mb-1">Date From</label>
-                        <div class="relative">
-                            <input v-model="filters.date_from" type="date" id="date_from"
-                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                        </div>
+                    <div class="col-span-1">
+                        <label for="date_from" class="text-sm font-medium text-gray-700 mb-1 block">Date From (Creation)</label>
+                        <input v-model="filters.date_from" type="date" id="date_from"
+                            class="w-full shadow-sm pl-3 pr-10 py-2.5 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition">
                     </div>
 
-                    <div class="flex flex-col">
-                        <label for="date_to" class="text-sm font-medium text-gray-700 mb-1">Date To</label>
-                        <div class="relative">
-                            <input v-model="filters.date_to" type="date" id="date_to"
-                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                        </div>
+                    <div class="col-span-1">
+                        <label for="date_to" class="text-sm font-medium text-gray-700 mb-1 block">Date To (Creation)</label>
+                        <input v-model="filters.date_to" type="date" id="date_to"
+                            class="w-full shadow-sm pl-3 pr-10 py-2.5 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition">
                     </div>
 
-                    <!-- Status Filter -->
-                    <div class="flex flex-col">
-                        <label for="status" class="text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <div class="relative">
-                            <select v-model="filters.status" id="status"
-                                class="w-full pl-3 pr-10 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none appearance-none">
-                                <option value="all">All</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
-                            </div>
-                        </div>
+                    <div class="col-span-1">
+                        <label for="status" class="text-sm font-medium text-gray-700 mb-1 block">Status</label>
+                        <select v-model="filters.status" id="status"
+                            class="w-full shadow-sm pl-3 pr-10 py-2.5 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition">
+                            <option value="all">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
 
-                    <!-- Submit -->
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center">
+                    <div class="col-span-1">
+                        <button type="submit" 
+                            class="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md hover:shadow-lg flex items-center transform hover:scale-[1.01]">
                             <i class="fas fa-search mr-2"></i>
                             Apply Filters
                         </button>
@@ -247,78 +229,87 @@ const formatDate = (dateString) => {
                 </form>
             </div>
 
-            <!-- Table Section -->
-            <div class="overflow-x-auto bg-white shadow rounded-2xl">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50 text-gray-600 text-sm uppercase tracking-wide">
-                      <tr>
-                        <th class="px-6 py-4 text-left">Name</th>
-                        <th class="px-6 py-4 text-left">Program</th>
-                        <th class="px-6 py-4 text-left">Date Created</th>
-                        <th class="px-6 py-4 text-left">Status</th>
-                        <th class="px-6 py-4 text-left"></th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 text-sm text-gray-800">
-                      <tr v-for="graduate in graduates.data" :key="graduate.id" class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4">
-                          {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
-                        </td>
-                        <td class="px-6 py-4">{{ graduate.program_name }}</td>
-                        <td class="px-6 py-4">{{ formatDate(graduate.created_at) }}</td>
-                        <td class="px-6 py-4">
-                          <span :class="graduate.status === 'Active' ? 'text-green-600 font-semibold' : 'text-red-500 font-semibold'">
-                            {{ graduate.status }}
-                          </span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                          <Link :href="route('graduates.profile', { id: graduate.id })" title="View Portfolio">
-                            <EyeIcon class="w-5 h-5 text-blue-600 hover:text-blue-800 transition" />
-                          </Link>
-                        </td>
-                      </tr>
-                      <tr v-if="graduates.data.length === 0">
-                        <td colspan="5" class="text-center text-gray-400 py-6">
-                          No graduates found with current filters.
-                        </td>
-                      </tr>
-                    </tbody>
-                </table>
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Full Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Program</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date Created</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 text-sm text-gray-800">
+                            <tr v-for="graduate in graduates.data" :key="graduate.id" class="hover:bg-blue-50/50 transition duration-150">
+                                <td class="px-6 py-4 font-medium whitespace-nowrap">
+                                    {{ graduate.first_name }} {{ graduate.middle_name }} {{ graduate.last_name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ graduate.program_name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ formatDate(graduate.created_at) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span :class="[
+                                        'px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full',
+                                        graduate.status === 'Active' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'
+                                    ]">
+                                        {{ graduate.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right whitespace-nowrap">
+                                    <Link :href="route('graduates.profile', { id: graduate.id })" title="View Portfolio"
+                                          class="inline-flex items-center justify-center p-2 rounded-full hover:bg-gray-200 transition">
+                                        <EyeIcon class="w-5 h-5 text-blue-600 hover:text-blue-800" />
+                                    </Link>
+                                </td>
+                            </tr>
+                            <tr v-if="graduates.data.length === 0">
+                                <td colspan="5" class="text-center text-gray-400 py-10 text-lg font-medium">
+                                    <i class="fas fa-search-minus mr-2"></i>
+                                    No graduate records found matching the current filters.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Pagination Controls -->
-            <div class="mt-6 flex justify-center">
-              <nav v-if="graduates.links && graduates.links.length > 3" class="inline-flex -space-x-px">
-                <button
-                  v-for="(link, i) in graduates.links"
-                  :key="i"
-                  v-html="link.label"
-                  :disabled="!link.url"
-                  @click="$inertia.get(link.url)"
-                  :class="[
-                    'px-3 py-1 border text-sm',
-                    link.active ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100',
-                    i === 0 ? 'rounded-l' : '',
-                    i === graduates.links.length - 1 ? 'rounded-r' : ''
-                  ]"
-                ></button>
-              </nav>
-            </div>
-        </Container>
+            <div class="mt-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-lg border border-gray-100">
+                <p v-if="graduates.meta" class="text-sm text-gray-600">
+                    Showing {{ graduates.meta.from }} to {{ graduates.meta.to }} of {{ graduates.meta.total }} results
+                </p>
 
-        <!-- Date Error Modal -->
-        <div v-if="showDateErrorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
-                <h3 class="text-lg font-semibold text-red-600 mb-2">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    Invalid Date Range
+                <nav v-if="graduates.links && graduates.links.length > 3" class="inline-flex -space-x-px rounded-lg shadow-sm">
+                    <button
+                        v-for="(link, i) in graduates.links"
+                        :key="i"
+                        v-html="link.label"
+                        :disabled="!link.url"
+                        @click="$inertia.get(link.url)"
+                        :class="[
+                            'px-4 py-2 text-sm font-medium border transition duration-150',
+                            link.active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300',
+                            i === 0 ? 'rounded-l-lg' : '',
+                            i === graduates.links.length - 1 ? 'rounded-r-lg' : '',
+                            !link.url ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                        ]"
+                    ></button>
+                </nav>
+            </div>
+        </div>
+
+        <div v-if="showDateErrorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm transition-opacity">
+            <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full transform transition-all duration-300 scale-100 border-t-4 border-red-500">
+                <h3 class="text-2xl font-bold text-red-700 mb-3 flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-3"></i>
+                    Date Range Error
                 </h3>
-                <p class="mb-4 text-gray-700">
-                    Please ensure your 'Date To' is on or after your 'Date From'.
+                <p class="mb-6 text-gray-700">
+                    The 'Date From' filter cannot be set to a date later than the 'Date To' filter. Please correct your date selection and try again.
                 </p>
                 <button @click="closeDateErrorModal"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
-                    OK
+                        class="w-full bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-3 rounded-lg transition shadow-md">
+                    Got it
                 </button>
             </div>
         </div>
