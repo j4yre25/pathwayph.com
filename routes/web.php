@@ -667,6 +667,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         Route::post('/institutions/seminar-requests', [InstitutionCareerGuidanceController::class, 'storeSeminarRequest'])->name('institutions.seminar-requests.store');
         Route::post('/institutions/seminar-requests/{id}/cancel', [InstitutionCareerGuidanceController::class, 'cancelSeminarRequest'])->name('institutions.seminar-requests.cancel');
         Route::get('/institutions/seminar-requests/{id}', [InstitutionCareerGuidanceController::class, 'showSeminarRequest'])->name('institutions.seminar-requests.show');
+        Route::post('/{id}/attendance', [InstitutionCareerGuidanceController::class, 'storeAttendance'])->name('institutions.seminar-requests.attendance.store');
+        Route::get('/{id}/attendance', [InstitutionCareerGuidanceController::class, 'attendance'])->name('institutions.seminar-requests.attendance');
     });
 
 

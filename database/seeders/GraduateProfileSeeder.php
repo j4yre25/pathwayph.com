@@ -14,7 +14,7 @@ class GraduateProfileSeeder extends Seeder
      */
     public function run(): void
     {
-        $faker = Faker::create();
+        $faker = Faker::create('en_US'); // Ensure English locale
 
         $graduates = Graduate::all();
 
@@ -26,7 +26,7 @@ class GraduateProfileSeeder extends Seeder
                     'issuer' => $faker->company,
                     'date' => $faker->date(),
                     'description' => $faker->paragraph,
-                    'type' => $faker->word,
+                    'type' => $faker->randomElement(['Award', 'Recognition']), // Only allowed values
                 ]);
             }
 
@@ -42,22 +42,35 @@ class GraduateProfileSeeder extends Seeder
 
             // GraduateSkill
             if ($graduate->graduateSkills()->count() === 0) {
-                $skillId = rand(1, 10); // Adjust to your skills table
-                $graduate->graduateSkills()->create([
-                    'skill_id' => $skillId,
-                    'proficiency_type' => $faker->randomElement(['Beginner', 'Intermediate', 'Advanced']), // Use allowed values
-                    'type' => $faker->word,
-                    'years_experience' => rand(1, 5),
-                ]);
+                $numSkills = rand(4, 10); // Number of skills to add per graduate
+                for ($i = 0; $i < $numSkills; $i++) {
+                    $skillId = rand(1, 100); // Adjust to your skills table
+                    $graduate->graduateSkills()->create([
+                        'skill_id' => $skillId,
+                        'proficiency_type' => $faker->randomElement(['Beginner', 'Intermediate', 'Advanced']),
+                        'type' => $faker->randomElement(['Technical Skills', 'Soft Skills', 'Language Skills', 'Tool/Platform']),
+                        'years_experience' => rand(1, 5),
+                    ]);
+                }
             }
 
             // EmploymentPreference
             if (!$graduate->employmentPreference) {
+                $jobTypes = $faker->randomElements(['Full-time', 'Part-time'], rand(1, 2));
+                $workEnvs = $faker->randomElements(['Remote', 'On-site', 'Hybrid'], rand(1, 2));
+                $locations = $faker->randomElements([$faker->city, 'Gensan', 'General Santos City'], rand(1, 2));
+                $minSalary = $faker->numberBetween(250, 25000);
+                $maxSalary = $faker->numberBetween($minSalary + 100, $minSalary + 40000);
+
                 $graduate->employmentPreference()->create([
-                    'job_type' => [$faker->randomElement(['Full-time', 'Part-time'])],
-                    'work_environment' => [$faker->randomElement(['Office', 'Remote'])],
-                    'location' => [$faker->city, 'Gensan', 'General Santos City'],
-                    'additional_notes' => $faker->sentence,
+                    'job_type' => implode(',', $jobTypes),
+                    'work_environment' => implode(',', $workEnvs),
+                    'location' => implode(',', $locations),
+                    'employment_min_salary' => $minSalary,
+                    'employment_max_salary' => $maxSalary,
+                    'salary_id' => $faker->numberBetween(100, 200), // Adjust as needed
+                    'salary_type' => $faker->randomElement(['monthly', 'hourly']),
+                    'additional_notes' => $faker->optional()->sentence,
                 ]);
             }
 
@@ -82,7 +95,7 @@ class GraduateProfileSeeder extends Seeder
                     'description' => $faker->paragraph,
                     'start_date' => $faker->date(),
                     'end_date' => $faker->date(),
-                    'employment_type' => $faker->randomElement(['Full-time', 'Part-time']),
+                    'employment_type' => $faker->randomElement(['Full-time', 'Part-time', 'Freelance', 'Internship']),
                     'is_current' => $faker->boolean,
                 ]);
             }
