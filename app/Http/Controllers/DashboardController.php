@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\InstitutionSchoolYear;
 use App\Models\SchoolYear;
 use App\Models\InstitutionCareerOpportunity;
+use App\Models\SeminarRequest;
 use App\Models\CareerOpportunity;
 
 class DashboardController extends Controller
@@ -940,12 +941,12 @@ class DashboardController extends Controller
         $underemployed = $graduates->where('employment_status', 'Underemployed')->count();
         $unemployed = $graduates->where('employment_status', 'Unemployed')->count();
 
-        $referralsThisMonth = $this->filterByDate(
-            \App\Models\Referral::whereMonth('created_at', now()->month),
-            $year,
-            $dateFrom,
-            $dateTo
-        )->count();
+        $referralsThisMonth = \App\Models\Referral::where('status', 'success')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
+
+        $seminarRequests = SeminarRequest::with('institution')->orderByDesc('created_at')->count();;
 
 
         $companies = \App\Models\Company::select('id', 'company_name')->get();
@@ -1074,7 +1075,7 @@ class DashboardController extends Controller
                 'name' => $sector->name,
                 'value' => $sector->jobs_count,
             ])
-            ->toArray();    
+            ->toArray();
 
         $topSectorsChartOption = [
             'tooltip' => ['trigger' => 'item'],
@@ -1116,7 +1117,7 @@ class DashboardController extends Controller
                 'registeredJobSeekers' => $registeredJobSeekers,
                 'referralsThisMonth' => $referralsThisMonth,
                 'successfulPlacements' => 0,
-                'upcomingCareerGuidance' => 0,
+                'upcomingCareerGuidance' => $seminarRequests,
                 'pendingEmployerRegistrations' => 0,
                 'unemployed' => $unemployed,
                 'underemployed' => $underemployed,

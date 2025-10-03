@@ -10,8 +10,29 @@ import { Inertia } from "@inertiajs/inertia";
 import { useForm } from "@inertiajs/vue3";
 import jsPDF from "jspdf";
 import GraduateDashboard from "@/Pages/Frontend/GraduateDashboard.vue";
+import { router } from '@inertiajs/vue3';
 
+function goToRegisteredEmployers() {
+    router.get(route('admin.manage_users.list', { role: 'company' }));
+}
 
+function goToActiveJobListings() {
+    router.get(route('admin.jobs.index', { status: 'open' }));
+}
+
+function goToJobSeekerDemographics() {
+    router.get(route('peso.reports.diversity'), { reportType: 'job-seeker-demographics' });
+}
+
+function goToEmploymentOverview() {
+    router.get(route('peso.reports.employment'), { reportType: 'employment-overview' });
+}
+function goToReferralIssued() {
+    router.get(route('peso.job-referrals.index'), { status: 'success' });
+}
+function goToUpcomingCareerGuidance() {
+    router.get(route('peso.career-guidance'), { status: 'approved' });
+}
 
 const page = usePage();
 const userNotApproved = computed(() => page.props.userNotApproved ?? false);
@@ -255,8 +276,8 @@ function submitReferral() {
             <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-9 mb-9">
                 <div class="grid grid-cols-8 gap-4">
                     <!-- Employees Card -->
-                    <div
-                        class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                        @click="goToRegisteredEmployers" title="View all registered employers">
                         <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-users text-white"></i>
                         </div>
@@ -265,8 +286,8 @@ function submitReferral() {
                     </div>
 
                     <!-- Clients Card -->
-                    <div
-                        class="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                    <div class="bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                        @click="goToActiveJobListings" title="View all active job listings">
                         <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-briefcase text-white"></i>
                         </div>
@@ -275,18 +296,19 @@ function submitReferral() {
                     </div>
 
                     <!-- Projects Card -->
-                    <div
-                        class="bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
-                        <div class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center mb-2">
-                            <i class="fas fa-project-diagram text-white"></i>
+                    <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                        @click="goToJobSeekerDemographics" title="View job seeker demographics">
+                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-user-friends text-white"></i>
                         </div>
-                        <span class="text-cyan-700 text-xs font-medium text-center">Registered Job Seekers</span>
-                        <span class="text-cyan-900 text-lg font-bold">{{ kpi.registeredJobSeekers }}</span>
+                        <span class="text-green-700 text-xs font-medium text-center">Registered Job Seekers</span>
+                        <span class="text-green-900 text-lg font-bold">{{ kpi.registeredJobSeekers }}</span>
                     </div>
 
                     <!-- Events Card -->
                     <div
-                        class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        class="bg-gradient-to-br from-red-100 to-red-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                         @click="goToReferralIssued" title="View referrals issued">
                         <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-calendar-alt text-white"></i>
                         </div>
@@ -296,7 +318,8 @@ function submitReferral() {
 
                     <!-- Reports Card -->
                     <div
-                        class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                         @click="goToUpcomingCareerGuidance" title="View upcoming career guidance">
                         <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-chart-bar text-white"></i>
                         </div>
@@ -306,7 +329,8 @@ function submitReferral() {
 
                     <!-- Unemployed Card -->
                     <div
-                        class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                          @click="goToEmploymentOverview" title="View Employment Overview">
                         <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-user-times text-white"></i>
                         </div>
@@ -316,7 +340,8 @@ function submitReferral() {
 
                     <!-- Underemployed Card -->
                     <div
-                        class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                         @click="goToEmploymentOverview" title="View Employment Overview">
                         <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-user-clock text-white"></i>
                         </div>
@@ -326,7 +351,8 @@ function submitReferral() {
 
                     <!-- Employed Card -->
                     <div
-                        class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden">
+                        class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px] relative overflow-hidden cursor-pointer hover:shadow-lg transition"
+                         @click="goToEmploymentOverview" title="View Employment Overview">
                         <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
                             <i class="fas fa-user-check text-white"></i>
                         </div>
@@ -430,7 +456,7 @@ function submitReferral() {
                             </tbody>
                         </table>
                     </div>
-                    
+
                 </div>
             </div>
 
@@ -486,10 +512,8 @@ function submitReferral() {
             <GraduateDashboard :summary="page.props.summary" :kpi="page.props.kpi"
                 :recommendedJobs="page.props.recommendedJobs" :graduate="page.props.graduate"
                 :aboutMe="page.props.aboutMe" :currentJob="page.props.currentJob"
-                :highestEducation="page.props.highestEducation"
-                :featuredCompanies="page.props.featuredCompanies"
-                :careerGoals="page.props.careerGoals"
-                :vacancyStats="page.props.vacancyStats" />
+                :highestEducation="page.props.highestEducation" :featuredCompanies="page.props.featuredCompanies"
+                :careerGoals="page.props.careerGoals" :vacancyStats="page.props.vacancyStats" />
         </div>
 
 

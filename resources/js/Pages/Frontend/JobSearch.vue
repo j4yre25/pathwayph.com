@@ -11,11 +11,39 @@ import axios from 'axios';
 // Props and Page Data
 const { props } = usePage();
 const appliedJobIds = props.appliedJobIds ?? [];
-const jobOffers = ref(props.jobOffers ?? []);
+const jobOffers = ref(props.jobOffers ?? []);   
 
 // Tabs and toggle state
 const activeTab = ref('jobs'); // 'jobs' or 'applications'
 const showApplied = ref(false);
+
+onMounted(() => {
+  setTabFromQuery();
+});
+
+watch(
+  () => props.query && props.query.tab,
+  (tab) => {
+    if (tab === 'applications') {
+      activeTab.value = 'applications';
+    } else if (tab === 'jobs') {
+      activeTab.value = 'jobs';
+    }
+  },
+  { immediate: true }
+);
+
+function setTabFromQuery() {
+  const tab = props.tab || (props.query && props.query.tab);
+  if (tab === 'applications') {
+    activeTab.value = 'applications';
+  } else if (tab === 'jobs') {
+    activeTab.value = 'jobs';
+  }
+}
+
+console.log('JobSearch.vue props:', props);
+console.log('JobSearch.vue props.query:', props.query);
 
 // State Management
 const searchQuery = ref('');
@@ -107,6 +135,8 @@ function currentFilters(overrides = {}) {
   params.page = page.value;
   return { ...params, ...overrides };
 }
+
+console.log("Jobs", filteredJobs.value)
 
 // Toggle to show/hide applied jobs
 function toggleShowApplied() {

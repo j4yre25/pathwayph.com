@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Job;
 use App\Models\JobApplication;
 use App\Models\JobOffer;
+use App\Models\Referral;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -75,7 +76,7 @@ class GraduateJobsController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        
+
         $graduateId = $user && $user->graduate ? $user->graduate->id : null;
 
         $myApplications = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
@@ -210,7 +211,8 @@ class GraduateJobsController extends Controller
             'jobTypes' => $jobTypes,
             'locations' => $locations,
             'experienceLevels' => $experienceLevels,
-            'jobOffers' => $jobOffers, 
+            'jobOffers' => $jobOffers,
+            'query' => $request->query(),
         ]);
     }
     public function search(Request $request)
@@ -400,7 +402,7 @@ class GraduateJobsController extends Controller
             return $job;
         });
 
-         $jobOffers = [];
+        $jobOffers = [];
         if ($user && $user->graduate) {
             $graduateId = $user->graduate->id;
             $jobOffers = JobOffer::with(['application.job.company', 'message'])
@@ -438,11 +440,14 @@ class GraduateJobsController extends Controller
             'locations' => $locations,
             'experienceLevels' => $experienceLevels,
             'jobOffers' => $jobOffers,
+            'query' => $request->query(),
+
+
         ]);
     }
 
 
-    public function recommendations()
+    public function recommendations(Request $request)
     {
         $user = Auth::user();
         $graduate = $user->graduate;
@@ -473,123 +478,106 @@ class GraduateJobsController extends Controller
         $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
         $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
 
-        // $pastKeywords = \App\Models\JobSearchHistory::where('graduate_id', $graduate->id)
-        //     ->orderBy('created_at', 'desc')
-        //     ->limit(10)
-        //     ->pluck('keywords')
-        //     ->unique()
-        //     ->toArray();
+        // Get search keywords (for m10)
+        $searchKeywords = $request->input('keywords', null);
 
-        // Build the recommendation query
+        // Define weights for each criterion (consistent with methodology)
+        $weights = [
+            'skills' => 3,
+            'education' => 2,
+            'experience' => 2,
+            'job_type' => 1,
+            'location' => 1,
+            'work_environment' => 1,
+            'min_salary' => 1,
+            'max_salary' => 1,
+            'salary_type' => 1,
+            'keywords' => 2, // m10: search keywords
+        ];
+
         $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
-
         $recommendations = [];
 
         foreach ($jobs as $job) {
             $labels = [];
             $score = 0;
-            $criteria = 0;
+            $totalWeight = array_sum($weights);
 
-            // Skills
-            $criteria++;
-            $skillMatch = false;
+            // m1: Skills (binary)
+            $skillMatch = 0;
             foreach ($graduateSkills as $skill) {
                 if (stripos(json_encode($job->skills), $skill) !== false) {
                     $labels[] = 'Skills';
-                    $skillMatch = true;
+                    $skillMatch = 1;
                     break;
                 }
             }
-            if ($skillMatch) $score++;
+            $score += $skillMatch * $weights['skills'];
 
-            // Education
-            $criteria++;
-            $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
-            if ($educationMatch) {
-                $labels[] = 'Education';
-                $score++;
-            }
+            // m2: Education (binary)
+            $educationMatch = ($program && stripos($job->job_requirements, $program) !== false) ? 1 : 0;
+            if ($educationMatch) $labels[] = 'Education';
+            $score += $educationMatch * $weights['education'];
 
-            // Experience
-            $criteria++;
-            $experienceMatch = false;
+            // m3: Experience (binary)
+            $experienceMatch = 0;
             foreach ($experienceTitles as $title) {
                 if (stripos($job->job_title, $title) !== false) {
                     $labels[] = 'Experience';
-                    $experienceMatch = true;
+                    $experienceMatch = 1;
                     break;
                 }
             }
-            if ($experienceMatch) $score++;
+            $score += $experienceMatch * $weights['experience'];
 
-            // Preferred Job Type
-            $criteria++;
-            $jobTypeMatch = in_array($job->job_type, $preferredJobTypes);
-            if ($jobTypeMatch) {
-                $labels[] = 'Preferred Job Type';
-                $score++;
+            // m4: Preferred Job Type (binary)
+            $jobTypeMatch = in_array($job->job_type, $preferredJobTypes) ? 1 : 0;
+            if ($jobTypeMatch) $labels[] = 'Preferred Job Type';
+            $score += $jobTypeMatch * $weights['job_type'];
+
+            // m5: Preferred Location (binary)
+            $locationMatch = in_array($job->location, $preferredLocations) ? 1 : 0;
+            if ($locationMatch) $labels[] = 'Preferred Location';
+            $score += $locationMatch * $weights['location'];
+
+            // m6: Preferred Work Environment (binary)
+            $workEnvMatch = in_array($job->work_environment, $preferredWorkEnvironments) ? 1 : 0;
+            if ($workEnvMatch) $labels[] = 'Preferred Work Environment';
+            $score += $workEnvMatch * $weights['work_environment'];
+
+            // m7: Preferred Min Salary (binary)
+            $minSalaryMatch = ($minSalary && $job->job_min_salary >= $minSalary) ? 1 : 0;
+            if ($minSalaryMatch) $labels[] = 'Preferred Min Salary';
+            $score += $minSalaryMatch * $weights['min_salary'];
+
+            // m8: Preferred Max Salary (binary)
+            $maxSalaryMatch = ($maxSalary && $job->job_max_salary <= $maxSalary) ? 1 : 0;
+            if ($maxSalaryMatch) $labels[] = 'Preferred Max Salary';
+            $score += $maxSalaryMatch * $weights['max_salary'];
+
+            // m9: Preferred Salary Type (binary)
+            $salaryTypeMatch = ($salaryType && stripos($job->job_salary_type, $salaryType) !== false) ? 1 : 0;
+            if ($salaryTypeMatch) $labels[] = 'Preferred Salary Type';
+            $score += $salaryTypeMatch * $weights['salary_type'];
+
+            // m10: Search Keywords (binary, match in job title or description)
+            $keywordsMatch = 0;
+            if ($searchKeywords) {
+                $kw = strtolower($searchKeywords);
+                $title = strtolower($job->job_title ?? '');
+                $desc = strtolower($job->job_description ?? '');
+                if (strpos($title, $kw) !== false || strpos($desc, $kw) !== false) {
+                    $labels[] = 'Keywords';
+                    $keywordsMatch = 1;
+                }
             }
-
-            // Preferred Location
-            $criteria++;
-            $locationMatch = in_array($job->location, $preferredLocations);
-            if ($locationMatch) {
-                $labels[] = 'Preferred Location';
-                $score++;
-            }
-
-            // Preferred Work Environment
-            $criteria++;
-            $workEnvMatch = in_array($job->work_environment, $preferredWorkEnvironments);
-            if ($workEnvMatch) {
-                $labels[] = 'Preferred Work Environment';
-                $score++;
-            }
-
-            // Preferred Min Salary
-            $criteria++;
-            $minSalaryMatch = $minSalary && $job->job_min_salary >= $minSalary;
-            if ($minSalaryMatch) {
-                $labels[] = 'Preferred Min Salary';
-                $score++;
-            }
-
-            // Preferred Max Salary
-            $criteria++;
-            $maxSalaryMatch = $maxSalary && $job->job_max_salary <= $maxSalary;
-            if ($maxSalaryMatch) {
-                $labels[] = 'Preferred Max Salary';
-                $score++;
-            }
-
-            // Preferred Salary Type
-            $criteria++;
-            $salaryTypeMatch = $salaryType && stripos($job->job_salary_type, $salaryType) !== false;
-            if ($salaryTypeMatch) {
-                $labels[] = 'Preferred Salary Type';
-                $score++;
-            }
-
-            // // Past Search Keywords
-            // $criteria++;
-            // $pastKeywordMatch = false;
-            // foreach ($pastKeywords as $keyword) {
-            //     if (
-            //         stripos($job->job_title, $keyword) !== false ||
-            //         stripos($job->job_description, $keyword) !== false
-            //     ) {
-            //         $labels[] = 'Past Search';
-            //         $pastKeywordMatch = true;
-            //         break;
-            //     }
-            // }
-            // if ($pastKeywordMatch) $score++;
+            $score += $keywordsMatch * $weights['keywords'];
 
             // Only include jobs with at least one label (i.e., a match)
             if (!empty($labels)) {
                 $job->match_labels = array_unique($labels);
                 $job->match_score = $score;
-                $job->match_percentage = round(($score / $criteria) * 100);
+                $job->match_percentage = $totalWeight > 0 ? round(($score / $totalWeight) * 100) : 0;
                 $recommendations[] = $job;
             }
         }
@@ -599,8 +587,6 @@ class GraduateJobsController extends Controller
 
         // Limit to 5 recommendations
         $recommendations = array_slice($recommendations, 0, 10);
-
-        
 
         return response()->json(['recommendations' => $recommendations]);
     }
@@ -673,7 +659,7 @@ class GraduateJobsController extends Controller
         return back()->with('success', 'Application submitted successfully.');
     }
 
-     public function requestReferral(Request $request)
+    public function requestReferral(Request $request)
     {
         $user = auth()->user();
         $graduate = $user->graduate;
@@ -709,7 +695,7 @@ class GraduateJobsController extends Controller
         } elseif (is_array($job->job_type)) {
             $jobTypeNames = array_values(array_filter($job->job_type, fn($v) => !is_null($v) && $v !== ''));
         } elseif (is_string($job->job_type) && $job->job_type !== '') {
-            $jobTypeNames = [ $job->job_type ];
+            $jobTypeNames = [$job->job_type];
         }
 
         // Map Work Environment IDs to labels
@@ -753,7 +739,7 @@ class GraduateJobsController extends Controller
                 ->where('job_id', $job->id)
                 ->first();
         }
-        
+
 
         return Inertia::render('Frontend/GraduateJobDetails', [
             'job' => $job,
@@ -801,6 +787,57 @@ class GraduateJobsController extends Controller
             'jobOffers' => $jobOffers,
         ]);
     }
+
+    public function showReferrals(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->graduate) {
+            abort(403);
+        }
+
+        $query = Referral::with(['job.company'])
+            ->where('graduate_id', $user->graduate->id);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('company')) {
+            $query->whereHas('job.company', function ($q) use ($request) {
+                $q->where('company_name', 'like', '%' . $request->company . '%');
+            });
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('job', fn($sub) => $sub->where('job_title', 'like', "%$search%"))
+                    ->orWhereHas('job.company', fn($sub) => $sub->where('company_name', 'like', "%$search%"));
+            });
+        }
+
+        $referrals = $query->latest()->paginate(10)->withQueryString();
+
+        $referralData = $referrals->getCollection()->map(function ($ref) {
+            return [
+                'id' => $ref->id,
+                'job_title' => $ref->job ? $ref->job->job_title : 'N/A',
+                'company' => $ref->job && $ref->job->company ? $ref->job->company->company_name : 'N/A',
+                'status' => $ref->status,
+                'referred_at' => $ref->created_at ? $ref->created_at->toDateString() : '',
+                'certificate_path' => $ref->certificate_path,
+            ];
+        });
+
+        $referrals->setCollection($referralData);
+
+        return Inertia::render('Frontend/JobReferrals', [
+            'referrals' => $referrals,
+            'filters' => [
+                'status' => $request->status,
+                'company' => $request->company,
+                'search' => $request->search,
+            ],
+        ]);
+    }
     public function showOffer(Request $request, $id)
     {
         $user = Auth::user();
@@ -829,6 +866,24 @@ class GraduateJobsController extends Controller
             ],
         ]);
     }
+
+    public function viewCertificate(Referral $referral)
+    {
+        if (!$referral->certificate_path || !\Storage::disk('private')->exists($referral->certificate_path)) {
+            abort(404);
+        }
+        $mime = \Storage::disk('private')->mimeType($referral->certificate_path);
+        $headers = [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . basename($referral->certificate_path) . '"'
+        ];
+        return response()->file(
+            storage_path('app/private/' . $referral->certificate_path),
+            $headers
+        );
+    }
+
+
 
     public function acceptOffer(Request $request, $id)
     {
@@ -864,48 +919,48 @@ class GraduateJobsController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            \Log::warning('Failed to insert job_application_action_logs for offer accept: '.$e->getMessage());
+            \Log::warning('Failed to insert job_application_action_logs for offer accept: ' . $e->getMessage());
         }
 
         // Notify employer HR users associated with the job's company
-       try {
-        $application = $offer->application()->with('job')->first();
-        $companyId = $application->job->company_id ?? null;
+        try {
+            $application = $offer->application()->with('job')->first();
+            $companyId = $application->job->company_id ?? null;
 
-        if ($companyId) {
-            $hrUserIds = DB::table('human_resources')
-                ->where('company_id', $companyId)
-                ->pluck('user_id')
-                ->filter()
-                ->unique()
-                ->toArray();
+            if ($companyId) {
+                $hrUserIds = DB::table('human_resources')
+                    ->where('company_id', $companyId)
+                    ->pluck('user_id')
+                    ->filter()
+                    ->unique()
+                    ->toArray();
 
-            Log::info('Offer notify hrUserIds', ['company_id' => $companyId, 'hrUserIds' => $hrUserIds]);
+                Log::info('Offer notify hrUserIds', ['company_id' => $companyId, 'hrUserIds' => $hrUserIds]);
 
-            if (!empty($hrUserIds)) {
-                $users = User::whereIn('id', $hrUserIds)->get();
-                Log::info('Offer notify users found', ['count' => $users->count()]);
+                if (!empty($hrUserIds)) {
+                    $users = User::whereIn('id', $hrUserIds)->get();
+                    Log::info('Offer notify users found', ['count' => $users->count()]);
 
-                $url = url('/company/applicants/'.$application->id); // employer target
+                    $url = url('/company/applicants/' . $application->id); // employer target
 
-                foreach ($users as $u) {
-                    try {
-                        // use instance notify to ensure delivery to database channel
-                        $u->notify(new OfferAcceptedNotification($application, $offer, $message, $url));
-                        Log::info('Notification sent to user', ['user_id' => $u->id, 'offer_id' => $offer->id]);
-                    } catch (\Throwable $e) {
-                        Log::error('Failed to notify user '.$u->id, ['error' => $e->getMessage()]);
+                    foreach ($users as $u) {
+                        try {
+                            // use instance notify to ensure delivery to database channel
+                            $u->notify(new OfferAcceptedNotification($application, $offer, $message, $url));
+                            Log::info('Notification sent to user', ['user_id' => $u->id, 'offer_id' => $offer->id]);
+                        } catch (\Throwable $e) {
+                            Log::error('Failed to notify user ' . $u->id, ['error' => $e->getMessage()]);
+                        }
                     }
+                } else {
+                    Log::warning('No HR user ids found for company', ['company_id' => $companyId]);
                 }
             } else {
-                Log::warning('No HR user ids found for company', ['company_id' => $companyId]);
+                Log::warning('No company associated with application when notifying HR', ['application_id' => $application->id ?? null]);
             }
-        } else {
-            Log::warning('No company associated with application when notifying HR', ['application_id' => $application->id ?? null]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to notify HR on offer accept/decline: ' . $e->getMessage());
         }
-    } catch (\Throwable $e) {
-        Log::warning('Failed to notify HR on offer accept/decline: '.$e->getMessage());
-    }
 
         return back()->with('success', 'Offer accepted.');
     }
@@ -916,7 +971,7 @@ class GraduateJobsController extends Controller
         $offer = JobOffer::findOrFail($id);
         $application = JobApplication::find($offer->job_application_id);
 
-         // basic ownership check - ensure it belongs to this graduate
+        // basic ownership check - ensure it belongs to this graduate
         if (!$user || !$user->graduate || ($offer->application->graduate_id ?? null) !== $user->graduate->id) {
             abort(403);
         }
@@ -945,11 +1000,11 @@ class GraduateJobsController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            \Log::warning('Failed to insert job_application_action_logs for offer decline: '.$e->getMessage());
+            \Log::warning('Failed to insert job_application_action_logs for offer decline: ' . $e->getMessage());
         }
 
         // Notify employer HR users associated with the job's company
-       try {
+        try {
             $application = $offer->application()->with('job')->first();
             $companyId = $application->job->company_id ?? null;
 
@@ -967,7 +1022,7 @@ class GraduateJobsController extends Controller
                     $users = User::whereIn('id', $hrUserIds)->get();
                     Log::info('Offer notify users found', ['count' => $users->count()]);
 
-                    $url = url('/company/applicants/'.$application->id); // employer target
+                    $url = url('/company/applicants/' . $application->id); // employer target
 
                     foreach ($users as $u) {
                         try {
@@ -975,7 +1030,7 @@ class GraduateJobsController extends Controller
                             $u->notify(new OfferDeclinedNotification($application, $offer, $message, $url));
                             Log::info('Notification sent to user', ['user_id' => $u->id, 'offer_id' => $offer->id]);
                         } catch (\Throwable $e) {
-                            Log::error('Failed to notify user '.$u->id, ['error' => $e->getMessage()]);
+                            Log::error('Failed to notify user ' . $u->id, ['error' => $e->getMessage()]);
                         }
                     }
                 } else {
@@ -985,7 +1040,7 @@ class GraduateJobsController extends Controller
                 Log::warning('No company associated with application when notifying HR', ['application_id' => $application->id ?? null]);
             }
         } catch (\Throwable $e) {
-            Log::warning('Failed to notify HR on offer accept/decline: '.$e->getMessage());
+            Log::warning('Failed to notify HR on offer accept/decline: ' . $e->getMessage());
         }
 
         return back()->with('success', 'Offer declined.');

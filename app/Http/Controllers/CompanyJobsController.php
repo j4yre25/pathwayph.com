@@ -62,12 +62,12 @@ class CompanyJobsController extends Controller
     }
 
     protected function abortIfOnHold($user = null)
-{
-    $user = $user ?: auth()->user();
-    if ($user->status === 'on_hold') {
-        abort(403, 'Your company account is currently on hold. Please contact PESO for assistance.');
+    {
+        $user = $user ?: auth()->user();
+        if ($user->status === 'on_hold') {
+            abort(403, 'Your company account is currently on hold. Please contact PESO for assistance.');
+        }
     }
-}
 
 
 
@@ -126,7 +126,7 @@ class CompanyJobsController extends Controller
 
     public function store(Request $request, User $user)
     {
-            $this->abortIfOnHold($user);
+        $this->abortIfOnHold($user);
 
         $validated = $request->validate([
             'job_title' => [
@@ -191,14 +191,14 @@ class CompanyJobsController extends Controller
 
         $invitedCount = $this->autoScreenAndInvite($new_job, 30);
 
-        // Notify graduates of the new job posting
-        $this->notifyGraduates($new_job);
+
 
         $pesoUsers = User::where('role', 'peso')->get();
         foreach ($pesoUsers as $pesoUser) {
             $pesoUser->notify(new NewCompanyJobPostedNotification($new_job));
         }
-
+        // Notify graduates of the new job posting
+        $this->notifyGraduates($new_job);
 
         return redirect()
            ->route('company.jobs.create', ['user' => $user->id])
@@ -236,7 +236,7 @@ class CompanyJobsController extends Controller
     // 2. Batch Upload Handler
     public function batchUpload(Request $request)
     {
-            $this->abortIfOnHold(auth()->user());
+        $this->abortIfOnHold(auth()->user());
 
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt,xlsx,xls',
@@ -642,7 +642,7 @@ class CompanyJobsController extends Controller
 
     public function update(Request $request, Job $job)
     {
-            $this->abortIfOnHold(auth()->user());
+        $this->abortIfOnHold(auth()->user());
 
         $validated = $request->validate([
             'job_title' => [
@@ -907,7 +907,7 @@ class CompanyJobsController extends Controller
         return redirect()->back()->with('flash.banner', 'Job restored successfully.');
     }
 
-    protected function notifyGraduates(Job $new_job)
+    public function notifyGraduates(Job $new_job)
     {
         // Find graduates whose preferences match the new job
         $graduates = Graduate::whereHas('employmentPreference', function ($q) use ($new_job) {

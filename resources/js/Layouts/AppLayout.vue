@@ -311,6 +311,10 @@ onMounted(() => {
                   :active="route().current('job.search')" :disabled="!page.props.auth.user.is_approved">
                   Find Jobs
                 </NavLink>
+                <NavLink v-if="page.props.auth.user.role === 'graduate'" :href="route('graduate.referrals')"
+                  :active="route().current('graduate.referrals')" :disabled="!page.props.auth.user.is_approved">
+                  Referrals
+                </NavLink>
 
               </div>
 

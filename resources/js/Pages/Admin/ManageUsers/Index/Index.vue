@@ -17,6 +17,8 @@ const props = defineProps({
 });
 
 
+
+
 const showModal = ref(false);
 const userToArchive = ref(null);
 
@@ -63,8 +65,11 @@ const archiveUser = () => {
 const showVerificationModal = ref(false);
 const userToVerify = ref(null);
 
+
+
 function openVerificationModal(user) {
     userToVerify.value = user;
+    console.log('userToVerify:', user);
     showVerificationModal.value = true;
 }
 
@@ -313,7 +318,7 @@ watch(filters, () => {
                 </Link>
             </div>
 
-           
+
 
             <!-- Table Card -->
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -440,41 +445,42 @@ watch(filters, () => {
 
                 </div>
 
-                 <div v-if="all_users.links && all_users.links.length"
-                class="px-4 py-3 flex items-center justify-between border-t border-gray-200">
-                <div class="flex-1 flex justify-between sm:hidden">
-                    <a v-if="all_users.prev_page_url" @click.prevent="goTo(all_users.prev_page_url)"
-                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
-                        <i class="fas fa-chevron-left mr-2"></i> Previous
-                    </a>
-                    <a v-if="all_users.next_page_url" @click.prevent="goTo(all_users.next_page_url)"
-                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
-                        Next <i class="fas fa-chevron-right ml-2"></i>
-                    </a>
-                </div>
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-gray-700">
-                            Showing <span class="font-medium">{{ all_users.from }}</span> to <span
-                                class="font-medium">{{
-                                    all_users.to }}</span> of <span class="font-medium">{{ all_users.total }}</span>
-                            results
-                        </p>
+                <div v-if="all_users.links && all_users.links.length"
+                    class="px-4 py-3 flex items-center justify-between border-t border-gray-200">
+                    <div class="flex-1 flex justify-between sm:hidden">
+                        <a v-if="all_users.prev_page_url" @click.prevent="goTo(all_users.prev_page_url)"
+                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                            <i class="fas fa-chevron-left mr-2"></i> Previous
+                        </a>
+                        <a v-if="all_users.next_page_url" @click.prevent="goTo(all_users.next_page_url)"
+                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                            Next <i class="fas fa-chevron-right ml-2"></i>
+                        </a>
                     </div>
-                    <div>
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            <a v-for="(link, idx) in all_users.links" :key="link.label + idx" v-html="link.label"
-                                @click.prevent="link.url ? goTo(link.url) : null" :class="[
-                                    link.url ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed',
-                                    link.active ? 'z-10 bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-gray-300 text-gray-500',
-                                    link.label.includes('Previous') ? 'rounded-l-md' : '',
-                                    link.label.includes('Next') ? 'rounded-r-md' : '',
-                                    'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
-                                ]"></a>
-                        </nav>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Showing <span class="font-medium">{{ all_users.from }}</span> to <span
+                                    class="font-medium">{{
+                                        all_users.to }}</span> of <span class="font-medium">{{ all_users.total }}</span>
+                                results
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                aria-label="Pagination">
+                                <a v-for="(link, idx) in all_users.links" :key="link.label + idx" v-html="link.label"
+                                    @click.prevent="link.url ? goTo(link.url) : null" :class="[
+                                        link.url ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed',
+                                        link.active ? 'z-10 bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-gray-300 text-gray-500',
+                                        link.label.includes('Previous') ? 'rounded-l-md' : '',
+                                        link.label.includes('Next') ? 'rounded-r-md' : '',
+                                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                                    ]"></a>
+                            </nav>
+                        </div>
                     </div>
                 </div>
-            </div>
 
 
                 <!-- Empty State -->
@@ -532,38 +538,108 @@ watch(filters, () => {
                     </div>
                 </template>
                 <template #content>
-                    <p class="text-gray-600">
-                        Check verification details for <strong>{{ userToVerify?.full_name }}</strong>.
-                    </p>
-                    <!-- Preview Section -->
-                    <div v-if="userToVerify?.institution?.verification_file_path" class="mt-4">
-                        <template v-if="isImage(userToVerify.institution.verification_file_path)">
-                            <img :src="getVerificationFileUrl(userToVerify.institution)" alt="Verification File Preview"
-                                class="max-w-full h-auto rounded border" />
-                        </template>
-                        <template v-else-if="isPDF(userToVerify.institution.verification_file_path)">
-                            <iframe :src="getVerificationFileUrl(userToVerify.institution)"
-                                class="w-full h-64 border rounded"></iframe>
-                        </template>
-                        <template v-else>
-                            <a :href="getVerificationFileUrl(userToVerify.institution)" target="_blank"
-                                class="text-blue-600 underline">Preview File</a>
-                        </template>
-                    </div>
+                    <div class="space-y-6">
 
-                    <div v-if="userToVerify?.company?.verification_file_path" class="mt-4">
-                        <template v-if="isImage(userToVerify.company.verification_file_path)">
-                            <img :src="`/storage/${userToVerify.company.verification_file_path}`"
-                                alt="Verification File Preview" class="max-w-full h-auto rounded border" />
-                        </template>
-                        <template v-else-if="isPDF(userToVerify.company.verification_file_path)">
-                            <iframe :src="`/storage/${userToVerify.company.verification_file_path}`"
-                                class="w-full h-64 border rounded"></iframe>
-                        </template>
-                        <template v-else>
-                            <a :href="`/storage/${userToVerify.company.verification_file_path}`" target="_blank"
-                                class="text-blue-600 underline">Preview File</a>
-                        </template>
+                        <!-- 1. Mayor's Business Permit -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2 flex items-center">
+                                <i class="fas fa-file-alt text-blue-500 mr-2"></i> Mayor's Business Permit
+                            </h4>
+                            <div v-if="userToVerify?.company?.verification_file_path">
+                                <template v-if="isImage(userToVerify.company.verification_file_path)">
+                                    <img :src="`/storage/${userToVerify.company.mayors_permit_file_path}`"
+                                        alt="Mayor's Permit" class="max-w-full h-auto rounded border" />
+                                </template>
+                                <template v-else-if="isPDF(userToVerify.company.verification_file_path)">
+                                    <iframe :src="`/storage/${userToVerify.company.verification_file_path}`"
+                                        class="w-full h-64 border rounded"></iframe>
+                                </template>
+                                <template v-else>
+                                    <a :href="`/storage/${userToVerify.company.verification_file_path   }`"
+                                        target="_blank" class="text-blue-600 underline">Preview File</a>
+                                </template>
+                            </div>
+                            <div v-else class="text-gray-400 italic">No Mayor's Business Permit uploaded.</div>
+                        </div>
+
+                        <!-- 2. TIN/BIR -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2 flex items-center">
+                                <i class="fas fa-id-card text-green-500 mr-2"></i> TIN/BIR
+                            </h4>
+                            <div><span class="font-semibold">TIN/BIR:</span> {{ userToVerify.company?.bir_tin }}</div>
+                        </div>
+
+                        <!-- 3. Company Information -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2 flex items-center">
+                                <i class="fas fa-building text-purple-500 mr-2"></i> Company Information
+                            </h4>
+                            <div class="flex items-center mb-4">
+                                <img v-if="userToVerify.company_logo_path"
+                                    :src="`/storage/${userToVerify.company_logo_path}`" alt="Company Logo"
+                                    class="w-16 h-16 rounded-full border object-cover mr-4" />
+                                <div>
+                                    <div class="font-bold text-lg text-gray-800">{{ userToVerify.company?.company_name
+                                    }}</div>
+                                    <div class="text-gray-500 text-sm">{{ userToVerify.company?.sector?.name }}</div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="font-semibold">Business Name:</span> {{
+                                        userToVerify.company?.company_name }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Sector:</span> {{userToVerify.company?.sector?.name || '-' ||
+                                        '-' }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Street Address:</span> {{
+                                        userToVerify.company?.company_street_address
+                                        || '-' }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Barangay:</span> {{ userToVerify.company?.company_brgy
+                                        || '-' }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold">City:</span> {{ userToVerify.company?.company_city ||
+                                        '-' }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Email:</span> {{ userToVerify.company?.company_email ||
+                                        '-' }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Mobile:</span> {{
+                                        userToVerify.company?.company_mobile_phone || '-' }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Telephone:</span> {{
+                                        userToVerify.company?.company_tel_phone || '-' }}
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h5 class="font-semibold text-gray-700 mb-1 flex items-center">
+                                    <i class="fas fa-user-tie text-blue-400 mr-2"></i> HR Information
+                                </h5>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="font-semibold">Full Name:</span>
+                                        {{ userToVerify.hr
+                                            ? `${userToVerify.hr.first_name} ${userToVerify.hr.middle_name || ''}
+                                        ${userToVerify.hr.last_name}`.trim()
+                                            : '-' }}
+                                    </div>
+
+                                    <div>
+                                        <span class="font-semibold">Mobile:</span> {{ userToVerify.hr?.mobile_number ||
+                                            '-' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </template>
                 <template #footer>

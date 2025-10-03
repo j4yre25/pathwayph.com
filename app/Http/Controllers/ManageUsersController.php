@@ -16,7 +16,7 @@ class ManageUsersController extends Controller
     {
         // Build the base query with relationships
         $query = User::with([
-            'company',
+            'company.sector',
             'institution',
             'peso',
         ])

@@ -48,6 +48,7 @@ function exportCertificateAsPDF() {
     const formData = new FormData();
     formData.append('certificate', pdfBlob, 'referral-certificate.pdf');
     formData.append('graduate_id', props.certificate.graduate_id); // Pass graduate/user id
+    formData.append('referral_id', props.certificate.referral_id); // <-- ADD THIS LINE
 
     fetch(route('certificate.store'), {
       method: 'POST',

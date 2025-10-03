@@ -12,16 +12,36 @@ const successfulReferrals = computed(() => props.successfulReferrals || 0);
 const successRate = computed(() => props.successRate || 0);
 
 const filters = ref({
-  status: '',
-  company: '',
-  candidate: '',
-  search: props.search || '',
+  status: props.filters?.status || '',
+  company: props.filters?.company || '',
+  candidate: props.filters?.candidate || '',
+  search: props.filters?.search || '',
 });
+
 
 const pagination = computed(() => props.referrals || {});
 
+
+
 function applyFilters() {
-  router.get(route('peso.job-referrals.index'), { ...filters.value, page: 1 }, { preserveState: true, replace: true });
+  router.get(route('peso.job-referrals.index'), filters.value, { preserveState: true, replace: true });
+
+}
+
+function downloadCertificate(referralId) {
+  window.open(route('referral.certificate.download', referralId), '_blank');
+}
+function viewCertificate(referralId) {
+  window.open(route('referral.certificate.view', referralId), '_blank');
+}
+
+function resetFilters() {
+  filters.value = {
+    status: '',
+    company: '',
+    candidate: '',
+    search: '',
+  };
 }
 
 function onSearch() {
@@ -56,9 +76,10 @@ function declineReferral(referralId) {
 }
 
 
-function onPageChange(page) {
-  router.get(route('peso.job-referrals.index'), { ...filters.value, page }, { preserveState: true, replace: true });
-}
+
+// function onPageChange(page) {
+//   router.get(route('peso.job-referrals.index'), { ...filters.value, page }, { preserveState: true, replace: true });
+// }
 
 function goToPage(link) {
   if (!link.url) return;
@@ -68,7 +89,24 @@ function goToPage(link) {
   onPageChange(page);
 }
 
-// watch(filters, applyFilters, { deep: true });
+watch(
+  () => props.filters,
+  (newFilters) => {
+    filters.value = {
+      status: newFilters?.status || '',
+      company: newFilters?.company || '',
+      candidate: newFilters?.candidate || '',
+      search: newFilters?.search || '',
+    };
+  },
+  { immediate: true }
+);
+watch(filters, () => {
+  router.get(route('peso.job-referrals.index'), filters.value, {
+    preserveState: true,
+    replace: true,
+  });
+}, { deep: true });
 
 </script>
 
@@ -95,7 +133,8 @@ function goToPage(link) {
             <p class="text-2xl font-bold text-blue-900">{{ totalReferrals }}</p>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+        <div
+          class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
           <div class="flex flex-col items-center text-center">
             <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
               <i class="fas fa-check-circle text-white text-lg"></i>
@@ -104,7 +143,8 @@ function goToPage(link) {
             <p class="text-2xl font-bold text-green-900">{{ successfulReferrals }}</p>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
+        <div
+          class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:scale-105">
           <div class="flex flex-col items-center text-center">
             <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center mb-3">
               <i class="fas fa-chart-line text-white text-lg"></i>
@@ -121,11 +161,11 @@ function goToPage(link) {
           <i class="fas fa-filter text-blue-500 mr-2"></i>
           <h3 class="font-medium text-gray-700">Filter Referrals</h3>
           <div class="ml-auto">
-            <button type="button"
-              @click="filters.status = ''; filters.company = ''; filters.candidate = ''; filters.search = ''"
+            <button type="button" @click="resetFilters()"
               class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
               <i class="fas fa-undo mr-2"></i> Reset Filter
             </button>
+
           </div>
         </div>
         <div class="p-6">
@@ -134,10 +174,10 @@ function goToPage(link) {
               <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select v-model="filters.status"
                 class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all appearance-none">
-                <option value="">All</option>
+                <option value="">All Status</option>
+                <option value="success">Success</option>
                 <option value="pending">Pending</option>
-                <option value="hired">Hired</option>
-                <option value="rejected">Rejected</option>
+                <option value="rejected">Declined</option>
               </select>
             </div>
             <div>
@@ -239,6 +279,12 @@ function goToPage(link) {
                       class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded font-semibold text-xs shadow transition w-full">
                       Decline
                     </button>
+                    <button v-if="ref.certificate_path" @click="viewCertificate(ref.id)"
+                      class="text-blue-600 underline">
+                      Download and View  Certificate
+                    </button>
+                    <span v-else class="text-gray-400 italic">Not available</span>
+
                   </div>
                 </td>
               </tr>
