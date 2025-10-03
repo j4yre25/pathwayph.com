@@ -18,8 +18,19 @@ class ManageJobApprovalController extends Controller
             ->orderBy('created_at', 'desc')          // Newest first
             ->paginate(10);
 
+        $totalJobs = \App\Models\Job::count();
+        $openJobs = \App\Models\Job::where('status', 'open')->count();
+        $closedJobs = \App\Models\Job::where('status', 'closed')->count();
+        $expiredJobs = \App\Models\Job::where('status', 'expired')->count();
+
         return \Inertia\Inertia::render('Admin/Jobs/Index/ApprovalIndex', [
             'jobs' => $jobs,
+            'kpiTotals' => [
+                'total' => $totalJobs,
+                'open' => $openJobs,
+                'closed' => $closedJobs,
+                'expired' => $expiredJobs,
+            ],
         ]);
     }
 
@@ -35,7 +46,6 @@ class ManageJobApprovalController extends Controller
             $job->company->user->notify(new JobApprovedNotification($job));
         }
 
-        // Notify graduates of the new job posting (move here)
         (new \App\Http\Controllers\CompanyJobsController)->notifyGraduates($job);
 
 
@@ -46,7 +56,6 @@ class ManageJobApprovalController extends Controller
     public function disapprove(Job $job)
     {
         $job->is_approved = false;
-        $job->status = 'disapproved';
         $job->save();
 
 
