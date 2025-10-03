@@ -42,10 +42,22 @@ class CompanyJobsController extends Controller
             ->where('company_id', $user->hr->company_id)
             ->orderByRaw('is_approved DESC')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
+
+        // Get overall counts (not paginated)
+        $allJobs = Job::where('company_id', $user->hr->company_id);
+        $totalJobs = $allJobs->count();
+        $openJobs = $allJobs->where('status', 'open')->count();
+        $closedJobs = $allJobs->where('status', 'closed')->count();
+        $expiredJobs = $allJobs->where('status', 'expired')->count();
 
         return Inertia::render('Company/Jobs/Index/Index', [
             'jobs' => $jobs,
+            'totalJobs' => $totalJobs,
+            'openJobs' => $openJobs,
+            'closedJobs' => $closedJobs,
+            'expiredJobs' => $expiredJobs,
         ]);
     }
 
@@ -174,7 +186,7 @@ class CompanyJobsController extends Controller
         $new_job = $jobService->createJob($validated, $user);
 
         $new_job->is_approved = null; // Pending admin approval
-        $new_job->status = 'open';
+        $new_job->status = 'pending';
         $new_job->save();
 
         $invitedCount = $this->autoScreenAndInvite($new_job, 30);
@@ -189,8 +201,11 @@ class CompanyJobsController extends Controller
         $this->notifyGraduates($new_job);
 
         return redirect()
-            ->route('company.jobs', ['user' => $user->id])
-            ->with('flash.banner', "Job posted successfully. {$invitedCount} graduates auto-invited.");
+           ->route('company.jobs.create', ['user' => $user->id])
+            ->with('flash.bannerStyle', 'success')
+            ->with('flash.banner', "Job submitted for PESO approval. {$invitedCount} graduate" . ($invitedCount === 1 ? '' : 's') . " auto-invited.")
+            ->with('flash.job_invited_count', $invitedCount)
+            ->with('flash.show_job_modal', true);
     }
 
     public function batchPage()
@@ -417,7 +432,6 @@ class CompanyJobsController extends Controller
                 'work_environment' => 'required|exists:work_environments,id',
                 'program_id' => 'required|array|min:1',
                 'program_id.*' => 'exists:programs,id',
-                // sector/category now injected – no validation required here
                 'job_experience_level' => 'required|string|max:255',
                 'status' => 'nullable|string|max:255',
                 'is_approved' => 'nullable|boolean',
@@ -485,19 +499,28 @@ class CompanyJobsController extends Controller
             }
 
             // Open/approve by default
-            $job->update(['is_approved' => 1, 'status' => 'open']);
+            $job->update(['is_approved' => null, 'status' => 'pending']);
 
             // Auto-invite + general notification
             $invited = $this->autoScreenAndInvite($job, 30);
             $totalInvited += $invited;
             $this->notifyGraduates($job);
 
+            $pesoUsers = User::where('role', 'peso')->get();
+            foreach ($pesoUsers as $pesoUser) {
+                $pesoUser->notify(new NewCompanyJobPostedNotification($job));
+            }
+
             $totalJobs++;
         }
 
         return redirect()
-            ->route('company.jobs', ['user' => $user->id])
-            ->with('flash.banner', "Batch upload successful. {$totalJobs} jobs posted; {$totalInvited} graduates auto‑invited.");
+            ->back()
+            ->with('flash.bannerStyle', 'success')
+            ->with('flash.banner', "Batch submitted for PESO approval. {$totalJobs} job(s) uploaded; {$totalInvited} graduate(s) auto-invited.")
+            ->with('flash.batch_total_jobs', $totalJobs)
+            ->with('flash.batch_total_invites', $totalInvited)
+            ->with('flash.show_job_modal', true);
     }
 
 
@@ -744,19 +767,23 @@ class CompanyJobsController extends Controller
         $programNames = $job->programs->pluck('name')->map(fn($n) => mb_strtolower($n))->filter()->values();
 
         // Base query (unfiltered)
+        $allowedStatuses = ['unemployed', 'underemployed'];
+
         $baseQuery = Graduate::with([
             'user',
             'graduateSkills.skill',
-            'education',              // keep simple (avoid programRelation constraint if not reliable)
+            'education',
             'experience',
             'employmentPreference',
-        ]);
+        ])->where(function ($q) use ($allowedStatuses) {
+            $q->whereNull('employment_status')
+              ->orWhereIn(DB::raw('LOWER(employment_status)'), $allowedStatuses);
+        });
 
         $usingFiltered = false;
         $filteredQuery = null;
 
         if ($programNames->isNotEmpty()) {
-            // Try string match against education.program column (since many educations store plain string)
             $filteredQuery = (clone $baseQuery)->whereHas('education', function ($q) use ($programNames) {
                 $q->whereIn(DB::raw('LOWER(program)'), $programNames->toArray());
             });
@@ -856,10 +883,7 @@ class CompanyJobsController extends Controller
             }
         });
 
-        if ($newInvites > 0) {
-            Notification::send($notifyUsers, new JobInviteNotification($job));
-        }
-
+    
         \Log::info('AutoScreen summary', [
             'job_id' => $job->id,
             'threshold' => $threshold,

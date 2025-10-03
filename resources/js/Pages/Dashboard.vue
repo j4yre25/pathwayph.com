@@ -236,9 +236,8 @@ function submitReferral() {
         </template>
 
 
-        <div v-if="page.props.roles?.isCompany" class="py-12">
-            <Welcome v-if="!page.props.roles?.isCompany" />
-            <div class="p-6">
+        <div v-if="page.props.roles?.isCompany" class="py-12 w-full">
+            <div class="px-8 py-6 w-full">
                 <h3 class="text-lg font-semibold text-gray-800">
                     Welcome to the Dashboard
                 </h3>
@@ -246,8 +245,13 @@ function submitReferral() {
                     Here you can manage your account and view your statistics.
                 </p>
             </div>
-            <CompanyDashboard :summary="page.props.summary" :recentApplications="page.props.recentApplications"
-                :applicationTrends="page.props.applicationTrends" :jobPerformance="page.props.jobPerformance" />
+            <CompanyDashboard
+                class="px-8"
+                :summary="page.props.summary"
+                :recentApplications="page.props.recentApplications"
+                :applicationTrends="page.props.applicationTrends"
+                :jobPerformance="page.props.jobPerformance"
+            />
         </div>
 
         <div v-else-if="page.props.roles?.isInstitution" class="py-12">

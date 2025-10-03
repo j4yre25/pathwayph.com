@@ -53,7 +53,6 @@ if (props.applicant) {
   props.applicant.status = mapStatusFromStage(props.applicant.stage)
 }
 
-// Replace onStageChanged to also sync status
 function onStageChanged(newStage) {
   currentStage.value = newStage
   if (props.applicant) {
@@ -72,6 +71,44 @@ const stageLabels = {
   hired: 'Hired',
   rejected: 'Rejected'
 }
+const derivedStatus = computed(() => {
+  // prefer explicit application.status if provided
+  const explicit = (props.applicant?.status || '').toString().trim().toLowerCase()
+  if (explicit) return explicit
+
+  const stage = (props.applicant?.stage || '').toString().trim().toLowerCase()
+
+  if (['screening','assessment','interview'].includes(stage)) return 'screening'
+  if (stage === 'offer') {
+    // look for offer-related activities in stageActivities to detect accepted/declined
+    const activities = Array.isArray(props.stageActivities) ? props.stageActivities : []
+    if (activities.find(a => (a.meta && a.meta.event === 'offer_accepted') || (a.meta && a.meta.payload && (a.meta.payload.offer_id || a.meta.payload.offer_id)))) {
+      return 'accepted'
+    }
+    if (activities.find(a => (a.meta && a.meta.event === 'offer_declined'))) {
+      return 'declined'
+    }
+    return 'offered'
+  }
+  if (stage === 'hired') return 'hired'
+  if (stage === 'rejected') return 'rejected'
+  return 'applied'
+})
+
+const statusLabels = {
+  screening: 'Screening',
+  offered: 'Offered',
+  accepted: 'Accepted',
+  declined: 'Declined',
+  hired: 'Hired',
+  rejected: 'Rejected',
+  applied: 'Applied'
+}
+
+const displayStatus = computed(() => {
+  const s = derivedStatus.value || ''
+  return statusLabels[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1) : 'N/A')
+})
 
 const displayStage = computed(() => stageLabels[currentStage.value] || currentStage.value)
 
@@ -756,14 +793,14 @@ const activitiesByDay = computed(() => {
                 <span
                   class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
                   :class="{
-                    'bg-indigo-100 text-indigo-700': currentStage === 'screening' || currentStage === 'assessment' || currentStage === 'interview',
-                    'bg-yellow-100 text-yellow-800': currentStage === 'offer',
-                    'bg-green-100 text-green-800': currentStage === 'hired',
-                    'bg-red-100 text-red-800': currentStage === 'rejected',
-                    'bg-gray-100 text-gray-700': currentStage === 'applied'
+                    'bg-indigo-100 text-indigo-700': derivedStatus === 'screening',
+                    'bg-yellow-100 text-yellow-800': derivedStatus === 'offered',
+                    'bg-green-100 text-green-800': derivedStatus === 'hired' || derivedStatus === 'accepted',
+                    'bg-red-100 text-red-800': derivedStatus === 'rejected' || derivedStatus === 'declined',
+                    'bg-gray-100 text-gray-700': derivedStatus === 'applied'
                   }"
                 >
-                  Stage: {{ displayStage }}
+                  Status: {{ displayStatus }}
                 </span>
               </div>
 

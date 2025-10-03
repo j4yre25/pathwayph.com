@@ -1,8 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
+import Modal from '@/Components/Modal.vue'
+import PrimaryButton from '@/Components/PrimaryButton.vue'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
-import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Container from '@/Components/Container.vue'
 
@@ -17,6 +19,12 @@ let loadingInterval = null
 // Instruction modal state
 const showInstructionModal = ref(false)
 const dontShowAgain = ref(false)
+
+// Result modal state
+const page = usePage()
+const flash = computed(() => page.props.flash || {})
+const showResultModal = ref(false)
+const resultMessage = ref('')
 
 // Check localStorage and show modal on mount
 onMounted(() => {
@@ -34,6 +42,33 @@ function closeInstructionModal() {
   showInstructionModal.value = false
 }
 
+// Watch for flash message to show result modal
+watch(
+  () => flash.value.show_job_modal,
+  (show) => {
+    if (!show) return
+
+    const totalJobs = flash.value.batch_total_jobs ?? 0
+    const totalInvites = flash.value.batch_total_invites ?? 0
+    const jobLabel = totalJobs === 1 ? 'job' : 'jobs'
+    const gradLabel = totalInvites === 1 ? 'graduate' : 'graduates'
+
+    resultMessage.value =
+      `Jobs submitted for PESO approval.\n` +
+      `${totalJobs} ${jobLabel} uploaded; ${totalInvites} ${gradLabel} auto-invited.`
+
+    parsedRows.value = []
+    file.value = null
+    validationErrors.value = []
+    isValid.value = false
+    showResultModal.value = true
+  },
+  { immediate: true }
+)
+
+function closeResultModal() {
+  showResultModal.value = false
+}
 
 function handleFileUpload(e) {
   file.value = e.target.files[0]
@@ -123,7 +158,7 @@ function handleFileUpload(e) {
         validateRows()
       },
       error: (err) => {
-        alert('❌ Failed to parse CSV file.')
+        alert('Failed to parse CSV file.')
         console.error('CSV Parsing Error:', err)
       },
     })
@@ -183,11 +218,12 @@ function submitToBackend() {
       }, 500)
     },
     onSuccess: () => {
+      clearInterval(loadingInterval)
+      loadingPercent.value = 100
       parsedRows.value = []
       file.value = null
       validationErrors.value = []
       isValid.value = false
-      alert('🎉 Upload successful!')
     },
     onError: (errors) => {
       if (errors.response?.data?.errors) {
@@ -520,6 +556,23 @@ const goBack = () => {
         </div>
       </div>
     </div>
+
+    <!-- Result Modal -->
+    <Modal :modelValue="showResultModal" @close="showResultModal = false">
+      <div class="p-6">
+        <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
+          <i class="fas fa-check text-green-500 text-xl"></i>
+        </div>
+        <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Awaiting PESO Approval</h2>
+        <p class="text-center text-gray-600 whitespace-pre-line">{{ resultMessage }}</p>
+        <div class="mt-6 flex justify-center">
+          <PrimaryButton
+            @click="() => { showResultModal = false; router.visit(route('company.jobs', { user: page.props.auth.user.id })); }">
+            OK
+          </PrimaryButton>
+        </div>
+      </div>
+    </Modal>
 
     </Container>
   </AppLayout>

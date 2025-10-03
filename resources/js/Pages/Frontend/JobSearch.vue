@@ -63,50 +63,90 @@ const isErrorModalOpen = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 
-// Forms for data management
+// Pagination state
+const pageSize = ref(props.jobs?.meta?.per_page ?? 10);
 const jobsForm = useForm({
     jobs: props.jobs?.data || [],
     loading: false
 });
-
-
-const jobResponsibilities = computed(() =>
-    selectedJob.value && selectedJob.value.job_responsibilities
-        ? selectedJob.value.job_responsibilities.split('\n').filter(r => r.trim())
-        : []
-);
-
-const jobQualifications = computed(() =>
-    selectedJob.value && selectedJob.value.job_qualifications
-        ? selectedJob.value.job_qualifications.split('\n').filter(q => q.trim())
-        : []
-);
-
-const jobBenefits = computed(() =>
-    selectedJob.value && selectedJob.value.job_benefits
-        ? selectedJob.value.job_benefits.split('\n').filter(b => b.trim())
-        : []
-);
+const jobsMeta = ref(props.jobs?.meta ?? null);
+const jobsLinks = ref(props.jobs?.links ?? []);
+const page = ref(jobsMeta.value?.current_page ?? 1);
+const totalPages = computed(() => {
+  const total = jobsMeta.value?.total ?? jobsForm.jobs.length;
+  return Math.max(1, Math.ceil(total / pageSize.value));
+});
+const pages = computed(() => Array.from({ length: totalPages.value }, (_, i) => i + 1));
+const jobsCountFrom = computed(() => jobsMeta.value?.from ?? (jobsForm.jobs.length ? ((page.value - 1) * pageSize.value) + 1 : 0));
+const jobsCountTo = computed(() => jobsMeta.value?.to ?? (Math.min(page.value * pageSize.value, jobsForm.jobs.length)));
+const jobsCountTotal = computed(() => jobsMeta.value?.total ?? jobsForm.jobs.length);
 
 // Filter jobs for main list
-const filteredJobs = computed(() => {
-    if (showApplied.value) return jobsForm.jobs;
-    return jobsForm.jobs.filter(job => !appliedJobIds.includes(job.id));
-});
+const filteredJobs = computed(() => jobsForm.jobs);
 
 // Jobs the user has applied for
 const myApplications = ref(props.myApplications ?? []);
 
-console.log('props.myApplications =>', props.myApplications);
-console.log('myApplications (reactive) =>', myApplications.value);
+// Pagination fetch
+function goToPage(p) {
+  if (!p || p < 1 || p > totalPages.value) return;
+  router.get(route('job.search'), currentFilters({ page: p }), {
+    preserveScroll: true,
+    onSuccess: (pageResp) => {
+      const pld = pageResp.props.jobs;
+      if (Array.isArray(pld)) {
+        jobsForm.jobs = pld;
+        jobsMeta.value = { from: pld.length ? 1 : 0, to: pld.length, total: pld.length, current_page: 1 };
+        jobsLinks.value = [];
+        page.value = 1;
+      } else {
+        jobsForm.jobs = pld?.data || [];
+        jobsMeta.value = pld?.meta ?? jobsMeta.value;
+        jobsLinks.value = pld?.links ?? [];
+        page.value = jobsMeta.value?.current_page ?? p;
+        pageSize.value = jobsMeta.value?.per_page ?? pageSize.value;
+      }
+    }
+  });
+}
+function goToPrev() { goToPage(page.value - 1); }
+function goToNext() { goToPage(page.value + 1); }
+
+// Reset page when filters change
+watch([searchQuery, selectedJobType, selectedLocation, selectedIndustry, selectedSalaryMin, selectedSalaryMax, selectedSkillsInput, selectedExperience, selectedCompany, showApplied], () => {
+  page.value = 1;
+});
+
+// Build current filters for reuse
+function currentFilters(overrides = {}) {
+  const params = {};
+  if (searchQuery.value) params.keywords = searchQuery.value;
+  if (selectedJobType.value) params.jobType = selectedJobType.value;
+  if (selectedLocation.value) params.location = selectedLocation.value;
+  if (selectedIndustry.value) params.industry = selectedIndustry.value;
+  if (selectedSalaryMin.value) params.salaryMin = selectedSalaryMin.value;
+  if (selectedSalaryMax.value) params.salaryMax = selectedSalaryMax.value;
+  if (selectedSkillsInput.value) {
+    params.skills = selectedSkillsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (selectedExperience.value) params.experience = selectedExperience.value;
+  if (selectedCompany.value) params.company = selectedCompany.value;
+  params.showApplied = showApplied.value;
+  params.page = page.value;
+  return { ...params, ...overrides };
+}
 
 console.log("Jobs", filteredJobs.value)
 
 // Toggle to show/hide applied jobs
 function toggleShowApplied() {
-    router.get(window.location.pathname, { showApplied: showApplied.value }, { preserveScroll: true });
+    router.get(route('job.search'), currentFilters({ page: 1 }), { preserveScroll: true });
 }
 
+
+console.log("Jobs", filteredJobs.value)
+
+// Clear filters
 function clearFilters() {
     searchQuery.value = '';
     selectedJobType.value = '';
@@ -117,6 +157,7 @@ function clearFilters() {
     selectedSkillsInput.value = '';
     selectedExperience.value = '';
     selectedCompany.value = '';
+    page.value = 1;
     fetchJobs();
 }
 
@@ -125,26 +166,25 @@ function fetchJobs() {
     if (jobsForm.loading) return;
     jobsForm.loading = true;
 
-    // Only include non-empty filters
-    const params = {};
-    if (searchQuery.value) params.keywords = searchQuery.value;
-    if (selectedJobType.value) params.jobType = selectedJobType.value;
-    if (selectedLocation.value) params.location = selectedLocation.value;
-    if (selectedIndustry.value) params.industry = selectedIndustry.value;
-    if (selectedSalaryMin.value) params.salaryMin = selectedSalaryMin.value;
-    if (selectedSalaryMax.value) params.salaryMax = selectedSalaryMax.value;
-    if (selectedSkillsInput.value) {
-        params.skills = selectedSkillsInput.value.split(',').map(s => s.trim()).filter(Boolean);
-    }
-    if (selectedExperience.value) params.experience = selectedExperience.value;
-    if (selectedCompany.value) params.company = selectedCompany.value;
+    const params = currentFilters({ page: page.value });
 
     router.get(route('job.search'), params, {
         preserveScroll: true,
-        onSuccess: (page) => {
-            jobsForm.jobs = page.props.jobs.data || [];
-            // update offers if backend returned them
-            jobOffers.value = page.props.jobOffers ?? jobOffers.value;
+        onSuccess: (pageResp) => {
+            const p = pageResp.props.jobs;
+            if (Array.isArray(p)) {
+                jobsForm.jobs = p;
+                jobsMeta.value = { from: p.length ? 1 : 0, to: p.length, total: p.length, current_page: 1 };
+                jobsLinks.value = [];
+                page.value = 1;
+            } else {
+                jobsForm.jobs = p?.data || [];
+                jobsMeta.value = p?.meta ?? { from: jobsForm.jobs.length ? 1 : 0, to: jobsForm.jobs.length, total: jobsForm.jobs.length, current_page: 1 };
+                jobsLinks.value = p?.links ?? [];
+                page.value = jobsMeta.value?.current_page ?? 1;
+                pageSize.value = jobsMeta.value?.per_page ?? pageSize.value;
+            }
+            jobOffers.value = pageResp.props.jobOffers ?? jobOffers.value;
             jobsForm.loading = false;
         },
         onFinish: () => {
@@ -152,6 +192,7 @@ function fetchJobs() {
         }
     });
 }
+
 
 function calculateMatchPercentage(job) {
     return job.match_percentage ?? 0;
@@ -405,159 +446,199 @@ onMounted(() => {
                                 </div>
                             </form>
                         </div>
-                        <!-- Recommended Jobs Section (only for Job Listings tab) -->
+                        <!-- JOBS: Main area with recommendations sidebar -->
                         <div v-if="activeTab === 'jobs'" class="mb-8">
-                            <h2 class="text-xl font-semibold mb-2">Recommended for You</h2>
-                            <div v-if="recommendationsLoading" class="py-4">Loading recommendations...</div>
-                            <div v-else-if="!recommendations.length" class="text-gray-500 py-4">No recommendations yet.
-                            </div>
-                            <div v-else class="grid grid-cols-1 gap-4">
-                              <div v-for="job in recommendations" :key="job.id"
-                                   class="bg-blue-50 border border-blue-200 rounded p-4">
-                                <div class="flex justify-between items-center">
-                                  <div>
-                                    <h3 class="font-bold">{{ job.job_title }}</h3>
-                                    <p class="text-sm text-gray-600">{{ job.company?.company_name }}</p>
-                                  </div>
-                                  <div class="flex items-center gap-2">
-                                    <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View</PrimaryButton>
-                                    <PrimaryButton
-                                      v-if="!appliedJobIds.includes(job.id)"
-                                      @click="showApplyModal(job)"
-                                      class="text-xs bg-green-600 hover:bg-green-700"
-                                    >
-                                      Apply
-                                    </PrimaryButton>
-                                    <span v-else class="text-gray-400 text-xs font-semibold flex items-center">
-                                      <i class="fas fa-check-circle mr-1 text-green-500"></i> Applied
-                                    </span>
-                                  </div>
-                                </div>
-                                <div class="text-xs text-gray-700 mt-2">
-                                  <span v-if="job.locations && job.locations.length">
-                                    {{ job.locations.map(l => l.address).join(', ') }}
-                                  </span>
-                                </div>
-                                <div class="mt-2 flex flex-wrap gap-2">
-                                  <span v-for="label in job.match_labels" :key="label"
-                                        class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200">
-                                    Match with {{ label }}
-                                  </span>
-                                  <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                                    {{ job.match_percentage !== undefined ? job.match_percentage + '%' : 'N/A' }} Match
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                        </div>
-
-                        <!-- Job Listings Tab -->
-                        <div v-if="activeTab === 'jobs'">
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                            <!-- Main listings (takes 3 cols on large screens) -->
+                            <div class="lg:col-span-3">
                             <h2 class="text-xl font-semibold mb-4">Job Listings</h2>
+
                             <!-- Loading State -->
                             <div v-if="jobsForm.loading" class="flex justify-center items-center py-8">
                                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                             </div>
+
                             <!-- Empty State -->
                             <div v-else-if="!filteredJobs.length" class="text-center py-8">
                                 <div class="text-gray-400">
-                                    <i class="fas fa-briefcase text-4xl mb-4"></i>
-                                    <h3 class="text-lg font-medium">No Jobs Found</h3>
-                                    <p class="text-sm">Try adjusting your search criteria</p>
+                                <i class="fas fa-briefcase text-4xl mb-4"></i>
+                                <h3 class="text-lg font-medium">No Jobs Found</h3>
+                                <p class="text-sm">Try adjusting your search criteria</p>
                                 </div>
                             </div>
+
                             <!-- Job Listings -->
                             <div v-else class="grid grid-cols-1 gap-6">
-
                                 <div v-for="job in filteredJobs" :key="job.id"
                                     class="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">{{ job.job_title }}</h3>
-                                            <p class="text-sm text-gray-600">
-                                                <template v-if="job.company">
-                                                    {{ job.company.company_name }}
-                                                </template>
-                                                <template v-else-if="job.institution">
-                                                    {{ job.institution.institution_name }}
-                                                </template>
-                                                <template v-else-if="job.peso">
-                                                    {{ job.peso.peso_name }}
-                                                </template>
-                                                <template v-else>
-                                                    Unknown
-                                                </template>
-                                            </p>
+                                        <h3 class="text-lg font-semibold text-gray-900">{{ job.job_title }}</h3>
+                                        <p class="text-sm text-gray-600">
+                                            <template v-if="job.company">
+                                            {{ job.company.company_name }}
+                                            </template>
+                                            <template v-else-if="job.institution">
+                                            {{ job.institution.institution_name }}
+                                            </template>
+                                            <template v-else-if="job.peso">
+                                            {{ job.peso.peso_name }}
+                                            </template>
+                                            <template v-else>
+                                            Unknown
+                                            </template>
+                                        </p>
                                         </div>
                                         <div class="flex items-center">
-
                                         </div>
                                     </div>
+
                                     <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
                                         <div class="flex items-center text-gray-600">
-                                            <i class="fas fa-map-marker-alt mr-2"></i>
-                                            <span>
-                                                <template v-if="job.locations && job.locations.length">
-                                                    {{job.locations.map(l => l.address).join(', ')}}
-                                                </template>
-                                                <template v-else>
-                                                    Not specified
-                                                </template>
-                                            </span>
+                                        <i class="fas fa-map-marker-alt mr-2"></i>
+                                        <span>
+                                            <template v-if="job.locations && job.locations.length">
+                                            {{ job.locations.map(l => l.address).join(', ') }}
+                                            </template>
+                                            <template v-else>
+                                            Not specified
+                                            </template>
+                                        </span>
                                         </div>
                                         <div class="flex items-center text-gray-600">
-                                            <i class="fas fa-briefcase mr-2"></i>
-                                            <span>
-                                                <template v-if="job.job_type_names && job.job_type_names.length">
-                                                    {{ job.job_type_names.join(', ') }}
-                                                </template>
-                                                <template v-else>
-                                                    Not specified
-                                                </template>
-                                            </span>
+                                        <i class="fas fa-briefcase mr-2"></i>
+                                        <span>
+                                            <template v-if="job.job_type_names && job.job_type_names.length">
+                                            {{ job.job_type_names.join(', ') }}
+                                            </template>
+                                            <template v-else>
+                                            Not specified
+                                            </template>
+                                        </span>
                                         </div>
                                         <div class="flex items-center text-gray-600">
-                                            <i class="fas fa-clock mr-2"></i>
-                                            {{ job.job_experience_level || 'Not specified' }}
+                                        <i class="fas fa-clock mr-2"></i>
+                                        {{ job.job_experience_level || 'Not specified' }}
                                         </div>
                                         <div class="flex items-center text-gray-600">
-                                            <i class="fas fa-peso-sign mr-2"></i>
-                                            {{ formatSalary(job.salary) }}
+                                        <i class="fas fa-peso-sign mr-2"></i>
+                                        {{ formatSalary(job.salary) }}
                                         </div>
                                     </div>
+
                                     <div class="flex flex-wrap gap-2 mb-4">
                                         <span v-for="skill in job.skills" :key="skill"
                                             class="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
-                                            {{ skill }}
+                                        {{ skill }}
                                         </span>
                                     </div>
-                                    <div class="flex space-x-3">
-                                        <PrimaryButton @click="viewJobDetails(job)" class="text-sm">
-                                            View Details
-                                        </PrimaryButton>
-                                        <PrimaryButton v-if="!appliedJobIds.includes(job.id)"
-                                            @click="showApplyModal(job)"
-                                            class="text-sm bg-green-600 hover:bg-green-700">
-                                            Apply Now
-                                        </PrimaryButton>
-                                        <span v-else class="text-gray-400 text-sm font-semibold flex items-center">
-                                            <i class="fas fa-check-circle mr-1 text-green-500"></i> Already Applied
-                                        </span>
 
-                                        <!-- <PrimaryButton @click="oneClickApply(job)"
-                                            class="text-sm bg-green-600 hover:bg-green-700">
-                                            One-Click Apply
-                                        </PrimaryButton> -->
+                                    <div class="flex space-x-3">
+                                        <PrimaryButton @click="viewJobDetails(job)" class="text-sm">View Details</PrimaryButton>
+
+                                        <PrimaryButton v-if="!appliedJobIds.includes(job.id)"
+                                                    @click="showApplyModal(job)"
+                                                    class="text-sm bg-green-600 hover:bg-green-700">
+                                        Apply Now
+                                        </PrimaryButton>
+
+                                        <span v-else class="text-gray-400 text-sm font-semibold flex items-center">
+                                        <i class="fas fa-check-circle mr-1 text-green-500"></i> Already Applied
+                                        </span>
 
                                         <PrimaryButton v-if="job.company && job.company.id"
-                                            @click="goToCompanyProfile(job.company.id)"
-                                            class="bg-gray-600 hover:bg-gray-700">
-
-                                            View Company
+                                                    @click="goToCompanyProfile(job.company.id)"
+                                                    class="bg-gray-600 hover:bg-gray-700">
+                                        View Company
                                         </PrimaryButton>
                                     </div>
+                                    </div>
+                                </div>
+                                <!-- Improved Pagination controls -->
+                                <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 bg-white border-t border-gray-100">
+                                <button
+                                    class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                    :disabled="page === 1"
+                                    @click="goToPrev"
+                                >
+                                    Prev
+                                </button>
+                                <div class="space-x-1">
+                                    <button
+                                    v-for="p in pages"
+                                    :key="p"
+                                    class="px-3 py-1 text-sm rounded border"
+                                    :class="p === page ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 hover:bg-gray-50'"
+                                    @click="goToPage(p)"
+                                    >
+                                    {{ p }}
+                                    </button>
+                                </div>
+                                <button
+                                    class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                    :disabled="page === totalPages"
+                                    @click="goToNext"
+                                >
+                                    Next
+                                </button>
+                                <div class="text-sm text-gray-500 ml-4">
+                                    Showing {{ jobsCountFrom }}-{{ jobsCountTo }} of {{ jobsCountTotal }}
+                                </div>
                                 </div>
                             </div>
+
+                            <!-- Sidebar: Recommended Jobs (1 col on large screens) -->
+                            <aside class="lg:col-span-1">
+                            <div class="bg-white rounded-lg border border-gray-200 p-4 sticky top-6">
+                                <h3 class="text-lg font-semibold mb-3">Recommended for You</h3>
+
+                                <div v-if="recommendationsLoading" class="py-4 text-sm text-gray-500">Loading recommendations...</div>
+
+                                <div v-else-if="!recommendations.length" class="text-sm text-gray-500 py-2">
+                                No recommendations yet.
+                                </div>
+
+                                <div v-else class="space-y-3">
+                                <div v-for="job in recommendations" :key="job.id" class="border rounded p-3 bg-blue-50">
+                                    <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-semibold text-sm">{{ job.job_title }}</h4>
+                                        <p class="text-xs text-gray-600">{{ job.company?.company_name }}</p>
+                                    </div>
+                                    </div>
+
+                                    <div class="text-xs text-gray-700 mt-2">
+                                    <span v-if="job.locations && job.locations.length">
+                                        {{ job.locations.map(l => l.address).join(', ') }}
+                                    </span>
+                                    </div>
+
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                    <span v-for="label in job.match_labels" :key="label"
+                                            class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 border border-green-200">
+                                        Match with {{ label }}
+                                    </span>
+                                    <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                        {{ job.match_percentage !== undefined ? job.match_percentage + '%' : 'N/A' }} Match
+                                    </span>
+                                    </div>
+
+                                    <div class="mt-3 flex gap-2">
+                                    <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View</PrimaryButton>
+                                    <PrimaryButton v-if="!appliedJobIds.includes(job.id)"
+                                                    @click="showApplyModal(job)"
+                                                    class="text-xs bg-green-600 hover:bg-green-700">
+                                        Apply
+                                    </PrimaryButton>
+                                    <span v-else class="text-gray-400 text-xs font-semibold flex items-center">
+                                        <i class="fas fa-check-circle mr-1 text-green-500"></i> Applied
+                                    </span>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                            </aside>
+                        </div>
                         </div>
 
                         <!-- My Applications Tab -->

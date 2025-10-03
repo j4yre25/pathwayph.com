@@ -186,14 +186,19 @@ const createJob = () => {
     }
 
     form.post(route('company.jobs.store', { user: page.props.auth.user.id }), {
-        onSuccess: () => {
-            successMessage.value = 'Job Submitted. Wait for the approval of PESO.';
+        onSuccess: (inertiaPage) => {
+            const invitedCount = inertiaPage.props.flash?.job_invited_count ?? 0;
+            const plural = invitedCount === 1 ? 'graduate' : 'graduates';
+            const verb = invitedCount === 1 ? 'is' : 'are';
+            successMessage.value = `Job submitted for PESO approval. ${invitedCount} ${plural} ${verb} possible to be invited.`;
             isSuccessModalOpen.value = true;
             form.reset();
-            router.visit(route('company.jobs', { user: page.props.auth.user.id }));
         },
         onError: (errors) => {
             console.log('Validation errors:', errors);
+        },
+        onFinish: () => {
+            form.processing = false;
         }
     });
 
@@ -744,8 +749,8 @@ function onSkillFocus() {
             <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
                 <i class="fas fa-check text-green-500 text-xl"></i>
             </div>
-            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Success</h2>
-            <p class="text-center text-gray-600">{{ successMessage }}</p>
+            <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Awaiting PESO Approval</h2>
+            <p class="text-center text-gray-600 whitespace-pre-line">{{ successMessage }}</p>
             <div class="mt-6 flex justify-center">
                 <PrimaryButton
                     @click="() => { isSuccessModalOpen = false; router.visit(route('company.jobs', { user: page.props.auth.user.id })); }">

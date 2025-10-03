@@ -27,6 +27,7 @@ class ManageJobApprovalController extends Controller
     public function approve(Job $job)
     {
         $job->is_approved = true;
+        $job->status = 'open';
         $job->save();
 
 
@@ -45,6 +46,7 @@ class ManageJobApprovalController extends Controller
     public function disapprove(Job $job)
     {
         $job->is_approved = false;
+        $job->status = 'disapproved';
         $job->save();
 
 
