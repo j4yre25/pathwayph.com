@@ -187,6 +187,7 @@ class ManageJobReferralsController extends Controller
                 'hired_at' => $ref->status === 'hired' && $ref->updated_at ? $ref->updated_at->toDateString() : null,
                 'match_score' => $matchScore,
                 'match_details' => $matchDetails,
+                'certificate_path' => $ref->certificate_path,
                 'match_percentage' => $match_percentage,
             ];
         });
@@ -194,12 +195,18 @@ class ManageJobReferralsController extends Controller
         // Replace the paginator's collection with the mapped data
         $referrals->setCollection($referralData);
 
+
         return Inertia::render('Admin/ManageJobReferrals', [
             'referrals' => $referrals,
             'totalReferrals' => $totalReferrals,
             'successfulReferrals' => $successfulReferrals,
             'successRate' => $successRate,
-            'search' => $request->search,
+            'filters' => [
+                'status' => $request->status,
+                'company' => $request->company,
+                'candidate' => $request->candidate,
+                'search' => $request->search,
+            ],
         ]);
     }
 
@@ -223,6 +230,8 @@ class ManageJobReferralsController extends Controller
                 'company_address' => $company->address ?? '',
                 'photo' => $graduate->photo_url ?? '/default-photo.png', // adjust as needed
                 'graduate_id' => $graduate->user_id,
+                'referral_id' => $referral->id, // <-- ADD THIS
+
             ]
         ]);
     }
@@ -244,7 +253,7 @@ class ManageJobReferralsController extends Controller
                 return response()->json(['error' => 'No certificate file uploaded'], 400);
             }
 
-            $path = $request->file('certificate')->store('private/certificates');
+            $path = $request->file('certificate')->store('certificates', 'private');
             \Log::info('Certificate stored at:', ['path' => $path]);
 
             $user = \App\Models\User::find($request->graduate_id);
@@ -255,15 +264,9 @@ class ManageJobReferralsController extends Controller
 
             $referral = \App\Models\Referral::find($request->referral_id);
             if ($referral) {
-                \Log::info('Updating referral', [
-                    'id' => $referral->id,
-                    'certificate_path' => $path,
-                    'status' => 'success'
-                ]);
-                $referral->certificate_path = $path;
+                $referral->certificate_path = $path; // e.g. 'certificates/filename.pdf'
                 $referral->status = 'success';
                 $referral->save();
-                \Log::info('Referral after save', $referral->toArray());
             }
 
             return redirect()->back()->with('success', 'Certificate uploaded successfully.');
@@ -281,6 +284,32 @@ class ManageJobReferralsController extends Controller
         }
         return Storage::download($path);
     }
+
+    public function downloadCertificate(Referral $referral)
+    {
+        if (!$referral->certificate_path || !Storage::exists($referral->certificate_path)) {
+            abort(404);
+        }
+        // Optionally, add authorization here if needed
+        return Storage::download($referral->certificate_path);
+    }
+
+    public function viewCertificate(Referral $referral)
+    {
+        if (!$referral->certificate_path || !\Storage::disk('private')->exists($referral->certificate_path)) {
+            abort(404);
+        }
+        $mime = \Storage::disk('private')->mimeType($referral->certificate_path);
+        $headers = [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . basename($referral->certificate_path) . '"'
+        ];
+        return response()->file(
+            storage_path('app/private/' . $referral->certificate_path),
+            $headers
+        );
+    }
+
 
     public function markSuccess(Referral $referral)
     {
