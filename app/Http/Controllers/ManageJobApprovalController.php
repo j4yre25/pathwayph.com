@@ -18,8 +18,19 @@ class ManageJobApprovalController extends Controller
             ->orderBy('created_at', 'desc')          // Newest first
             ->paginate(10);
 
+        $totalJobs = \App\Models\Job::count();
+        $openJobs = \App\Models\Job::where('status', 'open')->count();
+        $closedJobs = \App\Models\Job::where('status', 'closed')->count();
+        $expiredJobs = \App\Models\Job::where('status', 'expired')->count();
+
         return \Inertia\Inertia::render('Admin/Jobs/Index/ApprovalIndex', [
             'jobs' => $jobs,
+            'kpiTotals' => [
+                'total' => $totalJobs,
+                'open' => $openJobs,
+                'closed' => $closedJobs,
+                'expired' => $expiredJobs,
+            ],
         ]);
     }
 
@@ -27,7 +38,7 @@ class ManageJobApprovalController extends Controller
     public function approve(Job $job)
     {
         $job->is_approved = true;
-        $job->status = 'open'; 
+        $job->status = 'open';
         $job->save();
 
 
