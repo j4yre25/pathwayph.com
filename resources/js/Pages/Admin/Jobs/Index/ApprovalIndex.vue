@@ -11,6 +11,7 @@ import Modal from '@/Components/Modal.vue'
 
 const props = defineProps({
     jobs: Object, // Now an object with data, links, meta, etc.
+    kpiTotals: Object,
 })
 
 const isSuccessModalOpen = ref(false)
@@ -20,10 +21,10 @@ const allJobs = computed(() => props.jobs.data ?? [])
 
 const kpi = computed(() => {
     return {
-        total: allJobs.value.length,
-        open: allJobs.value.filter(j => j.status === 'open').length,
-        closed: allJobs.value.filter(j => j.status === 'closed').length,
-        expired: allJobs.value.filter(j => j.status === 'expired').length,
+        total: props.kpiTotals?.total ?? 0,
+        open: props.kpiTotals?.open ?? 0,
+        closed: props.kpiTotals?.closed ?? 0,
+        expired: props.kpiTotals?.expired ?? 0,
     }
 })
 
@@ -247,7 +248,7 @@ function disapproveJob(job) {
                                     Status</th>
                                 <th
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                   Vacancies</th>
+                                    Vacancies</th>
                                 <th
                                     class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions</th>
@@ -263,7 +264,7 @@ function disapproveJob(job) {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-gray-500 text-sm">{{ new Date(job.created_at).toLocaleDateString()
-                                        }}</span>
+                                    }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <template v-if="job.is_approved === 1">
