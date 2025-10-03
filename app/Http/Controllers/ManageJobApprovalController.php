@@ -35,7 +35,7 @@ class ManageJobApprovalController extends Controller
         }
 
         // Notify graduates of the new job posting (move here)
-        (new \App\Http\Controllers\CompanyJobsController)->notifyGraduates($job);
+       $this->notifyGraduates($job);
 
 
         return redirect()->back()->with('flash.banner', 'Job approved successfully.');
@@ -114,5 +114,23 @@ class ManageJobApprovalController extends Controller
                 'status' => $job->status,
             ],
         ]);
+    }
+
+      public function notifyGraduates(Job $new_job)
+    {
+        // Find graduates whose preferences match the new job
+        $graduates = Graduate::whereHas('employmentPreference', function ($q) use ($new_job) {
+            $q->where(function ($query) use ($new_job) {
+                $query->where('job_type', 'like', "%{$new_job->job_type}%")
+                    ->orWhere('location', 'like', "%{$new_job->location}%")
+                    ->orWhere('work_environment', 'like', "%{$new_job->work_environment}%");
+            });
+        })->get();
+
+        foreach ($graduates as $graduate) {
+            if ($graduate->user) {
+                $graduate->user->notify(new NewJobPostingNotification($new_job));
+            }
+        }
     }
 }

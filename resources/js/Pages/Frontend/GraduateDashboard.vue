@@ -21,6 +21,18 @@ const props = defineProps({
   vacancyStats: Object,
 });
 
+function goToReferrals() {
+  router.get(route('graduate.referrals'));
+}
+
+function goToJobsAligned() {
+  router.get(route('job.search'));
+}
+
+function goToInterviewsScheduled() {
+  router.get(route('job.search'), { tab: 'applications' });
+}
+
 // Filter toggles
 const showApplicationSent = ref(true);
 const showInterviews = ref(true);
@@ -271,7 +283,8 @@ onMounted(() => {
           </div>
           <!-- Referrals Made -->
           <div
-            class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
+            class="bg-gradient-to-br from-green-100 to-green-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px] cursor-pointer hover:shadow-lg transition"
+            @click="goToReferrals" title="View your job referrals">
             <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mb-2">
               <i class="fas fa-share-square text-white"></i>
             </div>
@@ -280,16 +293,19 @@ onMounted(() => {
           </div>
           <!-- Jobs Aligned -->
           <div
-            class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
+            class="bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px] cursor-pointer hover:shadow-lg transition"
+            @click="goToJobsAligned" title="View jobs aligned to your profile">
             <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center mb-2">
               <i class="fas fa-check-circle text-white"></i>
             </div>
             <span class="text-indigo-700 text-xs font-medium text-center">Jobs Aligned</span>
             <span class="text-indigo-900 text-3xl font-bold">{{ kpi.jobsAligned ?? 0 }}</span>
           </div>
+
           <!-- Interviews Scheduled -->
           <div
-            class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px]">
+            class="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[120px] cursor-pointer hover:shadow-lg transition"
+            @click="goToInterviewsScheduled" title="View your scheduled interviews">
             <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mb-2">
               <i class="fas fa-calendar-check text-white"></i>
             </div>
