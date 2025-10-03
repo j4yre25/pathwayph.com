@@ -45,9 +45,6 @@ class GraduateJobsController extends Controller
         $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
             ->where('status', 'open')
             ->where('is_approved', 1)
-            ->when(!$showApplied, function ($q) use ($appliedJobIds) {
-                $q->whereNotIn('id', $appliedJobIds);
-            })
             ->when($request->keywords, function ($query, $keywords) {
                 $query->where(function ($q) use ($keywords) {
                     $q->where('job_title', 'like', "%{$keywords}%")
@@ -258,9 +255,6 @@ class GraduateJobsController extends Controller
         $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
             ->where('status', 'open')
             ->where('is_approved', 1)
-            ->when(!$showApplied, function ($q) use ($appliedJobIds) {
-                $q->whereNotIn('id', $appliedJobIds);
-            })
             ->when($request->keywords, function ($query, $keywords) {
                 $query->where(function ($q) use ($keywords) {
                     $q->where('job_title', 'like', "%{$keywords}%")
@@ -604,7 +598,7 @@ class GraduateJobsController extends Controller
         usort($recommendations, fn($a, $b) => $b->match_score <=> $a->match_score);
 
         // Limit to 5 recommendations
-        $recommendations = array_slice($recommendations, 0, 5);
+        $recommendations = array_slice($recommendations, 0, 10);
 
         
 

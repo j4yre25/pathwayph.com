@@ -7,9 +7,8 @@ import { computed } from 'vue';
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3'; // Ensure router is imported
 
-const page = usePage();
 const props = defineProps({
-  jobs: Object, // Paginated jobs object
+  jobs: Object, 
   sectors: Array,
   categories: Array,
 });

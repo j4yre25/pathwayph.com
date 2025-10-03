@@ -5,7 +5,6 @@ import { router, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
-const page = usePage()
 const props = defineProps({
   jobs: Array,
   sectors: Array,

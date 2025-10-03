@@ -3,26 +3,21 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import { router, usePage } from '@inertiajs/vue3'
 import Container from '@/Components/Container.vue'
 import PrimaryButton from '@/Components/PrimaryButton.vue'
-import { useForm } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 import MyJobs from './MyJobs.vue'
 import { ref, computed } from 'vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 
 const page = usePage()
-
 const props = defineProps({
-    jobs: Array,
+    jobs: Object,
     sectors: Array,
     categories: Array,
+    totalJobs: Number,
+    openJobs: Number,
+    closedJobs: Number,
+    expiredJobs: Number,
 })
-
-
-
-// Action loading state
-const isActionLoading = ref(false);
-const activeJobId = ref(null);
-const actionError = ref(null);
 
 // Filters
 const searchQuery = ref('');
@@ -58,8 +53,9 @@ const experienceLevelOptions = [
     { value: 'Senior/Executive', label: 'Senior/Executive-level' }
 ];
 
+// Filtering only the jobs on the current page
 const filteredJobs = computed(() => {
-    return props.jobs.filter(job => {
+    return props.jobs.data.filter(job => {
         const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
         const matchesJobType = selectedJobType.value
             ? job.job_type == selectedJobType.value
@@ -116,6 +112,13 @@ const filteredJobs = computed(() => {
     });
 });
 
+// Pagination helpers
+const jobsMeta = computed(() => props.jobs.meta ?? {});
+const jobsLinks = computed(() => props.jobs.links ?? []);
+const goTo = (url) => {
+    if (url) router.get(url);
+};
+
 
 function resetFilters() {
     searchQuery.value = '';
@@ -128,13 +131,6 @@ function resetFilters() {
     customToDate.value = '';
 }
 
-const form = useForm({
-    name: '',
-    description: '',
-    from_datetime: '',
-    to_datetime: '',
-    location: ''
-});
 </script>
 
 <template>
@@ -147,7 +143,7 @@ const form = useForm({
             </div>
         </template>
 
-        <Container class="py-8">
+        <Container  class="py-8 max-w-screen-2xl mx-auto px-8">
 
             <!-- Stats Summary -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -158,7 +154,7 @@ const form = useForm({
                             <i class="fas fa-briefcase text-white text-xl"></i>
                         </div>
                         <h3 class="text-blue-700 text-sm font-medium mb-2">Total Jobs</h3>
-                        <p class="text-3xl font-bold text-blue-700">{{ props.jobs.length }}</p>
+                        <p class="text-3xl font-bold text-blue-700">{{ props.totalJobs }}</p>
                     </div>
                 </div>
                 <!-- Open Jobs -->
@@ -169,7 +165,7 @@ const form = useForm({
                         </div>
                         <h3 class="text-green-700 text-sm font-medium mb-2">Open Jobs</h3>
                         <p class="text-3xl font-bold text-green-900">
-                            {{ props.jobs.filter(j => j.status === 'open').length }}
+                            {{ props.openJobs }}
                         </p>
                     </div>
                 </div>
@@ -181,7 +177,7 @@ const form = useForm({
                         </div>
                         <h3 class="text-red-700 text-sm font-medium mb-2">Closed Jobs</h3>
                         <p class="text-3xl font-bold text-red-900">
-                            {{ props.jobs.filter(j => j.status === 'closed').length }}
+                            {{ props.closedJobs }}
                         </p>
                     </div>
                 </div>
@@ -193,7 +189,7 @@ const form = useForm({
                         </div>
                         <h3 class="text-yellow-700 text-sm font-medium mb-2">Expired Jobs</h3>
                         <p class="text-3xl font-bold text-yellow-900">
-                            {{ props.jobs.filter(j => j.status === 'expired').length }}
+                            {{ props.expiredJobs }}
                         </p>
                     </div>
                 </div>
@@ -208,11 +204,11 @@ const form = useForm({
                         <p class="text-sm text-gray-500">Find jobs by criteria below</p>
                     </div>
                     <div class="ml-auto">
-                        <Button
+                        <PrimaryButton
                             class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300"
                             @click="resetFilters">
                             <i class="fas fa-undo mr-2"></i> Reset Filters
-                        </Button>
+                        </PrimaryButton>
                     </div>
                 </div>
                 <div class="p-6">
@@ -404,12 +400,12 @@ const form = useForm({
                             <p class="text-sm text-gray-500">View and manage your job postings</p>
                         </div>
                     </div>
-                    <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ filteredJobs.length }} jobs</span>
+                    <span class="ml-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{{ props.totalJobs }} jobs</span>
                 </div>
                 <!-- Jobs listing and empty states -->
                 <div>
                     <!-- No posted jobs at all -->
-                    <div v-if="props.jobs.length === 0" class="p-8 text-center text-gray-500">
+                    <div v-if="props.jobs.data.length === 0" class="p-8 text-center text-gray-500">
                         <i class="fas fa-briefcase text-3xl mb-2 text-gray-400"></i>
                         <div class="mt-2 text-lg font-semibold">You have not posted any jobs yet.</div>
                         <div class="mt-1 text-sm">Click <span class="font-bold text-blue-600">Post Jobs</span> above to create your first job posting.</div>
@@ -429,6 +425,33 @@ const form = useForm({
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="mt-6 flex justify-center">
+              <nav v-if="jobsLinks && jobsLinks.length > 3" aria-label="Page navigation">
+                <ul class="inline-flex items-center -space-x-px rounded-md shadow-sm">
+                  <li v-for="link in jobsLinks" :key="link.url">
+                    <a v-if="link.url" @click.prevent="goTo(link.url)"
+                      :class="[
+
+                        'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
+                        link.active
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                        link.label.includes('Previous') ? 'rounded-l-md' : '',
+                        link.label.includes('Next') ? 'rounded-r-md' : ''
+                      ]"
+                      :aria-current="link.active ? 'page' : undefined">
+                      <span v-html="link.label"></span>
+                    </a>
+                    <span v-else
+                      class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 cursor-not-allowed">
+                      <span v-html="link.label"></span>
+                    </span>
+                  </li>
+                </ul>
+              </nav>
             </div>
         </Container>
     </AppLayout>
