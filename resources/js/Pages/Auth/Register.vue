@@ -110,7 +110,7 @@ const minLengthMet = computed(() => form.password.length >= 8);
 const hasUpperCaseMet = computed(() => /[A-Z]/.test(form.password));
 const hasLowerCaseMet = computed(() => /[a-z]/.test(form.password));
 const hasNumberMet = computed(() => /[0-9]/.test(form.password));
-const hasSpecialCharMet = computed(() => /[!@#$%^&*]/.test(form.password));
+const hasSpecialCharMet = computed(() => /[!@#$%^&*.]/.test(form.password));
 
 function updatePasswordStrength() {
     let strength = 0;

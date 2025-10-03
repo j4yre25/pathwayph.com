@@ -246,6 +246,9 @@ function disapproveJob(job) {
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status</th>
                                 <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                   Vacancies</th>
+                                <th
                                     class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions</th>
                             </tr>
@@ -260,15 +263,26 @@ function disapproveJob(job) {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-gray-500 text-sm">{{ new Date(job.created_at).toLocaleDateString()
-                                    }}</span>
+                                        }}</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span v-if="job.is_approved === 1"
-                                        class="px-3 py-1.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Approved</span>
+                                    <template v-if="job.is_approved === 1">
+                                        <span v-if="job.status === 'open'"
+                                            class="px-3 py-1.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Approved
+                                            & Active</span>
+                                        <span v-else
+                                            class="px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-200 text-gray-700">Approved
+                                            & Closed</span>
+                                    </template>
                                     <span v-else-if="job.is_approved === 0"
                                         class="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Disapproved</span>
                                     <span v-else
                                         class="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                </td>
+
+                                <td class="px-6 py-4 whitespace-nowrap">
+
+                                    <div class="text-gray-700">{{ job.job_vacancies }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="flex items-center justify-end space-x-2">

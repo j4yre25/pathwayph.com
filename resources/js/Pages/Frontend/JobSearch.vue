@@ -1,7 +1,7 @@
 <script setup>
 import Graduate from '@/Layouts/AppLayout.vue';
 import Modal from '@/Components/Modal.vue';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useForm, usePage, router, Link  } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -11,11 +11,39 @@ import axios from 'axios';
 // Props and Page Data
 const { props } = usePage();
 const appliedJobIds = props.appliedJobIds ?? [];
-const jobOffers = ref(props.jobOffers ?? []);
+const jobOffers = ref(props.jobOffers ?? []);   
 
 // Tabs and toggle state
 const activeTab = ref('jobs'); // 'jobs' or 'applications'
 const showApplied = ref(false);
+
+onMounted(() => {
+  setTabFromQuery();
+});
+
+watch(
+  () => props.query && props.query.tab,
+  (tab) => {
+    if (tab === 'applications') {
+      activeTab.value = 'applications';
+    } else if (tab === 'jobs') {
+      activeTab.value = 'jobs';
+    }
+  },
+  { immediate: true }
+);
+
+function setTabFromQuery() {
+  const tab = props.tab || (props.query && props.query.tab);
+  if (tab === 'applications') {
+    activeTab.value = 'applications';
+  } else if (tab === 'jobs') {
+    activeTab.value = 'jobs';
+  }
+}
+
+console.log('JobSearch.vue props:', props);
+console.log('JobSearch.vue props.query:', props.query);
 
 // State Management
 const searchQuery = ref('');
@@ -71,6 +99,8 @@ const myApplications = ref(props.myApplications ?? []);
 
 console.log('props.myApplications =>', props.myApplications);
 console.log('myApplications (reactive) =>', myApplications.value);
+
+console.log("Jobs", filteredJobs.value)
 
 // Toggle to show/hide applied jobs
 function toggleShowApplied() {

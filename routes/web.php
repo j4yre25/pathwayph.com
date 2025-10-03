@@ -1035,12 +1035,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/graduate/job-offers', [GraduateJobsController::class, 'offers'])->name('graduate.job.offers');
     Route::post('/apply-for-job', [GraduateJobsController::class, 'applyForJob'])->name('apply-for-job');
     Route::post('graduates-jobs/one-click-apply', [GraduateJobsController::class, 'oneClickApply'])->name('jobs.oneClickApply');
-    
+
     Route::get('/graduate/job-offers', [GraduateJobsController::class, 'offers'])->name('graduate.job.offers');
     Route::get('/graduate/job-offers/{id}', [GraduateJobsController::class, 'showOffer'])->name('graduate.job.offers.show');
     Route::post('/graduate/job-offers/{id}/accept', [GraduateJobsController::class, 'acceptOffer'])->name('graduate.job.offers.accept');
     Route::post('/graduate/job-offers/{id}/decline', [GraduateJobsController::class, 'declineOffer'])->name('graduate.job.offers.decline');
-
+    Route::get('/graduate/referrals', [GraduateJobsController::class, 'showReferrals'])->name('graduate.referrals');
+    Route::get('/referral-certificate/view/{referral}', [\App\Http\Controllers\ManageJobReferralsController::class, 'viewCertificate'])
+    ->name('referral.certificate.view');
     // Graduate Portfolio+
 
     Route::post('/graduate/referral/request', [GraduateJobsController::class, 'requestReferral'])->name('graduate.referral.request');
@@ -1052,6 +1054,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::post('/certificates/store', [ManageJobReferralsController::class, 'store'])->name('certificate.store');
     Route::get('/certificates/download/{filename}', [ManageJobReferralsController::class, 'download'])
         ->name('certificates.download');
+
+    Route::get('/referral-certificate/{referral}', [\App\Http\Controllers\ManageJobReferralsController::class, 'downloadCertificate'])
+        ->name('referral.certificate.download');
+    Route::get('/referral-certificate/view/{referral}', [\App\Http\Controllers\ManageJobReferralsController::class, 'viewCertificate'])
+        ->name('referral.certificate.view');
 });
 
 

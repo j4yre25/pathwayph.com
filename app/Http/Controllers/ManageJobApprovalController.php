@@ -34,6 +34,10 @@ class ManageJobApprovalController extends Controller
             $job->company->user->notify(new JobApprovedNotification($job));
         }
 
+        // Notify graduates of the new job posting (move here)
+        (new \App\Http\Controllers\CompanyJobsController)->notifyGraduates($job);
+
+
         return redirect()->back()->with('flash.banner', 'Job approved successfully.');
     }
 
