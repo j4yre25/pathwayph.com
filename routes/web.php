@@ -343,7 +343,9 @@ Route::prefix('company')->middleware(['auth'])->group(function () {
     Route::get('/company-reports/trends', [CompanyReportsController::class, 'trends'])->name('company.reports.trends');
 
     Route::get('/company-reports/{user}/reports/list', [CompanyReportsController::class, 'list'])->name('company.reports.list');
+    Route::get('/company-reports/{user}/reports/listOfReports', [CompanyReportsController::class, 'listReports'])->name('company.reports.listOfReports');
     Route::get('/company/reports/jobs', [CompanyReportsController::class, 'jobs'])->name('company.reports.jobs');
+    Route::get('/company/reports/recruitment', [CompanyReportsController::class, 'recruitment'])->name('company.reports.recruitment');
 });
 
 
