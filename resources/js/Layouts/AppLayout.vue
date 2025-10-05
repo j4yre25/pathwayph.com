@@ -21,6 +21,7 @@ const props = defineProps({
 const page = usePage()
 const user = page.props.auth?.user
 
+const isNotApproved = computed(() => user && user.is_approved === false)
 
 const auth = page.props
 const graduates = page.props.graduates
@@ -37,6 +38,14 @@ onMounted(() => {
     showApprovalModal.value = true
   }
 })
+
+function logoutAndRedirect() {
+  router.post(route('logout'), {}, {
+    onSuccess: () => {
+      window.location.href = route('landing-page.index')
+    }
+  })
+}
 
 const showNotifications = ref(false)
 const rawNotifications = computed(() => usePage().props.notifications || [])
@@ -222,12 +231,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <Banner />
+  <div v-if="isNotApproved">
 
-    <Head :title="title" />
-
-    <Modal v-model="showApprovalModal">
+    <Modal v-model="showApprovalModal" :persistent="true" @update:modelValue="val => { if (!val) logoutAndRedirect() }">
       <template #header>
         <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
       </template>
@@ -238,9 +244,17 @@ onMounted(() => {
         </p>
       </template>
       <template #footer>
-        <button class="btn btn-primary" @click="showApprovalModal = false">OK</button>
+        <button class="btn btn-primary" @click="logoutAndRedirect">Logout</button>
       </template>
     </Modal>
+  </div>
+
+  <div v-else>
+    <Banner />
+
+    <Head :title="title" />
+
+
 
     <div class="min-h-screen bg-gray-100">
       <nav class="bg-white border-b border-gray-100">
@@ -290,9 +304,10 @@ onMounted(() => {
                   Reports
                 </NavLink>
 
-                 <NavLink v-if="page.props.auth.user.role === 'company'"
+                <NavLink v-if="page.props.auth.user.role === 'company'"
                   :href="route('company.reports.listOfReports', { user: page.props.auth.user.id })"
-                  :active="route().current('company.reports.listOfReports')" :disabled="!page.props.auth.user.is_approved">
+                  :active="route().current('company.reports.listOfReports')"
+                  :disabled="!page.props.auth.user.is_approved">
                   Reports (old)
                 </NavLink>
 
@@ -517,11 +532,12 @@ onMounted(() => {
                               @click.stop="markAllNotifications" v-if="unreadDisplay > 0">Mark all read</button>
                           </div>
                           <div class="max-h-96 overflow-y-auto divide-y">
-                             <div v-for="notif in localNotifications" :key="notif.id"
-                                class="p-3 cursor-pointer hover:bg-gray-50" @click.stop="openNotification(notif)">
+                            <div v-for="notif in localNotifications" :key="notif.id"
+                              class="p-3 cursor-pointer hover:bg-gray-50" @click.stop="openNotification(notif)">
                               <div class="flex items-start gap-3">
                                 <!-- left avatar / icon -->
-                                <div class="w-10 h-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-gray-700">
+                                <div
+                                  class="w-10 h-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-gray-700">
                                   <template v-if="notif.data && notif.data.graduate_id">
                                     <i class="fas fa-user-graduate"></i>
                                   </template>
@@ -533,18 +549,22 @@ onMounted(() => {
                                 <div class="flex-1 min-w-0">
                                   <!-- Company-specific visual: show title + subtitle when company user -->
                                   <div v-if="page.props.auth.user.role === 'company'">
-                                    <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                    <div class="font-semibold text-sm"
+                                      :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
                                       {{ notif.title || (notif.data && notif.data.title) || 'Notification' }}
                                     </div>
                                     <div class="text-xs text-gray-600 mt-1">
-                                      {{ (notif.data && notif.data.subtitle) || notif.subtitle || (notif.data && notif.data.body) || notif.body || '' }}
+                                      {{ (notif.data && notif.data.subtitle) || notif.subtitle || (notif.data &&
+                                      notif.data.body) ||
+                                      notif.body || '' }}
                                     </div>
                                     <div class="text-[10px] text-gray-400 mt-2">{{ notif.created_at }}</div>
                                   </div>
 
                                   <!-- Default (non-company) layout -->
                                   <div v-else>
-                                    <div class="font-semibold text-sm" :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
+                                    <div class="font-semibold text-sm"
+                                      :class="!notif.read_at ? 'text-gray-800' : 'text-gray-600'">
                                       {{ notif.title || (notif.data && notif.data.title) || 'Notification' }}
                                     </div>
                                     <div class="text-xs text-gray-600 mt-1 line-clamp-2">
@@ -556,7 +576,8 @@ onMounted(() => {
 
                                 <!-- CTA badge for company so it's obvious -->
                                 <div v-if="page.props.auth.user.role === 'company'" class="ms-3 flex items-center">
-                                  <span class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[11px] font-medium">
+                                  <span
+                                    class="inline-flex items-center px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[11px] font-medium">
                                     View Applicant
                                   </span>
                                 </div>

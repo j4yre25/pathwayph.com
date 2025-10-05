@@ -451,23 +451,46 @@ class GraduateJobsController extends Controller
     {
         $user = Auth::user();
         $graduate = $user->graduate;
+        $graduateSkills = \DB::table('graduate_skills')
+            ->join('skills', 'graduate_skills.skill_id', '=', 'skills.id')
+            ->where('graduate_skills.graduate_id', $graduate->id)
+            ->select('skills.name', 'graduate_skills.type')
+            ->get();
+
+        $graduateTechnicalSkills = $graduateSkills->where('type', 'Technical Skills')->pluck('name')->all();
+        $graduateOtherSkills = $graduateSkills->where('type', '!=', 'Technical Skills')->pluck('name')->all();
 
         // Get graduate's skills (array of skill names)
-        $graduateSkills = \App\Models\GraduateSkill::where('graduate_id', $graduate->id)
-            ->with('skill')
-            ->get()
-            ->pluck('skill.name')
-            ->filter()
-            ->unique()
-            ->toArray();
 
-        // Get graduate's education (e.g., program or degree)
-        $education = \App\Models\Education::where('graduate_id', $graduate->id)->first();
-        $program = $education ? $education->program : null;
+
+        $normalizedGraduateTechnicalSkills = collect($graduateTechnicalSkills)->map(function ($s) {
+            $s = trim($s);
+            $s = preg_replace('/\s+/', '', $s);
+            $s = str_replace(['[', ']', '"', "'"], '', $s);
+            return strtolower($s);
+        })->unique()->toArray();
+
+        $normalizedGraduateOtherSkills = collect($graduateOtherSkills)->map(function ($s) {
+            $s = trim($s);
+            $s = preg_replace('/\s+/', '', $s);
+            $s = str_replace(['[', ']', '"', "'"], '', $s);
+            return strtolower($s);
+        })->unique()->toArray();
+
+        // Get graduate's education (program name)
+        $education = \App\Models\GraduateEducation::where('graduate_id', $graduate->id)
+            ->orderByDesc('is_current')
+            ->orderByDesc('end_date')
+            ->first();
+        $graduateProgram = $education ? trim(strtolower($education->program)) : null;
+
+        // Get job's required program names
+
+
 
         // Get graduate's experience (e.g., job titles)
         $experiences = \App\Models\Experience::where('graduate_id', $graduate->id)->get();
-        $experienceTitles = $experiences->pluck('job_title')->filter()->unique()->toArray();
+        $experienceTitles = $experiences->pluck('title')->filter()->unique()->toArray();
 
         // Get employment preferences
         $preferences = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
@@ -483,16 +506,19 @@ class GraduateJobsController extends Controller
 
         // Define weights for each criterion (consistent with methodology)
         $weights = [
-            'skills' => 3,
-            'education' => 2,
-            'experience' => 2,
-            'job_type' => 1,
-            'location' => 1,
-            'work_environment' => 1,
-            'min_salary' => 1,
-            'max_salary' => 1,
-            'salary_type' => 1,
-            'keywords' => 2, // m10: search keywords
+            'technical_skills' => 7, // m1 highest priority
+            'other_skills' => 2,     //  m1 lower weight for other skills
+            'education' => 5,       // m2
+            'experience' => 5,    // m3
+
+            // Employment Preferences (to achieve '1' all of these should be met)
+            'job_type' => 0.143, // m4: Preferred Job Type
+            'location' => 0.143, // m5: Preferred Location
+            'work_environment' => 0.143, // m6: Preferred Work Environment
+            'min_salary' => 0.143, // m7: Preferred Min Salary
+            'max_salary' => 0.143, // m8: Preferred Max Salary
+            'salary_type' => 0.143, // m9: Preferred Salary Type
+            'keywords' => 0.143, // m10: search keywords
         ];
 
         $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
@@ -502,20 +528,64 @@ class GraduateJobsController extends Controller
             $labels = [];
             $score = 0;
             $totalWeight = array_sum($weights);
+            $skillsArray = [];
+            if (is_string($job->skills)) {
+                $decoded = json_decode($job->skills, true);
+                $skillsArray = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($job->skills)) {
+                $skillsArray = $job->skills;
+            }
+
+            $jobProgramNames = \DB::table('job_program')
+                ->join('programs', 'job_program.program_id', '=', 'programs.id')
+                ->where('job_program.job_id', $job->id)
+                ->pluck('programs.name')
+                ->map(fn($name) => trim(strtolower($name)))
+                ->toArray();
+
+            // Clean each skill: trim, remove extra spaces, brackets, and quotes, then lowercase
+            $cleanSkills = array_map(function ($skill) {
+                $skill = trim($skill);
+                $skill = preg_replace('/\s+/', '', $skill); // Remove all spaces inside
+                $skill = str_replace(['[', ']', '"', "'"], '', $skill);
+                return strtolower($skill);
+            }, $skillsArray);
+
+            $normalizedJobSkills = collect($cleanSkills)->unique()->toArray();
+
+
+            $jobProgramIds = \DB::table('job_program')
+                ->where('job_id', $job->id)
+                ->pluck('program_id')
+                ->toArray();
 
             // m1: Skills (binary)
-            $skillMatch = 0;
-            foreach ($graduateSkills as $skill) {
-                if (stripos(json_encode($job->skills), $skill) !== false) {
-                    $labels[] = 'Skills';
-                    $skillMatch = 1;
+            // m1: Technical Skills (binary, highest priority)
+            $technicalSkillMatch = 0;
+            foreach ($normalizedGraduateTechnicalSkills as $skill) {
+                if (in_array($skill, $normalizedJobSkills)) {
+                    $labels[] = 'Technical Skills';
+                    $technicalSkillMatch = 1;
                     break;
                 }
             }
-            $score += $skillMatch * $weights['skills'];
+            $score += $technicalSkillMatch * $weights['technical_skills'];
+
+            // m1b: Other Skills (binary, lower priority)
+            $otherSkillMatch = 0;
+            if (!$technicalSkillMatch) { // Only check if no technical skill matched
+                foreach ($normalizedGraduateOtherSkills as $skill) {
+                    if (in_array($skill, $normalizedJobSkills)) {
+                        $labels[] = 'Other Skills (Soft, Language)';
+                        $otherSkillMatch = 1;
+                        break;
+                    }
+                }
+            }
+            $score += $otherSkillMatch * $weights['other_skills'];
 
             // m2: Education (binary)
-            $educationMatch = ($program && stripos($job->job_requirements, $program) !== false) ? 1 : 0;
+            $educationMatch = ($graduateProgram && in_array($graduateProgram, $jobProgramNames)) ? 1 : 0;
             if ($educationMatch) $labels[] = 'Education';
             $score += $educationMatch * $weights['education'];
 
@@ -579,6 +649,16 @@ class GraduateJobsController extends Controller
                 $job->match_score = $score;
                 $job->match_percentage = $totalWeight > 0 ? round(($score / $totalWeight) * 100) : 0;
                 $recommendations[] = $job;
+            } else {
+                \Log::info('No match for job', [
+                    'job_title' => $job->job_title,
+                    'labels' => $labels,
+                    'normalizedJobSkills' => $normalizedJobSkills,
+                    'normalizedGraduateTechnicalSkills' => $normalizedGraduateTechnicalSkills,
+                    'normalizedGraduateOtherSkills' => $normalizedGraduateOtherSkills,
+                    'graduateProgram' => $graduateProgram,
+                    'jobProgramNames' => $jobProgramNames,
+                ]);
             }
         }
 
