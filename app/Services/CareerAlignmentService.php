@@ -54,8 +54,20 @@ class CareerAlignmentService
             ->pluck('skill.name')
             ->map(fn($s) => strtolower((string) $s))
             ->toArray();
+
+        // Find the matching career opportunity
+        $careerOpportunity = InstitutionCareerOpportunity::where('institution_id', $graduate->institution_id)
+            ->where('program_id', $graduate->program_id)
+            ->with('careerOpportunity')
+            ->get()
+            ->first(function($ico) use ($jobTitle) {
+                return stripos($jobTitle, strtolower($ico->careerOpportunity->title)) !== false;
+            });
+
+        $careerOpportunityId = $careerOpportunity ? $careerOpportunity->career_opportunity_id : null;
+
         $institutionSkills = InstitutionSkill::where('institution_id', $graduate->institution_id)
-            ->where('career_opportunity_id', $graduate->career_opportunity_id ?? null)
+            ->where('career_opportunity_id', $careerOpportunityId)
             ->where('skill_id', '!=', null)
             ->get()
             ->pluck('skill.name')

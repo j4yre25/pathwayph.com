@@ -110,7 +110,6 @@ class InstitutionCareerGuidanceController extends Controller
             }
         }
 
-        return redirect()->route('institutions.career-guidance')->with('flash.banner', 'Seminar request sent!');
     }
 
     public function cancelSeminarRequest($id)

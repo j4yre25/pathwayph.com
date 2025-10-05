@@ -141,7 +141,11 @@ class InstitutionReportsController extends Controller
             'graduateSkills.skill',
             'careerGoals.careerOpportunity',
             'internshipPrograms',
-        ])->where('institution_id', $institution->id);
+        ])->where('institution_id', $institution->id)
+        ->join('users', 'graduates.user_id', '=', 'users.id') // Join users table
+        ->where('users.is_approved', true) // Only approved users
+        ->whereNull('graduates.deleted_at') // Not archived
+        ->select('graduates.*');
 
         if ($name) {
             $graduatesQuery->where(function ($q) use ($name) {
@@ -371,7 +375,10 @@ class InstitutionReportsController extends Controller
         $graduatesQuery = \App\Models\Graduate::with([
             'program.degree',
             'schoolYear',
-        ])->where('institution_id', $institution->id);
+        ])->where('institution_id', $institution->id)
+        ->join('users', 'graduates.user_id', '=', 'users.id') // Join users table
+        ->where('users.is_approved', true) // Only approved users
+        ->whereNull('graduates.deleted_at'); // Not archived
 
         if ($schoolYear) {
             $graduatesQuery->whereHas('schoolYear', function ($q) use ($schoolYear) {

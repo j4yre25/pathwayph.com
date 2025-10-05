@@ -215,7 +215,8 @@ const stepColors = [
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Program
                         </th>
                       </tr>
                     </thead>
@@ -228,11 +229,12 @@ const stepColors = [
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                           <div class="text-sm font-medium text-gray-900">{{ graduate.first_name }} {{ graduate.last_name
-                            }}
+                          }}
                           </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                          <div class="text-sm text-gray-500">{{ graduate.email }}</div>
+                          <div class="text-sm text-gray-500">{{ graduate.program ? graduate.program.name : 'N/A' }}
+                          </div>
                         </td>
                       </tr>
                       <tr v-if="props.graduates.length === 0">
