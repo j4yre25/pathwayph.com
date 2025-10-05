@@ -85,6 +85,7 @@ class ApplicantScreeningService
         $jobMinSalary = $job->salary->job_min_salary ?? null;
         $jobMaxSalary = $job->salary->job_max_salary ?? null;
         $jobSalaryType = $job->salary->salary_type ?? null;
+        $searchKeywords = $job->search_keywords;
 
         // m1: Skills
         $skillMatch = 0;
@@ -144,8 +145,17 @@ class ApplicantScreeningService
         $score += $salaryTypeMatch * $weights['salary_type'];
 
         // m10: Keywords (optional, not used in screening unless you want to pass it in)
-        // $keywordsMatch = 0;
-        // $score += $keywordsMatch * $weights['keywords'];
+        $keywordsMatch = 0;
+            if ($searchKeywords) {
+                $kw = strtolower($searchKeywords);
+                $title = strtolower($job->job_title ?? '');
+                $desc = strtolower($job->job_description ?? '');
+                if (strpos($title, $kw) !== false || strpos($desc, $kw) !== false) {
+                    $labels[] = 'Keywords';
+                    $keywordsMatch = 1;
+                }
+            }
+            $score += $keywordsMatch * $weights['keywords'];
 
         // Only include jobs with at least one label (i.e., a match)
         $match_percentage = $totalWeight > 0 ? round(($score / $totalWeight) * 100) : 0;

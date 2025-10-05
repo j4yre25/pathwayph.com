@@ -49,14 +49,14 @@ const pieOption = {
         <VueECharts :option="pieOption" style="height: 350px; width: 100%;" />
       </div>
 
-      <div class="bg-white rounded-xl shadow p-8 mb-8">
-        <h3 class="text-lg font-semibold mb-6 text-gray-700">Bar Chart: Preferred Industries</h3>
+      <!-- <div class="bg-white rounded-xl shadow p-8 mb-8">
+        <h3 class="text-lg font-semibold mb-6 text-gray-700">Bar Chart: Preferred Industries</h3> -->
         <!-- <VueECharts :option="barOption" style="height: 350px; width: 100%;" /> -->
-        <div class="text-gray-500 text-lg">
+        <!-- <div class="text-gray-500 text-lg">
           Industry preference data is not yet available.<br>
           Please check back later.
         </div>
-      </div>
+      </div> -->
     </div>
   </AppLayout>
 </template>

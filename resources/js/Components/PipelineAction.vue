@@ -10,7 +10,8 @@ const props = defineProps({
   variant:       { type: String, default: 'panel' },
   label:         { type: String, default: 'Stage Actions' },
   transitionsOnly: { type: Boolean, default: false },
-  requireHireConfirm: { type: Boolean, default: true }, // NEW
+  requireHireConfirm: { type: Boolean, default: true },
+  alreadyOffered: { type: Boolean, default: false }, // <--- ADDED
 })
 
 // ADDED request-more-info & reject to emits; open-modal already present
@@ -21,7 +22,8 @@ const emit = defineEmits([
   'error',
   'request-more-info',
   'reject',
-  'hire' // added
+  'hire',
+  'action-done'          // ADDED
 ])
 
 const loading = ref(false)
@@ -104,6 +106,14 @@ async function perform(action) {
       )
       if (data?.stage) emit('stage-changed', data.stage)
       if (data?.actions) actions.value = data.actions
+
+      // Emit completion (message fallback)
+      emit('action-done', {
+        key: action.key,
+        label: action.label || action.key,
+        stage: data?.stage || null,
+        message: data?.message || `Action "${action.label || action.key}" completed`
+      })
     } catch (e) {
       console.error(e)
       emit('error', e)
@@ -130,10 +140,14 @@ function onClickOutside(e) {
 }
 
 const visibleActions = computed(() => {
+  let list = actions.value
   if (props.transitionsOnly) {
-    return actions.value.filter(a => a.type === 'transition' || a.type === 'dynamic_transition')
+    list = list.filter(a => a.type === 'transition' || a.type === 'dynamic_transition')
   }
-  return actions.value
+  if (props.alreadyOffered) {
+    list = list.filter(a => a.key !== 'send_offer') // hide send offer if already sent
+  }
+  return list
 })
 
 onMounted(() => {

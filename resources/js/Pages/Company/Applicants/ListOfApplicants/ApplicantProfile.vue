@@ -31,8 +31,9 @@ const props = defineProps({
   employmentPreferences: { type: Object, default: null },
   careerGoals: { type: Object, default: null },
   resume: { type: Object, default: null },
-  referralCertificates: { type: Array, default: () => [] }, // NEW
-  stageActivities: { type: Array, default: () => [] },      // NEW
+  referralCertificates: { type: Array, default: () => [] },
+  stageActivities: { type: Array, default: () => [] },
+  offerInfo: { type: Object, default: () => ({ exists:false }) }, // <--- ADDED
 })
 
 const currentStage = ref(props.applicant.stage || 'applied')
@@ -548,6 +549,26 @@ const activitiesByDay = computed(() => {
     .sort((a,b) => new Date(b[0]) - new Date(a[0]))
     .map(([day, items]) => ({ day, items }));
 });
+
+// ADD after other refs near top
+const actionDoneModal = ref(false)
+const lastActionDone = ref({ key:null, label:null, message:null })
+
+// Ensure showConfirmationModal ref exists (was used but not declared)
+const showConfirmationModal = ref(false)
+
+const offerSent = ref(!!props.offerInfo?.exists)
+const offerStatus = ref(props.offerInfo?.status || null)
+
+function onPipelineActionDone(payload) {
+  lastActionDone.value = payload
+  actionDoneModal.value = true
+  if (payload.stage) onStageChanged(payload.stage)
+  if (payload.key === 'send_offer') {
+    offerSent.value = true
+    offerStatus.value = 'sent'
+  }
+}
 </script>
 
 <template>
@@ -790,18 +811,31 @@ const activitiesByDay = computed(() => {
                   </span>
                   | Hiring Process
                 </h4>
-                <span
-                  class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
-                  :class="{
-                    'bg-indigo-100 text-indigo-700': derivedStatus === 'screening',
-                    'bg-yellow-100 text-yellow-800': derivedStatus === 'offered',
-                    'bg-green-100 text-green-800': derivedStatus === 'hired' || derivedStatus === 'accepted',
-                    'bg-red-100 text-red-800': derivedStatus === 'rejected' || derivedStatus === 'declined',
-                    'bg-gray-100 text-gray-700': derivedStatus === 'applied'
-                  }"
-                >
-                  Status: {{ displayStatus }}
-                </span>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span
+                    class="inline-block px-3 py-1 rounded-full text-xs font-semibold"
+                    :class="{
+                      'bg-indigo-100 text-indigo-700': derivedStatus === 'screening',
+                      'bg-yellow-100 text-yellow-800': derivedStatus === 'offered',
+                      'bg-green-100 text-green-800': derivedStatus === 'hired' || derivedStatus === 'accepted',
+                      'bg-red-100 text-red-800': derivedStatus === 'rejected' || derivedStatus === 'declined',
+                      'bg-gray-100 text-gray-700': derivedStatus === 'applied'
+                    }"
+                  >
+                    Status: {{ displayStatus }}
+                  </span>
+
+                  <!-- Offer badge -->
+                  <span
+                    v-if="offerSent && currentStage === 'offer'"
+                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 border border-amber-200"
+                    :title="offerStatus === 'accepted' ? 'Offer accepted' : (offerStatus === 'declined' ? 'Offer declined' : 'Offer already sent')"
+                  >
+                    <i class="fas fa-file-signature text-[10px]"></i>
+                    Offer {{ offerStatus === 'accepted' ? 'Accepted' : (offerStatus === 'declined' ? 'Declined' : 'Sent') }}
+                  </span>
+                </div>
               </div>
 
             <div v-if="!['rejected','hired'].includes(currentStage)" class="space-y-4">
@@ -819,11 +853,13 @@ const activitiesByDay = computed(() => {
                     variant="button"
                     label="Stage Actions"
                     :transitions-only="false"
+                    :already-offered="offerSent"         
                     @stage-changed="onStageChanged"
                     @request-more-info="openRequestInfo"
                     @reject="openReject"
                     @hire="openHire"
                     @open-modal="handlePipelineModal"
+                    @action-done="onPipelineActionDone"
                   />
                 </div>
               </div>
@@ -893,121 +929,121 @@ const activitiesByDay = computed(() => {
 
             <!-- Education -->
             <div v-if="activeTab === 'education'">
-  <h4 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-    <i class="fas fa-graduation-cap text-gray-500 mr-2"></i>
-    Education
-    <span v-if="normalizedEducation.length"
-          class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-      {{ normalizedEducation.length }}
-    </span>
-  </h4>
+              <h4 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-graduation-cap text-gray-500 mr-2"></i>
+                Education
+                <span v-if="normalizedEducation.length"
+                      class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  {{ normalizedEducation.length }}
+                </span>
+              </h4>
 
-  <div v-if="!normalizedEducation.length" class="text-sm text-gray-500 italic">
-    No education records.
-  </div>
+              <div v-if="!normalizedEducation.length" class="text-sm text-gray-500 italic">
+                No education records.
+              </div>
 
-  <template v-else>
-    <!-- Highest -->
-    <div v-if="highestEducation"
-         class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-5 border border-indigo-100 shadow-sm">
-      <div class="flex justify-between items-start mb-2">
-        <h5 class="text-base font-semibold text-gray-800 flex items-center">
-          <i class="fas fa-award text-indigo-500 mr-2"></i>
-          Highest Education
-        </h5>
-        <span v-if="highestEducation.is_current"
-              class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-          Current
-        </span>
-      </div>
-      <div class="bg-white rounded-lg border border-indigo-200 p-4 shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
-          <div class="text-base font-medium text-gray-900">
-            {{ highestEducation.program }}
-            <span v-if="highestEducation.level_of_education && highestEducation.level_of_education !== highestEducation.program"
-                  class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
-              {{ highestEducation.level_of_education }}
-            </span>
-          </div>
-          <div class="text-sm text-gray-500">
-            {{ formatDate(highestEducation.start_date) }} -
-            {{ highestEducation.is_current ? 'Present' : formatDate(highestEducation.end_date) }}
-          </div>
-        </div>
-        <div class="text-sm font-medium text-blue-600 mb-2">
-          {{ highestEducation.school_name }}
-        </div>
-        <div v-if="highestEducation.description"
-             class="text-sm text-gray-700 mb-3 whitespace-pre-line">
-          {{ highestEducation.description }}
-        </div>
-        <div v-if="highestEducation.achievement"
-             class="mt-2 text-sm text-gray-700">
-          <strong>Achievements:</strong>
-          <ul class="list-disc list-inside">
-            <li v-for="(ach, idx) in highestEducation.achievement.split(',')" :key="idx">
-              {{ ach.trim() }}
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
+              <template v-else>
+                <!-- Highest -->
+                <div v-if="highestEducation"
+                    class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-5 border border-indigo-100 shadow-sm">
+                  <div class="flex justify-between items-start mb-2">
+                    <h5 class="text-base font-semibold text-gray-800 flex items-center">
+                      <i class="fas fa-award text-indigo-500 mr-2"></i>
+                      Highest Education
+                    </h5>
+                    <span v-if="highestEducation.is_current"
+                          class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      Current
+                    </span>
+                  </div>
+                  <div class="bg-white rounded-lg border border-indigo-200 p-4 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
+                      <div class="text-base font-medium text-gray-900">
+                        {{ highestEducation.program }}
+                        <span v-if="highestEducation.level_of_education && highestEducation.level_of_education !== highestEducation.program"
+                              class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
+                          {{ highestEducation.level_of_education }}
+                        </span>
+                      </div>
+                      <div class="text-sm text-gray-500">
+                        {{ formatDate(highestEducation.start_date) }} -
+                        {{ highestEducation.is_current ? 'Present' : formatDate(highestEducation.end_date) }}
+                      </div>
+                    </div>
+                    <div class="text-sm font-medium text-blue-600 mb-2">
+                      {{ highestEducation.school_name }}
+                    </div>
+                    <div v-if="highestEducation.description"
+                        class="text-sm text-gray-700 mb-3 whitespace-pre-line">
+                      {{ highestEducation.description }}
+                    </div>
+                    <div v-if="highestEducation.achievement"
+                        class="mt-2 text-sm text-gray-700">
+                      <strong>Achievements:</strong>
+                      <ul class="list-disc list-inside">
+                        <li v-for="(ach, idx) in highestEducation.achievement.split(',')" :key="idx">
+                          {{ ach.trim() }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
 
-    <!-- All Education -->
-    <div>
-      <h5 class="text-sm font-semibold text-gray-600 flex items-center mb-3">
-        <i class="fas fa-layer-group mr-2 text-indigo-400"></i>
-        All Education
-      </h5>
-      <div class="grid md:grid-cols-2 gap-5">
-        <div v-for="edu in normalizedEducation"
-             :key="edu.id"
-             class="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition hover:border-indigo-200">
-          <div class="flex justify-between items-start">
-            <div class="font-semibold text-gray-800">
-              {{ edu.program }}
+                <!-- All Education -->
+                <div>
+                  <h5 class="text-sm font-semibold text-gray-600 flex items-center mb-3">
+                    <i class="fas fa-layer-group mr-2 text-indigo-400"></i>
+                    All Education
+                  </h5>
+                  <div class="grid md:grid-cols-2 gap-5">
+                    <div v-for="edu in normalizedEducation"
+                        :key="edu.id"
+                        class="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition hover:border-indigo-200">
+                      <div class="flex justify-between items-start">
+                        <div class="font-semibold text-gray-800">
+                          {{ edu.program }}
+                        </div>
+                        <span v-if="edu.is_current"
+                              class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                          Current
+                        </span>
+                      </div>
+                      <p class="text-gray-600 text-sm mt-1">
+                        {{ edu.school_name }}
+                      </p>
+                        <p v-if="edu.level_of_education && edu.level_of_education !== edu.program"
+                          class="text-xs text-indigo-600 mt-1">
+                          {{ edu.level_of_education }}
+                        </p>
+                      <div class="mt-2 text-gray-500 flex items-center text-xs">
+                        <i class="far fa-calendar-alt mr-1 text-indigo-300"></i>
+                        <span>
+                          {{ formatDate(edu.start_date) }} -
+                          {{ edu.is_current ? 'Present' : formatDate(edu.end_date) }}
+                        </span>
+                      </div>
+                      <div v-if="edu.description"
+                          class="mt-2 text-gray-600 text-xs line-clamp-5 whitespace-pre-line">
+                        {{ edu.description }}
+                      </div>
+                      <div v-if="edu.achievement"
+                          class="mt-2 text-gray-600 text-xs">
+                        <strong>Achievements:</strong>
+                        <ul class="list-disc list-inside">
+                          <li v-for="(ach, idx) in edu.achievement.split(',')" :key="idx">
+                            {{ ach.trim() }}
+                          </li>
+                        </ul>
+                      </div>
+                      <div v-if="highestEducation && edu.id === highestEducation.id"
+                          class="absolute top-2 left-2 text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase font-semibold tracking-wide">
+                        Highest
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
             </div>
-            <span v-if="edu.is_current"
-                  class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-              Current
-            </span>
-          </div>
-          <p class="text-gray-600 text-sm mt-1">
-            {{ edu.school_name }}
-          </p>
-            <p v-if="edu.level_of_education && edu.level_of_education !== edu.program"
-               class="text-xs text-indigo-600 mt-1">
-              {{ edu.level_of_education }}
-            </p>
-          <div class="mt-2 text-gray-500 flex items-center text-xs">
-            <i class="far fa-calendar-alt mr-1 text-indigo-300"></i>
-            <span>
-              {{ formatDate(edu.start_date) }} -
-              {{ edu.is_current ? 'Present' : formatDate(edu.end_date) }}
-            </span>
-          </div>
-          <div v-if="edu.description"
-               class="mt-2 text-gray-600 text-xs line-clamp-5 whitespace-pre-line">
-            {{ edu.description }}
-          </div>
-          <div v-if="edu.achievement"
-               class="mt-2 text-gray-600 text-xs">
-            <strong>Achievements:</strong>
-            <ul class="list-disc list-inside">
-              <li v-for="(ach, idx) in edu.achievement.split(',')" :key="idx">
-                {{ ach.trim() }}
-              </li>
-            </ul>
-          </div>
-          <div v-if="highestEducation && edu.id === highestEducation.id"
-               class="absolute top-2 left-2 text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase font-semibold tracking-wide">
-            Highest
-          </div>
-        </div>
-      </div>
-    </div>
-  </template>
-</div>
 
             <!-- Work Experience -->
             <div v-else-if="activeTab === 'experience'">
@@ -1458,6 +1494,40 @@ const activitiesByDay = computed(() => {
               </button>
             </div>
           </div>
+
+          <!-- Action Completed Modal -->
+    <div
+      v-if="actionDoneModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 relative">
+        <button
+          class="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+          @click="actionDoneModal = false"
+        >
+          <i class="fas fa-times text-sm"></i>
+        </button>
+        <div class="flex items-center justify-center mb-4">
+          <div class="h-12 w-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
+            <i class="fas fa-check text-lg"></i>
+          </div>
+        </div>
+        <h3 class="text-sm font-semibold text-gray-800 text-center">
+          {{ lastActionDone.label || 'Action Completed' }}
+        </h3>
+        <p class="mt-2 text-xs text-gray-600 text-center whitespace-pre-line">
+          {{ lastActionDone.message }}
+        </p>
+        <div class="mt-5 flex justify-center">
+          <button
+            class="px-4 py-2 rounded-md bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700"
+            @click="actionDoneModal = false"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
 
           <RequestMoreInfoModal
             :show="showRequestInfoModal"

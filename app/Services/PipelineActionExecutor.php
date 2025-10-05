@@ -88,57 +88,122 @@ class PipelineActionExecutor
         return $a;
     }
 
-    public function execute(array $action, JobApplication $application): string
+    // ADD: Central action logger
+    private function logAction(JobApplication $application, string $actionKey, string $event, array $payload = []): void
     {
-        $action = $this->normalizeAction($action); 
+        if (!Schema::hasTable('job_application_action_logs')) {
+            Log::warning('logAction: table missing');
+            return;
+        }
 
         try {
-            $type = $action['type'];
+            $cols = Schema::getColumnListing('job_application_action_logs');
 
-            if ($type === 'transition' || ($action['key'] ?? null) === 'move_next') {
+            $appCol = in_array('job_application_id', $cols) ? 'job_application_id'
+                : (in_array('application_id', $cols) ? 'application_id' : null);
+            $actionCol = in_array('action_key', $cols) ? 'action_key'
+                : (in_array('action', $cols) ? 'action' : null);
+
+            if (!$appCol || !$actionCol) {
+                Log::warning('logAction: required columns missing', ['have'=>$cols]);
+                return;
+            }
+
+            $row = [
+                $appCol    => $application->id,
+                $actionCol => $actionKey,
+            ];
+
+            if (in_array('user_id', $cols)) {
+                $row['user_id'] = Auth::id();
+            } elseif (in_array('actor_id', $cols)) {
+                $row['actor_id'] = Auth::id();
+            }
+
+            if (in_array('event', $cols)) {
+                $row['event'] = $event;
+            }
+
+            if (in_array('payload', $cols)) {
+                $row['payload'] = $payload; // let JSON cast (model) or encode later
+            }
+
+            if (in_array('created_at', $cols)) $row['created_at'] = now();
+            if (in_array('updated_at', $cols)) $row['updated_at'] = now();
+
+            // Try model first if it exists
+            try {
+                if (class_exists(\App\Models\JobApplicationActionLog::class)) {
+                    \App\Models\JobApplicationActionLog::create($row);
+                } else {
+                    // Ensure payload encoded if not model
+                    if (isset($row['payload']) && !is_string($row['payload'])) {
+                        $row['payload'] = json_encode($row['payload']);
+                    }
+                    DB::table('job_application_action_logs')->insert($row);
+                }
+            } catch (\Throwable $e) {
+                // Fallback raw insert (encode payload)
+                if (isset($row['payload']) && !is_string($row['payload'])) {
+                    $row['payload'] = json_encode($row['payload']);
+                }
+                DB::table('job_application_action_logs')->insert($row);
+            }
+        } catch (\Throwable $e) {
+            Log::error('logAction failed', [
+                'application_id'=>$application->id,
+                'action_key'=>$actionKey,
+                'error'=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    public function execute(array $action, JobApplication $application): string
+    {
+        $action = $this->normalizeAction($action);
+
+        try {
+            $type = $action['type'] ?? null;
+            $key  = $action['key'] ?? 'unknown';
+            $payload = (array)($action['payload'] ?? []);
+
+            /* ------------ Transition (stage move) ------------ */
+            if ($type === 'transition' || $key === 'move_next') {
                 $from = $application->stage ?: 'applied';
                 $to   = strtolower($action['to'] ?? '');
 
                 if (!$to || $to === strtolower($from)) {
+                    $this->logAction($application, 'transition_noop', "No stage change ({$from})", $payload);
                     return 'No stage change';
                 }
 
                 $application->forceFill(['stage' => $to])->save();
 
-                // Auto-sync status based on new stage
-                if (method_exists($application, 'syncStatusFromStage')) {
-                    if ($application->syncStatusFromStage()) {
-                        $application->save();
-                    }
+                if (method_exists($application, 'syncStatusFromStage') && $application->syncStatusFromStage()) {
+                    $application->save();
                 }
 
                 $note = $action['__note'] ?? null;
 
-                // Archive automatically if moving to hired
                 if ($to === 'hired') {
                     if (Schema::hasColumn('job_applications','archived_at')) {
                         $application->forceFill(['archived_at'=>now()])->save();
                     } elseif (Schema::hasColumn('job_applications','is_archived')) {
                         $application->forceFill(['is_archived'=>1])->save();
                     }
-                }
-
-                 // Ensure application.status reflects hired and perform hire side-effects
-                if ($to === 'hired') {
                     try {
                         $application->status = 'hired';
                         $application->save();
-                        // Perform side-effects: update graduate, add experience, etc.
                         $this->handleHireAction($application);
                     } catch (\Throwable $e) {
                         Log::error('handleHireAction failed', [
-                            'application_id' => $application->id ?? null,
-                            'error' => $e->getMessage(),
+                            'application_id'=>$application->id,
+                            'error'=>$e->getMessage(),
                         ]);
                     }
                 }
 
-                // Stage log with optional note
+                // Stage log (existing behavior)
                 if (Schema::hasTable('job_application_stage_logs')) {
                     try {
                         if (!$this->isDuplicateStageLog($application->id, $from, $to)) {
@@ -149,7 +214,26 @@ class PipelineActionExecutor
                                 'to_stage'   => $to,
                             ];
                             if (in_array('changed_by', $cols))  $row['changed_by'] = Auth::id();
-                            if (!empty($note) && in_array('note',$cols)) $row['note'] = $note;
+
+                            // Custom hire activity message
+                            if ($to === 'hired') {
+                                $offer  = JobOffer::where('job_application_id', $application->id)->latest()->first();
+                                $start  = $offer && $offer->start_date ? $offer->start_date->format('Y-m-d') : now()->toDateString();
+                                $hrName = optional(Auth::user())->name ?: 'HR';
+                                $grad   = $application->graduate;
+                                $appName = $grad ? trim(($grad->first_name ?? '') . ' ' . ($grad->last_name ?? '')) : 'the applicant';
+                                $jobTitle = optional($application->job)->job_title ?: 'the position';
+                                $custom = "{$hrName} hired {$appName} for {$jobTitle} starting from {$start}";
+                                if (in_array('note',$cols)) {
+                                    $row['note'] = $custom;
+                                } else {
+                                    // fallback: attach to payload via action log helper too
+                                    $payload['custom_activity_text'] = $custom;
+                                }
+                            } elseif (!empty($note) && in_array('note',$cols)) {
+                                $row['note'] = $note;
+                            }
+
                             if (in_array('created_at', $cols))  $row['created_at'] = now();
                             DB::table('job_application_stage_logs')->insert($row);
                         }
@@ -158,7 +242,7 @@ class PipelineActionExecutor
                     }
                 }
 
-                // Send message based on new stage
+                // Stage-based message
                 try {
                     $stageToType = [
                         'interview'  => Messages::TYPE_INTERVIEW_INVITE,
@@ -185,117 +269,100 @@ class PipelineActionExecutor
                         );
                     }
                 } catch (\Throwable $e) {
-                    Log::warning('Pipeline stage message failed (ignored)', ['err'=>$e->getMessage()]);
+                    Log::warning('Pipeline stage message failed', ['err'=>$e->getMessage()]);
                 }
+
+                if (!empty($note)) $payload['note'] = $note;
+
+                // ALWAYS log transition
+                $this->logAction(
+                    $application,
+                    "transition_{$from}_to_{$to}",
+                    "Stage moved {$from} -> {$to}",
+                    $payload
+                );
 
                 return "Stage moved to {$to}";
             }
 
-           if (($action['type'] ?? null) === 'action') {
-                // Log action with payload + event
-                if (Schema::hasTable('job_application_action_logs')) {
-                    try {
-                        $key     = $action['key'] ?? '';
-                        $payload = $action['payload'] ?? [];
-
-                        // include requested items for request_info
-                        if (in_array($key, ['request_info','request_more_info'], true) && !empty($action['requested'])) {
-                            $payload['requested'] = array_values(array_unique((array)$action['requested']));
-                        }
-
-                        $event = $action['event'] ?? $this->buildEvent($key, (array)$payload);
-
-                        // Insert only the columns that exist (schema-agnostic)
-                        $cols   = Schema::getColumnListing('job_application_action_logs');
-                        $row    = [];
-
-                        // application foreign key
-                        $appCol = in_array('job_application_id', $cols) ? 'job_application_id'
-                            : (in_array('application_id', $cols) ? 'application_id' : null);
-                        if ($appCol) $row[$appCol] = $application->id;
-
-                        // user foreign key
-                        $userCol = in_array('user_id', $cols) ? 'user_id'
-                                : (in_array('actor_id', $cols) ? 'actor_id' : null);
-                        if ($userCol) $row[$userCol] = Auth::id();
-
-                        // action key/name
-                        $actionCol = in_array('action_key', $cols) ? 'action_key'
-                                : (in_array('action', $cols) ? 'action' : null);
-                        if ($actionCol) $row[$actionCol] = $key;
-
-                        // optional fields
-                        if (in_array('event', $cols)) {
-                            $row['event'] = $event;
-                        }
-                        if (in_array('payload', $cols)) {
-                            $row['payload'] = is_string($payload) ? $payload : json_encode($payload);
-                        }
-                        if (in_array('created_at', $cols)) $row['created_at'] = now();
-                        if (in_array('updated_at', $cols)) $row['updated_at'] = now();
-
-                        // Only insert if we have the minimal FK + action
-                        if ($appCol && $actionCol) {
-                            DB::table('job_application_action_logs')->insert($row);
-                        } else {
-                            Log::warning('Action log skipped: missing essential columns', compact('cols','row'));
-                        }
-                    } catch (\Throwable $e) {
-                        Log::warning('Action log failed (ignored)', ['err' => $e->getMessage()]);
-                    }
+            /* ------------ Non-transition Actions (send_offer, schedule_interview, etc.) ------------ */
+            if ($type === 'action') {
+                // Attach requested array if present
+                if (in_array($key, ['request_info','request_more_info'], true) && !empty($action['requested'])) {
+                    $payload['requested'] = array_values(array_unique((array)$action['requested']));
                 }
 
-                // Map action keys to message types
+                $event = $action['event'] ?? $this->buildEvent($key, $payload);
+
+                // Central log first
+                $this->logAction($application, $key, $event, $payload);
+
+                // Map action key to message type
                 $keyToType = [
                     'request_info'           => Messages::TYPE_REQUEST_INFO,
-                    'request_more_info'      => Messages::TYPE_REQUEST_INFO, // added
+                    'request_more_info'      => Messages::TYPE_REQUEST_INFO,
                     'schedule_interview'     => Messages::TYPE_INTERVIEW_INVITE,
                     'reschedule_interview'   => Messages::TYPE_INTERVIEW_RESCHEDULE,
                     'send_exam_instructions' => Messages::TYPE_EXAM_INSTRUCTIONS,
-                    'reschedule_test'        => Messages::TYPE_EXAM_RESCHEDULE, // align with config key
+                    'reschedule_test'        => Messages::TYPE_EXAM_RESCHEDULE,
                     'send_offer'             => Messages::TYPE_OFFER_LETTER,
                     'hire'                   => Messages::TYPE_HIRED,
                     'reject'                 => Messages::TYPE_REJECTED,
                     'reject_withdraw'        => Messages::TYPE_REJECTED,
                 ];
 
-                $key = $action['key'] ?? null;
-                if ($key && isset($keyToType[$key])) {
-                    $type = $keyToType[$key];
+                if (isset($keyToType[$key])) {
+                    try {
+                        $meta = [
+                            'action_key'     => $key,
+                            'application_id' => $application->id,
+                            'link'           => url("/applications/{$application->id}"),
+                        ];
+                        if ($key === 'request_info' && !empty($payload['requested'])) {
+                            $meta['requested'] = $payload['requested'];
+                        }
 
-                    // Build meta, include requested items for request_more_info
-                    $meta = [
-                        'action_key'     => $key,
-                        'application_id' => $application->id,
-                        'link'           => url("/applications/{$application->id}"),
-                    ];
-                    if ($type === Messages::TYPE_REQUEST_INFO && !empty($action['requested']) && is_array($action['requested'])) {
-                        $meta['requested'] = array_values(array_unique($action['requested']));
+                        $custom = trim((string)($action['custom_message'] ?? ''));
+                        $content = $custom !== '' ? $custom : Messages::template($keyToType[$key]);
+
+                        Messages::create([
+                            'application_id' => $application->id,
+                            'sender_id'      => Auth::id(),
+                            'receiver_id'    => $this->resolveApplicantUserId($application),
+                            'message_type'   => $keyToType[$key],
+                            'content'        => $content,
+                            'status'         => Messages::STATUS_UNREAD,
+                            'meta'           => $meta,
+                        ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('Action message dispatch failed', ['action'=>$key,'err'=>$e->getMessage()]);
                     }
+                }
 
-                    // Use custom note if provided; else use the template for that type
-                    $custom = trim((string)($action['custom_message'] ?? ''));
-                    $content = $custom !== '' ? $custom : Messages::template($type);
-
-                    // Create the message
-                    Messages::create([
-                        'application_id' => $application->id,
-                        'sender_id'      => Auth::id(),
-                        'receiver_id'    => $this->resolveApplicantUserId($application),
-                        'message_type'   => $type,
-                        'content'        => $content,
-                        'status'         => Messages::STATUS_UNREAD,
-                        'meta'           => $meta,
-                    ]);
+                // Special case: if action is hire (without explicit transition)
+                if ($key === 'hire' && $application->stage !== 'hired') {
+                    $prevStage = $application->stage ?: 'applied';
+                    $application->stage = 'hired';
+                    $application->status = 'hired';
+                    $application->save();
+                    $this->handleHireAction($application);
+                    $this->logAction(
+                        $application,
+                        "transition_{$prevStage}_to_hired",
+                        "Stage moved {$prevStage} -> hired (implicit via hire action)",
+                        $payload
+                    );
                 }
 
                 return 'Action recorded';
             }
 
             if ($type === 'noop') {
+                $this->logAction($application, 'noop', 'No operation', $payload);
                 return 'Kept in current stage';
             }
 
+            $this->logAction($application, $key ?: 'unsupported', 'Unsupported action type', $payload);
             return 'Unsupported action type';
         } catch (\Throwable $e) {
             Log::error('Pipeline executor error', [
