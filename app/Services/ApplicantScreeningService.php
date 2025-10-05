@@ -23,7 +23,7 @@ class ApplicantScreeningService
             'min_salary' => 1,
             'max_salary' => 1,
             'salary_type' => 1,
-            'keywords' => 2,
+            'keywords' => 1,
         ];
         $totalWeight = array_sum($weights);
 

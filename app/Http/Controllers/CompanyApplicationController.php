@@ -21,14 +21,14 @@ use Illuminate\Support\Carbon;
 
 class CompanyApplicationController extends Controller
 {
-/**
- * Display the specified graduate's portfolio.
- *
- * @param  \App\Models\User  $user
- * @return \Inertia\Response
- */
+    /**
+     * Display the specified graduate's portfolio.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Inertia\Response
+     */
 
-private function normalizePayload($payload): array
+    private function normalizePayload($payload): array
     {
         if (is_array($payload)) return $payload;
         if (is_object($payload)) return (array) $payload;
@@ -45,26 +45,43 @@ private function normalizePayload($payload): array
     private function extractDateTimeFromPayload(array $p): ?Carbon
     {
         $candidates = [
-            'scheduled_at','schedule_at','interview_at','interview_date','date','datetime','rescheduled_at','new_date','time'
+            'scheduled_at',
+            'schedule_at',
+            'interview_at',
+            'interview_date',
+            'date',
+            'datetime',
+            'rescheduled_at',
+            'new_date',
+            'time'
         ];
-        foreach ([['date','time'], ['new_date','new_time'], ['day','time']] as $pair) {
+        foreach ([['date', 'time'], ['new_date', 'new_time'], ['day', 'time']] as $pair) {
             [$d, $t] = $pair;
             if (!empty($p[$d]) && !empty($p[$t])) {
-                try { return Carbon::parse(trim($p[$d].' '.$p[$t]), config('app.timezone')); } catch (\Throwable $e) {}
+                try {
+                    return Carbon::parse(trim($p[$d] . ' ' . $p[$t]), config('app.timezone'));
+                } catch (\Throwable $e) {
+                }
             }
         }
 
         // Single datetime-like fields
-        foreach (['scheduled_at','schedule_at','interview_at','interview_datetime','datetime','rescheduled_at','new_datetime'] as $k) {
+        foreach (['scheduled_at', 'schedule_at', 'interview_at', 'interview_datetime', 'datetime', 'rescheduled_at', 'new_datetime'] as $k) {
             if (!empty($p[$k])) {
-                try { return Carbon::parse($p[$k], config('app.timezone')); } catch (\Throwable $e) {}
+                try {
+                    return Carbon::parse($p[$k], config('app.timezone'));
+                } catch (\Throwable $e) {
+                }
             }
         }
 
         // Fallback: date only
-        foreach (['date','new_date','interview_date'] as $k) {
+        foreach (['date', 'new_date', 'interview_date'] as $k) {
             if (!empty($p[$k])) {
-                try { return Carbon::parse($p[$k], config('app.timezone')); } catch (\Throwable $e) {}
+                try {
+                    return Carbon::parse($p[$k], config('app.timezone'));
+                } catch (\Throwable $e) {
+                }
             }
         }
 
@@ -80,7 +97,7 @@ private function normalizePayload($payload): array
             return $byId[$row->{$pid}] ?? '—';
         }
         if (property_exists($row, $pslug) && !is_null($row->{$pslug})) {
-            return $bySlug[$row->{$pslug}] ?? ucfirst(str_replace('_',' ', (string)$row->{$pslug}));
+            return $bySlug[$row->{$pslug}] ?? ucfirst(str_replace('_', ' ', (string)$row->{$pslug}));
         }
         if (property_exists($row, $pname) && !is_null($row->{$pname})) {
             return (string)$row->{$pname};
@@ -114,50 +131,51 @@ private function normalizePayload($payload): array
 
     public function show(JobApplication $application)
     {
-            // Load related data (skills, portfolio, etc.)
+        // Load related data (skills, portfolio, etc.)
         $application->load([
-                'graduate.user',       
-                'graduate.graduateSkills.skill',    
-                'graduate.education',   
-                'graduate.experience',
-                'graduate.projects',
-                'graduate.achievements',
-                'graduate.certifications',
-                'graduate.testimonials',
-                'graduate.employmentPreference',
-                'graduate.employmentPreference.locations',
-                'graduate.employmentPreference.salary',
-                'graduate.careerGoals',
-                'graduate.resume',
-                'job',                 
-                'graduate.referrals', 
-            ]);
+            'graduate.user',
+            'graduate.graduateSkills.skill',
+            'graduate.education',
+            'graduate.experience',
+            'graduate.projects',
+            'graduate.achievements',
+            'graduate.certifications',
+            'graduate.testimonials',
+            'graduate.employmentPreference',
+            'graduate.employmentPreference.locations',
+            'graduate.employmentPreference.salary',
+            'graduate.careerGoals',
+            'graduate.resume',
+            'job',
+            'graduate.referrals',
+        ]);
 
         $graduate = $application->graduate;
-        
+
 
         $resume = $graduate->resume;
         if ($resume) {
             $resume->file_url = Storage::url('resumes/' . $resume->file_name); // or $resume->file_path
         }
 
-         // ===== Employment Preference Normalization (handles array / json / csv / relations) =====
+        // ===== Employment Preference Normalization (handles array / json / csv / relations) =====
         $ep = $graduate?->employmentPreference;
         $employmentPreferencesTransformed = null;
 
-        $decodeMulti = function($raw) {
+        $decodeMulti = function ($raw) {
             if (is_null($raw) || $raw === '') return [];
             if (is_array($raw)) return array_values(array_filter(array_map('trim', $raw)));
             if (is_string($raw)) {
                 $t = trim($raw);
                 // Try JSON
-                if ((str_starts_with($t,'[') && str_ends_with($t,']')) ||
-                    (str_starts_with($t,'{') && str_ends_with($t,'}'))) {
+                if ((str_starts_with($t, '[') && str_ends_with($t, ']')) ||
+                    (str_starts_with($t, '{') && str_ends_with($t, '}'))
+                ) {
                     $decoded = json_decode($t, true);
                     if (json_last_error() === JSON_ERROR_NONE) {
                         if (is_array($decoded)) {
                             // If list of scalars or objects
-                            return array_values(array_filter(array_map(function($v){
+                            return array_values(array_filter(array_map(function ($v) {
                                 if (is_array($v) && isset($v['name'])) return trim($v['name']);
                                 if (is_string($v)) return trim($v);
                                 return null;
@@ -166,7 +184,7 @@ private function normalizePayload($payload): array
                     }
                 }
                 // CSV
-                return array_values(array_filter(array_map('trim', explode(',',$raw))));
+                return array_values(array_filter(array_map('trim', explode(',', $raw))));
             }
             return [];
         };
@@ -188,7 +206,7 @@ private function normalizePayload($payload): array
                 $workEnvironments = collect(
                     $decodeMulti(
                         $ep->work_environment ??
-                        $ep->getRawOriginal('work_environment')
+                            $ep->getRawOriginal('work_environment')
                     )
                 );
             }
@@ -214,8 +232,8 @@ private function normalizePayload($payload): array
             $employmentPreferencesTransformed = [
                 'employment_min_salary' => $minSalary,
                 'employment_max_salary' => $maxSalary,
-                'job_types' => $jobTypes->map(fn($n) => ['name'=>$n])->values(),
-                'work_environments' => $workEnvironments->map(fn($n) => ['name'=>$n])->values(),
+                'job_types' => $jobTypes->map(fn($n) => ['name' => $n])->values(),
+                'work_environments' => $workEnvironments->map(fn($n) => ['name' => $n])->values(),
                 'locations' => $locations,
                 'additional_notes' => $ep->additional_notes ?? $ep->notes ?? null,
             ];
@@ -263,18 +281,26 @@ private function normalizePayload($payload): array
         }
 
         $educationRank = [
-            'phd' => 1,'doctor'=>'1','doctorate'=>1,
-            "master's"=>2,'masters'=>2,'master'=>2,
-            "bachelor's"=>3,'bachelors'=>3,'bachelor'=>3,
-            'associate'=>4,'certificate'=>5,
-            'vocational'=>6,
-            'senior high'=>7,'high school'=>7,
+            'phd' => 1,
+            'doctor' => '1',
+            'doctorate' => 1,
+            "master's" => 2,
+            'masters' => 2,
+            'master' => 2,
+            "bachelor's" => 3,
+            'bachelors' => 3,
+            'bachelor' => 3,
+            'associate' => 4,
+            'certificate' => 5,
+            'vocational' => 6,
+            'senior high' => 7,
+            'high school' => 7,
         ];
         $norm = fn($v) => strtolower(trim($v ?? ''));
 
         $educationCollection = $graduate?->education ?? collect();
 
-        $education = $educationCollection->map(function($e){
+        $education = $educationCollection->map(function ($e) {
             return [
                 'id' => $e->id,
                 'school_name' => $e->school_name,
@@ -290,7 +316,7 @@ private function normalizePayload($payload): array
         })->values();
 
         $highestEducation = $education
-            ->sort(function($a,$b) use($educationRank,$norm){
+            ->sort(function ($a, $b) use ($educationRank, $norm) {
                 $ra = $educationRank[$norm($a['level_of_education'])] ?? 999;
                 $rb = $educationRank[$norm($b['level_of_education'])] ?? 999;
                 if ($ra !== $rb) return $ra <=> $rb;
@@ -300,13 +326,13 @@ private function normalizePayload($payload): array
                 // most recent end (or start) date
                 $aDate = $a['end_date'] ?? $a['start_date'] ?? '0000-00-00';
                 $bDate = $b['end_date'] ?? $b['start_date'] ?? '0000-00-00';
-                return strcmp($bDate,$aDate);
+                return strcmp($bDate, $aDate);
             })
             ->first();
 
         // Build Stage Activities
         $activities = collect();
-        
+
         $applicantName = trim(($graduate->first_name ?? '') . ' ' . ($graduate->last_name ?? ''));
         $jobTitle = $application->job->job_title ?? 'the position';
         $activities->push([
@@ -319,10 +345,10 @@ private function normalizePayload($payload): array
         ]);
 
         // Stage change logs
-         if (Schema::hasTable('job_application_stage_logs')) {
+        if (Schema::hasTable('job_application_stage_logs')) {
             // Maps for both id->name and slug->name
-            $stageById   = DB::table('job_pipeline_stages')->pluck('name','id')->toArray();
-            $stageBySlug = DB::table('job_pipeline_stages')->pluck('name','slug')->toArray();
+            $stageById   = DB::table('job_pipeline_stages')->pluck('name', 'id')->toArray();
+            $stageBySlug = DB::table('job_pipeline_stages')->pluck('name', 'slug')->toArray();
 
             $hasChangedAt = Schema::hasColumn('job_application_stage_logs', 'changed_at');
 
@@ -419,22 +445,22 @@ private function normalizePayload($payload): array
                         } elseif (!empty($payload['type'])) {
                             $req = [(string)$payload['type']];
                         }
-                        $extra = $req ? ': '.implode(', ', $req) : '';
+                        $extra = $req ? ': ' . implode(', ', $req) : '';
                         $text = " requested more info{$extra}";
                         break;
 
                     case 'schedule_interview':
                         $dt = $this->extractDateTimeFromPayload($payload);
-                        $when = $dt ? (' on '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
-                        $loc  = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
+                        $when = $dt ? (' on ' . $dt->format('M d, Y') . ' at ' . $dt->format('h:i A')) : '';
+                        $loc  = !empty($payload['location']) ? ' (' . $payload['location'] . ')' : '';
                         $text = " scheduled an interview{$when}{$loc}";
                         $stageForAction = 'interview';
                         break;
 
                     case 'reschedule_interview':
                         $dt = $this->extractDateTimeFromPayload($payload);
-                        $when = $dt ? (' to '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
-                        $loc  = !empty($payload['location']) ? ' ('.$payload['location'].')' : '';
+                        $when = $dt ? (' to ' . $dt->format('M d, Y') . ' at ' . $dt->format('h:i A')) : '';
+                        $loc  = !empty($payload['location']) ? ' (' . $payload['location'] . ')' : '';
                         $text = " rescheduled the interview{$when}{$loc}";
                         $stageForAction = 'interview';
                         break;
@@ -442,27 +468,27 @@ private function normalizePayload($payload): array
                     case 'record_interview_feedback':
                         $rec = $payload['recommendation'] ?? $payload['status'] ?? null;
                         $summary = $payload['feedback'] ?? $payload['notes'] ?? null;
-                        $text = " recorded interview feedback".($rec ? " - {$rec}" : '');
-                        if ($summary) $text .= ": ".$summary;
+                        $text = " recorded interview feedback" . ($rec ? " - {$rec}" : '');
+                        if ($summary) $text .= ": " . $summary;
                         $stageForAction = 'interview';
                         break;
 
                     case 'send_exam_instructions':
                         $dt = $this->extractDateTimeFromPayload($payload);
-                        $when = $dt ? (' for '.$dt->format('M d, Y').' '.$dt->format('h:i A')) : '';
+                        $when = $dt ? (' for ' . $dt->format('M d, Y') . ' ' . $dt->format('h:i A')) : '';
                         $text = " sent exam instructions {$when}";
                         $stageForAction = 'assessment';
                         break;
 
                     case 'record_test_results':
                         $score = $payload['score'] ?? $payload['result'] ?? $payload['summary'] ?? null;
-                        $text = " recorded test results".($score ? ": {$score}" : '');
+                        $text = " recorded test results" . ($score ? ": {$score}" : '');
                         $stageForAction = 'assessment';
                         break;
 
                     case 'reschedule_test':
                         $dt = $this->extractDateTimeFromPayload($payload);
-                        $when = $dt ? (' to '.$dt->format('M d, Y').' at '.$dt->format('h:i A')) : '';
+                        $when = $dt ? (' to ' . $dt->format('M d, Y') . ' at ' . $dt->format('h:i A')) : '';
                         $text = " rescheduled the exam{$when}";
                         $stageForAction = 'assessment';
                         break;
@@ -473,7 +499,7 @@ private function normalizePayload($payload): array
                         $extra  = [];
                         if ($salary !== null) $extra[] = "salary {$salary}";
                         if ($start) $extra[] = "start date {$start}";
-                        $tail = $extra ? ' ('.implode(', ', $extra).')' : '';
+                        $tail = $extra ? ' (' . implode(', ', $extra) . ')' : '';
                         $text = " sent an offer{$tail}";
                         $stageForAction = 'offer';
                         break;
@@ -486,7 +512,7 @@ private function normalizePayload($payload): array
                     case 'reject':
                     case 'reject_withdraw':
                         $reason = $payload['reason'] ?? null;
-                        $text = " rejected the applicant".($reason ? ": {$reason}" : '');
+                        $text = " rejected the applicant" . ($reason ? ": {$reason}" : '');
                         $stageForAction = 'rejected';
                         break;
 
@@ -494,7 +520,7 @@ private function normalizePayload($payload): array
                     case 'note_added':
                         $remark = trim((string)($payload ?: ''));
                         $remark = $remark === '' && !empty($payload['remark']) ? $payload['remark'] : $remark;
-                        $text = " added a remark".($remark ? ": ".$remark : '');
+                        $text = " added a remark" . ($remark ? ": " . $remark : '');
                         break;
 
                     default:
@@ -534,13 +560,13 @@ private function normalizePayload($payload): array
             }
         }
 
-       
+
 
         // Sort and trim fields for frontend
         $stageActivities = $activities
             ->sortByDesc(fn($a) => $a['at'] ?? now())
             ->values()
-            ->map(function($a){
+            ->map(function ($a) {
                 return [
                     'type' => $a['type'],
                     'stage' => $a['stage'],
@@ -570,12 +596,12 @@ private function normalizePayload($payload): array
             'applicant' => $application,
             'graduate' => $graduate,
             'stageActivities' => $stageActivities,
-            'skills' => $graduate?->graduateSkills?->map(function($gs) {
+            'skills' => $graduate?->graduateSkills?->map(function ($gs) {
                 $skill = $gs->skill;
                 // Collect possible type/category sources
                 $candidates = [
                     $gs->type           ?? null,
-                    
+
                 ];
                 $groupLabel = collect($candidates)
                     ->filter(fn($v) => $v && is_string($v))
@@ -624,13 +650,15 @@ private function normalizePayload($payload): array
 
         $changed = [];
 
-        if (array_key_exists('notes',$data) && $data['notes'] !== $application->notes) {
+        if (array_key_exists('notes', $data) && $data['notes'] !== $application->notes) {
             $application->notes = $data['notes'];
             $changed[] = 'notes';
         }
 
-        if (array_key_exists('job_pipeline_stage_id',$data)
-            && (int)$data['job_pipeline_stage_id'] !== (int)$application->job_pipeline_stage_id) {
+        if (
+            array_key_exists('job_pipeline_stage_id', $data)
+            && (int)$data['job_pipeline_stage_id'] !== (int)$application->job_pipeline_stage_id
+        ) {
 
             $fromId    = $application->job_pipeline_stage_id;
             $fromStage = $fromId ? JobPipelineStage::find($fromId) : null;
@@ -649,24 +677,24 @@ private function normalizePayload($payload): array
                 ];
 
                 // from_*
-                if (Schema::hasColumn('job_application_stage_logs','from_stage_id')) {
+                if (Schema::hasColumn('job_application_stage_logs', 'from_stage_id')) {
                     $payload['from_stage_id'] = $fromId;
-                } elseif (Schema::hasColumn('job_application_stage_logs','from_stage_slug')) {
+                } elseif (Schema::hasColumn('job_application_stage_logs', 'from_stage_slug')) {
                     $payload['from_stage_slug'] = $fromStage?->slug;
-                } elseif (Schema::hasColumn('job_application_stage_logs','from_stage')) {
+                } elseif (Schema::hasColumn('job_application_stage_logs', 'from_stage')) {
                     $payload['from_stage'] = $fromStage?->name ?? $fromStage?->slug;
                 }
 
                 // to_*
-                if (Schema::hasColumn('job_application_stage_logs','to_stage_id')) {
+                if (Schema::hasColumn('job_application_stage_logs', 'to_stage_id')) {
                     $payload['to_stage_id'] = $stage->id;
-                } elseif (Schema::hasColumn('job_application_stage_logs','to_stage_slug')) {
+                } elseif (Schema::hasColumn('job_application_stage_logs', 'to_stage_slug')) {
                     $payload['to_stage_slug'] = $stage->slug;
-                } elseif (Schema::hasColumn('job_application_stage_logs','to_stage')) {
+                } elseif (Schema::hasColumn('job_application_stage_logs', 'to_stage')) {
                     $payload['to_stage'] = $stage->name ?? $stage->slug;
                 }
 
-                if (Schema::hasColumn('job_application_stage_logs','changed_at')) {
+                if (Schema::hasColumn('job_application_stage_logs', 'changed_at')) {
                     $payload['changed_at'] = now();
                 }
 
@@ -677,15 +705,15 @@ private function normalizePayload($payload): array
             }
         }
 
-        if (in_array('stage', $changed) && method_exists($application,'syncStatusFromStage')) {
-            if ($application->syncStatusFromStage() && !in_array('status',$changed)) {
+        if (in_array('stage', $changed) && method_exists($application, 'syncStatusFromStage')) {
+            if ($application->syncStatusFromStage() && !in_array('status', $changed)) {
                 $changed[] = 'status';
             }
         }
 
         if ($changed) $application->save();
 
-         // NEW: log remark to stage activities when notes change
+        // NEW: log remark to stage activities when notes change
         if (in_array('notes', $changed) && Schema::hasTable('job_application_action_logs')) {
             try {
                 DB::table('job_application_action_logs')->insert([
@@ -702,7 +730,7 @@ private function normalizePayload($payload): array
             }
         }
 
-        return back()->with('success', 'Updated: '.implode(', ',$changed));
+        return back()->with('success', 'Updated: ' . implode(', ', $changed));
     }
 
     // public function scheduleInterview(Request $request, JobApplication $application)
@@ -719,7 +747,7 @@ private function normalizePayload($payload): array
     //     ]);
 
     //     $interview->load('jobApplication.job.company');
-        
+
     //     // Send notification to graduate/user
     //     if ($application->graduate && $application->graduate->user) {
     //     $application->graduate->user->notify(new InterviewScheduledNotification($interview));
@@ -771,7 +799,7 @@ private function normalizePayload($payload): array
 
         $application->status = $request->status;
 
-        if (method_exists($application,'syncStatusFromStage')) {
+        if (method_exists($application, 'syncStatusFromStage')) {
             $application->syncStatusFromStage(); // will override if stage dictates
         }
 
@@ -783,7 +811,8 @@ private function normalizePayload($payload): array
             if ($graduate && $application->job) {
                 $graduate->current_job_title = $application->job->job_title ?? 'Hired';
                 $graduate->company_id = $application->job->company_id;
-                $graduate->employment_status = 'Employed';
+                $screening = (new \App\Services\ApplicantScreeningService())->screen($graduate, $application->job);
+                $graduate->employment_status = $screening['match_percentage'] >= 50 ? 'Employed' : 'Underemployed';
                 $graduate->save();
             }
         }
