@@ -462,7 +462,7 @@ class GraduateJobsController extends Controller
             ->toArray();
 
         // Get graduate's education (e.g., program or degree)
-        $education = \App\Models\Education::where('graduate_id', $graduate->id)->first();
+        $education = \App\Models\GraduateEducation::where('graduate_id', $graduate->id)->first();
         $program = $education ? $education->program : null;
 
         // Get graduate's experience (e.g., job titles)

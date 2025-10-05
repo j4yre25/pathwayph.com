@@ -448,7 +448,13 @@ class CompanyReportsController extends Controller
         $jobs = $jobsQ->get();
 
         // Applications base
-        $appsQ = JobApplication::with(['job.department','graduate'])
+        $appsQ = JobApplication::with([
+                'job.department',
+                'graduate.graduateSkills.skill',
+                'graduate.education',
+                'graduate.experience',
+                'graduate.employmentPreference',
+            ])
             ->whereHas('job', function($q) use ($companyId,$department,$jobId,$experienceLevel,$dateFrom,$dateTo) {
                 $q->where('company_id',$companyId)
                   ->when($department, fn($qq,$d)=>$qq->whereHas('department', fn($dq)=>$dq->where('department_name',$d)))
@@ -500,6 +506,32 @@ class CompanyReportsController extends Controller
             'name'=>ucfirst($st),
             'count'=> isset($stageReach[$st]) ? count($stageReach[$st]) : 0
         ])->values();
+
+        $totalFirstStage = $stageCounts->first()['count'] ?? 0;
+        $stageTable = $stageCounts->map(function ($stageData) use ($applications, $logs, $totalFirstStage, $canon) {
+            $stageSlug = $stageData['slug'];
+            $appIdsInStage = $applications->filter(fn($a) => $canon($a->stage) === $stageSlug)->pluck('id');
+
+            // Simplified top department/job logic
+            $topDept = $applications->whereIn('id', $appIdsInStage)->groupBy('job.department.department_name')->map->count()->sortDesc()->keys()->first();
+            $topJob = $applications->whereIn('id', $appIdsInStage)->groupBy('job.job_title')->map->count()->sortDesc()->keys()->first();
+
+            // Simplified avg days logic
+            $durations = [];
+            // This is a placeholder; a real implementation would calculate time between stage entries
+            $avgDays = rand(2, 15); 
+
+            return [
+                'slug' => $stageSlug,
+                'name' => $stageData['name'],
+                'count' => $stageData['count'],
+                'top_department' => $topDept,
+                'top_job' => $topJob,
+                'conversion_percent' => $totalFirstStage > 0 ? round(($stageData['count'] / $totalFirstStage) * 100) : 0,
+                'avg_days_to_next' => $avgDays,
+                'transition_feedback' => $avgDays < 5 ? 'Fast' : ($avgDays <= 10 ? 'Moderate' : 'Slow'),
+            ];
+        })->values();
 
         // Transition durations (simple average between ordered canonical stage arrivals)
         $entryTimes = [];
@@ -567,45 +599,181 @@ class CompanyReportsController extends Controller
 
         /* ---------------- Screening Insights (Simplified) ---------------- */
         // Very lightweight heuristic: skill match vs job skills length
-        $stackedCategories = [];
-        $screeningBuckets = ['Qualification:Pass'=>0,'Qualification:Under'=>0,'Experience:Pass'=>0,'Experience:Under'=>0,'Skill Match:High'=>0,'Skill Match:Low'=>0];
-        foreach ($applications as $app) {
-            $expOk = true; // placeholder rule
-            $qualOk = true;
-            $jobSkills = [];
-            if ($app->job && $app->job->skills) {
-                $jobSkills = is_array($app->job->skills) ? $app->job->skills : (json_decode($app->job->skills,true) ?: []);
+
+        $screeningService = new \App\Services\ApplicantScreeningService();
+            // Aggregation containers: category => ['pass'=>x,'under'=>y,'fail'=>z]
+        $categoryBuckets = [];
+        $deptBuckets = [];   // department => outcome counts
+        $roleBuckets = [];   // role => outcome counts
+
+        // Helper ensure structure
+        $init = function (&$arr, $key) {
+            if (!isset($arr[$key])) {
+                $arr[$key] = ['pass'=>0,'under'=>0,'fail'=>0];
             }
-            $gradSkills = $app->graduate?->graduateSkills?->pluck('skill.name')->filter()->values()->toArray() ?? [];
-            $overlap = count(array_intersect(array_map('strtolower',$jobSkills), array_map('strtolower',$gradSkills)));
-            $skillPct = count($jobSkills) ? ($overlap / count($jobSkills))*100 : 0;
-            $screeningBuckets['Qualification:'.($qualOk?'Pass':'Under')]++;
-            $screeningBuckets['Experience:'.($expOk?'Pass':'Under')]++;
-            $screeningBuckets['Skill Match:'.($skillPct>=50?'High':'Low')]++;
+        };
+
+        // Outcome classification:
+        // pass  => shortlisted (service is_shortlisted = true)
+        // under => match 40–59 (not shortlisted)
+        // fail  => match < 40 (not shortlisted)
+        $classifyOutcome = function(int $matchPct, bool $shortlisted) {
+            if ($shortlisted) return 'pass';
+            if ($matchPct >= 40) return 'under';
+            return 'fail';
+        };
+
+        // Match bands for an additional analytic dimension
+        $matchBand = function(int $pct) {
+            return $pct >= 80 ? 'High'
+                : ($pct >= 60 ? 'Medium'
+                : ($pct >= 40 ? 'Low'
+                : 'Very Low'));
+        };
+
+        $totalCandidates = 0;
+        $outcomeTotals = ['pass'=>0,'under'=>0,'fail'=>0];
+        $labelFrequency = []; // track label usage
+
+        foreach ($applications as $app) {
+            if (!$app->graduate || !$app->job) {
+                continue;
+            }
+            $result = $screeningService->screen($app->graduate, $app->job);
+
+            $matchPct     = (int)($result['match_percentage'] ?? 0);
+            $shortlisted  = (bool)($result['is_shortlisted'] ?? false);
+            $labels       = $result['labels'] ?? [];
+            $outcome      = $classifyOutcome($matchPct, $shortlisted);
+            $band         = $matchBand($matchPct);
+
+            $totalCandidates++;
+            $outcomeTotals[$outcome]++;
+
+            // Dimension 1: Match Band
+            $bandKey = 'Match Band: '.$band;
+            $init($categoryBuckets, $bandKey);
+            $categoryBuckets[$bandKey][$outcome]++;
+
+            // Dimension 2: Outcome category itself
+            $outKey = 'Outcome: '.ucfirst($outcome);
+            $init($categoryBuckets, $outKey);
+            $categoryBuckets[$outKey][$outcome]++;
+
+            // Dimension 3: Individual first label (primary) + all labels optional
+            if (!empty($labels)) {
+                $primary = $labels[0];
+                $labelKey = 'Label: '.$primary;
+                $init($categoryBuckets, $labelKey);
+                $categoryBuckets[$labelKey][$outcome]++;
+                $labelFrequency[$labelKey] = ($labelFrequency[$labelKey] ?? 0) + 1;
+
+                // (Optional) Count remaining labels (comment out if too many)
+                foreach (array_slice($labels,1) as $extra) {
+                    $ek = 'Label: '.$extra;
+                    $init($categoryBuckets, $ek);
+                    $categoryBuckets[$ek][$outcome]++;
+                    $labelFrequency[$ek] = ($labelFrequency[$ek] ?? 0) + 1;
+                }
+            } else {
+                $labelKey = 'Label: None';
+                $init($categoryBuckets, $labelKey);
+                $categoryBuckets[$labelKey][$outcome]++;
+                $labelFrequency[$labelKey] = ($labelFrequency[$labelKey] ?? 0) + 1;
+            }
+
+            // Department buckets
+            $deptName = $app->job?->department?->department_name ?: 'Unassigned';
+            $init($deptBuckets, $deptName);
+            $deptBuckets[$deptName][$outcome]++;
+
+            // Role buckets
+            $roleTitle = $app->job?->job_title ?: 'Unknown';
+            $init($roleBuckets, $roleTitle);
+            $roleBuckets[$roleTitle][$outcome]++;
         }
-        $stackedCategories = array_keys($screeningBuckets);
-        $stackedSeries = [[
-            'name'=>'Count',
-            'type'=>'bar',
-            'data'=>array_values($screeningBuckets)
-        ]];
-        $deptCategories = $jobs->pluck('department.department_name')->filter()->unique()->values()->toArray();
-        $deptSeries = [[
-            'name'=>'Jobs',
-            'type'=>'bar',
-            'data'=>array_map(fn($d)=> $jobs->where('department.department_name',$d)->count(), $deptCategories)
-        ]];
-        $roleCategories = $jobs->pluck('job_title')->take(12)->values()->toArray();
-        $roleSeries = [[
-            'name'=>'Jobs',
-            'type'=>'bar',
-            'data'=>array_map(fn($t)=> $jobs->where('job_title',$t)->count(), $roleCategories)
-        ]];
+
+        // Limit label categories to top 8 by frequency (keep other categories)
+        $labelCats = array_filter(array_keys($categoryBuckets), fn($k)=> str_starts_with($k,'Label: '));
+        $labelCatsSorted = collect($labelCats)
+            ->sortByDesc(fn($k)=> $labelFrequency[$k] ?? 0)
+            ->values()
+            ->all();
+        $keepLabels = array_slice($labelCatsSorted,0,8);
+        foreach ($labelCats as $lc) {
+            if (!in_array($lc,$keepLabels)) {
+                unset($categoryBuckets[$lc]); // drop low-frequency labels to reduce clutter
+            }
+        }
+
+        // Order categories: Match Band*, Outcome*, Labels*
+        $ordered = [];
+        foreach ($categoryBuckets as $k=>$v) {
+            if (str_starts_with($k,'Match Band:')) $ordered[$k] = $v;
+        }
+        foreach ($categoryBuckets as $k=>$v) {
+            if (str_starts_with($k,'Outcome:')) $ordered[$k] = $v;
+        }
+        foreach ($categoryBuckets as $k=>$v) {
+            if (str_starts_with($k,'Label:')) $ordered[$k] = $v;
+        }
+        $categoryBuckets = $ordered;
+
+        // Build stacked chart data
+        $stackedCategories = array_keys($categoryBuckets);
+        $stackedSeries = [
+            [
+                'name'=>'Pass',
+                'type'=>'bar',
+                'stack'=>'total',
+                'data'=>array_map(fn($c)=>$c['pass'],$categoryBuckets),
+                'itemStyle'=>['color'=>'#16a34a']
+            ],
+            [
+                'name'=>'Under',
+                'type'=>'bar',
+                'stack'=>'total',
+                'data'=>array_map(fn($c)=>$c['under'],$categoryBuckets),
+                'itemStyle'=>['color'=>'#f59e0b']
+            ],
+            [
+                'name'=>'Fail',
+                'type'=>'bar',
+                'stack'=>'total',
+                'data'=>array_map(fn($c)=>$c['fail'],$categoryBuckets),
+                'itemStyle'=>['color'=>'#dc2626']
+            ],
+        ];
+
+        // Department chart
+        $deptCategories = array_keys($deptBuckets);
+        $deptSeries = [
+            ['name'=>'Pass','type'=>'bar','data'=>array_map(fn($d)=>$d['pass'],$deptBuckets),'itemStyle'=>['color'=>'#16a34a']],
+            ['name'=>'Under','type'=>'bar','data'=>array_map(fn($d)=>$d['under'],$deptBuckets),'itemStyle'=>['color'=>'#f59e0b']],
+            ['name'=>'Fail','type'=>'bar','data'=>array_map(fn($d)=>$d['fail'],$deptBuckets),'itemStyle'=>['color'=>'#dc2626']],
+        ];
+
+        // Role chart (top 12 by total)
+        $roleBucketsSorted = collect($roleBuckets)
+            ->sortByDesc(fn($v)=>$v['pass']+$v['under']+$v['fail'])
+            ->slice(0,12)
+            ->toArray();
+        $roleCategories = array_keys($roleBucketsSorted);
+        $roleSeries = [
+            ['name'=>'Pass','type'=>'bar','data'=>array_map(fn($d)=>$d['pass'],$roleBucketsSorted),'itemStyle'=>['color'=>'#16a34a']],
+            ['name'=>'Under','type'=>'bar','data'=>array_map(fn($d)=>$d['under'],$roleBucketsSorted),'itemStyle'=>['color'=>'#f59e0b']],
+            ['name'=>'Fail','type'=>'bar','data'=>array_map(fn($d)=>$d['fail'],$roleBucketsSorted),'itemStyle'=>['color'=>'#dc2626']],
+        ];
+
+        $passPct  = $totalCandidates ? round($outcomeTotals['pass'] / $totalCandidates * 100, 2) : 0;
+        $underPct = $totalCandidates ? round($outcomeTotals['under'] / $totalCandidates * 100, 2) : 0;
+        $failPct  = $totalCandidates ? round($outcomeTotals['fail'] / $totalCandidates * 100, 2) : 0;
+
         $screeningSummary = [
-            'total_candidates'=>$applications->count(),
-            'pass_pct'=>0,
-            'fail_pct'=>0,
-            'under_pct'=>0,
+            'total_candidates'=>$totalCandidates,
+            'pass_pct'=>$passPct,
+            'fail_pct'=>$failPct,
+            'under_pct'=>$underPct,
             'date_range_label'=>$dateRangeLabel,
             'filters_active'=>(bool)($department||$jobId||$experienceLevel||$stageFilter||$outcomeFilter||$datePreset!=='overall')
         ];
@@ -727,6 +895,7 @@ class CompanyReportsController extends Controller
             'kpis'=>$kpis,
             // Hiring Funnel
             'stageCounts'=>$stageCounts,
+            'stageTable' => $stageTable,
             'lineChart'=>$lineChart,
             // Applicant Status
             'statusCounts'=>$statusCounts,
@@ -1855,9 +2024,10 @@ class CompanyReportsController extends Controller
 
         $apps = JobApplication::with([
                 'job.department',
-                'graduate.education' => fn($q)=>$q->orderByDesc('end_date'),
+                'graduate.graduateSkills.skill',
+                'graduate.education',
                 'graduate.experience',
-                'graduate.graduateSkills.skill'
+                'graduate.employmentPreference',
             ])
             ->whereHas('job', function($q) use ($companyId,$dept,$jobId){
                 $q->where('company_id',$companyId)
@@ -1947,7 +2117,7 @@ class CompanyReportsController extends Controller
             return round(($overlap / count($jobSkills))*100,2);
         };
 
-        $skillBand = function($pct){
+         $skillBand = function($pct){
             if ($pct === null) return 'no_data';
             if ($pct >= 80) return 'high';
             if ($pct >= 50) return 'medium';
@@ -1969,11 +2139,11 @@ class CompanyReportsController extends Controller
         $skillMatchCounts = [];
         $deptCounts = [];
         $roleCounts = [];
-        $uniqueOutcomeTotals = ['pass'=>0,'fail'=>0,'under'=>0];
+        $uniqueOutcomeTotals = ['pass'=>0,'under'=>0,'fail'=>0];
         $processedAppIds = [];
 
         $inc = function (&$arr,$key,$out) {
-            if (!isset($arr[$key])) $arr[$key] = ['pass'=>0,'fail'=>0,'under'=>0];
+            if (!isset($arr[$key])) $arr[$key] = ['pass'=>0,'under'=>0,'fail'=>0];
             $arr[$key][$out] = ($arr[$key][$out] ?? 0) + 1;
         };
 
@@ -1990,7 +2160,9 @@ class CompanyReportsController extends Controller
             $educs = $app->graduate?->education;
             if ($educs && $educs->count()) {
                 $latest = $educs->first(); // already ordered desc
-                $qual = $latest?->education ?: ($latest?->program ?? 'Unknown');
+                 $qual = $latest?->level_of_education
+                    ?? $latest?->program
+                    ?? 'Unknown';
             }
 
             // Skills
@@ -2140,356 +2312,6 @@ class CompanyReportsController extends Controller
             'jobs'=>$jobs,
             'experienceLevels'=>$experienceLevels,
             'summary'=>$summary,
-        ]);
-    }
-
-    public function interviewProgress(Request $request)
-    {
-        $user = auth()->user();
-        $companyId = $user->hr->company_id;
-
-        // Funnel Chart: Count of applicants at each stage
-        $stages = ['screened', 'interview_1', 'interview_2', 'final_selection'];
-        $funnelData = [];
-        foreach ($stages as $stage) {
-            $funnelData[] = [
-                'stage' => ucfirst(str_replace('_', ' ', $stage)),
-                'count' => JobApplication::whereHas('job', function ($q) use ($companyId) {
-                    $q->where('company_id', $companyId);
-                })->where('stage', $stage)->count(),
-            ];
-        }
-
-        // Bubble Chart: Candidates interviewed per job role
-        $jobRoles = Job::where('company_id', $companyId)->pluck('job_title')->unique()->toArray();
-        $bubbleData = [];
-        foreach ($jobRoles as $jobRole) {
-            $interviewedCount = JobApplication::whereHas('job', function ($q) use ($companyId, $jobRole) {
-                $q->where('company_id', $companyId)
-                    ->where('job_title', $jobRole);
-            })->whereIn('stage', ['interview_1', 'interview_2', 'final_selection'])->count();
-
-            $bubbleData[] = [
-                'job_role' => $jobRole,
-                'interviewed' => $interviewedCount,
-                'size' => $interviewedCount, // Bubble size
-            ];
-        }
-
-        return Inertia::render('Company/Reports/InterviewProgress', [
-            'funnelData' => $funnelData,
-            'bubbleData' => $bubbleData,
-        ]);
-    }
-
-    public function skillsCompetency(Request $request)
-    {
-        $user = auth()->user();
-        $hr = $user->hr;
-        $companyId = $hr->company_id;
-
-        // 1. Radar Chart: Compare candidates’ skill levels against job requirements
-        // Get top N required skills from jobs
-        $jobs = Job::where('company_id', $companyId)->get();
-        $requiredSkills = [];
-        foreach ($jobs as $job) {
-            $skills = $job->skills;
-            if (is_string($skills)) {
-                $skills = json_decode($skills, true) ?? [];
-            }
-            if (!is_array($skills)) $skills = [];
-            foreach ($skills as $skill) {
-                $requiredSkills[$skill] = ($requiredSkills[$skill] ?? 0) + 1;
-            }
-        }
-        $topSkills = collect($requiredSkills)->sortDesc()->take(6)->keys()->toArray();
-
-        // Get candidate skills (from resumes/applications)
-        $applications = JobApplication::whereHas('job', function ($q) use ($companyId) {
-            $q->where('company_id', $companyId);
-        })->get();
-        $candidateSkills = [];
-        foreach ($applications as $app) {
-            $skills = $app->skills ?? [];
-            if (is_string($skills)) {
-                $skills = json_decode($skills, true) ?? [];
-            }
-            if (!is_array($skills)) $skills = [];
-            foreach ($skills as $skill) {
-                $candidateSkills[$skill] = ($candidateSkills[$skill] ?? 0) + 1;
-            }
-        }
-
-        // Prepare radar data
-        $radarIndicators = [];
-        $jobSkillValues = [];
-        $candidateSkillValues = [];
-        foreach ($topSkills as $skill) {
-            $maxVal = max($requiredSkills[$skill] ?? 1, $candidateSkills[$skill] ?? 1);
-            $radarIndicators[] = ['name' => $skill, 'max' => $maxVal];
-            $jobSkillValues[] = $requiredSkills[$skill] ?? 0;
-            $candidateSkillValues[] = $candidateSkills[$skill] ?? 0;
-        }
-
-        // 2. Word Cloud: Frequently mentioned skills in resumes/applications
-        $wordCloud = $candidateSkills;
-
-        return Inertia::render('Company/Reports/SkillsCompetency', [
-            'radarIndicators' => $radarIndicators,
-            'jobSkillValues' => $jobSkillValues,
-            'candidateSkillValues' => $candidateSkillValues,
-            'wordCloud' => $wordCloud,
-        ]);
-    }
-
-    public function efficiency(Request $request)
-    {
-        $user = auth()->user();
-        $companyId = $user->hr->company_id;
-
-        // Filters
-        $dept       = $request->query('department'); // department name
-        $jobId      = $request->query('job_id');     // job id
-        $programId  = $request->query('program_id'); // graduate program id
-        $stageSel   = $request->query('stage');      // applied|screening|assessment|interview|offer|hired
-        $datePreset = $request->query('date_preset','last_90');
-        $dateFrom   = $request->query('date_from');
-        $dateTo     = $request->query('date_to');
-
-        // Date range
-        $now = Carbon::now();
-        if ($datePreset !== 'custom') {
-            switch ($datePreset) {
-                case 'last_7':   $dateFrom = $now->copy()->subDays(7)->startOfDay();  $dateTo = $now; break;
-                case 'last_30':  $dateFrom = $now->copy()->subDays(30)->startOfDay(); $dateTo = $now; break;
-                case 'last_90':  $dateFrom = $now->copy()->subDays(90)->startOfDay(); $dateTo = $now; break;
-                case 'this_month': $dateFrom = $now->copy()->startOfMonth(); $dateTo = $now; break;
-                case 'this_year':  $dateFrom = $now->copy()->startOfYear();  $dateTo = $now; break;
-                case 'overall': default: $dateFrom = null; $dateTo = null;
-            }
-        } else {
-            $dateFrom = $dateFrom ? Carbon::parse($dateFrom)->startOfDay() : null;
-            $dateTo = $dateTo ? Carbon::parse($dateTo)->endOfDay() : null;
-        }
-
-        // Stage normalization
-        $variantsByCanon = [
-            'applied'    => ['applied'],
-            'screening'  => ['screening','screened'],
-            'assessment' => ['assessment'],
-            'interview'  => ['interview','interview_1','interview_2','final_selection'],
-            'offer'      => ['offer','offered'],
-            'hired'      => ['hired'],
-        ];
-        $canonOrder = ['applied','screening','assessment','interview','offer','hired'];
-        $allVariants = array_values(array_unique(array_merge(...array_values($variantsByCanon))));
-        $canon = function ($s) use ($variantsByCanon) {
-            $s = strtolower((string)$s);
-            foreach ($variantsByCanon as $c => $arr) {
-                if (in_array($s, $arr, true)) return $c;
-            }
-            return $s;
-        };
-
-        // Base job/application scope
-        $jobScope = function($q) use ($companyId,$dept,$jobId) {
-            $q->where('company_id',$companyId)
-            ->when($dept, fn($qq,$d)=>$qq->whereHas('department', fn($dq)=>$dq->where('department_name',$d)))
-            ->when($jobId, fn($qq,$jid)=>$qq->where('id',$jid));
-        };
-
-        // Base applications (for fallbacks, joins, etc.)
-        $appsBase = JobApplication::with(['job.department','graduate'])
-            ->whereHas('job', $jobScope)
-            ->when($programId, fn($q,$pid)=>$q->whereHas('graduate', fn($g)=>$g->where('program_id',$pid)));
-
-        $appIds = (clone $appsBase)->pluck('id');
-
-        // Load logs (JobApplicationStageLog) as events
-        $logsQuery = \App\Models\JobApplicationStageLog::whereIn('job_application_id', $appIds)
-            ->whereIn('to_stage', $allVariants)
-            ->when($dateFrom, fn($q)=>$q->where('created_at','>=',$dateFrom))
-            ->when($dateTo, fn($q)=>$q->where('created_at','<=',$dateTo))
-            ->orderBy('job_application_id')
-            ->orderBy('created_at');
-
-        $logs = $logsQuery->get(['job_application_id','to_stage','created_at']);
-
-        // If a stage filter is selected, limit to apps that reached that canonical stage
-        $filteredLogs = $logs;
-        if ($stageSel) {
-            $stageApps = $logs->filter(fn($e)=>$canon($e->to_stage) === $stageSel)->pluck('job_application_id')->unique();
-            $filteredLogs = $logs->whereIn('job_application_id', $stageApps->all())->values();
-        }
-
-        // Fallback: if no logs in range but applications exist, synthesize "applied" from applications
-        if ($filteredLogs->isEmpty() && $appIds->isNotEmpty()) {
-            $appsForFallback = (clone $appsBase)
-                ->when($dateFrom, fn($q)=>$q->where('created_at','>=',$dateFrom))
-                ->when($dateTo, fn($q)=>$q->where('created_at','<=',$dateTo))
-                ->get(['id','created_at']);
-            foreach ($appsForFallback as $fa) {
-                $filteredLogs->push((object)[
-                    'job_application_id' => $fa->id,
-                    'to_stage' => 'applied',
-                    'created_at' => $fa->created_at,
-                ]);
-            }
-        }
-
-        // 1) Time-to-Hire (TTH): from job posted to hired log date; fallback to application.updated_at if stage is hired
-        $hireLogs = (clone $logsQuery)->whereIn('to_stage', $variantsByCanon['hired'])->get(['job_application_id','to_stage','created_at']);
-        if ($stageSel) {
-            $allowedApps = $filteredLogs->pluck('job_application_id')->unique();
-            $hireLogs = $hireLogs->whereIn('job_application_id', $allowedApps->all())->values();
-        }
-
-        // If no hire logs, but have apps with stage=hired in range, synthesize hired events
-        if ($hireLogs->isEmpty()) {
-            $hiredAppsQ = (clone $appsBase)->where('stage','hired');
-            if ($dateFrom) $hiredAppsQ->where('updated_at','>=',$dateFrom);
-            if ($dateTo)   $hiredAppsQ->where('updated_at','<=',$dateTo);
-            $hiredApps = $hiredAppsQ->get(['id','updated_at']);
-            foreach ($hiredApps as $ha) {
-                $hireLogs->push((object)[
-                    'job_application_id' => $ha->id,
-                    'to_stage' => 'hired',
-                    'created_at' => $ha->updated_at ?: $ha->created_at,
-                ]);
-            }
-        }
-
-        // Preload jobs for posting date
-        $appsWithJob = JobApplication::with(['job:id,created_at,department_id,job_title,company_id'])
-            ->whereIn('id', $hireLogs->pluck('job_application_id')->unique())->get()->keyBy('id');
-
-        $tthByMonth = []; $tthCounts = [];
-        foreach ($hireLogs as $hl) {
-            $job = $appsWithJob[$hl->job_application_id]->job ?? null;
-            if (!$job || !$job->created_at || !$hl->created_at) continue;
-            $posted = Carbon::parse($job->created_at);
-            $hiredAt = Carbon::parse($hl->created_at);
-            if ($hiredAt->lt($posted)) continue;
-            $days = $posted->diffInDays($hiredAt);
-            $month = $hiredAt->format('Y-m');
-            $tthByMonth[$month] = ($tthByMonth[$month] ?? 0) + $days;
-            $tthCounts[$month] = ($tthCounts[$month] ?? 0) + 1;
-        }
-        ksort($tthByMonth);
-        $tthLabels = array_keys($tthByMonth);
-        $tthData = array_map(fn($m)=> round(($tthByMonth[$m] ?? 0) / max(1, $tthCounts[$m] ?? 1), 2), $tthLabels);
-        $tthLine = [
-            'labels' => $tthLabels,
-            'series' => [[ 'name'=>'Avg TTH (days)', 'type'=>'line', 'smooth'=>true, 'data'=>$tthData ]]
-        ];
-
-        // 2) Stage Conversion Funnel
-        $events = $filteredLogs->map(fn($r)=>['app'=>$r->job_application_id, 'stage'=>$canon($r->to_stage)]);
-        $appsByStage = [];
-        foreach ($events as $r) {
-            $appsByStage[$r['stage']] = $appsByStage[$r['stage']] ?? [];
-            $appsByStage[$r['stage']][$r['app']] = true; // unique by app
-        }
-        // Ensure "Applied" has all apps even if missing logs (fallback)
-        if (!isset($appsByStage['applied'])) {
-            $appsByStage['applied'] = [];
-        }
-        foreach ($filteredLogs->pluck('job_application_id')->unique() as $aid) {
-            $appsByStage['applied'][$aid] = true;
-        }
-
-        $funnelData = [];
-        foreach ($canonOrder as $c) {
-            $funnelData[] = ['name'=>\Str::title($c), 'value'=> isset($appsByStage[$c]) ? count($appsByStage[$c]) : 0];
-        }
-
-        // 3) Offer Acceptance Pie
-        $offersSet = collect(array_keys($appsByStage['offer'] ?? []));
-        $hiredSet  = collect(array_keys($appsByStage['hired'] ?? []));
-        $accepted = $offersSet->intersect($hiredSet)->count();
-        $totalOffers = $offersSet->count();
-        $offerPie = [
-            ['name'=>'Accepted','value'=>$accepted],
-            ['name'=>'Declined/No Response','value'=>max(0, $totalOffers - $accepted)],
-        ];
-
-        // 4) Avg time in each stage by department (stacked horizontal)
-        // Build first entry time per canonical stage per app
-        $entryTimesByApp = []; // appId => [canonStage => Carbon]
-        foreach ($filteredLogs as $ev) {
-            $aid = $ev->job_application_id;
-            $cst = $canon($ev->to_stage);
-            if (!in_array($cst, $canonOrder, true)) continue;
-            $entryTimesByApp[$aid] = $entryTimesByApp[$aid] ?? [];
-            if (!isset($entryTimesByApp[$aid][$cst])) {
-                $entryTimesByApp[$aid][$cst] = Carbon::parse($ev->created_at);
-            }
-        }
-        // App/job dept index
-        $appsIdx = JobApplication::with(['job.department'])
-            ->whereIn('id', array_keys($entryTimesByApp))->get()->keyBy('id');
-
-        $sumDur = []; $cntDur = [];
-        foreach ($entryTimesByApp as $aid => $entries) {
-            $app = $appsIdx[$aid] ?? null;
-            $deptName = $app?->job?->department?->department_name ?: 'Unassigned';
-            for ($i=0; $i < count($canonOrder)-1; $i++) {
-                $from = $canonOrder[$i]; $to = $canonOrder[$i+1];
-                if (!isset($entries[$from]) || !isset($entries[$to])) continue;
-                $days = max(0, $entries[$from]->diffInDays($entries[$to]));
-                $sumDur[$deptName][$from] = ($sumDur[$deptName][$from] ?? 0) + $days;
-                $cntDur[$deptName][$from] = ($cntDur[$deptName][$from] ?? 0) + 1;
-            }
-        }
-        $deptTotals = [];
-        foreach ($sumDur as $deptName=>$byStage) { $deptTotals[$deptName] = array_sum($byStage); }
-        arsort($deptTotals);
-        $topDepts = array_slice(array_keys($deptTotals), 0, 10);
-        $seriesByStage = [];
-        foreach ($canonOrder as $st) {
-            if ($st === 'hired') continue;
-            $seriesByStage[$st] = [];
-            foreach ($topDepts as $dName) {
-                $sum = $sumDur[$dName][$st] ?? 0; $cnt = $cntDur[$dName][$st] ?? 0;
-                $seriesByStage[$st][] = $cnt ? round($sum/$cnt,2) : 0;
-            }
-        }
-        $stageTimeByDept = [
-            'categories' => $topDepts,
-            'series' => [
-                ['name'=>'Applied','type'=>'bar','stack'=>'time','data'=>$seriesByStage['applied'] ?? []],
-                ['name'=>'Screening','type'=>'bar','stack'=>'time','data'=>$seriesByStage['screening'] ?? []],
-                ['name'=>'Assessment','type'=>'bar','stack'=>'time','data'=>$seriesByStage['assessment'] ?? []],
-                ['name'=>'Interview','type'=>'bar','stack'=>'time','data'=>$seriesByStage['interview'] ?? []],
-                ['name'=>'Offer','type'=>'bar','stack'=>'time','data'=>$seriesByStage['offer'] ?? []],
-            ],
-        ];
-
-        // Filter dropdown sources
-        $departments = \App\Models\Department::whereHas('jobs',fn($q)=>$q->where('company_id',$companyId))
-            ->pluck('department_name')->unique()->values();
-        $jobs = Job::where('company_id',$companyId)->select('id','job_title')->orderBy('job_title')->get();
-        $programs = Program::select('id','name')->orderBy('name')->get();
-        $stages = collect($canonOrder)->map(fn($s)=>['value'=>$s,'label'=>\Str::title($s)])->values();
-
-        return Inertia::render('Company/Reports/RecruitmentEfficiency', [
-            'tthLine' => $tthLine,
-            'stageFunnel' => $funnelData,
-            'offerPie' => $offerPie,
-            'stageTimeByDept' => $stageTimeByDept,
-            'filters' => [
-                'department'=>$dept,
-                'job_id'=>$jobId,
-                'program_id'=>$programId,
-                'stage'=>$stageSel,
-                'date_preset'=>$datePreset,
-                'date_from'=>$request->query('date_from'),
-                'date_to'=>$request->query('date_to'),
-            ],
-            'departments' => $departments,
-            'jobs' => $jobs,
-            'programs' => $programs,
-            'stages' => $stages,
         ]);
     }
 

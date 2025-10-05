@@ -38,7 +38,7 @@ import { Users, BarChart2, Briefcase, Share2 } from 'lucide-vue-next';
               <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Skills, Competency & Qualification Reports</span>
             </div>
           </Link>
-          <Link
+          <!-- <Link
             :href="route('institutions.reports.career')"
             class="block rounded-xl shadow-md hover:shadow-lg transition p-6 bg-purple-100"
           >
@@ -55,7 +55,7 @@ import { Users, BarChart2, Briefcase, Share2 } from 'lucide-vue-next';
               <component :is="Users" class="w-8 h-8 mb-2" />
               <span class="mt-2 text-lg font-semibold text-gray-700 text-center">Feedback & Inclusion Reports</span>
             </div>
-          </Link>
+          </Link> -->
         </div>
       </div>
     </div>

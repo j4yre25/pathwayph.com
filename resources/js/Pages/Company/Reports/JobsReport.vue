@@ -683,7 +683,7 @@ const overallSummary = computed(() => {
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div class="xl:col-span-2 bg-white border border-gray-200 rounded-xl p-6">
             <div class="flex items-start justify-between mb-4">
-              <h2 class="text-lg font-semibold text-gray-800">Job Overview</h2>
+              <h2 class="text-lg font-semibold text-gray-800">Job Opening   Overview</h2>
               <div class="flex gap-4">
                 <div v-for="k in kpis" :key="k.label" class="text-center">
                   <div class="text-[11px] uppercase tracking-wide text-gray-500 font-medium">{{ k.label }}</div>
