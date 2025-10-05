@@ -8,36 +8,36 @@ const categories = [
     code: 'A',
     title: 'Job Market & Openings Reports',
     reports: [
-      { 
-        label: 'Job Openings Overview', 
-        route: 'company.reports.overview',
-        description: 'Shows total job openings, active listings, and roles filled.'
-      },
-      { 
-        label: 'Department-Wise Job Listings', 
-        route: 'company.reports.department',
-        description: 'Breaks down job openings across departments and role levels.'
-      },
-      { 
-        label: 'Job Posting Trends', 
-        route: 'company.reports.trends',
-        description: 'Tracks job postings over time and by department activity.'
-      },
-      { 
-        label: 'Employment Type', 
-        route: 'company.reports.employmentType',
-        description: 'Displays job openings by type (full-time, part-time, freelance,  etc.).'
-      },
-      { 
-        label: 'Salary Insights', 
-        route: 'company.reports.salary',
-        description: 'Analyzes salary ranges and distribution across roles and departments.'
-      },
-      { 
-        label: 'Job Posting Performance', 
-        route: 'company.reports.performance',
-        description: 'Evaluates applicant diversity and engagement for job postings.'
-      },
+      // { 
+      //   label: 'Job Openings Overview', 
+      //   route: 'company.reports.overview',
+      //   description: 'Shows total job openings, active listings, and roles filled.'
+      // },
+      // { 
+      //   label: 'Department-Wise Job Listings', 
+      //   route: 'company.reports.department',
+      //   description: 'Breaks down job openings across departments and role levels.'
+      // },
+      // { 
+      //   label: 'Job Posting Trends', 
+      //   route: 'company.reports.trends',
+      //   description: 'Tracks job postings over time and by department activity.'
+      // },
+      // { 
+      //   label: 'Employment Type', 
+      //   route: 'company.reports.employmentType',
+      //   description: 'Displays job openings by type (full-time, part-time, freelance,  etc.).'
+      // },
+      // { 
+      //   label: 'Salary Insights', 
+      //   route: 'company.reports.salary',
+      //   description: 'Analyzes salary ranges and distribution across roles and departments.'
+      // },
+      // { 
+      //   label: 'Job Posting Performance', 
+      //   route: 'company.reports.performance',
+      //   description: 'Evaluates applicant diversity and engagement for job postings.'
+      // },
     ]
   },
   {
@@ -101,54 +101,54 @@ const categories = [
         route: 'company.reports.graduatePool',
         description: 'Shows total graduates, matches to jobs, and average qualifications.'
       },
-      { 
-        label: 'Graduate Demographics', 
-        route: 'company.reports.graduateDemographics',
-        description: 'Breaks down graduates by age, gender, education, and location.'
-      },
+      // { 
+      //   label: 'Graduate Demographics', 
+      //   route: 'company.reports.graduateDemographics',
+      //   description: 'Breaks down graduates by age, gender, education, and location.'
+      // },
       { 
         label: 'Employment Preferences', 
         route: 'company.reports.preferences',
         description: 'Summarizes graduates’ preferred job types and industries.'
       },
-      { 
-        label: 'Matching Success Rate', 
-        route: 'company.reports.matchingSuccess',
-        description: 'Tracks how many graduates match and get placed in job roles.'
-      },
+      // { 
+      //   label: 'Matching Success Rate', 
+      //   route: 'company.reports.matchingSuccess',
+      //   description: 'Tracks how many graduates match and get placed in job roles.'
+      // },
       // { 
       //   label: 'Internship Experience', 
       //   route: 'company.reports.internship',
       //   description: 'Analyzes internship backgrounds and links them to hiring outcomes.'
       // },
-      { 
-        label: 'Future Potential', 
-        route: 'company.reports.futurePotential',
-        description: 'Forecasts talent growth and high-potential fields of study.'
-      },
-    ]
-  },
-  {
-    code: 'E',
-    title: 'Feedback & Inclusion Reports',
-    reports: [
-      { 
-        label: 'Diversity and Inclusion', 
-        route: 'company.reports.diversity',
-        description: 'Evaluates inclusivity in job postings and workforce composition.'
-      },
       // { 
-      //   label: 'Employer Feedback', 
-      //   route: 'company.reports.employerFeedback',
-      //   description: 'Summarizes employer evaluations of graduate skills and readiness.'
+      //   label: 'Future Potential', 
+      //   route: 'company.reports.futurePotential',
+      //   description: 'Forecasts talent growth and high-potential fields of study.'
       // },
-      { 
-        label: 'Feedback and Satisfaction', 
-        route: 'company.reports.feedback',
-        description: 'Analyzes candidate feedback on recruitment experience.'
-      },
     ]
   },
+  // {
+  //   code: 'E',
+  //   title: 'Feedback & Inclusion Reports',
+  //   reports: [
+  //     { 
+  //       label: 'Diversity and Inclusion', 
+  //       route: 'company.reports.diversity',
+  //       description: 'Evaluates inclusivity in job postings and workforce composition.'
+  //     },
+  //     // { 
+  //     //   label: 'Employer Feedback', 
+  //     //   route: 'company.reports.employerFeedback',
+  //     //   description: 'Summarizes employer evaluations of graduate skills and readiness.'
+  //     // },
+  //     { 
+  //       label: 'Feedback and Satisfaction', 
+  //       route: 'company.reports.feedback',
+  //       description: 'Analyzes candidate feedback on recruitment experience.'
+  //     },
+  //   ]
+  // },
 ]
 
 

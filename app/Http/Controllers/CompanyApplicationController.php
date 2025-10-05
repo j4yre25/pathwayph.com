@@ -515,7 +515,7 @@ private function normalizePayload($payload): array
                             'add_remark' => 'added a remark',
                             'note_added' => 'added a remark',
                         ];
-                        $text = $labelMap[$key] ?? 'performed an action';
+                        $text = $labelMap[$key] ?? ' performed an action';
                         break;
                 }
                 $atIso = Carbon::parse($log->created_at)->toIso8601String();
@@ -551,6 +551,21 @@ private function normalizePayload($payload): array
                 ];
             });
 
+
+        $latestOffer = JobOffer::where('job_application_id', $application->id)
+            ->latest('id')
+            ->first();
+
+        $offerInfo = $latestOffer ? [
+            'exists'     => true,
+            'id'         => $latestOffer->id,
+            'status'     => $latestOffer->status,
+            'start_date' => $latestOffer->start_date?->format('Y-m-d'),
+            'created_at' => $latestOffer->created_at?->toIso8601String(),
+        ] : [
+            'exists' => false,
+            'status' => null,
+        ];
         return Inertia::render('Company/Applicants/ListOfApplicants/ApplicantProfile', [
             'applicant' => $application,
             'graduate' => $graduate,
@@ -596,6 +611,7 @@ private function normalizePayload($payload): array
             ] : null,
             'job' => $application->job,
             'referralCertificates' => $referralCertificates,
+            'offerInfo' => $offerInfo
         ]);
     }
 
