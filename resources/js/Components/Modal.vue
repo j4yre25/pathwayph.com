@@ -9,6 +9,7 @@ const props = defineProps({
   closeable: { type: Boolean, default: true },
   lockScroll: { type: Boolean, default: true },
   zIndex: { type: [Number, String], default: 180 },
+  
 });
 
 const emit = defineEmits(['close', 'update:modelValue', 'update:show']);
