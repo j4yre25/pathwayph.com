@@ -232,7 +232,7 @@ function onSkillFocus() {
         </template>
 
         <!-- Modal for missing required fields -->
-        <Modal :model-value="showMissingFieldsModal" @close="showMissingFieldsModal = false">
+        <Modal :modelValue="showMissingFieldsModal" @close="showMissingFieldsModal = false">
             <template #header>
                 <div class="flex items-center space-x-2">
                     <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100">
