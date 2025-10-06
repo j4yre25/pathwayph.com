@@ -7,15 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Location extends Model
 {
+    protected $table = 'locations';
     protected $fillable = ['address'];
 
-    public function jobs(): BelongsToMany
-    {
-        return $this->belongsToMany(Job::class, 'job_location');
-    }
-
-    public function employmentPreferences(): BelongsToMany
-    {
-        return $this->belongsToMany(EmploymentPreference::class, 'employment_preference_location');
-    }
 }

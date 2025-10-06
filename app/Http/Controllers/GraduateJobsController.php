@@ -43,7 +43,7 @@ class GraduateJobsController extends Controller
         $experienceLevels = Job::distinct()->pluck('job_experience_level');
 
         // Fetch jobs with relationships for poster info
-        $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
+        $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'salary'])
             ->where('status', 'open')
             ->where('is_approved', 1)
             ->when($request->keywords, function ($query, $keywords) {
@@ -55,8 +55,18 @@ class GraduateJobsController extends Controller
             ->when($request->jobType, function ($q, $type) {
                 $q->whereHas('jobTypes', fn($sub) => $sub->where('job_type_id', $type));
             })
-            ->when($request->location, function ($q, $location) {
-                $q->whereHas('locations', fn($sub) => $sub->where('location_id', $location));
+           ->when($request->location, function ($q, $location) {
+               // Accept either a location id (resolve to address) or an address string
+               $addr = null;
+               if (is_numeric($location)) {
+                   $loc = \App\Models\Location::find($location);
+                   $addr = $loc?->address ?? null;
+               }
+                if (!$addr) {
+                    $addr = (string)$location;
+                }
+                // match partial address
+                $q->where('location', 'like', "%{$addr}%");
             })
             ->when($request->industry, fn($q, $industry) => $q->where('sector_id', $industry))
             ->when($request->salaryMin, function ($q, $min) {
@@ -79,7 +89,7 @@ class GraduateJobsController extends Controller
 
         $graduateId = $user && $user->graduate ? $user->graduate->id : null;
 
-        $myApplications = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
+        $myApplications = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'salary'])
             ->whereIn('id', $appliedJobIds)
             ->get()
             ->map(function ($j) use ($user, $graduateId) {
@@ -95,7 +105,7 @@ class GraduateJobsController extends Controller
                         'id' => $j->company->id,
                         'company_name' => $j->company->company_name,
                     ] : null,
-                    'locations' => $j->locations ? $j->locations->map(fn($l) => ['address' => $l->address])->values()->all() : [],
+                    'locations' => $j->location ? [['address' => $j->location]] : [],
                     'jobTypes' => $j->jobTypes ? $j->jobTypes->map(fn($t) => ['type' => $t->type])->values()->all() : [],
                     'job_experience_level' => $j->job_experience_level,
                     'salary' => $j->salary ? [
@@ -254,7 +264,7 @@ class GraduateJobsController extends Controller
         $experienceLevels = Job::distinct()->pluck('job_experience_level');
 
         // Fetch jobs with relationships for poster info (same as index)
-        $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
+        $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'salary'])
             ->where('status', 'open')
             ->where('is_approved', 1)
             ->when($request->keywords, function ($query, $keywords) {
@@ -267,7 +277,15 @@ class GraduateJobsController extends Controller
                 $q->whereHas('jobTypes', fn($sub) => $sub->where('job_type_id', $type));
             })
             ->when($request->location, function ($q, $location) {
-                $q->whereHas('locations', fn($sub) => $sub->where('location_id', $location));
+                $addr = null;
+                if (is_numeric($location)) {
+                    $loc = \App\Models\Location::find($location);
+                    $addr = $loc?->address ?? null;
+                }
+                if (!$addr) {
+                    $addr = (string)$location;
+                }
+                $q->where('location', 'like', "%{$addr}%");
             })
             ->when($request->industry, fn($q, $industry) => $q->where('sector_id', $industry))
             ->when($request->salaryMin, function ($q, $min) {
@@ -495,7 +513,7 @@ class GraduateJobsController extends Controller
             'keywords' => 2, // m10: search keywords
         ];
 
-        $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+        $jobs = Job::with(['company', 'jobTypes', 'salary'])->get();
         $recommendations = [];
 
         foreach ($jobs as $job) {
@@ -677,7 +695,7 @@ class GraduateJobsController extends Controller
 
     public function show(Job $job)
     {
-        $job->load(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary']);
+        $job->load(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'salary']);
 
         // Normalize skills
         if (is_string($job->skills)) {

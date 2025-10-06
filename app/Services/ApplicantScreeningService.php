@@ -80,12 +80,26 @@ class ApplicantScreeningService
         } elseif (is_string($jobType) && $jobType !== '') {
             $jobTypeNames = [$jobType];
         }
-        $jobLocations = $job->relationLoaded('locations') && $job->locations ? $job->locations->pluck('address')->filter()->values()->all() : [];
+
+        // Normalize job locations: jobs now store a location string in job->location
+        $jobLocations = [];
+        if (!empty($job->location)) {
+            if (is_string($job->location)) {
+                $jobLocations = array_map('trim', explode(',', $job->location));
+            } elseif (is_array($job->location)) {
+                $jobLocations = array_map('trim', $job->location);
+            }
+        }
+
         $jobWorkEnvironment = $job->work_environment;
         $jobMinSalary = $job->salary->job_min_salary ?? null;
         $jobMaxSalary = $job->salary->job_max_salary ?? null;
         $jobSalaryType = $job->salary->salary_type ?? null;
         $searchKeywords = $job->search_keywords;
+
+        // Normalize preferred & job location strings for comparison (case-insensitive)
+        $normPreferredLocations = array_map('mb_strtolower', array_map('trim', array_filter($preferredLocations, fn($v) => $v !== '')));
+        $normJobLocations = array_map('mb_strtolower', array_filter($jobLocations, fn($v) => $v !== ''));
 
         // m1: Skills
         $skillMatch = 0;
@@ -119,8 +133,12 @@ class ApplicantScreeningService
         if ($jobTypeMatch) $labels[] = 'Preferred Job Type';
         $score += $jobTypeMatch * $weights['job_type'];
 
-        // m5: Preferred Location
-        $locationMatch = count(array_intersect($preferredLocations, $jobLocations)) > 0 ? 1 : 0;
+        // m5: Preferred Location (case-insensitive compare)
+        $locationMatch = 0;
+        if (!empty($normPreferredLocations) && !empty($normJobLocations)) {
+            $intersect = array_intersect($normPreferredLocations, $normJobLocations);
+            $locationMatch = count($intersect) > 0 ? 1 : 0;
+        }
         if ($locationMatch) $labels[] = 'Preferred Location';
         $score += $locationMatch * $weights['location'];
 
