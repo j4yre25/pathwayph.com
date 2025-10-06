@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Education;
 use App\Models\GraduateEducation;
 use App\Models\Skill;
+use App\Models\Graduate;
 use App\Models\GraduateSkill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -357,7 +358,14 @@ class ProfileController extends Controller
 
             $graduate->graduate_picture = $path;
             $graduate->save();
+
         }
+
+        $graduate = \App\Models\Graduate::with('graduateSkills.skill')->find($graduate->id);
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
+
 
 
         return redirect()->back()->with('flash.banner', 'Profile updated successfully!');
@@ -368,15 +376,15 @@ class ProfileController extends Controller
     public function addEducation(Request $request)
     {
         $request->validate([
-            'education_id'        => 'nullable|exists:educations,id',
-            'level_of_education'  => 'nullable|string|max:100',
-            'program'             => 'nullable|string|max:255',
-            'school_name'         => 'required|string|max:255',
-            'start_date'          => 'required|date',
-            'end_date'            => 'nullable|date|after_or_equal:start_date',
-            'is_current'          => 'boolean',
-            'description'         => 'nullable|string',
-            'achievement'         => 'nullable|string',
+            'education_id' => 'nullable|exists:educations,id',
+            'level_of_education' => 'nullable|string|max:100',
+            'program' => 'nullable|string|max:255',
+            'school_name' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'is_current' => 'boolean',
+            'description' => 'nullable|string',
+            'achievement' => 'nullable|string',
         ]);
 
         $graduateId = auth()->user()->graduate->id;
@@ -387,18 +395,18 @@ class ProfileController extends Controller
         }
 
         GraduateEducation::create([
-            'graduate_id'        => $graduateId,
-            'education_id'       => $request->education_id,
+            'graduate_id' => $graduateId,
+            'education_id' => $request->education_id,
             'level_of_education' => $request->level_of_education,
-            'program'            => $request->program,
-            'school_name'        => $request->school_name,
-            'start_date'         => Carbon::parse($request->start_date)->format('Y-m-d'),
-            'end_date'           => $request->boolean('is_current')
+            'program' => $request->program,
+            'school_name' => $request->school_name,
+            'start_date' => Carbon::parse($request->start_date)->format('Y-m-d'),
+            'end_date' => $request->boolean('is_current')
                 ? null
                 : ($request->end_date ? Carbon::parse($request->end_date)->format('Y-m-d') : null),
-            'is_current'         => $request->boolean('is_current'),
-            'description'        => $request->description,
-            'achievement'        => $request->achievement,
+            'is_current' => $request->boolean('is_current'),
+            'description' => $request->description,
+            'achievement' => $request->achievement,
         ]);
         return redirect()->back()->with('flash.banner', 'Education added successfully.');
     }
@@ -407,15 +415,15 @@ class ProfileController extends Controller
     public function updateEducation(Request $request, $id)
     {
         $request->validate([
-            'education_id'        => 'nullable|exists:educations,id',
-            'level_of_education'  => 'nullable|string|max:100',
-            'program'             => 'nullable|string|max:255',
-            'school_name'         => 'required|string|max:255',
-            'start_date'          => 'required|date',
-            'end_date'            => 'nullable|date|after_or_equal:start_date',
-            'is_current'          => 'boolean',
-            'description'         => 'nullable|string',
-            'achievement'         => 'nullable|string',
+            'education_id' => 'nullable|exists:educations,id',
+            'level_of_education' => 'nullable|string|max:100',
+            'program' => 'nullable|string|max:255',
+            'school_name' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'is_current' => 'boolean',
+            'description' => 'nullable|string',
+            'achievement' => 'nullable|string',
         ]);
 
         $edu = GraduateEducation::findOrFail($id);
@@ -427,17 +435,17 @@ class ProfileController extends Controller
         }
 
         $edu->update([
-            'education_id'       => $request->education_id,
+            'education_id' => $request->education_id,
             'level_of_education' => $request->level_of_education,
-            'program'            => $request->program,
-            'school_name'        => $request->school_name,
-            'start_date'         => \Carbon\Carbon::parse($request->start_date)->format('Y-m-d'),
-            'end_date'           => $request->boolean('is_current')
+            'program' => $request->program,
+            'school_name' => $request->school_name,
+            'start_date' => \Carbon\Carbon::parse($request->start_date)->format('Y-m-d'),
+            'end_date' => $request->boolean('is_current')
                 ? null
                 : ($request->end_date ? \Carbon\Carbon::parse($request->end_date)->format('Y-m-d') : null),
-            'is_current'         => $request->boolean('is_current'),
-            'description'        => $request->description,
-            'achievement'        => $request->achievement,
+            'is_current' => $request->boolean('is_current'),
+            'description' => $request->description,
+            'achievement' => $request->achievement,
         ]);
 
         return redirect()->back()->with('flash.banner', 'Education updated successfully.');
@@ -627,6 +635,13 @@ class ProfileController extends Controller
             'years_experience' => $request->graduate_skills_years_experience,
         ]);
 
+        // Reload graduate with skills
+        $graduate = Graduate::with('graduateSkills.skill')->find($graduate->id);
+
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
+
         return redirect()->back()->with('flash.banner', 'Skill added successfully.');
     }
 
@@ -654,6 +669,10 @@ class ProfileController extends Controller
         $graduateSkill->type = $request->graduate_skills_type;
         $graduateSkill->years_experience = $request->graduate_skills_years_experience;
         $graduateSkill->save();
+        $graduate = Graduate::with('graduateSkills.skill')->find($graduateSkill->graduate_id);
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
 
         return redirect()->back()->with('flash.banner', 'Skill updated successfully.');
     }
@@ -662,15 +681,26 @@ class ProfileController extends Controller
     public function removeSkill($id)
     {
         $graduateSkill = GraduateSkill::withTrashed()->findOrFail($id);
+        $graduate = Graduate::find($graduateSkill->graduate_id); // Fetch by ID, not relation
         $graduateSkill->forceDelete();
+        // Recalculate alignment score
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
 
         return redirect()->back()->with('flash.banner', 'Skill removed successfully.');
     }
 
+    // Archive skill
     public function archiveSkill($id)
     {
         $graduateSkill = GraduateSkill::where('id', $id)->whereNull('deleted_at')->firstOrFail();
-        $graduateSkill->delete(); // soft delete
+        $graduate = $graduateSkill->graduate;
+        $graduateSkill->delete();
+        $graduate = Graduate::with('graduateSkills.skill')->find($graduateSkill->graduate_id);
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
         return back();
     }
 
@@ -680,7 +710,11 @@ class ProfileController extends Controller
         if ($graduateSkill->trashed()) {
             $graduateSkill->restore();
         }
-        return back();
+        $graduate = Graduate::with('graduateSkills.skill')->find($graduateSkill->graduate_id);
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
+        return redirect()->back()->with('flash.banner', 'Skill restored successfully.');
     }
 
     // Add Project
@@ -2223,7 +2257,8 @@ class ProfileController extends Controller
 
         foreach ($lines as $line) {
             $line = trim($line);
-            if (empty($line)) continue;
+            if (empty($line))
+                continue;
 
             // Check if this is a new profile (starts with "Name:")
             if (preg_match('/^Name:\s+(.+)$/i', $line, $matches)) {

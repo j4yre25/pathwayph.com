@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -20,6 +20,7 @@ const props = defineProps({
   institutionDegrees: Array,
   institutionPrograms: Array,
 });
+
 
 const form = useForm({
   email: props.email || '',
@@ -133,12 +134,22 @@ const filteredPrograms = computed(() => {
 });
 
 // Only show the first year from school_year_range
-const filteredYears = computed(() =>
-  props.schoolYears.map(year => {
-    const firstYear = year.school_year_range.split('-')[0];
-    return { id: year.id, year: firstYear };
-  })
-);
+const filteredYears = computed(() => {
+  if (!form.graduate_school_graduated_from) return [];
+  const seen = new Set();
+  return props.schoolYears
+    .filter(sy => Number(sy.institution_id) === Number(form.graduate_school_graduated_from))
+    .map(sy => ({
+      id: sy.school_year_range_id,
+      year: sy.schoolYear?.school_year_range || ''
+    }))
+    .filter(yearObj => {
+      if (seen.has(yearObj.id)) return false;
+      seen.add(yearObj.id);
+      return true;
+    })
+    .sort((a, b) => a.year.localeCompare(b.year));
+});
 
 const companySearch = ref('');
 const showCompanyDropdown = ref(false);
@@ -177,6 +188,77 @@ function submit() {
 
 function goToProfile() {
   window.location.href = route('graduate.profile');
+}
+
+const showAddYearInput = ref(false);
+const newSchoolYearRange = ref('');
+
+async function addSchoolYear() {
+  // Validate format
+  if (!/^\d{4}-\d{4}$/.test(newSchoolYearRange.value)) {
+    addYearError.value = 'Format must be YYYY-YYYY';
+    return;
+  }
+  const [start, end] = newSchoolYearRange.value.split('-').map(Number);
+  if (start >= end) {
+    addYearError.value = 'Start year must be less than end year';
+    return;
+  }
+  addYearError.value = '';
+
+  // Send to backend to add (like your SchoolYearController)
+  try {
+    const response = await axios.post(route('school-years.add'), {
+      institution_id: form.graduate_school_graduated_from,
+      school_year_range: newSchoolYearRange.value,
+    });
+    // Optionally, update the schoolYears prop or reload the page
+    showAddYearInput.value = false;
+    // You may want to reload school years here or push to props.schoolYears
+    window.location.reload(); // or fetch school years again
+  } catch (e) {
+    addYearError.value = e.response?.data?.message || 'Failed to add school year';
+  }
+}
+console.log('schoolYears:', props.schoolYears);
+console.log('Selected institution:', form.graduate_school_graduated_from);
+console.log('Filtered years:', filteredYears.value);
+
+// Watch for changes in selected institution
+watch(() => form.graduate_school_graduated_from, (val) => {
+  console.log('Selected institution changed:', val);
+  console.log('Filtered years:', filteredYears.value);
+});
+
+// Error handling for school year input
+const addYearError = ref('');
+
+async function validateSchoolYear() {
+  addYearError.value = '';
+  const val = form.graduate_year_graduated.trim();
+
+  // Validate format
+  if (!/^\d{4}-\d{4}$/.test(val)) {
+    addYearError.value = 'Format must be YYYY-YYYY';
+    return;
+  }
+  const [start, end] = val.split('-').map(Number);
+  if (start >= end) {
+    addYearError.value = 'Start year must be less than end year';
+    return;
+  }
+
+  // Check with backend if this school year exists for this institution
+  try {
+    const response = await axios.post(route('school-years.add'), {
+      institution_id: form.graduate_school_graduated_from,
+      school_year_range: val,
+    });
+    // Optionally, handle response (e.g., show success, update UI)
+    addYearError.value = '';
+  } catch (e) {
+    addYearError.value = e.response?.data?.message || 'Failed to add school year';
+  }
 }
 </script>
 
@@ -334,14 +416,18 @@ function goToProfile() {
                 <InputError :message="form.errors.graduate_program_completed" class="text-red-600" />
               </div>
               <div>
-                <InputLabel for="graduate_year_graduated" class="text-slate-800 font-medium">Year Graduated <span
-                    class="text-red-500">*</span></InputLabel>
-                <select id="graduate_year_graduated" v-model="form.graduate_year_graduated" required
-                  class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg">
-                  <option value="" class="bg-white">Select Year</option>
-                  <option v-for="year in filteredYears" :key="year.id" :value="year.id" class="bg-white">{{ year.year }}
-                  </option>
-                </select>
+                <InputLabel for="graduate_year_graduated" class="text-slate-800 font-medium">
+                  Year Graduated <span class="text-red-500">*</span>
+                </InputLabel>
+                <TextInput
+                  id="graduate_year_graduated"
+                  v-model="form.graduate_year_graduated"
+                  placeholder="e.g. 2022-2023"
+                  required
+                  class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                  @blur="validateSchoolYear"
+                />
+                <InputError :message="addYearError" class="text-red-600" />
                 <InputError :message="form.errors.graduate_year_graduated" class="text-red-600" />
               </div>
             </div>

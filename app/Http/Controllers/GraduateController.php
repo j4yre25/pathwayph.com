@@ -29,7 +29,7 @@ class GraduateController extends Controller
     public function storeAlmostDone(Request $request)
     {
         $user = Auth::user();
-        
+
         // Validate the request
         $request->validate([
             'first_name' => 'required|string|max:255',
@@ -45,52 +45,52 @@ class GraduateController extends Controller
             'still_in_role' => 'boolean',
             'visibility' => 'required|string|in:standard,limited,hidden',
         ]);
-        
+
         // Update user information
         $user->first_name = $request->first_name;
         $user->last_name = $request->last_name;
         $user->save();
-        
+
         // Check if graduate record exists, if not create one
         $graduate = Graduate::where('user_id', $user->id)->first();
-        
+
         if (!$graduate) {
             $graduate = new Graduate();
             $graduate->user_id = $user->id;
         }
-        
+
         // Update graduate information
         $graduate->first_name = $request->first_name;
         $graduate->last_name = $request->last_name;
         $graduate->location = $request->location;
         $graduate->visibility = $request->visibility;
         $graduate->save();
-        
+
         // Handle experience if provided
         if ($request->has_experience) {
             $experience = new Experience();
             $experience->user_id = $user->id;
             $experience->job_title = $request->job_title;
             $experience->company_name = $request->company_name;
-            
+
             // Format the start date
             if ($request->started_month && $request->started_year) {
-                $experience->start_date = $request->started_year . '-' . 
+                $experience->start_date = $request->started_year . '-' .
                     date('m', strtotime($request->started_month . ' 1, 2000')) . '-01';
             }
-            
+
             // Format the end date if not still in role
             if (!$request->still_in_role && $request->ended_month && $request->ended_year) {
-                $experience->end_date = $request->ended_year . '-' . 
+                $experience->end_date = $request->ended_year . '-' .
                     date('m', strtotime($request->ended_month . ' 1, 2000')) . '-01';
             } else if ($request->still_in_role) {
                 $experience->end_date = null;
                 $experience->is_current = true;
             }
-            
+
             $experience->save();
         }
-        
+
         // Redirect to verification success page
         return redirect()->route('verification.success');
     }
@@ -294,6 +294,12 @@ class GraduateController extends Controller
 
         $graduate->update($updateData);
 
+        // Recalculate alignment score after updating program or job title
+        $graduate = Graduate::with('graduateSkills.skill')->find($graduate->id);
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
+
         return redirect()->back()->with('flash.banner', 'Graduate updated successfully.');
     }
 
@@ -335,7 +341,7 @@ class GraduateController extends Controller
         $institutionSchoolYears = \App\Models\InstitutionSchoolYear::where('institution_id', $institutionId)
             ->with('schoolYear')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'school_year_range' => $item->schoolYear->school_year_range,
                     'term' => $item->term,
@@ -637,7 +643,7 @@ class GraduateController extends Controller
         $graduate = Graduate::withTrashed()->findOrFail($id);
         $graduate->restore();
 
-       $user = User::withTrashed()->find($graduate->user_id);
+        $user = User::withTrashed()->find($graduate->user_id);
         if ($user) {
             $user->restore();
         }
