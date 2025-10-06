@@ -358,7 +358,14 @@ class ProfileController extends Controller
 
             $graduate->graduate_picture = $path;
             $graduate->save();
+
         }
+
+        $graduate = \App\Models\Graduate::with('graduateSkills.skill')->find($graduate->id);
+        if ($graduate) {
+            \App\Services\CareerAlignmentService::score($graduate);
+        }
+
 
 
         return redirect()->back()->with('flash.banner', 'Profile updated successfully!');
