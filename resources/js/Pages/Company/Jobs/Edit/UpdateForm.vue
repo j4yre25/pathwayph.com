@@ -13,6 +13,7 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import { useWorkEnvironmentValidation } from '@/Composables/useWorkEnvironmentValidation';
 import { useSalaryValidation } from '@/Composables/useSalaryValidation';
 import { useSkills } from '@/Composables/useSkills';
+import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
     job: Object,
@@ -488,7 +489,7 @@ const updateJob = () => {
     </FormSection>
 
     <!-- Modal for missing required fields -->
-    <Modal :model-value="showMissingFieldsModal" @close="showMissingFieldsModal = false">
+    <Modal :modelValue="showMissingFieldsModal" @close="showMissingFieldsModal = false">
         <template #header>
             <div class="flex items-center space-x-2">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100">

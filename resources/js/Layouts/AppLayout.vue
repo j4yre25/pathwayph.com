@@ -23,6 +23,14 @@ const user = page.props.auth?.user
 
 const isNotApproved = computed(() => user && user.is_approved === false)
 
+const allowedComponents = [
+  'Frontend/InformationSection',
+  'Company/InformationSection',
+  'Institutions/Profile/InformationSection'
+]
+
+console.log(page.component)
+
 const auth = page.props
 const graduates = page.props.graduates
 const roles = page.props.roles
@@ -31,13 +39,11 @@ const main = page.props.main
 const title = page.props.title
 
 const showingNavigationDropdown = ref(false)
-const showApprovalModal = ref(false)
-
-onMounted(() => {
-  if (page.props.needsApproval) {
-    showApprovalModal.value = true
-  }
+const showApprovalModal = computed(() => {
+  return isNotApproved.value && !allowedComponents.includes(page.component)
 })
+
+
 
 function logoutAndRedirect() {
   router.post(route('logout'), {}, {
@@ -231,9 +237,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="isNotApproved">
+  <div v-if="showApprovalModal">
 
-    <Modal v-model="showApprovalModal" :persistent="true" @update:modelValue="val => { if (!val) logoutAndRedirect() }">
+    <Modal v-model="showApprovalModal" @update:modelValue="val => { if (!val) logoutAndRedirect() }">
       <template #header>
         <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
       </template>
