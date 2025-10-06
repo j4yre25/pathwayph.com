@@ -21,15 +21,19 @@ const props = defineProps({
 const page = usePage()
 const user = page.props.auth?.user
 
-const isNotApproved = computed(() => user && user.is_approved === false)
+const isNotApproved = computed(() =>  user && (user.is_approved === false || user.is_approved === 0 || user.is_approved === '0' || user.is_approved === null))
 
-const allowedComponents = [
-  'Frontend/InformationSection',
+
+const informationSectionPages = [
+  'Institutions/Profile/InformationSection',
   'Company/InformationSection',
-  'Institutions/Profile/InformationSection'
+  'Frontend/InformationSection',
 ]
+const isOnInformationSection = computed(() => {
+  const componentName = page.component
+  return informationSectionPages.some(name => componentName.endsWith(name))
+})
 
-console.log(page.component)
 
 const auth = page.props
 const graduates = page.props.graduates
@@ -39,9 +43,7 @@ const main = page.props.main
 const title = page.props.title
 
 const showingNavigationDropdown = ref(false)
-const showApprovalModal = computed(() => {
-  return isNotApproved.value && !allowedComponents.includes(page.component)
-})
+const showApprovalModal = ref(false)
 
 
 
@@ -234,12 +236,25 @@ onMounted(() => {
   }
 });
 
+onMounted(() => {
+  if (isNotApproved.value && !isOnInformationSection.value) {
+    showApprovalModal.value = true
+  }
+})
+
+watch([isNotApproved, isOnInformationSection], ([notApproved, onInfoSection]) => {
+  showApprovalModal.value = notApproved && !onInfoSection
+})
+
+console.log('user:', user)
+console.log('user.is_approved:', user?.is_approved)
+console.log('isNotApproved:', isNotApproved.value)
 </script>
 
 <template>
-  <div v-if="showApprovalModal">
 
-    <Modal v-model="showApprovalModal" @update:modelValue="val => { if (!val) logoutAndRedirect() }">
+
+    <Modal v-model="showApprovalModal" :closeable="false"  @update:modelValue="val => { if (!val) logoutAndRedirect() } ">
       <template #header>
         <h2 class="text-xl font-bold text-yellow-600">Waiting for Approval</h2>
       </template>
@@ -253,9 +268,9 @@ onMounted(() => {
         <button class="btn btn-primary" @click="logoutAndRedirect">Logout</button>
       </template>
     </Modal>
-  </div>
 
-  <div v-else>
+
+
     <Banner />
 
     <Head :title="title" />
@@ -950,7 +965,7 @@ onMounted(() => {
         <slot />
       </main>
     </div>
-  </div>
+
 
 
   <Modal v-model="showOnHoldModal">
