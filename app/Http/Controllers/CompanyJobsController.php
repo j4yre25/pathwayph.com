@@ -691,6 +691,7 @@ class CompanyJobsController extends Controller
             'jobTypes:id,type',
             'workEnvironments:id,environment_type',
             'salary',
+            
         ]);
 
         $departments = Department::where('company_id', $job->company_id)

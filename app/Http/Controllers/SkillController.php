@@ -99,10 +99,18 @@ class SkillController extends Controller
                 }
 
                 foreach ($careerOpportunityIds as $careerId) {
+                    // Find the InstitutionCareerOpportunity for this institution and career opportunity
+                    $ico = \App\Models\InstitutionCareerOpportunity::where('institution_id', $institution->id)
+                        ->where('career_opportunity_id', $careerId)
+                        ->first();
+
+                    $programId = $ico ? $ico->program_id : null;
+
                     $exists = InstitutionSkill::where([
                         'skill_id' => $skill->id,
                         'career_opportunity_id' => $careerId,
                         'institution_id' => $institution->id,
+                        'program_id' => $programId, // <-- set automatically
                     ])->exists();
 
                     if (!$exists) {
@@ -110,6 +118,7 @@ class SkillController extends Controller
                             'skill_id' => $skill->id,
                             'career_opportunity_id' => $careerId,
                             'institution_id' => $institution->id,
+                            'program_id' => $programId, // <-- set automatically
                         ]);
                     }
                 }
@@ -169,6 +178,7 @@ class SkillController extends Controller
         $entry->update([
             'skill_id' => $skill->id,
             'career_opportunity_id' => $request->career_opportunity_id,
+            'program_id' => $request->program_id, // <-- add this
         ]);
 
         return back()->with('flash.banner', 'Skill updated successfully.');

@@ -73,7 +73,7 @@ class DashboardController extends Controller
         $now = now();
 
         $applicationsQuery = \App\Models\JobApplication::whereHas('job', fn($q) =>
-        $q->where('company_id', $company->id));
+            $q->where('company_id', $company->id));
 
         $statusCounts = [
             'pending' => (clone $applicationsQuery)->where('status', 'pending')->count(),
@@ -137,7 +137,7 @@ class DashboardController extends Controller
         $monthlyCounts = array_fill(1, 12, 0);
 
         $monthlyData = \App\Models\JobApplication::whereHas('job', fn($q) =>
-        $q->where('company_id', $companyId))
+            $q->where('company_id', $companyId))
 
             ->selectRaw('COUNT(*) as count, MONTH(created_at) as month')
             ->whereYear('created_at', date('Y'))
@@ -217,7 +217,10 @@ class DashboardController extends Controller
 
         // Graduates query with school year and term filter (like GraduateReports)
         $graduatesQuery = Graduate::where('institution_id', $institutionId)
-            ->with(['schoolYear', 'institutionSchoolYear']);
+            ->with(['schoolYear', 'institutionSchoolYear'])
+            ->join('users', 'graduates.user_id', '=', 'users.id') // Join users table
+            ->where('users.is_approved', true) // Only approved users
+            ->whereNull('graduates.deleted_at'); // Not archived
 
         if ($selectedSchoolYearRange && $term) {
             $graduatesQuery->whereHas('institutionSchoolYear', function ($q) use ($selectedSchoolYearRange, $term) {
@@ -442,9 +445,9 @@ class DashboardController extends Controller
             $interviews = [];
             $rejected = [];
             for ($m = 1; $m <= 12; $m++) {
-                $applicationSent[] = (int)($appsByMonth[$m] ?? 0);
-                $interviews[]      = (int)($interviewsByMonth[$m] ?? 0);
-                $rejected[]        = (int)($rejectedByMonth[$m] ?? 0);
+                $applicationSent[] = (int) ($appsByMonth[$m] ?? 0);
+                $interviews[] = (int) ($interviewsByMonth[$m] ?? 0);
+                $rejected[] = (int) ($rejectedByMonth[$m] ?? 0);
             }
 
             $vacancyStats = [
@@ -464,17 +467,17 @@ class DashboardController extends Controller
                 $date = $startOfWeek->copy()->addDays($i);
                 $labels[] = $date->format('M d');
 
-                $applicationSent[] = (int)\App\Models\JobApplication::where('graduate_id', $graduate->id)
+                $applicationSent[] = (int) \App\Models\JobApplication::where('graduate_id', $graduate->id)
                     ->whereDate('created_at', $date->toDateString())
                     ->count();
 
-                $interviews[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                $interviews[] = $actionCol ? (int) DB::table('job_application_action_logs')
                     ->whereIn('job_application_id', $applicationIds)
                     ->whereIn($actionCol, ['schedule_interview', 'reschedule_interview'])
                     ->whereDate('created_at', $date->toDateString())
                     ->count() : 0;
 
-                $rejected[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                $rejected[] = $actionCol ? (int) DB::table('job_application_action_logs')
                     ->whereIn('job_application_id', $applicationIds)
                     ->whereIn($actionCol, ['reject', 'reject_withdraw'])
                     ->whereDate('created_at', $date->toDateString())
@@ -502,17 +505,17 @@ class DashboardController extends Controller
                 $weekEnd = min($weekStart->copy()->endOfWeek(), $endOfMonth);
                 $labels[] = 'Week ' . $weekIndex;
 
-                $applicationSent[] = (int)\App\Models\JobApplication::where('graduate_id', $graduate->id)
+                $applicationSent[] = (int) \App\Models\JobApplication::where('graduate_id', $graduate->id)
                     ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
                     ->count();
 
-                $interviews[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                $interviews[] = $actionCol ? (int) DB::table('job_application_action_logs')
                     ->whereIn('job_application_id', $applicationIds)
                     ->whereIn($actionCol, ['schedule_interview', 'reschedule_interview'])
                     ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
                     ->count() : 0;
 
-                $rejected[] = $actionCol ? (int)DB::table('job_application_action_logs')
+                $rejected[] = $actionCol ? (int) DB::table('job_application_action_logs')
                     ->whereIn('job_application_id', $applicationIds)
                     ->whereIn($actionCol, ['reject', 'reject_withdraw'])
                     ->whereBetween('created_at', [$weekStart->toDateTimeString(), $weekEnd->toDateTimeString()])
@@ -549,7 +552,8 @@ class DashboardController extends Controller
                     break;
                 }
             }
-            if ($skillMatch) $score++;
+            if ($skillMatch)
+                $score++;
 
             // Education
             $criteria++;
@@ -569,7 +573,8 @@ class DashboardController extends Controller
                     break;
                 }
             }
-            if ($experienceMatch) $score++;
+            if ($experienceMatch)
+                $score++;
 
             // Preferred Job Type
             $criteria++;
@@ -632,7 +637,8 @@ class DashboardController extends Controller
                     break;
                 }
             }
-            if ($pastKeywordMatch) $score++;
+            if ($pastKeywordMatch)
+                $score++;
 
             // Only include jobs with at least one label (i.e., a match)
             if (!empty($labels)) {
@@ -878,12 +884,14 @@ class DashboardController extends Controller
         return [
             'tooltip' => ['trigger' => 'item'],
             'legend' => ['top' => '5%'],
-            'series' => [[
-                'name' => 'Sectors',
-                'type' => 'pie',
-                'radius' => '60%',
-                'data' => $topSectors,
-            ]],
+            'series' => [
+                [
+                    'name' => 'Sectors',
+                    'type' => 'pie',
+                    'radius' => '60%',
+                    'data' => $topSectors,
+                ]
+            ],
         ];
     }
 
@@ -902,7 +910,6 @@ class DashboardController extends Controller
     }
 
     private function getAdminDashboardData(Request $request)
-
     {
 
         $year = $request->input('year', now()->year);
@@ -946,7 +953,8 @@ class DashboardController extends Controller
             ->whereYear('created_at', now()->year)
             ->count();
 
-        $seminarRequests = SeminarRequest::with('institution')->orderByDesc('created_at')->count();;
+        $seminarRequests = SeminarRequest::with('institution')->orderByDesc('created_at')->count();
+        ;
 
 
         $companies = \App\Models\Company::select('id', 'company_name')->get();
@@ -1035,9 +1043,11 @@ class DashboardController extends Controller
             $metricCounts = $topCompanies->pluck('hired_count')->toArray();
             $metricLabel = 'Hired';
         } else { // openings
-            $topCompanies = \App\Models\Company::withCount(['jobs' => function ($q) {
-                $q->where('status', 'open');
-            }])
+            $topCompanies = \App\Models\Company::withCount([
+                'jobs' => function ($q) {
+                    $q->where('status', 'open');
+                }
+            ])
                 ->orderByDesc('jobs_count')
                 ->take(5)
                 ->get();
@@ -1080,12 +1090,14 @@ class DashboardController extends Controller
         $topSectorsChartOption = [
             'tooltip' => ['trigger' => 'item'],
             'legend' => ['top' => '5%'],
-            'series' => [[
-                'name' => 'Sectors',
-                'type' => 'pie',
-                'radius' => '60%',
-                'data' => $topSectors,
-            ]],
+            'series' => [
+                [
+                    'name' => 'Sectors',
+                    'type' => 'pie',
+                    'radius' => '60%',
+                    'data' => $topSectors,
+                ]
+            ],
         ];
 
 

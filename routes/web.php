@@ -1028,6 +1028,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::get('/graduates/{id}', [GraduateProfileController::class, 'show'])->name('graduates.profile');
     Route::get('/graduate/information', [GraduateProfileController::class, 'showInformationForm'])->name('graduate.information');
     Route::post('/graduate/information', [GraduateProfileController::class, 'saveInformation'])->name('graduate.information.save');
+    Route::post('/school-years/add', [GraduateProfileController::class, 'add'])->name('school-years.add');
 });
 
 

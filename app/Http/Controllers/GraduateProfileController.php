@@ -164,7 +164,7 @@ class GraduateProfileController extends Controller
         $schools = Institution::all();
         $programs = Program::all();
         $degrees = Degree::all();
-        $schoolYears = SchoolYear::all();
+        $schoolYears = \App\Models\InstitutionSchoolYear::with('schoolYear')->get();
         $institutionDegrees = InstitutionDegree::all();
         $institutionPrograms = InstitutionProgram::all();
         $companies = Company::all();
@@ -197,7 +197,7 @@ class GraduateProfileController extends Controller
             'mobile_number' => 'required|string|max:20',
             'graduate_school_graduated_from' => 'required|exists:institutions,id',
             'graduate_program_completed' => 'required|exists:programs,id',
-            'graduate_year_graduated' => 'required|exists:school_years,id',
+            'graduate_year_graduated' => 'required|exists:school_years,school_year_range',
             'graduate_degree' => 'required|exists:degrees,id',
             'company_not_found' => 'nullable|boolean',
             'company_name' => 'nullable|string|max:255',
@@ -223,6 +223,18 @@ class GraduateProfileController extends Controller
             $sector = \App\Models\Sector::find($sectorId);
         }
 
+        // Get the school year range from the form
+        $schoolYearRange = $request->input('graduate_year_graduated');
+
+        // Find the school year by range
+        $schoolYear = SchoolYear::where('school_year_range', $schoolYearRange)->first();
+
+        if (!$schoolYear) {
+            // Optionally, handle error or create the school year
+            return back()->withErrors(['graduate_year_graduated' => 'School year not found.']);
+        }
+
+        // Use the ID for saving
         $graduate = Graduate::create([
             'user_id' => $user->id,
             'first_name' => $validated['first_name'],
@@ -233,7 +245,7 @@ class GraduateProfileController extends Controller
             'contact_number' => $validated['mobile_number'],
             'institution_id' => $validated['graduate_school_graduated_from'],
             'program_id' => $validated['graduate_program_completed'],
-            'school_year_id' => $validated['graduate_year_graduated'],
+            'school_year_id' => $schoolYear->id,
             'degree_id' => $validated['graduate_degree'],
             'company_id' => $companyId,
             'other_company_name' => $validated['other_company_name'] ?? null,
@@ -269,4 +281,45 @@ class GraduateProfileController extends Controller
         session(['information_completed' => true]);
         return redirect()->route('graduates.profile', ['id' => $graduate->id])->with('information_completed', true);
     }
+
+    public function add(Request $request)
+{
+    $request->validate([
+        'institution_id' => 'required|exists:institutions,id',
+        'school_year_range' => ['required', 'regex:/^\d{4}-\d{4}$/'],
+    ]);
+    [$start, $end] = explode('-', $request->school_year_range);
+    if ((int) $start >= (int) $end) {
+        return response()->json(['message' => 'Invalid range (start year must be less than end year).'], 422);
+    }
+
+    // Check if school year exists globally
+    $schoolYear = \App\Models\SchoolYear::withTrashed()
+        ->where('school_year_range', $request->school_year_range)
+        ->first();
+
+    if (!$schoolYear) {
+        $schoolYear = \App\Models\SchoolYear::create([
+            'school_year_range' => $request->school_year_range,
+        ]);
+    }
+
+    // Check if this institution already has this school year
+    $exists = \App\Models\InstitutionSchoolYear::withTrashed()
+        ->where('institution_id', $request->institution_id)
+        ->where('school_year_range_id', $schoolYear->id)
+        ->exists();
+
+    if ($exists) {
+        return response()->json(['message' => 'This school year already exists for your institution.'], 422);
+    }
+
+    \App\Models\InstitutionSchoolYear::create([
+        'school_year_range_id' => $schoolYear->id,
+        'term' => '1', // or let user pick term if needed
+        'institution_id' => $request->institution_id,
+    ]);
+
+    return response()->json(['message' => 'School year added.']);
+}
 }
