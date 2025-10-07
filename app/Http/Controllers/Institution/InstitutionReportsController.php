@@ -378,7 +378,8 @@ class InstitutionReportsController extends Controller
         ])->where('institution_id', $institution->id)
         ->join('users', 'graduates.user_id', '=', 'users.id') // Join users table
         ->where('users.is_approved', true) // Only approved users
-        ->whereNull('graduates.deleted_at'); // Not archived
+        ->whereNull('graduates.deleted_at') // Not archived
+        ->select('graduates.*'); // ✅ important: avoid column conflicts
 
         if ($schoolYear) {
             $graduatesQuery->whereHas('schoolYear', function ($q) use ($schoolYear) {
