@@ -117,15 +117,8 @@ class ApplicantScreeningService
                 $otherSkillMatch = 1;
                 break;
             }
-        } elseif (is_array($jobWorkEnvRaw)) {
-            $jobWorkEnvironment = array_values(array_filter(array_map('trim', $jobWorkEnvRaw)));
-        } elseif ($jobWorkEnvRaw) {
-            $jobWorkEnvironment = [trim($jobWorkEnvRaw)];
-        } else {
-            $jobWorkEnvironment = [];
         }
-    }
-    $score += $otherSkillMatch * $weights['other_skills'];
+        $score += $otherSkillMatch * $weights['other_skills'];
 
     // m2: Education
     $educationMatch = ($graduateProgram && in_array($graduateProgram, $jobProgramNames)) ? 1 : 0;
@@ -212,5 +205,6 @@ class ApplicantScreeningService
         'is_shortlisted' => $is_shortlisted,
         'status' => $status,
     ];
+}
 }
 }
