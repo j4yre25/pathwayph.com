@@ -13,7 +13,8 @@ class ManageJobApprovalController extends Controller
 
     public function index()
     {
-        $jobs = \App\Models\Job::with(['salary', 'locations', 'workEnvironments', 'jobTypes', 'company'])
+        // Do not eager-load the old locations pivot; jobs now store a location string
+        $jobs = \App\Models\Job::with(['salary', 'workEnvironments', 'jobTypes', 'company'])
             ->orderByRaw('is_approved IS NULL DESC') // Pending (null) first
             ->orderBy('created_at', 'desc')          // Newest first
             ->paginate(10);
@@ -68,13 +69,13 @@ class ManageJobApprovalController extends Controller
 
     public function view(Job $job)
     {
+        // Do not load the old locations relation; jobs store a simple location string now
         $job->load([
             'company',
             'category',
             'user.hr',
             'jobTypes',
             'workEnvironments',
-            'locations',
             'programs'
         ]);
 
@@ -86,7 +87,8 @@ class ManageJobApprovalController extends Controller
             'job' => [
                 'id' => $job->id,
                 'job_title' => $job->job_title,
-                'location' => $job->locations->pluck('address')->toArray(),
+                // Keep front-end-friendly shape: array of addresses (was locations list)
+                'location' => $job->location ? [$job->location] : [],
                 'job_type' => $job->jobTypes->pluck('type')->toArray(),
                 'work_environment' => $job->workEnvironments->pluck('environment_type')->toArray(),
                 'job_experience_level' => $job->job_experience_level,

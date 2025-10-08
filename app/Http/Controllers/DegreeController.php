@@ -76,7 +76,7 @@ class DegreeController extends Controller
         }
 
         $request->validate([
-            'type' => ['required', 'in:Bachelor of Science,Bachelor of Arts,Associate,Master of Science,Master of Arts,Doctoral,Diploma'],
+            'type' => ['required', 'in:Bachelor\'s Degree,Master\'s Degree,Doctoral Degree,Associate Degree,Diploma'],
         ]);
 
         // Check if degree exists globally
@@ -105,7 +105,7 @@ class DegreeController extends Controller
 
         // Find the latest code for this type and institution
         $lastDegree = InstitutionDegree::where('institution_id', $institution->id)
-            ->whereHas('degree', function($q) use ($request) {
+            ->whereHas('degree', function ($q) use ($request) {
                 $q->where('type', $request->type);
             })
             ->orderByDesc('id')
@@ -122,13 +122,11 @@ class DegreeController extends Controller
 
         // You can set the starting number for each type if you want (e.g., BA starts at 1000)
         $startNumbers = [
-            'BS' => 1,
-            'BA' => 1,
-            'AS' => 1,
-            'MS' => 1,
-            'MA' => 1,
+            'BD' => 1,
+            'MD' => 1,
             'PhD' => 1,
-            'D' => 1,
+            'AD' => 1,
+            'DP' => 1,
         ];
         if (!$lastDegree) {
             $number = $startNumbers[$initials] ?? 1;
@@ -164,8 +162,11 @@ class DegreeController extends Controller
         $institution = Institution::where('user_id', $user->id)->first();
 
         $request->validate([
-            'type' => ['required', 'in:Bachelor of Science,Bachelor of Arts,Associate,Master of Science,
-                                    Master of Arts,Doctoral,Diploma'],
+            'type' => [
+                'required',
+                'in:Bachelor of Science,Bachelor of Arts,Associate,Master of Science,
+                                    Master of Arts,Doctoral,Diploma'
+            ],
         ]);
 
         $degree = Degree::withTrashed()
@@ -222,13 +223,11 @@ class DegreeController extends Controller
     private function getDegreeInitials($type)
     {
         return [
-            'Bachelor of Science' => 'BS',
-            'Bachelor of Arts' => 'BA',
-            'Associate' => 'AS',
-            'Master of Science' => 'MS',
-            'Master of Arts' => 'MA',
-            'Doctoral' => 'PhD',
-            'Diploma' => 'D',
+            "Bachelor's Degree" => 'BD',
+            "Master's Degree" => 'MD',
+            "Doctoral Degree" => 'PhD',
+            "Associate Degree" => 'AD',
+            "Diploma" => 'DP',
         ][$type] ?? 'XX';
     }
 }

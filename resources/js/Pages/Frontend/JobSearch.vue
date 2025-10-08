@@ -10,13 +10,13 @@ import axios from 'axios';
 
 // Props and Page Data
 const { props } = usePage();
-const appliedJobIds = props.appliedJobIds ?? [];
+const appliedJobIds = ref(props.appliedJobIds ?? []);
 const jobOffers = ref(props.jobOffers ?? []);
 
 
 // Tabs and toggle state
-const activeTab = ref('jobs'); // 'jobs' or 'applications'
-const showApplied = ref(false);
+const activeTab = ref('jobs'); 
+const hideApplied = ref(false); // when true, hide already applied jobs
 
 onMounted(() => {
     setTabFromQuery();
@@ -43,9 +43,6 @@ function setTabFromQuery() {
     }
 }
 
-console.log('JobSearch.vue props:', props);
-console.log('JobSearch.vue props.query:', props.query);
-
 // State Management
 const searchQuery = ref('');
 const selectedJobType = ref('');
@@ -70,15 +67,15 @@ const jobsForm = useForm({
     loading: false
 });
 const jobsMeta = ref({
-    from: props.jobs?.from ?? 0,
-    to: props.jobs?.to ?? 0,
-    total: props.jobs?.total ?? 0,
-    current_page: props.jobs?.current_page ?? 1,
-    per_page: props.jobs?.per_page ?? 10
+  from: props.jobs?.meta?.from ?? props.jobs?.from ?? 0,
+  to: props.jobs?.meta?.to ?? props.jobs?.to ?? 0,
+  total: props.jobs?.meta?.total ?? props.jobs?.total ?? 0,
+  current_page: props.jobs?.meta?.current_page ?? props.jobs?.current_page ?? 1,
+  per_page: props.jobs?.meta?.per_page ?? props.jobs?.per_page ?? 10
 });
-const jobsLinks = ref(props.jobs?.links ?? []);
-const page = ref(props.jobs?.current_page ?? 1);
-const pageSize = ref(props.jobs?.per_page ?? 10);
+const jobsLinks = ref(props.jobs?.links ?? props.jobs?.meta?.links ?? []);
+const page = ref(jobsMeta.value.current_page);
+const pageSize = ref(jobsMeta.value.per_page);
 const totalPages = computed(() => {
     const total = jobsMeta.value?.total ?? jobsForm.jobs.length;
     return Math.max(1, Math.ceil(total / pageSize.value));
@@ -90,16 +87,48 @@ const jobsCountTo = computed(() => jobsMeta.value?.to ?? (Math.min(page.value * 
 const jobsCountTotal = computed(() => jobsMeta.value?.total ?? jobsForm.jobs.length);
 
 // Filter jobs for main list
-const filteredJobs = computed(() => jobsForm.jobs);
+const filteredJobs = computed(() => {
+  // When checked, hide applied jobs
+  if (hideApplied.value) {
+    const appliedSet = new Set(appliedJobIds.value);
+    return jobsForm.jobs.filter(j => !appliedSet.has(j.id));
+  }
+  // When unchecked, show all (including applied)
+  return jobsForm.jobs;
+});
 
 // Jobs the user has applied for
 const myApplications = ref(props.myApplications ?? []);
+
+// Normalize applied IDs to numbers (avoid type mismatch)
+const appliedIdSet = computed(() => {
+    const ids = (appliedJobIds.value || []).map(id => Number(id));
+    return new Set(ids);
+});
+
+// Fallback: derive from myApplications if backend missing
+watch(myApplications, (apps) => {
+    if ((!appliedJobIds.value || !appliedJobIds.value.length) && apps && apps.length) {
+        appliedJobIds.value = apps.map(a => a.id).filter(Boolean);
+    }
+}, { immediate: true });
+
+// Helper to decide if job already applied
+function hasApplied(job) {
+    if (!job) return false;
+    // Direct from set
+    if (appliedIdSet.value.has(Number(job.id))) return true;
+    // If backend attaches application relation/status on each job
+    if (job.application || job.application_status) return true;
+    return false;
+}
 
 // Pagination fetch
 function goToPage(p) {
     if (!p || p < 1 || p > totalPages.value) return;
     router.get(route('job.search'), currentFilters({ page: p }), {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: (pageResp) => {
             const pld = pageResp.props.jobs;
             jobsForm.jobs = pld?.data || [];
@@ -107,7 +136,7 @@ function goToPage(p) {
             jobsLinks.value = pld?.links ?? [];
             page.value = jobsMeta.value?.current_page ?? p;
             pageSize.value = jobsMeta.value?.per_page ?? pageSize.value;
-            console.log(jobsMeta.value)
+            appliedJobIds.value = pageResp.props.appliedJobIds ?? appliedJobIds.value;
         }
     });
 }
@@ -117,7 +146,7 @@ function goToNext() { goToPage(page.value + 1); }
 
 
 // Reset page when filters change
-watch([searchQuery, selectedJobType, selectedLocation, selectedIndustry, selectedSalaryMin, selectedSalaryMax, selectedSkillsInput, selectedExperience, selectedCompany, showApplied], () => {
+watch([searchQuery, selectedJobType, selectedLocation, selectedIndustry, selectedSalaryMin, selectedSalaryMax, selectedSkillsInput, selectedExperience, selectedCompany, hideApplied], () => {
     page.value = 1;
 });
 
@@ -135,7 +164,7 @@ function currentFilters(overrides = {}) {
     }
     if (selectedExperience.value) params.experience = selectedExperience.value;
     if (selectedCompany.value) params.company = selectedCompany.value;
-    params.showApplied = showApplied.value;
+    params.hideApplied = hideApplied.value;
     params.page = page.value;
     return { ...params, ...overrides };
 }
@@ -143,12 +172,14 @@ function currentFilters(overrides = {}) {
 console.log("Jobs", filteredJobs.value)
 
 // Toggle to show/hide applied jobs
-function toggleShowApplied() {
-    router.get(route('job.search'), currentFilters({ page: 1 }), { preserveScroll: true });
+function toggleHideApplied() {
+    page.value = 1;
+    fetchJobs();
+    
 }
 
 
-console.log("Jobs", filteredJobs.value)
+
 
 // Clear filters
 function clearFilters() {
@@ -162,13 +193,11 @@ function clearFilters() {
     selectedExperience.value = '';
     selectedCompany.value = '';
     page.value = 1;
-    fetchJobs();
+    fetchJobsAndRecommendations();
 }
 
 // Fetch jobs with filters
 function fetchJobs() {
-    console.log('fetchJobs called');
-
     if (jobsForm.loading) return;
     jobsForm.loading = true;
 
@@ -176,22 +205,25 @@ function fetchJobs() {
 
     router.get(route('job.search'), params, {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: (pageResp) => {
             console.log('onSuccess called in fetchJobs');
             const p = pageResp.props.jobs;
-            jobsForm.jobs = pld?.data || [];
+            jobsForm.jobs = p?.data || [];
+            const meta = p?.meta || p;
             jobsMeta.value = {
-                from: pld?.from ?? 0,
-                to: pld?.to ?? 0,
-                total: pld?.total ?? 0,
-                current_page: pld?.current_page ?? 1,
-                per_page: pld?.per_page ?? 10
+              from: meta?.from ?? 0,
+              to: meta?.to ?? 0,
+              total: meta?.total ?? 0,
+              current_page: meta?.current_page ?? 1,
+              per_page: meta?.per_page ?? 10
             };
-            jobsLinks.value = pld?.links ?? [];
+            jobsLinks.value = p?.links ?? meta?.links ?? [];
             page.value = jobsMeta.value.current_page;
             pageSize.value = jobsMeta.value.per_page;
             console.log('jobsMeta:', jobsMeta.value, 'pageSize:', pageSize.value, 'totalPages:', totalPages.value);
             jobOffers.value = pageResp.props.jobOffers ?? jobOffers.value;
+            appliedJobIds.value = pageResp.props.appliedJobIds ?? appliedJobIds.value;
             jobsForm.loading = false;
         },
         onFinish: () => {
@@ -201,12 +233,51 @@ function fetchJobs() {
 }
 
 
+
 function calculateMatchPercentage(job) {
     return job.match_percentage ?? 0;
 }
 
 // Apply for a job
 const applyForm = useForm({ job_id: null, cover_letter: '', cover_letter_file: null })
+const applyError = ref('');
+
+// Validate before submit
+function validateApplyForm() {
+    const hasText = applyForm.cover_letter && applyForm.cover_letter.trim().length > 0;
+    const file = applyForm.cover_letter_file;
+
+    // 1. Must have either a typed cover letter or an uploaded file
+    if (!hasText && !file) {
+        applyError.value = 'Please provide a cover letter — either type one or upload a file.';
+        return false;
+    }
+
+    // 2. Check minimum text length (optional but helps quality)
+    if (hasText && applyForm.cover_letter.trim().length < 30) {
+        applyError.value = 'Your cover letter is too short. Please write at least a few sentences.';
+        return false;
+    }
+
+    // 3. File validations (if a file is uploaded)
+    if (file) {
+        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        const maxSizeMB = 5; // 5 MB
+
+        if (!allowedTypes.includes(file.type)) {
+            applyError.value = 'Invalid file type. Please upload a PDF, DOC, or DOCX file.';
+            return false;
+        }
+
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            applyError.value = `File size too large. Please upload a file smaller than ${maxSizeMB}MB.`;
+            return false;
+        }
+    }
+
+    applyError.value = '';
+    return true;
+}
 
 function onCoverLetterFileChange(e) {
     applyForm.cover_letter_file = (e.target.files && e.target.files[0]) ? e.target.files[0] : null
@@ -244,24 +315,24 @@ function showApplyModal(job) {
     isApplyModalOpen.value = true;
 }
 function submitApplication() {
+    if (!validateApplyForm()) return;
     applyForm.post(route('apply-for-job'), {
         preserveScroll: true,
-        forceFormData: true, // ensure file upload goes as multipart/form-data
+        forceFormData: true,
         onSuccess: () => {
-            successMessage.value = 'Successfully applied for the job and Referral sent to PESO!'
-            isApplyModalOpen.value = false
-            isSuccessModalOpen.value = true
-            fetchJobs()
-
+            successMessage.value = 'Successfully applied for the job and Referral sent to PESO!';
+            isApplyModalOpen.value = false;
+            isSuccessModalOpen.value = true;
+            fetchJobs();
             if (selectedJob.value && selectedJob.value.company && selectedJob.value.company.id) {
-                requestReferral(selectedJob.value.company.id, selectedJob.value.id)
+                requestReferral(selectedJob.value.company.id, selectedJob.value.id);
             }
         },
         onError: () => {
-            errorMessage.value = 'Failed to apply for the job. Please try again.'
+            errorMessage.value = 'Failed to apply for the job. Please try again.';
             isErrorModalOpen.value = true;
         }
-    })
+    });
 }
 
 // const oneClickApply = (job) => {
@@ -303,12 +374,18 @@ function closeErrorModal() {
 }
 
 
+// Recommendations state
 const recommendations = ref([]);
 const recommendationsLoading = ref(false);
 
+
+// Fetch recommendations using current filters (excluding page/showApplied)
 function fetchRecommendations() {
+    const params = { ...currentFilters() };
+    delete params.page;
+    delete params.showApplied;
     recommendationsLoading.value = true;
-    axios.get(route('graduate-jobs.recommendations'))
+    axios.get(route('graduate-jobs.recommendations'), { params })
         .then(res => {
             recommendations.value = res.data.recommendations || [];
             console.log('Fetched recommendations:', recommendations.value);
@@ -318,8 +395,6 @@ function fetchRecommendations() {
         });
 }
 
-
-// Format salary for display
 function formatSalary(salary) {
     if (!salary) return 'Not specified';
     if (salary.job_min_salary && salary.job_max_salary) {
@@ -340,9 +415,15 @@ function requestReferral(companyId, jobId) {
     });
 }
 
-// Only fetch jobs when user clicks Search
+function fetchJobsAndRecommendations() {
+    fetchJobs();
+    fetchRecommendations();
+}
+
+// Initial recommendations on mount
 onMounted(() => {
     fetchRecommendations();
+    console.debug('[JobSearch] initial jobs length:', jobsForm.jobs.length, 'meta:', jobsMeta.value);
 });
 </script>
 
@@ -372,9 +453,9 @@ onMounted(() => {
                                 activeTab === 'applications' ? 'bg-indigo-600 text-white shadow' : 'bg-gray-100 text-gray-700'
                             ]" @click="activeTab = 'applications'">
                                 <i class="fas fa-file-alt mr-2"></i> My Applications
-                                <span v-if="appliedJobIds.length"
+                                <span v-if="appliedJobIds.value && appliedJobIds.value.length"
                                     class="ml-2 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">
-                                    {{ appliedJobIds.length }}
+                                    {{ appliedJobIds.value.length }}
                                 </span>
                             </button>
                             <button :class="[
@@ -392,19 +473,23 @@ onMounted(() => {
 
                         <!-- Toggle Checkbox (only for Job Listings tab) -->
                         <div v-if="activeTab === 'jobs'" class="mb-4 flex items-center">
-                            <input type="checkbox" id="showApplied" v-model="showApplied" @change="toggleShowApplied"
+                            <input type="checkbox" id="hideApplied" v-model="hideApplied" @change="toggleHideApplied"
                                 class="accent-indigo-600 h-4 w-4 rounded border-gray-300 focus:ring-indigo-500" />
-                            <label for="showApplied" class="ml-2 text-sm text-gray-700 cursor-pointer">
-                                Show applied jobs in list
+                            <label for="hideApplied" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                                Hide jobs I already applied to
                             </label>
                         </div>
 
                         <!-- FILTER BAR (only for Job Listings tab) -->
                         <div v-if="activeTab === 'jobs'" class="mb-8">
-                            <form @submit.prevent="fetchJobs">
+                            <form @submit.prevent="fetchJobsAndRecommendations">
                                 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    <TextInput v-model="searchQuery" class="w-full"
-                                        placeholder="Search jobs by title or description" />
+                                    <TextInput
+                                        v-model="searchQuery"
+                                        class="w-full"
+                                        placeholder="Search jobs by title or description"
+                                        @keyup.enter="fetchJobsAndRecommendations"
+                                    />
 
                                     <select v-model="selectedJobType" class="border rounded-md px-3 py-2 w-full">
                                         <option value="">Job Type</option>
@@ -432,8 +517,12 @@ onMounted(() => {
 
                                     <select v-model="selectedLocation" class="border rounded-md px-3 py-2 w-full">
                                         <option value="">Location</option>
-                                        <option v-for="(address, id) in props.locations" :key="id" :value="id">{{
-                                            address }}</option>
+                                        <!-- Only show unique barangays -->
+                                        <option
+                                            v-for="(barangay, id) in props.locations"
+                                            :key="id"
+                                            :value="id"
+                                        >{{ barangay }}</option>
                                     </select>
 
                                     <TextInput v-model="selectedSalaryMin" type="number" class="w-full"
@@ -508,7 +597,10 @@ onMounted(() => {
                                                     <i class="fas fa-map-marker-alt mr-2"></i>
                                                     <span>
                                                         <template v-if="job.locations && job.locations.length">
-                                                            {{job.locations.map(l => l.address).join(', ')}}
+                                                            {{ job.locations.map(l => l.address).join(', ') }}
+                                                        </template>
+                                                        <template v-else-if="job.location">
+                                                            {{ job.location }}
                                                         </template>
                                                         <template v-else>
                                                             Not specified
@@ -548,7 +640,7 @@ onMounted(() => {
                                                 <PrimaryButton @click="viewJobDetails(job)" class="text-sm">View Details
                                                 </PrimaryButton>
 
-                                                <PrimaryButton v-if="!appliedJobIds.includes(job.id)"
+                                                <PrimaryButton v-if="!hasApplied(job)"
                                                     @click="showApplyModal(job)"
                                                     class="text-sm bg-green-600 hover:bg-green-700">
                                                     Apply Now
@@ -619,7 +711,10 @@ onMounted(() => {
 
                                                 <div class="text-xs text-gray-700 mt-2">
                                                     <span v-if="job.locations && job.locations.length">
-                                                        {{job.locations.map(l => l.address).join(', ')}}
+                                                        {{ job.locations.map(l => l.address).join(', ') }}
+                                                    </span>
+                                                    <span v-else-if="job.location">
+                                                        {{ job.location }}
                                                     </span>
                                                 </div>
 
@@ -638,7 +733,7 @@ onMounted(() => {
                                                 <div class="mt-3 flex gap-2">
                                                     <PrimaryButton @click="viewJobDetails(job)" class="text-xs">View
                                                     </PrimaryButton>
-                                                    <PrimaryButton v-if="!appliedJobIds.includes(job.id)"
+                                                    <PrimaryButton v-if="!hasApplied(job)"
                                                         @click="showApplyModal(job)"
                                                         class="text-xs bg-green-600 hover:bg-green-700">
                                                         Apply
@@ -681,6 +776,9 @@ onMounted(() => {
                                         <span>
                                             <template v-if="job.locations && job.locations.length">
                                                 {{job.locations.map(l => l.address).join(', ')}}
+                                            </template>
+                                            <template v-else-if="job.location">
+                                                {{ job.location }}
                                             </template>
                                             <template v-else>
                                                 Not specified
@@ -801,7 +899,10 @@ onMounted(() => {
                                         <i class="fas fa-map-marker-alt mr-2"></i>
                                         <span>
                                             <template v-if="selectedJob.locations && selectedJob.locations.length">
-                                                {{selectedJob.locations.map(l => l.address).join(', ')}}
+                                                {{ selectedJob.locations.map(l => l.address).join(', ') }}
+                                            </template>
+                                            <template v-else-if="selectedJob.location">
+                                                {{ selectedJob.location }}
                                             </template>
                                             <template v-else>
                                                 Not specified
@@ -812,7 +913,7 @@ onMounted(() => {
                                         <i class="fas fa-briefcase mr-2"></i>
                                         <span>
                                             <template v-if="selectedJob.jobTypes && selectedJob.jobTypes.length">
-                                                {{selectedJob.jobTypes.map(jt => jt.type).join(', ')}}
+                                                {{ selectedJob.jobTypes.map(jt => jt.type).join(', ') }}
                                             </template>
                                             <template v-else>
                                                 Not specified
@@ -880,15 +981,11 @@ onMounted(() => {
                                         class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
                                         Close
                                     </button>
-                                    <template v-if="!appliedJobIds.includes(selectedJob.id)">
+                                    <template v-if="!hasApplied(selectedJob)">
                                         <PrimaryButton @click="showApplyModal(selectedJob)"
                                             class="bg-green-600 hover:bg-green-700">
                                             Apply Now
                                         </PrimaryButton>
-                                        <!-- <PrimaryButton @click="oneClickApply(selectedJob)"
-                                            class="text-sm bg-green-600 hover:bg-green-700">
-                                            One-Click Apply
-                                        </PrimaryButton> -->
                                     </template>
                                     <template v-else>
                                         <span class="text-gray-400 text-sm font-semibold flex items-center">
@@ -986,9 +1083,14 @@ onMounted(() => {
                                         <i class="fas fa-map-marker-alt mr-2"></i>
                                         <span>
                                             <template v-if="selectedJob.locations && selectedJob.locations.length">
-                                                {{selectedJob.locations.map(l => l.address).join(', ')}}
+                                                {{ selectedJob.locations.map(l => l.address).join(', ') }}
                                             </template>
-                                            <template v-else>Not specified</template>
+                                            <template v-else-if="selectedJob.location">
+                                                {{ selectedJob.location }}
+                                            </template>
+                                            <template v-else>
+                                                Not specified
+                                            </template>
                                         </span>
                                     </div>
                                     <div class="flex items-center text-gray-600">
@@ -1010,8 +1112,11 @@ onMounted(() => {
                                     </div>
                                 </div>
 
-                                <div class="mb-6">
-                                    <h3 class="text-lg font-semibold mb-2">Cover Letter</h3>
+                               <div class="mb-6">
+                                    <h3 class="text-lg font-semibold mb-2 flex items-center">
+                                        Cover Letter
+                                        <span v-if="applyError" class="ml-2 text-xs text-red-600 font-normal">{{ applyError }}</span>
+                                    </h3>
                                     <textarea v-model="applyForm.cover_letter"
                                         class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
                                         rows="5"
@@ -1019,8 +1124,7 @@ onMounted(() => {
 
                                     <!-- Optional file upload -->
                                     <div class="mt-3">
-                                        <label class="block text-sm text-gray-700 mb-1">Upload Cover Letter
-                                            (optional)</label>
+                                        <label class="block text-sm text-gray-700 mb-1">Upload Cover Letter (optional)</label>
                                         <input type="file" accept=".pdf,.doc,.docx" @change="onCoverLetterFileChange"
                                             class="block w-full text-sm border rounded p-1" />
                                         <div v-if="applyForm.cover_letter_file" class="text-xs text-gray-500 mt-1">

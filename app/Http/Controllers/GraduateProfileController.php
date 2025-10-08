@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\User;
 use App\Models\Achievement;
 use App\Models\Certification;
 use App\Models\GraduateEducation;
@@ -19,6 +19,7 @@ use App\Models\InstitutionDegree;
 use App\Models\InstitutionProgram;
 use App\Models\Company;
 use App\Models\Sector;
+use App\Notifications\GraduateNeedsApprovalNotification;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -89,7 +90,7 @@ class GraduateProfileController extends Controller
                         ?: optional($e->education)->name,
                     'start_date' => $e->start_date,
                     'end_date' => $e->is_current ? null : $e->end_date,
-                    'is_current' => (bool)$e->is_current,
+                    'is_current' => (bool) $e->is_current,
                     'description' => $e->description,
                     'achievement' => $e->achievement,
                 ];
@@ -97,16 +98,19 @@ class GraduateProfileController extends Controller
             ->sort(function ($a, $b) use ($rankMap, $normalize) {
                 $ra = $rankMap[$normalize($a['level_of_education'])] ?? 999;
                 $rb = $rankMap[$normalize($b['level_of_education'])] ?? 999;
-                if ($ra !== $rb) return $ra <=> $rb;
+                if ($ra !== $rb)
+                    return $ra <=> $rb;
 
                 // Current first
-                if ($a['is_current'] && !$b['is_current']) return -1;
-                if (!$a['is_current'] && $b['is_current']) return 1;
+                if ($a['is_current'] && !$b['is_current'])
+                    return -1;
+                if (!$a['is_current'] && $b['is_current'])
+                    return 1;
 
                 // Later end_date (or start_date) wins
                 $aEnd = $a['end_date'] ?? $a['start_date'];
                 $bEnd = $b['end_date'] ?? $b['start_date'];
-                return strcmp((string)$bEnd, (string)$aEnd);
+                return strcmp((string) $bEnd, (string) $aEnd);
             })
             ->first();
 
@@ -121,7 +125,7 @@ class GraduateProfileController extends Controller
                     ?: optional($e->education)->name,
                 'start_date' => $e->start_date,
                 'end_date' => $e->is_current ? null : $e->end_date,
-                'is_current' => (bool)$e->is_current,
+                'is_current' => (bool) $e->is_current,
                 'description' => $e->description,
                 'achievement' => $e->achievement,
                 'deleted_at' => $e->deleted_at,
@@ -198,7 +202,7 @@ class GraduateProfileController extends Controller
             'mobile_number' => 'required|string|max:20',
             'graduate_school_graduated_from' => 'required|exists:institutions,id',
             'graduate_program_completed' => 'required|exists:programs,id',
-            'graduate_year_graduated' => 'required|exists:school_years,school_year_range',
+            'graduate_year_graduated' => 'required|string|regex:/^\d{4}-\d{4}$/',
             'graduate_degree' => 'required|exists:degrees,id',
             'company_not_found' => 'nullable|boolean',
             'company_name' => 'nullable|string|max:255',
@@ -206,6 +210,7 @@ class GraduateProfileController extends Controller
             'other_company_sector' => 'nullable|string|max:255',
             'current_job_title' => 'nullable|string|max:255',
             'employment_status' => 'nullable|string|max:255',
+            'graduate_term' => ['required', 'string', 'in:1,2,3,4,5,summer'],
         ]);
         \Log::info('Validated:', $validated);
         // Handle company_id if company is selected from the list
@@ -224,15 +229,28 @@ class GraduateProfileController extends Controller
             $sector = \App\Models\Sector::find($sectorId);
         }
 
-        // Get the school year range from the form
+        // Get the school year range and term from the form
         $schoolYearRange = $request->input('graduate_year_graduated');
+        $term = strtolower(trim($request->input('graduate_term')));
 
-        // Find the school year by range
+        // Find or create the school year
         $schoolYear = SchoolYear::where('school_year_range', $schoolYearRange)->first();
-
         if (!$schoolYear) {
-            // Optionally, handle error or create the school year
-            return back()->withErrors(['graduate_year_graduated' => 'School year not found.']);
+            $schoolYear = SchoolYear::create(['school_year_range' => $schoolYearRange]);
+        }
+
+        // Find or create the institution school year + term
+        $institutionSchoolYear = \App\Models\InstitutionSchoolYear::where('institution_id', $validated['graduate_school_graduated_from'])
+            ->where('school_year_range_id', $schoolYear->id)
+            ->where('term', $term)
+            ->first();
+
+        if (!$institutionSchoolYear) {
+            $institutionSchoolYear = \App\Models\InstitutionSchoolYear::create([
+                'school_year_range_id' => $schoolYear->id,
+                'term' => $term,
+                'institution_id' => $validated['graduate_school_graduated_from'],
+            ]);
         }
 
         // Use the ID for saving
@@ -247,10 +265,11 @@ class GraduateProfileController extends Controller
             'institution_id' => $validated['graduate_school_graduated_from'],
             'program_id' => $validated['graduate_program_completed'],
             'school_year_id' => $schoolYear->id,
+            'institution_school_year_id' => $institutionSchoolYear->id, // If you have this field
             'degree_id' => $validated['graduate_degree'],
             'company_id' => $companyId,
             'other_company_name' => $validated['other_company_name'] ?? null,
-            'other_company_sector' =>  $sector ? $sector->name : null,
+            'other_company_sector' => $sector ? $sector->name : null,
             'current_job_title' => $validated['current_job_title'] ?? '',
             'employment_status' => $validated['employment_status'] ?? '',
         ]);
@@ -278,49 +297,62 @@ class GraduateProfileController extends Controller
         $user->is_approved = null;
         $user->has_completed_information = true;
         $user->save();
+        $institution = Institution::find($graduate->institution_id);
+        $instiUser = $institution ? $institution->user : null;
+
+        if ($instiUser) {
+            $instiUser->notify(new GraduateNeedsApprovalNotification($graduate));
+        }
 
         session(['information_completed' => true]);
         return redirect()->route('graduates.profile', ['id' => $graduate->id])->with('information_completed', true);
     }
 
     public function add(Request $request)
-{
-    $request->validate([
-        'institution_id' => 'required|exists:institutions,id',
-        'school_year_range' => ['required', 'regex:/^\d{4}-\d{4}$/'],
-    ]);
-    [$start, $end] = explode('-', $request->school_year_range);
-    if ((int) $start >= (int) $end) {
-        return response()->json(['message' => 'Invalid range (start year must be less than end year).'], 422);
-    }
-
-    // Check if school year exists globally
-    $schoolYear = \App\Models\SchoolYear::withTrashed()
-        ->where('school_year_range', $request->school_year_range)
-        ->first();
-
-    if (!$schoolYear) {
-        $schoolYear = \App\Models\SchoolYear::create([
-            'school_year_range' => $request->school_year_range,
+    {
+        $request->validate([
+            'institution_id' => 'required|exists:institutions,id',
+            'school_year_range' => ['required', 'regex:/^\d{4}-\d{4}$/'],
+            'graduate_user_id' => 'required|exists:users,id', // Pass the graduate's user ID
+            'term' => ['required', 'string', 'in:1,2,3,4,5,summer'],
         ]);
+
+        $user = \App\Models\User::find($request->graduate_user_id);
+
+        // Only proceed if the user is approved
+        if ($user && $user->is_approved) {
+            [$start, $end] = explode('-', $request->school_year_range);
+            if ((int) $start >= (int) $end) {
+                return response()->json(['message' => 'Invalid range (start year must be less than end year).'], 422);
+            }
+
+            // Check if school year exists globally
+            $schoolYear = \App\Models\SchoolYear::withTrashed()
+                ->where('school_year_range', $request->school_year_range)
+                ->first();
+
+            if (!$schoolYear) {
+                $schoolYear = \App\Models\SchoolYear::create([
+                    'school_year_range' => $request->school_year_range,
+                ]);
+            }
+
+            // Check if this institution already has this school year and term
+            $exists = \App\Models\InstitutionSchoolYear::withTrashed()
+                ->where('institution_id', $request->institution_id)
+                ->where('school_year_range_id', $schoolYear->id)
+                ->where('term', $request->term)
+                ->exists();
+
+            if (!$exists) {
+                \App\Models\InstitutionSchoolYear::create([
+                    'school_year_range_id' => $schoolYear->id,
+                    'term' => $request->term,
+                    'institution_id' => $request->institution_id,
+                ]);
+            }
+        }
+
+
     }
-
-    // Check if this institution already has this school year
-    $exists = \App\Models\InstitutionSchoolYear::withTrashed()
-        ->where('institution_id', $request->institution_id)
-        ->where('school_year_range_id', $schoolYear->id)
-        ->exists();
-
-    if ($exists) {
-        return response()->json(['message' => 'This school year already exists for your institution.'], 422);
-    }
-
-    \App\Models\InstitutionSchoolYear::create([
-        'school_year_range_id' => $schoolYear->id,
-        'term' => '1', // or let user pick term if needed
-        'institution_id' => $request->institution_id,
-    ]);
-
-    return response()->json(['message' => 'School year added.']);
-}
 }

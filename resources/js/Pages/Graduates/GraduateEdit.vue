@@ -110,20 +110,47 @@ function handleCompanyBlur() {
 }
 
 function submitForm() {
-  processing.value = true
-  const routeName = form.value.id ? 'graduates.update' : 'graduates.manual.store'
-  const method = form.value.id ? 'put' : 'post'
-  const url = form.value.id ? route(routeName, { graduate: form.value.id }) : route(routeName)
+  errors.value = {};
+  // Check for company name if employed or underemployed
+  if (
+    (form.value.employment_status === 'Employed' || form.value.employment_status === 'Underemployed') &&
+    !form.value.company_name &&
+    !form.value.company_not_found
+  ) {
+    errors.value.company_name = 'Company name is required for employed or underemployed graduates.';
+    processing.value = false;
+    return;
+  }
+  // If company not found, check other company name and sector
+  if (
+    (form.value.employment_status === 'Employed' || form.value.employment_status === 'Underemployed') &&
+    form.value.company_not_found &&
+    (!form.value.other_company_name || !form.value.other_company_sector)
+  ) {
+    if (!form.value.other_company_name) {
+      errors.value.other_company_name = 'Other company name is required.';
+    }
+    if (!form.value.other_company_sector) {
+      errors.value.other_company_sector = 'Sector is required.';
+    }
+    processing.value = false;
+    return;
+  }
+
+  processing.value = true;
+  const routeName = form.value.id ? 'graduates.update' : 'graduates.manual.store';
+  const method = form.value.id ? 'put' : 'post';
+  const url = form.value.id ? route(routeName, { graduate: form.value.id }) : route(routeName);
   router[method](url, form.value, {
     onSuccess: () => {
-      emit('close')
-      processing.value = false
+      emit('close');
+      processing.value = false;
     },
     onError: (validationErrors) => {
-      errors.value = validationErrors
-      processing.value = false
+      errors.value = validationErrors;
+      processing.value = false;
     }
-  })
+  });
 }
 </script>
 

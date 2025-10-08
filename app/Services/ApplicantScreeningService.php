@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Job;
 use App\Models\Graduate;
+use Illuminate\Support\Facades\DB;
 
 class ApplicantScreeningService
 {
@@ -116,6 +117,12 @@ class ApplicantScreeningService
                 $otherSkillMatch = 1;
                 break;
             }
+        } elseif (is_array($jobWorkEnvRaw)) {
+            $jobWorkEnvironment = array_values(array_filter(array_map('trim', $jobWorkEnvRaw)));
+        } elseif ($jobWorkEnvRaw) {
+            $jobWorkEnvironment = [trim($jobWorkEnvRaw)];
+        } else {
+            $jobWorkEnvironment = [];
         }
     }
     $score += $otherSkillMatch * $weights['other_skills'];

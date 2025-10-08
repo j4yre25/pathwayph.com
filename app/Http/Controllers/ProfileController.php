@@ -104,6 +104,50 @@ class ProfileController extends Controller
         })->values();
 
         $educationLevels = Education::orderBy('order_rank')->get(['id', 'name', 'order_rank']);
+
+        $epModel = EmploymentPreference::where('graduate_id', $graduate->id)->first();
+        $employmentPreferences = null;
+        if ($epModel) {
+           // Always provide both array and CSV/string forms for compatibility
+            $toArrayVal = function ($v) {
+                if (is_array($v)) return array_values(array_filter(array_map('trim', $v)));
+                if (is_string($v) && $v !== '') {
+                    $decoded = @json_decode($v, true);
+                    if (is_array($decoded)) return array_values(array_filter(array_map('trim', $decoded)));
+                    return array_values(array_filter(array_map('trim', explode(',', $v))));
+                }
+                return [];
+            };
+            $toStringVal = function ($v) {
+                if (is_array($v)) return implode(', ', array_values(array_filter(array_map('trim', $v))));
+                if (is_string($v) && $v !== '') {
+                    $decoded = @json_decode($v, true);
+                    if (is_array($decoded)) return implode(', ', array_values(array_filter(array_map('trim', $decoded))));
+                    return trim($v);
+                }
+                return '';
+            };
+
+            $jobTypeArr = $toArrayVal($epModel->job_type);
+            $locArr = $toArrayVal($epModel->location);
+            $workEnvArr = $toArrayVal($epModel->work_environment);
+
+            $employmentPreferences = [
+                // arrays for components expecting arrays
+                'job_type' => $jobTypeArr,
+                'location' => $locArr,
+                'work_environment' => $workEnvArr,
+                // string/csv forms for components expecting strings
+                'job_type_string' => $toStringVal($epModel->job_type),
+                'location_string' => $toStringVal($epModel->location),
+                'work_environment_string' => $toStringVal($epModel->work_environment),
+                'employment_min_salary' => $epModel->employment_min_salary ?? null,
+                'employment_max_salary' => $epModel->employment_max_salary ?? null,
+                'salary_type' => $epModel->salary_type ?? null,
+                'additional_notes' => $epModel->additional_notes ?? null,
+            ];
+        }
+        $defaultLocations = Location::select('id','address')->orderBy('address')->get();
         $locations = Location::select('id', 'address as name')->orderBy('address')->get();
         $companies = Company::select('id', 'company_name as name')->orderBy('company_name')->get();
         $sectors = Sector::select('id', 'name')->orderBy('name')->get();
@@ -115,7 +159,8 @@ class ProfileController extends Controller
             'educationEntries' => $educationEntries,
             'archivedEducationEntries' => $archivedEducationEntries,
             'experiences' => Experience::where('graduate_id', $graduate->id)->get(),
-
+            'employmentPreferences' => $employmentPreferences,
+            'defaultLocations' => $defaultLocations,
             'experienceEntries' => $experienceEntries,
             'archivedExperienceEntries' => $archivedExperienceEntries,
             'skillEntries' => GraduateSkill::with('skill')
@@ -179,7 +224,6 @@ class ProfileController extends Controller
             'archivedTestimonialsEntries' => Testimonial::where('graduate_id', $graduate->id)
                 ->onlyTrashed()
                 ->get(),
-            'employmentPreferences' => EmploymentPreference::where('graduate_id', $graduate->id)->first(),
             'careerGoals' => CareerGoal::where('graduate_id', $graduate->id)->first(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
             'internships' => $internships,
@@ -275,15 +319,15 @@ class ProfileController extends Controller
     public function projectSettings()
     {
         $user = Auth::user();
-        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+        $graduate = Graduate::where('user_id', $user->id)->first();
 
         // Fetch all project entries for this graduate
-        $projectsEntries = \App\Models\Project::where('graduate_id', $graduate->id)
+        $projectsEntries = Project::where('graduate_id', $graduate->id)
             ->whereNull('deleted_at') // if you use soft deletes
             ->get();
 
         // Optionally, fetch archived project entries if you support archiving
-        $archivedProjectsEntries = \App\Models\Project::where('graduate_id', $graduate->id)
+        $archivedProjectsEntries = Project::where('graduate_id', $graduate->id)
             ->whereNotNull('deleted_at')
             ->get();
 
@@ -440,15 +484,15 @@ class ProfileController extends Controller
         $edu->update([
             'education_id' => $request->education_id,
             'level_of_education' => $request->level_of_education,
-            'program' => $request->program,
-            'school_name' => $request->school_name,
-            'start_date' => \Carbon\Carbon::parse($request->start_date)->format('Y-m-d'),
-            'end_date' => $request->boolean('is_current')
+            'program'            => $request->program,
+            'school_name'        => $request->school_name,
+            'start_date'         => Carbon::parse($request->start_date)->format('Y-m-d'),
+            'end_date'           => $request->boolean('is_current')
                 ? null
-                : ($request->end_date ? \Carbon\Carbon::parse($request->end_date)->format('Y-m-d') : null),
-            'is_current' => $request->boolean('is_current'),
-            'description' => $request->description,
-            'achievement' => $request->achievement,
+                : ($request->end_date ? Carbon::parse($request->end_date)->format('Y-m-d') : null),
+            'is_current'         => $request->boolean('is_current'),
+            'description'        => $request->description,
+            'achievement'        => $request->achievement,
         ]);
 
         return redirect()->back()->with('flash.banner', 'Education updated successfully.');
@@ -765,10 +809,10 @@ class ProfileController extends Controller
             'title' => $request->graduate_projects_title,
             'description' => $request->graduate_projects_description ?? 'No description provided',
             'role' => $request->graduate_projects_role,
-            'start_date' => \Carbon\Carbon::parse($request->graduate_projects_start_date)->format('Y-m-d'),
+            'start_date' => Carbon::parse($request->graduate_projects_start_date)->format('Y-m-d'),
             'end_date' => $request->is_current ? null : (
                 $request->graduate_projects_end_date
-                ? \Carbon\Carbon::parse($request->graduate_projects_end_date)->format('Y-m-d')
+                ? Carbon::parse($request->graduate_projects_end_date)->format('Y-m-d')
                 : null
             ),
             'url' => $request->graduate_projects_url,
@@ -923,10 +967,10 @@ class ProfileController extends Controller
                 'graduate_id' => $graduate->id,
                 'name' => $request->name,
                 'issuer' => $request->issuer,
-                'issue_date' => \Carbon\Carbon::parse($request->issue_date)->format('Y-m-d'),
+                'issue_date' => Carbon::parse($request->issue_date)->format('Y-m-d'),
                 'expiry_date' => $request->noExpiryDate ? null : (
                     $request->expiry_date
-                    ? \Carbon\Carbon::parse($request->expiry_date)->format('Y-m-d')
+                    ? Carbon::parse($request->expiry_date)->format('Y-m-d')
                     : null
                 ),
                 'credential_url' => $request->noCredentialUrl ? null : $request->credential_url,
@@ -971,10 +1015,10 @@ class ProfileController extends Controller
             $data = [
                 'name' => $request->name,
                 'issuer' => $request->issuer,
-                'issue_date' => \Carbon\Carbon::parse($request->issue_date)->format('Y-m-d'),
+                'issue_date' => Carbon::parse($request->issue_date)->format('Y-m-d'),
                 'expiry_date' => $request->noExpiryDate ? null : (
                     $request->expiry_date
-                    ? \Carbon\Carbon::parse($request->expiry_date)->format('Y-m-d')
+                    ? Carbon::parse($request->expiry_date)->format('Y-m-d')
                     : null
                 ),
                 'credential_url' => $request->noCredentialUrl ? null : $request->credential_url,
@@ -1068,7 +1112,7 @@ class ProfileController extends Controller
         $achievement->graduate_id = $graduate->id;
         $achievement->title = $request->title;
         $achievement->issuer = $request->issuer;
-        $achievement->date = \Carbon\Carbon::parse($request->date)->format('Y-m-d');
+        $achievement->date = Carbon::parse($request->date)->format('Y-m-d');
         $achievement->description = $request->description ?? 'No description provided';
         $achievement->url = $request->url;
         $achievement->type = $request->type;
@@ -1104,7 +1148,7 @@ class ProfileController extends Controller
 
         $achievement->title = $request->title;
         $achievement->issuer = $request->issuer;
-        $achievement->date = \Carbon\Carbon::parse($request->date)->format('Y-m-d');
+        $achievement->date = Carbon::parse($request->date)->format('Y-m-d');
         $achievement->description = $request->description;
         $achievement->url = $request->url;
         $achievement->type = $request->type;
@@ -1202,7 +1246,7 @@ class ProfileController extends Controller
             $data['file'] = $path;
         }
 
-        $testimonial = new \App\Models\Testimonial($data);
+        $testimonial = new Testimonial($data);
         $testimonial->save();
 
         return redirect()->back()->with('flash.banner', 'Testimonial added successfully.');
@@ -1210,8 +1254,8 @@ class ProfileController extends Controller
 
     public function getCompaniesAndInstitutions()
     {
-        $companies = \App\Models\Company::select('id', 'company_name as name')->orderBy('company_name')->get();
-        $institutions = \App\Models\Institution::select('id', 'institution_name as name')->orderBy('institution_name')->get();
+        $companies = Company::select('id', 'company_name as name')->orderBy('company_name')->get();
+        $institutions = Institution::select('id', 'institution_name as name')->orderBy('institution_name')->get();
         return response()->json([
             'companies' => $companies,
             'institutions' => $institutions,
@@ -1238,7 +1282,7 @@ class ProfileController extends Controller
 
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        $testimonial = \App\Models\Testimonial::where('id', $id)
+        $testimonial =Testimonial::where('id', $id)
             ->where('graduate_id', $graduate->id)
             ->firstOrFail();
 
@@ -1268,7 +1312,7 @@ class ProfileController extends Controller
 
     public function removeTestimonial($id)
     {
-        $testimonial = \App\Models\Testimonial::withTrashed()->findOrFail($id);
+        $testimonial = Testimonial::withTrashed()->findOrFail($id);
         $testimonial->forceDelete();
 
         return redirect()->back()->with('flash.banner', 'Testimonial removed successfully.');
@@ -1276,14 +1320,14 @@ class ProfileController extends Controller
 
     public function archiveTestimonial($id)
     {
-        $testimonial = \App\Models\Testimonial::where('id', $id)->whereNull('deleted_at')->firstOrFail();
+        $testimonial =Testimonial::where('id', $id)->whereNull('deleted_at')->firstOrFail();
         $testimonial->delete(); // soft delete
         return back();
     }
 
     public function unarchiveTestimonial($id)
     {
-        $testimonial = \App\Models\Testimonial::withTrashed()->findOrFail($id);
+        $testimonial =Testimonial::withTrashed()->findOrFail($id);
         if ($testimonial->trashed()) {
             $testimonial->restore();
         }
@@ -1297,11 +1341,53 @@ class ProfileController extends Controller
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        $employmentPreferences = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
+        $epModel = EmploymentPreference::where('graduate_id', $graduate->id)->first();
+        $employmentPreferences = null;
+        if ($epModel) {
+            $toArrayVal = function ($v) {
+                if (is_array($v)) return array_values(array_filter(array_map('trim', $v)));
+                if (is_string($v) && $v !== '') {
+                    $decoded = @json_decode($v, true);
+                    if (is_array($decoded)) return array_values(array_filter(array_map('trim', $decoded)));
+                    return array_values(array_filter(array_map('trim', explode(',', $v))));
+                }
+                return [];
+            };
+            $toStringVal = function ($v) {
+                if (is_array($v)) return implode(', ', array_values(array_filter(array_map('trim', $v))));
+                if (is_string($v) && $v !== '') {
+                    $decoded = @json_decode($v, true);
+                    if (is_array($decoded)) return implode(', ', array_values(array_filter(array_map('trim', $decoded))));
+                    return trim($v);
+                }
+                return '';
+            };
+
+            $jobTypeArr = $toArrayVal($epModel->job_type);
+            $locArr = $toArrayVal($epModel->location);
+            $workEnvArr = $toArrayVal($epModel->work_environment);
+
+            $employmentPreferences = [
+                'job_type' => $jobTypeArr,
+                'location' => $locArr,
+                'work_environment' => $workEnvArr,
+                'job_type_string' => $toStringVal($epModel->job_type),
+                'location_string' => $toStringVal($epModel->location),
+                'work_environment_string' => $toStringVal($epModel->work_environment),
+                'employment_min_salary' => $epModel->employment_min_salary ?? null,
+                'employment_max_salary' => $epModel->employment_max_salary ?? null,
+                'salary_type' => $epModel->salary_type ?? null,
+                'additional_notes' => $epModel->additional_notes ?? null,
+            ];
+         }
+         
+        // pass defaultLocations for the Vue autocomplete
+        $defaultLocations = Location::select('id','address')->orderBy('address')->get();
 
         return Inertia::render('Frontend/ProfileSettings/Employment', [
             'user' => $user,
             'employmentPreferences' => $employmentPreferences,
+            'defaultLocations' => $defaultLocations,
         ]);
     }
 
@@ -1310,7 +1396,7 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        $employmentReference = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
+        $employmentReference = EmploymentPreference::where('graduate_id', $graduate->id)->first();
 
         return response()->json($employmentReference);
     }
@@ -1357,7 +1443,7 @@ class ProfileController extends Controller
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
 
-        $careerGoals = \App\Models\CareerGoal::firstOrNew([
+        $careerGoals = CareerGoal::firstOrNew([
             'graduate_id' => $graduate->id
         ]);
 
@@ -1381,7 +1467,7 @@ class ProfileController extends Controller
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->firstOrFail();
 
-        $careerGoals = \App\Models\CareerGoal::firstOrNew([
+        $careerGoals = CareerGoal::firstOrNew([
             'graduate_id' => $graduate->id
         ]);
 
@@ -1396,7 +1482,7 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        $careerGoals = \App\Models\CareerGoal::where('graduate_id', $graduate->id)->first();
+        $careerGoals = CareerGoal::where('graduate_id', $graduate->id)->first();
 
         return response()->json($careerGoals);
     }
@@ -1418,12 +1504,12 @@ class ProfileController extends Controller
             $path = $file->storeAs('resumes', $fileName, 'public');
 
             // Optionally delete old file
-            $oldResume = \App\Models\Resume::where('graduate_id', $graduate->id)->first();
+            $oldResume = Resume::where('graduate_id', $graduate->id)->first();
             if ($oldResume && $oldResume->file_path) {
                 Storage::disk('public')->delete($oldResume->file_path);
             }
 
-            $resume = \App\Models\Resume::updateOrCreate(
+            $resume =Resume::updateOrCreate(
                 ['graduate_id' => $graduate->id],
                 [
                     'user_id' => $user->id,
@@ -1468,7 +1554,7 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
-        $resume = \App\Models\Resume::where('graduate_id', $graduate->id)->first();
+        $resume = Resume::where('graduate_id', $graduate->id)->first();
 
         return Inertia::render('Frontend/ProfileSettings/Resume', [
             'user' => $user,
@@ -1509,22 +1595,23 @@ class ProfileController extends Controller
             'salary_type' => 'required|string',
             'additional_notes' => 'nullable|string',
         ]);
+
         $user = Auth::user();
-        $graduate = \App\Models\Graduate::where('user_id', $user->id)->first();
+        $graduate = \App\Models\Graduate::where('user_id', $user->id)->firstOrFail();
         $employmentPreference = $graduate->employmentPreference()->firstOrCreate([]);
 
-        // 1. Job Types
-        $jobTypeNames = [];
+        // Job Types (keep pivot for standardized types)
         $jobTypeIds = [];
+        $jobTypeNames = [];
         foreach ($request->job_types as $type) {
-            $jobType = JobType::firstOrCreate(['type' => $type]);
-            $jobTypeIds[] = $jobType->id;
-            $jobTypeNames[] = $jobType->type;
+            $jt = JobType::firstOrCreate(['type' => $type]);
+            $jobTypeIds[] = $jt->id;
+            $jobTypeNames[] = $jt->type;
         }
         $employmentPreference->jobTypes()->sync($jobTypeIds);
-        $employmentPreference->job_type = implode(',', $jobTypeNames); // <-- Save names, not IDs
+        $employmentPreference->job_type = $jobTypeNames; // stored as array (cast)
 
-        // 2. Salary
+        // Salary
         $salary = Salary::firstOrCreate([
             'employment_preference_id' => $employmentPreference->id,
             'salary_type' => $request->salary_type,
@@ -1536,27 +1623,35 @@ class ProfileController extends Controller
         $employmentPreference->employment_max_salary = $request->employment_max_salary;
         $employmentPreference->salary_type = $request->salary_type;
 
-        // 3. Locations
-        $locationNames = [];
-        $locationIds = [];
-        foreach ($request->preferred_locations as $address) {
-            $location = Location::firstOrCreate(['address' => $address]);
-            $locationIds[] = $location->id;
-            $locationNames[] = $location->address;
-        }
-        $employmentPreference->locations()->sync($locationIds);
-        $employmentPreference->location = implode(',', $locationNames); // <-- Save names, not IDs
+        // Preferred Locations: store raw strings only (NO pivot, NO creation)
+        $cleanLocations = collect($request->preferred_locations)
+            ->map(fn($v)=>trim((string)$v))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $employmentPreference->location = $cleanLocations; // cast to array
 
-        // 4. Work Environments
+        // Handle text column fallback (if not JSON-capable)
+        $colType = \DB::getSchemaBuilder()->getColumnType('employment_preferences','location');
+        if ($colType === 'json') {
+            $employmentPreference->location = $cleanLocations;
+        } else {
+            $employmentPreference->location = json_encode($cleanLocations); // stored as text
+        }
+
+        // Work Environments (still via pivot)
         $workEnvIds = [];
+        $workEnvNames = [];
         foreach ($request->work_environment as $env) {
-            $workEnv = WorkEnvironment::firstOrCreate(['environment_type' => $env]);
-            $workEnvIds[] = $workEnv->id;
+            $we = WorkEnvironment::firstOrCreate(['environment_type' => $env]);
+            $workEnvIds[] = $we->id;
+            $workEnvNames[] = $we->environment_type;
         }
         $employmentPreference->workEnvironments()->sync($workEnvIds);
-        $employmentPreference->work_environment = implode(',', $request->work_environment); // Save as CSV of names
+        $employmentPreference->work_environment = $workEnvNames; // array
 
-        // 5. Additional Notes
+        // Notes
         $employmentPreference->additional_notes = $request->additional_notes;
         $employmentPreference->save();
 
@@ -1713,10 +1808,10 @@ class ProfileController extends Controller
         $programCodes = \App\Models\Program::pluck('code')->toArray();
 
         // Get company names for validation
-        $companyNames = \App\Models\Company::pluck('company_name')->toArray();
+        $companyNames = Company::pluck('company_name')->toArray();
 
         // Create a map of normalized company names to actual company names
-        $companyNamesMap = \App\Models\Company::all()
+        $companyNamesMap = Company::all()
             ->mapWithKeys(function ($company) {
                 return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
             })
@@ -1784,10 +1879,10 @@ class ProfileController extends Controller
         // Get validation data
         $degreeCodes = \App\Models\Degree::pluck('code')->toArray();
         $programCodes = \App\Models\InstitutionProgram::pluck('program_code')->toArray();
-        $companyNames = \App\Models\Company::pluck('company_name')->toArray();
+        $companyNames = Company::pluck('company_name')->toArray();
 
         // Create a map of normalized company names to actual company names
-        $companyNamesMap = \App\Models\Company::all()
+        $companyNamesMap = Company::all()
             ->mapWithKeys(function ($company) {
                 return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
             })
@@ -1833,14 +1928,14 @@ class ProfileController extends Controller
             }
 
             // Validate if email already exists
-            if (!empty($data['EMAIL']) && \App\Models\User::where('email', $data['EMAIL'])->exists()) {
+            if (!empty($data['EMAIL']) && User::where('email', $data['EMAIL'])->exists()) {
                 $rowErrors[] = "Email already exists";
             }
 
             // Validate DOB format
             if (!empty($data['DOB'])) {
                 try {
-                    $dob = \Carbon\Carbon::createFromFormat('Y-m-d', $data['DOB']);
+                    $dob = Carbon::createFromFormat('Y-m-d', $data['DOB']);
                 } catch (\Exception $e) {
                     $rowErrors[] = "Invalid date format for DOB. Use YYYY-MM-DD";
                 }
@@ -1897,6 +1992,7 @@ class ProfileController extends Controller
                         $normalizedCompanyName = strtolower(preg_replace('/\s+/', ' ', trim($data['COMPANY_NAME'])));
                         if (!array_key_exists($normalizedCompanyName, $companyNamesMap)) {
                             $rowErrors[] = "Company name does not exist in the system";
+                       
                         }
                     }
                 } else if ($employmentStatus == 'Unemployed') {
@@ -1922,7 +2018,7 @@ class ProfileController extends Controller
                 DB::beginTransaction();
 
                 // Create user
-                $user = new \App\Models\User();
+                $user = new User();
                 $user->name = $this->toTitleCase($data['FIRST_NAME']) . ' ' . $this->toTitleCase($data['LAST_NAME']);
                 $user->email = $data['EMAIL'];
                 $user->password = Hash::make($this->generatePassword());
@@ -2079,10 +2175,10 @@ class ProfileController extends Controller
         // Get validation data
         $degreeCodes = \App\Models\Degree::pluck('code')->toArray();
         $programCodes = \App\Models\Program::pluck('code')->toArray();
-        $companyNames = \App\Models\Company::pluck('company_name')->toArray();
+        $companyNames = Company::pluck('company_name')->toArray();
 
         // Create a map of normalized company names to actual company names
-        $companyNamesMap = \App\Models\Company::all()
+        $companyNamesMap = Company::all()
             ->mapWithKeys(function ($company) {
                 return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
             })
@@ -2122,14 +2218,14 @@ class ProfileController extends Controller
             }
 
             // Validate if email already exists
-            if (!empty($profile['email']) && \App\Models\User::where('email', $profile['email'])->exists()) {
+            if (!empty($profile['email']) && User::where('email', $profile['email'])->exists()) {
                 $rowErrors[] = "Email already exists";
             }
 
             // Validate DOB format
             if (!empty($profile['dob'])) {
                 try {
-                    $dob = \Carbon\Carbon::createFromFormat('Y-m-d', $profile['dob']);
+                    $dob = Carbon::createFromFormat('Y-m-d', $profile['dob']);
                 } catch (\Exception $e) {
                     $rowErrors[] = "Invalid date format for DOB. Use YYYY-MM-DD";
                 }
@@ -2211,7 +2307,7 @@ class ProfileController extends Controller
                 DB::beginTransaction();
 
                 // Create user
-                $user = new \App\Models\User();
+                $user = new User();
                 $user->name = $this->toTitleCase($profile['first_name']) . ' ' . $this->toTitleCase($profile['last_name']);
                 $user->email = $profile['email'];
                 $user->password = Hash::make($this->generatePassword());
@@ -2538,7 +2634,7 @@ class ProfileController extends Controller
 
         // Process career goals
         if (!empty($profile['short_term_goals']) || !empty($profile['long_term_goals'])) {
-            $careerGoal = new \App\Models\CareerGoal();
+            $careerGoal = new CareerGoal();
             $careerGoal->graduate_id = $graduate->id;
             $careerGoal->short_term_goals = $profile['short_term_goals'] ?? null;
             $careerGoal->long_term_goals = $profile['long_term_goals'] ?? null;
@@ -2549,7 +2645,7 @@ class ProfileController extends Controller
 
         // Process employment preferences
         if (!empty($profile['job_types']) || !empty($profile['salary_expectations']) || !empty($profile['preferred_locations']) || !empty($profile['work_environment'])) {
-            $employmentPreference = new \App\Models\EmploymentPreference();
+            $employmentPreference = new EmploymentPreference();
             $employmentPreference->graduate_id = $graduate->id;
             $employmentPreference->job_types = $profile['job_types'] ?? null;
             $employmentPreference->salary_expectations = $profile['salary_expectations'] ?? null;
@@ -2560,7 +2656,7 @@ class ProfileController extends Controller
 
         // Process project
         if (!empty($profile['project_title'])) {
-            $project = new \App\Models\Project();
+            $project = new Project();
             $project->graduate_id = $graduate->id;
             $project->title = $profile['project_title'];
             $project->description = $profile['project_description'] ?? null;
@@ -2569,7 +2665,7 @@ class ProfileController extends Controller
             // Parse dates
             if (!empty($profile['project_start_date'])) {
                 try {
-                    $project->start_date = \Carbon\Carbon::parse($profile['project_start_date'])->format('Y-m-d');
+                    $project->start_date = Carbon::parse($profile['project_start_date'])->format('Y-m-d');
                 } catch (\Exception $e) {
                     // Use current date if parsing fails
                     $project->start_date = now()->format('Y-m-d');
@@ -2578,7 +2674,7 @@ class ProfileController extends Controller
 
             if (!empty($profile['project_end_date'])) {
                 try {
-                    $project->end_date = \Carbon\Carbon::parse($profile['project_end_date'])->format('Y-m-d');
+                    $project->end_date = Carbon::parse($profile['project_end_date'])->format('Y-m-d');
                 } catch (\Exception $e) {
                     // Use current date if parsing fails
                     $project->end_date = now()->format('Y-m-d');
@@ -2591,7 +2687,7 @@ class ProfileController extends Controller
 
         // Process experience
         if (!empty($profile['experience_title'])) {
-            $experience = new \App\Models\Experience();
+            $experience = new Experience();
             $experience->graduate_id = $graduate->id;
             $experience->title = $profile['experience_title'];
             $experience->company_name = $profile['experience_company'] ?? null;
@@ -2599,7 +2695,7 @@ class ProfileController extends Controller
             // Parse start date
             if (!empty($profile['experience_start_date'])) {
                 try {
-                    $experience->start_date = \Carbon\Carbon::parse($profile['experience_start_date'])->format('Y-m-d');
+                    $experience->start_date = Carbon::parse($profile['experience_start_date'])->format('Y-m-d');
                 } catch (\Exception $e) {
                     // Use current date if parsing fails
                     $experience->start_date = now()->format('Y-m-d');
@@ -2613,7 +2709,7 @@ class ProfileController extends Controller
                     $experience->end_date = null;
                 } else {
                     try {
-                        $experience->end_date = \Carbon\Carbon::parse($profile['experience_end_date'])->format('Y-m-d');
+                        $experience->end_date = Carbon::parse($profile['experience_end_date'])->format('Y-m-d');
                         $experience->is_current = false;
                     } catch (\Exception $e) {
                         // Use current date if parsing fails
@@ -2631,7 +2727,7 @@ class ProfileController extends Controller
 
         // Process certification
         if (!empty($profile['certification_name'])) {
-            $certification = new \App\Models\Certification();
+            $certification = new Certification();
             $certification->graduate_id = $graduate->id;
             $certification->name = $profile['certification_name'];
             $certification->issuer = $profile['certification_issuer'] ?? null;
@@ -2639,7 +2735,7 @@ class ProfileController extends Controller
             // Parse dates
             if (!empty($profile['certification_issue_date'])) {
                 try {
-                    $certification->issue_date = \Carbon\Carbon::parse($profile['certification_issue_date'])->format('Y-m-d');
+                    $certification->issue_date = Carbon::parse($profile['certification_issue_date'])->format('Y-m-d');
                 } catch (\Exception $e) {
                     // Use current date if parsing fails
                     $certification->issue_date = now()->format('Y-m-d');
@@ -2648,7 +2744,7 @@ class ProfileController extends Controller
 
             if (!empty($profile['certification_expiry_date'])) {
                 try {
-                    $certification->expiry_date = \Carbon\Carbon::parse($profile['certification_expiry_date'])->format('Y-m-d');
+                    $certification->expiry_date = Carbon::parse($profile['certification_expiry_date'])->format('Y-m-d');
                 } catch (\Exception $e) {
                     // Use current date if parsing fails
                     $certification->expiry_date = now()->format('Y-m-d');
@@ -2662,7 +2758,7 @@ class ProfileController extends Controller
 
         // Process achievement
         if (!empty($profile['achievement_title'])) {
-            $achievement = new \App\Models\Achievement();
+            $achievement = new Achievement();
             $achievement->graduate_id = $graduate->id;
             $achievement->title = $profile['achievement_title'];
             $achievement->type = $profile['achievement_type'] ?? 'Academic';
@@ -2670,7 +2766,7 @@ class ProfileController extends Controller
             // Parse date
             if (!empty($profile['achievement_date'])) {
                 try {
-                    $achievement->date = \Carbon\Carbon::parse($profile['achievement_date'])->format('Y-m-d');
+                    $achievement->date = Carbon::parse($profile['achievement_date'])->format('Y-m-d');
                 } catch (\Exception $e) {
                     // Use current date if parsing fails
                     $achievement->date = now()->format('Y-m-d');
@@ -2683,7 +2779,7 @@ class ProfileController extends Controller
 
         // Process testimonial
         if (!empty($profile['testimonial_from'])) {
-            $testimonial = new \App\Models\Testimonial();
+            $testimonial = new Testimonial();
             $testimonial->graduate_id = $graduate->id;
             $testimonial->from = $profile['testimonial_from'];
             $testimonial->role = $profile['testimonial_role'] ?? null;
@@ -2694,7 +2790,7 @@ class ProfileController extends Controller
         // Process skills
         for ($i = 1; $i <= 3; $i++) {
             if (!empty($profile['skill_' . $i . '_name'])) {
-                $skill = new \App\Models\GraduateSkill();
+                $skill = new GraduateSkill();
                 $skill->graduate_id = $graduate->id;
                 $skill->name = $profile['skill_' . $i . '_name'];
                 $skill->proficiency_level = $profile['skill_' . $i . '_proficiency'] ?? 'Intermediate';

@@ -27,6 +27,7 @@ const props = defineProps({
     authUser: Object,
     skills: Array,
     departments: Array,
+    defaultLocations: { type: Array, default: () => [] } // [{id:1,address:'City, Province'}, ...]
 })
 
 const programs = props.programs;
@@ -178,7 +179,11 @@ const createJob = () => {
         return;
     }
 
-    form.program_id = form.program_id.map(program => program.id ?? program);
+    form.program_id = form.program_id.map(p => p.id ?? p);
+
+    if (String(form.work_environment) === '2') {
+        form.location = null
+    }
 
     if (!validateLocation()) {
         console.log('Location validation failed.');
@@ -187,12 +192,12 @@ const createJob = () => {
 
     form.post(route('company.jobs.store', { user: page.props.auth.user.id }), {
         onSuccess: (inertiaPage) => {
-            const invitedCount = inertiaPage.props.flash?.job_invited_count ?? 0;
-            const plural = invitedCount === 1 ? 'graduate' : 'graduates';
-            const verb = invitedCount === 1 ? 'is' : 'are';
-            successMessage.value = `Job submitted for PESO approval. ${invitedCount} ${plural} ${verb} possible to be invited.`;
-            isSuccessModalOpen.value = true;
-            form.reset();
+            const invitedCount = inertiaPage.props.flash?.job_invited_count ?? 0
+            const plural = invitedCount === 1 ? 'graduate' : 'graduates'
+            const verb = invitedCount === 1 ? 'is' : 'are'
+            successMessage.value = `Job submitted for PESO approval. ${invitedCount} ${plural} ${verb} possible to be invited.`
+            isSuccessModalOpen.value = true
+            form.reset()
         },
         onError: (errors) => {
             console.log('Validation errors:', errors);
@@ -209,6 +214,45 @@ function onSkillFocus() {
     showSuggestions.value = true;
 }
 
+// Autocomplete state for location
+const showLocationSuggestions = ref(false)
+const filteredLocationSuggestions = computed(() => {
+    if (String(form.work_environment) === '2') return []
+    const q = (form.location || '').toLowerCase().trim()
+    const all = props.defaultLocations || []
+    if (!q) return all.slice(0, 8)
+    return all
+        .filter(l => (l.address || '').toLowerCase().includes(q))
+        .slice(0, 8)
+})
+
+function onLocationFocus() {
+    if (String(form.work_environment) === '2') return
+    showLocationSuggestions.value = true
+}
+function onLocationInput() {
+    if (String(form.work_environment) === '2') {
+        showLocationSuggestions.value = false
+        return
+    }
+    showLocationSuggestions.value = true
+}
+function onLocationBlur() {
+    // Delay hiding so click can register
+    setTimeout(() => { showLocationSuggestions.value = false }, 120)
+}
+function selectLocationSuggestion(address) {
+    form.location = address
+    showLocationSuggestions.value = false
+}
+
+// Simplify remote watcher
+watch(() => form.work_environment, (val) => {
+    if (String(val) === '2') {
+        form.location = ''
+        showLocationSuggestions.value = false
+    }
+})
 </script>
 
 
@@ -410,14 +454,54 @@ function onSkillFocus() {
                                 </div>
 
                             </div>
-                            <!-- Job Location (disabled if Remote is selected) -->
+                            <!-- Job Location (autocomplete) -->
                             <div>
                                 <InputLabel for="location">
-                                    Job Location <span class="text-pink-500" v-if="form.work_environment != 2">*</span>
+                                    Job Location
+                                    <span class="text-pink-500" v-if="form.work_environment != 2">*</span>
                                 </InputLabel>
-                                <TextInput id="location" type="text" class="mt-1 block w-full" v-model="form.location"
-                                    :disabled="form.work_environment == 2" :required="form.work_environment != 2"
-                                    :placeholder="form.work_environment == 2 ? 'Remote job — no location needed' : 'Enter job location'" />
+
+                                <div class="relative mt-1">
+                                    <TextInput
+                                        id="location"
+                                        type="text"
+                                        class="block w-full"
+                                        v-model="form.location"
+                                        :disabled="form.work_environment == 2"
+                                        :required="form.work_environment != 2"
+                                        :placeholder="form.work_environment == 2
+                                          ? 'Remote job — no location needed'
+                                          : 'Type an address or start typing to see suggestions'"
+                                        @focus="onLocationFocus"
+                                        @input="onLocationInput"
+                                        @blur="onLocationBlur"
+                                    />
+
+                                    <!-- Suggestions dropdown -->
+                                    <ul
+                                        v-if="showLocationSuggestions && filteredLocationSuggestions.length"
+                                        class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto text-sm"
+                                    >
+                                        <li
+                                          v-for="loc in filteredLocationSuggestions"
+                                          :key="loc.id"
+                                          class="px-3 py-2 hover:bg-indigo-50 cursor-pointer flex items-start gap-2"
+                                          @mousedown.prevent="selectLocationSuggestion(loc.address)"
+                                        >
+                                          <i class="fas fa-map-marker-alt text-indigo-500 mt-0.5 text-xs"></i>
+                                          <span class="text-gray-700">{{ loc.address }}</span>
+                                        </li>
+                                        <li
+                                          v-if="form.location && !filteredLocationSuggestions.some(l => l.address === form.location)"
+                                          class="px-3 py-2 text-gray-500 italic text-xs"
+                                        >
+                                          Press Enter to keep custom location: "{{ form.location }}"
+                                        </li>
+                                    </ul>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">
+                                  Start typing to search default locations or enter a custom address.
+                                </p>
                                 <InputError class="mt-2" :message="form.errors.location" />
                             </div>
 
