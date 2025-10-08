@@ -207,14 +207,14 @@ onMounted(() => {
                 </td>
                 <td class="px-6 py-4 text-right">
                   <button
-                    v-if="graduate.status !== 'approved'"
+                    v-if="graduate.status == 'pending'"
                     @click="approveGraduate(graduate.id)"
                     class="text-green-500 hover:text-green-700 mr-3"
                   >
                     <i class="fas fa-check"></i>
                   </button>
                   <button
-                    v-if="graduate.status !== 'disapproved'"
+                    v-if="graduate.status == 'pending'"
                     @click="disapproveGraduate(graduate.id)"
                     class="text-red-500 hover:text-red-700"
                   >

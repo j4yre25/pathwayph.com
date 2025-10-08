@@ -27,7 +27,13 @@ const selectedDegree = computed(() =>
 const degreeType = computed(() => selectedDegree.value?.type || '');
 
 const showProgramCode = computed(() =>
-    ['Bachelor of Science', 'Bachelor of Arts', 'Master of Science', 'Master of Arts', 'Associate'].includes(degreeType.value)
+    [
+        "Bachelor's Degree",
+        "Master's Degree",
+        "Doctoral Degree",
+        "Associate Degree",
+        "Diploma"
+    ].includes(degreeType.value)
 );
 
 const showDuration = computed(() =>
@@ -38,13 +44,11 @@ const showDuration = computed(() =>
 watch(() => form.degree_id, () => {
     if (!selectedDegree.value) return;
     const initials = {
-        'Bachelor of Science': 'BS',
-        'Bachelor of Arts': 'BA',
-        'Associate': 'AS',
-        'Master of Science': 'MS',
-        'Master of Arts': 'MA',
-        'Doctoral': 'PhD',
-        'Diploma': 'D',
+        "Bachelor's Degree": 'B',
+        "Master's Degree": 'M',
+        "Doctoral Degree": 'PhD',
+        "Associate Degree": 'A',
+        "Diploma": 'D',
     }[degreeType.value] || '';
     if (showProgramCode.value) {
         // Only set if empty or matches previous initials
@@ -78,7 +82,8 @@ const createProgram = () => {
         <template #header>
             <div>
                 <div class="flex items-center">
-                    <button @click="$inertia.get(route('programs',{ user: userId }))" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+                    <button @click="$inertia.get(route('programs', { user: userId }))"
+                        class="mr-4 text-gray-600 hover:text-gray-900 transition">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <i class="fas fa-book text-blue-500 text-xl mr-2"></i>
@@ -98,33 +103,28 @@ const createProgram = () => {
                         </h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="flex flex-col">
-                                <InputLabel for="name" value="Program Name" class="text-sm font-medium text-gray-700 mb-1" />
+                                <InputLabel for="name" value="Program Name"
+                                    class="text-sm font-medium text-gray-700 mb-1" />
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-book-open text-gray-400"></i>
                                     </div>
-                                    <input 
-                                        id="name" 
-                                        v-model="form.name" 
-                                        type="text" 
+                                    <input id="name" v-model="form.name" type="text"
                                         class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                        placeholder="ex. Computer Science" 
-                                    />
+                                        placeholder="ex. Bacehlor of Science in Computer Science" />
                                 </div>
                                 <InputError :message="form.errors.name" class="mt-2" />
                             </div>
 
                             <div class="flex flex-col">
-                                <InputLabel for="degree_id" value="Degree" class="text-sm font-medium text-gray-700 mb-1" />
+                                <InputLabel for="degree_id" value="Degree"
+                                    class="text-sm font-medium text-gray-700 mb-1" />
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-award text-gray-400"></i>
                                     </div>
-                                    <select 
-                                        id="degree_id" 
-                                        v-model="form.degree_id"
-                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                    >
+                                    <select id="degree_id" v-model="form.degree_id"
+                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
                                         <option disabled value="">Select Degree</option>
                                         <option v-for="degree in degrees" :key="degree.id" :value="degree.id">
                                             {{ degree.type }}
@@ -135,33 +135,28 @@ const createProgram = () => {
                             </div>
 
                             <div v-if="showProgramCode" class="flex flex-col">
-                                <InputLabel for="program_code" value="Program Code" class="text-sm font-medium text-gray-700 mb-1" />
+                                <InputLabel for="program_code" value="Program Code"
+                                    class="text-sm font-medium text-gray-700 mb-1" />
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-code text-gray-400"></i>
                                     </div>
-                                    <input 
-                                        id="program_code" 
-                                        v-model="form.program_code" 
-                                        type="text" 
+                                    <input id="program_code" v-model="form.program_code" type="text"
                                         class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                        placeholder="e.g. BSCS, BAEL, MSIT"
-                                    />
+                                        placeholder="e.g. BSCS, BAEL, MSIT" />
                                 </div>
                                 <InputError :message="form.errors.program_code" class="mt-2" />
                             </div>
 
                             <div v-if="showDuration" class="flex flex-col">
-                                <InputLabel for="duration" value="Duration" class="text-sm font-medium text-gray-700 mb-1" />
+                                <InputLabel for="duration" value="Duration"
+                                    class="text-sm font-medium text-gray-700 mb-1" />
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-clock text-gray-400"></i>
                                     </div>
-                                    <select 
-                                        id="duration" 
-                                        v-model="form.duration"
-                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                    >
+                                    <select id="duration" v-model="form.duration"
+                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
                                         <option value="">Select</option>
                                         <option value="Year">Year</option>
                                         <option value="Month">Month</option>
@@ -171,20 +166,16 @@ const createProgram = () => {
                             </div>
 
                             <div v-if="showDuration" class="flex flex-col">
-                                <InputLabel for="duration_time" value="Duration Time" class="text-sm font-medium text-gray-700 mb-1" />
+                                <InputLabel for="duration_time" value="Duration Time"
+                                    class="text-sm font-medium text-gray-700 mb-1" />
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-hourglass-half text-gray-400"></i>
                                     </div>
-                                    <input 
-                                        id="duration_time" 
-                                        type="number" 
-                                        v-model="form.duration_time" 
-                                        min="1" 
+                                    <input id="duration_time" type="number" v-model="form.duration_time" min="1"
                                         max="12"
                                         class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                        placeholder="1,2,etc.."
-                                    />
+                                        placeholder="1,2,etc.." />
                                 </div>
                                 <InputError :message="form.errors.duration_time" class="mt-2" />
                             </div>
@@ -192,11 +183,8 @@ const createProgram = () => {
                     </div>
 
                     <div class="flex justify-end pt-4">
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring focus:ring-blue-200 disabled:opacity-25 transition"
-                        >
+                        <button type="submit" :disabled="form.processing"
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring focus:ring-blue-200 disabled:opacity-25 transition">
                             <i class="fas fa-plus mr-2"></i>
                             {{ form.processing ? 'Adding...' : 'Add Program' }}
                         </button>

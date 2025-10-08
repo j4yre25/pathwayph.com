@@ -32,12 +32,12 @@ const goBack = () => {
         <template #header>
             <div>
                 <div class="flex items-center">
-                <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <i class="fas fa-graduation-cap text-blue-500 text-xl mr-2"></i>
-                <h1 class="text-2xl font-bold text-gray-800">Add Degree</h1>
-            </div>
+                    <button @click="goBack" class="mr-4 text-gray-600 hover:text-gray-900 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <i class="fas fa-graduation-cap text-blue-500 text-xl mr-2"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Add Degree</h1>
+                </div>
                 <p class="text-sm text-gray-500 mb-1">Fill in the details below to add a new degree.</p>
             </div>
         </template>
@@ -54,23 +54,19 @@ const goBack = () => {
                         </h2>
                         <div class="grid grid-cols-1 gap-6">
                             <div class="flex flex-col">
-                                <InputLabel for="type" value="Degree Type" class="text-sm font-medium text-gray-700 mb-1" />
+                                <InputLabel for="type" value="Degree Type"
+                                    class="text-sm font-medium text-gray-700 mb-1" />
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-list text-gray-400"></i>
                                     </div>
-                                    <select 
-                                        id="type" 
-                                        v-model="form.type" 
-                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                    >
+                                    <select id="type" v-model="form.type"
+                                        class="pl-10 w-full py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none">
                                         <option value="">Select Degree</option>
-                                        <option value="Associate">Associate</option>
-                                        <option value="Bachelor of Science">Bachelor of Science</option>
-                                        <option value="Bachelor of Arts">Bachelor of Arts</option>
-                                        <option value="Master of Science">Master of Science</option>
-                                        <option value="Master of Arts">Master of Arts</option>
-                                        <option value="Doctoral">Doctoral</option>
+                                        <option value="Associate Degree">Associate Degree</option>
+                                        <option value="Bachelor's Degree">Bachelor's Degree</option>
+                                        <option value="Master's Degree">Master's Degree</option>
+                                        <option value="Doctoral Degree">Doctoral Degree</option>
                                         <option value="Diploma">Diploma</option>
                                     </select>
                                 </div>
@@ -80,11 +76,8 @@ const goBack = () => {
                     </div>
 
                     <div class="flex justify-end pt-4">
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring focus:ring-blue-200 disabled:opacity-25 transition"
-                        >
+                        <button type="submit" :disabled="form.processing"
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:border-blue-800 focus:ring focus:ring-blue-200 disabled:opacity-25 transition">
                             <i class="fas fa-plus mr-2"></i>
                             {{ form.processing ? 'Adding...' : 'Add Degree' }}
                         </button>

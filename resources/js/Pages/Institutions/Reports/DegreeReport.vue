@@ -324,218 +324,249 @@ onMounted(() => {
 
 <template>
   <AppLayout>
-    <div class="max-w-7xl mx-auto py-10 px-4">
-      <h1 class="text-3xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-        <BookMarked class="w-8 h-8 text-cyan-500" />
-        Degrees Report
-      </h1>
+    <div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
+      <header class="mb-8">
+        <h1 class="text-4xl font-extrabold text-gray-900 flex items-center gap-3">
+          <BookMarked class="w-10 h-10 text-cyan-600" />
+          <span>Degrees Report</span>
+        </h1>
+        <p class="mt-2 text-lg text-gray-600">Comprehensive overview of degree data, graduate trends, and job matching.</p>
+      </header>
 
-      <!-- Loading Spinner -->
-      <div v-if="loading" class="flex justify-center items-center py-20">
-        <svg class="animate-spin h-10 w-10 text-cyan-500" fill="none" viewBox="0 0 24 24">
+      <div v-if="loading" class="flex justify-center items-center py-32 bg-white rounded-xl shadow-lg">
+        <svg class="animate-spin h-12 w-12 text-cyan-600" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
         </svg>
+        <span class="ml-4 text-lg font-medium text-gray-700">Loading Report Data...</span>
       </div>
+
       <div v-else>
-        <!-- Card for total degree entries -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white rounded-xl shadow p-6 flex flex-col items-center">
-            <span class="text-2xl font-bold text-gray-800">{{ degrees.length }}</span>
-            <span class="text-gray-500">Total Degree Entries</span>
+        <section class="mb-10">
+          <h2 class="sr-only">Key Metrics</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div
+              class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-start transition duration-300 hover:shadow-xl hover:scale-[1.02] border-l-4 border-cyan-500">
+              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Degree Entries</span>
+              <span class="text-4xl font-extrabold text-gray-900 mt-2">{{ degrees.length }}</span>
+            </div>
+
+            <div
+              class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-start transition duration-300 hover:shadow-xl hover:scale-[1.02] border-l-4 border-indigo-500">
+              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Graduates (Filtered)</span>
+              <span class="text-4xl font-extrabold text-gray-900 mt-2">{{ filteredGraduates.length }}</span>
+            </div>
+
+            <div
+              class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-start transition duration-300 hover:shadow-xl hover:scale-[1.02] border-l-4 border-green-500">
+              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Highest Job Match</span>
+              <span class="text-xl font-bold text-green-700 mt-2">{{ highestMatch.match_percentage }}%</span>
+              <span class="text-sm text-gray-700 truncate w-full">{{ highestMatch.program }}</span>
+            </div>
+
+            <div
+              class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-start transition duration-300 hover:shadow-xl hover:scale-[1.02] border-l-4 border-red-500">
+              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Lowest Job Match</span>
+              <span class="text-xl font-bold text-red-700 mt-2">{{ lowestMatch.match_percentage }}%</span>
+              <span class="text-sm text-gray-700 truncate w-full">{{ lowestMatch.program }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="bg-white p-6 shadow-xl rounded-xl mb-10 border border-gray-100">
+          <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Data Filters</h2>
+          <div class="flex flex-wrap gap-6">
+            <div class="min-w-[150px]">
+              <label class="block text-sm font-medium text-gray-700 mb-1">School Year</label>
+              <select v-model="filters.schoolYear" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm">
+                <option value="">All</option>
+                <option v-for="(label, id) in availableYears" :key="id" :value="label">{{ label }}</option>
+              </select>
+            </div>
+            <div class="min-w-[150px]">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Degree Type</label>
+              <select v-model="filters.degree" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm">
+                <option value="">All Degrees</option>
+                <option v-for="deg in degrees" :key="deg.degree_id" :value="deg.degree_id">{{ deg.type }}</option>
+              </select>
+            </div>
+            <div class="min-w-[150px]">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
+              <select v-model="filters.program" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm">
+                <option value="">All Programs</option>
+                <option v-for="prog in programs" :key="prog.id" :value="prog.id">{{ prog.name }}</option>
+              </select>
+            </div>
+            <div class="min-w-[150px]">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sector (for Match Data)</label>
+              <select v-model="filters.sector" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-cyan-500 focus:ring-cyan-500 text-sm">
+                <option value="">All Sectors</option>
+                <option v-for="(name, id) in availableSectors" :key="id" :value="id">{{ name }}</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          
+          <div class="lg:col-span-1 bg-white rounded-xl shadow-xl overflow-hidden ring-1 ring-gray-200">
+            <h2 class="text-lg font-bold p-4 bg-gray-50 border-b text-gray-700">All Registered Degrees</h2>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-100">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Code</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                  <tr v-for="deg in degrees" :key="deg.id" class="hover:bg-gray-50 transition duration-150">
+                    <td class="px-4 py-3 font-medium text-gray-900">{{ deg.degree_code }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ deg.type }}</td>
+                    <td class="px-4 py-3">
+                      <span :class="{'bg-green-100 text-green-800': deg.status === 'Active', 'bg-red-100 text-red-800': deg.status === 'Inactive'}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                        {{ deg.status }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr v-if="degrees.length === 0">
+                    <td colspan="3" class="text-center text-gray-400 py-6">No degrees found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 bg-white rounded-xl shadow-xl overflow-hidden ring-1 ring-gray-200">
+            <h2 class="text-lg font-bold p-4 bg-gray-50 border-b text-gray-700">Filtered Graduates ({{ filteredGraduates.length }} Total)</h2>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-100">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Degree</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Program</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Employment Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Current Job Title</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                  <tr v-for="g in paginatedGraduates" :key="g.id" class="hover:bg-gray-50 transition duration-150">
+                    <td class="px-4 py-3 font-medium text-gray-900">{{ g.first_name }} {{ g.middle_name }} {{ g.last_name }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ g.degree || 'N/A' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ g.program || 'N/A' }}</td>
+                    <td class="px-4 py-3">
+                      <span :class="{'bg-green-100 text-green-800': g.employment_status === 'Employed', 'bg-yellow-100 text-yellow-800': g.employment_status === 'Underemployed', 'bg-red-100 text-red-800': g.employment_status === 'Unemployed'}" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                        {{ g.employment_status }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ g.current_job_title }}</td>
+                  </tr>
+                  <tr v-if="paginatedGraduates.length === 0">
+                    <td colspan="7" class="text-center text-gray-400 py-6">No graduates found with current filters.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="p-4 flex justify-end items-center bg-gray-50 border-t">
+              <span class="text-sm text-gray-700 mr-4">Page {{ page }} of {{ totalPages }}</span>
+              <div class="flex gap-2">
+                <button class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition" :disabled="page === 1"
+                  @click="page--">Previous</button>
+                <button class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition" :disabled="page === totalPages"
+                  @click="page++">Next</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Table 1: List of Degrees -->
-        <div class="mb-10">
-          <h2 class="text-xl font-semibold mb-4">All Degrees</h2>
-          <div class="bg-white rounded-lg shadow overflow-x-auto">
+        <section class="mb-12">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">Degree-to-Job Local Match Index</h2>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 p-6 bg-cyan-50 rounded-xl shadow-lg border border-cyan-200 h-fit">
+              <h3 class="text-xl font-bold text-cyan-800 mb-3">Match Index Summary</h3>
+              <div v-if="filteredResults.length">
+                <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                  {{ matchChartSummary }}
+                </p>
+                <ul class="space-y-2 text-sm">
+                  <li class="p-3 rounded-lg bg-green-100 border-l-4 border-green-500">
+                    <span class="font-semibold text-green-800">Highest Match:</span>
+                    <br class="sm:hidden">
+                    <span class="text-green-700 font-bold">{{ highestMatch.program }} ({{ highestMatch.match_percentage }}%)</span>
+                  </li>
+                  <li class="p-3 rounded-lg bg-red-100 border-l-4 border-red-500">
+                    <span class="font-semibold text-red-800">Lowest Match:</span>
+                    <br class="sm:hidden">
+                    <span class="text-red-700 font-bold">{{ lowestMatch.program }} ({{ lowestMatch.match_percentage }}%)</span>
+                  </li>
+                </ul>
+              </div>
+              <p v-else class="text-gray-500 italic">No data to summarize yet. Apply filters to see the analysis.</p>
+            </div>
+
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-xl ring-1 ring-gray-200">
+              <h3 class="text-xl font-bold text-gray-800 mb-4">Degree-to-Job Local Match % by Program</h3>
+              <div class="h-[400px]" ref="chartRef"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-xl overflow-hidden ring-1 ring-gray-200 mb-12">
+          <h2 class="text-lg font-bold p-4 bg-gray-50 border-b text-gray-700">Match Index Data Table</h2>
+          <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+              <thead class="bg-cyan-100">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Degree Code</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-cyan-800 uppercase tracking-wider">Program</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-cyan-800 uppercase tracking-wider">Degree</th>
+                  <th class="px-6 py-3 text-center text-xs font-semibold text-cyan-800 uppercase tracking-wider">Total Graduates</th>
+                  <th class="px-6 py-3 text-center text-xs font-semibold text-cyan-800 uppercase tracking-wider">Matched Graduates</th>
+                  <th class="px-6 py-3 text-center text-xs font-semibold text-cyan-800 uppercase tracking-wider">Match %</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-200">
-                <tr v-for="deg in degrees" :key="deg.id">
-                  <td class="px-4 py-2">{{ deg.degree_code }}</td>
-                  <td class="px-4 py-2">{{ deg.type }}</td>
-                  <td class="px-4 py-2">{{ deg.status }}</td>
+              <tbody class="divide-y divide-gray-100 text-sm">
+                <tr v-for="row in paginatedResults" :key="row.program" class="hover:bg-gray-50 transition duration-150">
+                  <td class="px-6 py-4 font-medium text-gray-900">{{ row.program }}</td>
+                  <td class="px-6 py-4 text-gray-600">{{ row.degree }}</td>
+                  <td class="px-6 py-4 text-center text-gray-600">{{ row.total_graduates }}</td>
+                  <td class="px-6 py-4 text-center text-gray-600">{{ row.matched_graduates }}</td>
+                  <td class="px-6 py-4 text-center whitespace-nowrap">
+                    <span :class="row.match_percentage >= 50 ? 'text-green-600 bg-green-50 px-2 py-1 rounded-full font-bold' : 'text-red-600 bg-red-50 px-2 py-1 rounded-full font-bold'">
+                      {{ row.match_percentage }}%
+                    </span>
+                  </td>
                 </tr>
-                <tr v-if="degrees.length === 0">
-                  <td colspan="3" class="text-center text-gray-400 py-6">No degrees found.</td>
+                <tr v-if="!paginatedResults.length">
+                  <td colspan="5" class="px-6 py-4 text-center text-gray-400">No Degree-to-Job Match data found with current filters.</td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
-
-        <!-- Main Filters (no form, no button) -->
-        <div class="flex flex-wrap gap-4 mb-6 mt-12">
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">School Year</label>
-            <select v-model="filters.schoolYear" class="rounded border-gray-300">
-              <option value="">All</option>
-              <option v-for="(label, id) in availableYears" :key="id" :value="label">{{ label }}</option>
-            </select>
+          <div class="p-4 flex justify-end items-center bg-gray-50 border-t">
+            <span class="text-sm text-gray-700 mr-4">Page {{ matchPage }} of {{ matchTotalPages }}</span>
+            <div class="flex gap-2">
+              <button class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition" :disabled="matchPage === 1"
+                @click="matchPage--">Previous</button>
+              <button class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition" :disabled="matchPage === matchTotalPages"
+                @click="matchPage++">Next</button>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Degree</label>
-            <select v-model="filters.degree" class="rounded border-gray-300">
-              <option value="">All Degrees</option>
-              <option v-for="deg in degrees" :key="deg.degree_id" :value="deg.degree_id">{{ deg.type }}</option>
-            </select>
+        </section>
+
+        <section class="mb-12">
+          <div class="bg-white p-6 rounded-xl shadow-xl ring-1 ring-gray-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Employment by Degree</h3>
+            <v-chart :option="employmentByDegreeChartOptions" autoresize style="height:350px;" class="mb-4" />
+            <div class="mt-6 p-4 bg-green-50 rounded-lg text-green-900 text-sm font-medium border border-green-200">
+              <span class="font-extrabold text-green-800">Summary Interpretation:</span>
+              <p class="mt-1">{{ employmentByDegreeSummary }}</p>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Program</label>
-            <select v-model="filters.program" class="rounded border-gray-300">
-              <option value="">All Programs</option>
-              <option v-for="prog in programs" :key="prog.id" :value="prog.id">{{ prog.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Sector</label>
-            <select v-model="filters.sector" class="rounded border-gray-300">
-              <option value="">All Sectors</option>
-              <option v-for="(name, id) in availableSectors" :key="id" :value="id">{{ name }}</option>
-            </select>
-          </div>
-        </div>
+        </section>
 
-        <!-- Table 2: List of Graduates -->
-        <div class="bg-white rounded-xl shadow overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Degree</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employment Status</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Job Title</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              <tr v-for="g in paginatedGraduates" :key="g.id">
-                <td class="px-4 py-2">{{ g.first_name }} {{ g.middle_name }} {{ g.last_name }}</td>
-                <td class="px-4 py-2">{{ g.degree || 'N/A' }}</td>
-                <td class="px-4 py-2">{{ g.program || 'N/A' }}</td>
-                <td class="px-4 py-2">{{ g.employment_status }}</td>
-                <td class="px-4 py-2">{{ g.current_job_title }}</td>
-              </tr>
-              <tr v-if="paginatedGraduates.length === 0">
-                <td colspan="7" class="text-center text-gray-400 py-6">No graduates found.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination for graduates table -->
-        <div class="mt-6 flex justify-center gap-2">
-          <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="page === 1"
-            @click="page--">Prev</button>
-          <span class="px-3 py-1">{{ page }} / {{ totalPages }}</span>
-          <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="page === totalPages"
-            @click="page++">Next</button>
-        </div>
-
-        <!-- Degree-to-Job Local Match Table -->
-        <div class="overflow-x-auto mt-12">
-          <h2 class="text-xl font-semibold mb-4">Degree-to-Job Local Match Table</h2>
-          <table class="min-w-full divide-y divide-gray-200 shadow rounded-lg">
-            <thead class="bg-cyan-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Program</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Degree</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Total Graduates
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Matched
-                  Graduates</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-cyan-700 uppercase tracking-wider">Match %</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-100">
-              <tr v-for="row in paginatedResults" :key="row.program">
-                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ row.program }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ row.degree }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ row.total_graduates }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">{{ row.matched_graduates }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="row.match_percentage >= 50 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'">
-                    {{ row.match_percentage }}%
-                  </span>
-                </td>
-              </tr>
-              <tr v-if="!paginatedResults.length">
-                <td colspan="5" class="px-6 py-4 text-center text-gray-400">No data found.</td>
-              </tr>
-            </tbody>
-          </table>
-          <!-- Pagination for Degree-to-Job Local Match Table -->
-          <div class="mt-6 flex justify-center gap-2">
-            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="matchPage === 1"
-              @click="matchPage--">Prev</button>
-            <span class="px-3 py-1">{{ matchPage }} / {{ matchTotalPages }}</span>
-            <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300" :disabled="matchPage === matchTotalPages"
-              @click="matchPage++">Next</button>
-          </div>
-        </div>
-
-        <!-- Degree-to-Job Local Match Chart -->
-        <div class="my-10">
-          <h3 class="text-lg font-semibold mb-4 text-cyan-700">Degree-to-Job Local Match Chart</h3>
-          <div ref="chartRef" style="width: 100%; height: 400px;"></div>
-        </div>
-
-        <!-- About the Degree-to-Job Local Match Index -->
-        <div class="mb-6 p-4 bg-cyan-50 rounded-lg border border-cyan-100">
-          <h2 class="text-lg font-semibold text-cyan-700 mb-2">Degree-to-Job Local Match Summary</h2>
-          <ul class="text-gray-700 mb-2 list-disc pl-6">
-            <li>
-              <span v-if="filteredResults.length">
-                <span class="font-semibold">The Highest Match is </span>
-                <span class="text-green-700">
-                  {{ highestMatch.program }} ({{ highestMatch.match_percentage }}%)
-                </span>
-                <span class="font-semibold">Meanwhile, the Lowest Match is </span>
-                <span class="text-red-700">
-                  {{ lowestMatch.program }} ({{ lowestMatch.match_percentage }}%)
-                </span>
-                <span>
-                  <p class="text-gray-700 text-m leading-relaxed">
-                    {{ matchChartSummary }}
-                  </p>
-                </span>
-              </span>
-              <span v-else>
-                No data to summarize yet.
-              </span>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Degree Graduate Trends Report -->
-        <div class="my-10">
-          <h3 class="text-lg font-semibold mb-4 text-cyan-700">Degree Graduate Trends</h3>
-          <v-chart :option="degreeTrendChartOptions" autoresize style="height:350px;" />
-          <div class="mt-6 p-4 bg-blue-50 rounded-lg text-blue-900 text-base font-medium">
-            <span class="font-semibold">Summary Interpretation:</span>
-            <br>
-            {{ degreeTrendSummary }}
-          </div>
-        </div>
-
-        <!-- Employment by Degree Report -->
-        <div class="my-10">
-          <h3 class="text-lg font-semibold mb-4 text-cyan-700">Employment by Degree</h3>
-          <v-chart :option="employmentByDegreeChartOptions" autoresize style="height:350px;" />
-          <div class="mt-6 p-4 bg-green-50 rounded-lg text-green-900 text-base font-medium">
-            <span class="font-semibold">Summary Interpretation:</span>
-            <br>
-            {{ employmentByDegreeSummary }}
-          </div>
-        </div>
       </div>
     </div>
   </AppLayout>
