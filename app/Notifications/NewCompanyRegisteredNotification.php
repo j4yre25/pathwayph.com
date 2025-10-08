@@ -20,8 +20,9 @@ class NewCompanyRegisteredNotification extends Notification
     public function toDatabase($notifiable)
     {
         return [
-            'message' => "A new company \"{$this->company->company_name}\" has completed registration.",
+            'message' => "A new company \"{$this->company->company_name}\" has completed registration. Check their credentials and approve",
             'company_id' => $this->company->id,
+            'user_id' => $this->company->user_id,
         ];
     }
 

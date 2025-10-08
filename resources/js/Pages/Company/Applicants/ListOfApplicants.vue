@@ -12,6 +12,8 @@ const props = defineProps({
   filters: { type: Object, default: () => ({}) },
 })
 
+console.log(props.applicants)
+
 const getStatusBadge = (label) => {
   if (label === 'Shortlisted') return 'bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold'
   if (label === 'Review Further') return 'bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold'

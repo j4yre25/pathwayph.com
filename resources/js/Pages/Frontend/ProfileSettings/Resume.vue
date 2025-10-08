@@ -10,6 +10,7 @@ const props = defineProps({
   resume: Object
 });
 
+const isConfirmDeleteModalOpen = ref(false);
 const currentResume = ref(props.resume);
 
 watch(() => props.resume, (val) => {
@@ -54,23 +55,38 @@ const saveResume = () => {
 };
 
 const removeResume = () => {
-  if (confirm('Are you sure you want to delete your resume?')) {
-    form.delete(route('resume.delete'), {
-      onSuccess: () => {
-        currentResume.value = null;
-        successMessage.value = 'Resume deleted successfully!';
-        isSuccessModalOpen.value = true;
-      },
-      onError: () => {
-        errorMessage.value = 'Failed to delete resume. Please try again.';
-        isErrorModalOpen.value = true;
-      }
-    });
-  }
+  form.delete(route('resume.delete'), {
+    onSuccess: () => {
+      currentResume.value = null;
+      successMessage.value = 'Resume deleted successfully!';
+      isSuccessModalOpen.value = true;
+      isConfirmDeleteModalOpen.value = false;
+    },
+    onError: () => {
+      errorMessage.value = 'Failed to delete resume. Please try again.';
+      isErrorModalOpen.value = true;
+      isConfirmDeleteModalOpen.value = false;
+    }
+  });
 };
 </script>
 
 <template>
+  <Modal :modelValue="isConfirmDeleteModalOpen" @close="isConfirmDeleteModalOpen = false">
+    <div class="p-6">
+      <div class="flex items-center justify-center mb-4 bg-red-100 rounded-full w-12 h-12 mx-auto">
+        <i class="fas fa-trash text-red-500 text-xl"></i>
+      </div>
+      <h2 class="text-lg font-medium text-center text-gray-900 mb-2">Delete Resume</h2>
+      <p class="text-center text-gray-600 mb-4">
+        Are you sure you want to delete your resume? This action cannot be undone.
+      </p>
+      <div class="mt-6 flex justify-center space-x-2">
+        <PrimaryButton @click="isConfirmDeleteModalOpen = false">Cancel</PrimaryButton>
+        <PrimaryButton class="bg-red-600 hover:bg-red-700" @click="removeResume">Delete</PrimaryButton>
+      </div>
+    </div>
+  </Modal>
   <Modal :modelValue="isSuccessModalOpen" @close="isSuccessModalOpen = false">
     <div class="p-6">
       <div class="flex items-center justify-center mb-4 bg-green-100 rounded-full w-12 h-12 mx-auto">
@@ -80,8 +96,8 @@ const removeResume = () => {
       <p class="text-center text-gray-600">{{ successMessage }}</p>
       <div class="mt-6 flex justify-center">
         <PrimaryButton @click="isSuccessModalOpen = false">
-           OK
-         </PrimaryButton>
+          OK
+        </PrimaryButton>
       </div>
     </div>
   </Modal>
@@ -94,8 +110,8 @@ const removeResume = () => {
       <p class="text-center text-gray-600">{{ errorMessage }}</p>
       <div class="mt-6 flex justify-center">
         <PrimaryButton @click="isErrorModalOpen = false">
-           OK
-         </PrimaryButton>
+          OK
+        </PrimaryButton>
       </div>
     </div>
   </Modal>
@@ -108,28 +124,34 @@ const removeResume = () => {
         </span>
         <h2 class="text-xl font-semibold text-blue-800">Resume</h2>
       </div>
-      <p class="text-gray-600 mb-6 border-b border-blue-100 pb-4">Upload your resume to showcase your skills and experience to potential employers.</p>
+      <p class="text-gray-600 mb-6 border-b border-blue-100 pb-4">Upload your resume to showcase your skills and
+        experience to potential employers.</p>
 
       <!-- Display Uploaded Resume -->
-      <div v-if="currentResume && currentResume.file_name" class="flex items-center justify-between border border-blue-100 rounded-lg p-6 mb-6 bg-white shadow-sm hover:shadow-md transition-all duration-300">
+      <div v-if="currentResume && currentResume.file_name"
+        class="flex items-center justify-between border border-blue-100 rounded-lg p-6 mb-6 bg-white shadow-sm hover:shadow-md transition-all duration-300">
         <div class="flex items-center">
           <span class="bg-blue-100 text-blue-800 p-2 rounded mr-3 inline-block">
             <i class="fas fa-file-pdf"></i>
           </span>
           <div>
-            <a :href="currentResume.file_url" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium flex items-center">
+            <a :href="currentResume.file_url" target="_blank"
+              class="text-blue-600 hover:text-blue-800 font-medium flex items-center">
               <i class="fas fa-external-link-alt mr-1"></i>
               {{ currentResume.file_name }}
             </a>
             <p class="text-gray-500 text-sm mt-1">Click to view</p>
           </div>
         </div>
-        <button class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150" @click="removeResume">
-                        <i class="fas fa-trash"></i>
-                    </button>
+        <button
+          class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
+          @click="isConfirmDeleteModalOpen = true">
+          <i class="fas fa-trash"></i>
+        </button>
       </div>
       <!-- If No Resume Uploaded -->
-      <div v-else class="border-2 border-dashed border-blue-200 rounded-lg p-6 mb-6 text-center bg-blue-50 hover:bg-blue-100 transition-colors duration-300">
+      <div v-else
+        class="border-2 border-dashed border-blue-200 rounded-lg p-6 mb-6 text-center bg-blue-50 hover:bg-blue-100 transition-colors duration-300">
         <svg class="mx-auto h-12 w-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -161,9 +183,11 @@ const removeResume = () => {
   0% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
   }
@@ -174,6 +198,7 @@ const removeResume = () => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

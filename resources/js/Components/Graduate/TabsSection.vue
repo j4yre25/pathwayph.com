@@ -19,6 +19,10 @@ const props = defineProps({
     type: Object,
     required: true
   },
+  certifications: {
+    type: Array,
+    default: () => []
+  },
 
   schoolYears: { type: Array, default: () => [] }, // [{ id: 1, school_year_range: "2024-2025" }, ...]
 
@@ -294,7 +298,7 @@ const allEducation = computed(() => normalizedEducation.value);
         ]" role="tab" aria-selected="false" aria-controls="tab-documents" id="tab-button-documents">
           <i class="fas fa-folder mr-2 text-gray-500"></i>
           Documents
-          <span class="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">0</span>
+          <span class="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full"></span>
         </button>
         <button @click="activeTab = 'testimonials'" :class="[
           activeTab === 'testimonials'
@@ -431,7 +435,7 @@ const allEducation = computed(() => normalizedEducation.value);
                   </div>
 
                   <div class="text-sm font-medium text-blue-600 mb-2">
-                    {{  experience.company_name || 'Company' }}
+                    {{ experience.company_name || 'Company' }}
                   </div>
 
                   <div class="text-sm text-gray-600 mb-3">
@@ -467,14 +471,12 @@ const allEducation = computed(() => normalizedEducation.value);
           <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
             <i class="fas fa-graduation-cap text-gray-500 mr-2"></i>
             Education
-            <span v-if="allEducation.length"
-                  class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+            <span v-if="allEducation.length" class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
               {{ allEducation.length }}
             </span>
           </h3>
 
-          <div v-if="!allEducation.length"
-               class="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
+          <div v-if="!allEducation.length" class="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
             <div class="text-gray-400 mb-2">
               <i class="fas fa-graduation-cap text-4xl"></i>
             </div>
@@ -485,14 +487,14 @@ const allEducation = computed(() => normalizedEducation.value);
           <template v-else>
             <!-- Highest Highlight -->
             <div v-if="derivedHighest"
-                 class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-5 border border-indigo-100 shadow-sm">
+              class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-5 border border-indigo-100 shadow-sm">
               <div class="flex justify-between items-start mb-2">
                 <h4 class="text-base font-semibold text-gray-800 flex items-center">
                   <i class="fas fa-award text-indigo-500 mr-2"></i>
                   Highest Education
                 </h4>
                 <span v-if="derivedHighest.is_current"
-                      class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                  class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                   Current
                 </span>
               </div>
@@ -500,8 +502,9 @@ const allEducation = computed(() => normalizedEducation.value);
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
                   <h5 class="text-base font-medium text-gray-900">
                     {{ derivedHighest.program }}
-                    <span v-if="derivedHighest.level_of_education && derivedHighest.level_of_education !== derivedHighest.program"
-                          class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
+                    <span
+                      v-if="derivedHighest.level_of_education && derivedHighest.level_of_education !== derivedHighest.program"
+                      class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
                       {{ derivedHighest.level_of_education }}
                     </span>
                   </h5>
@@ -513,12 +516,10 @@ const allEducation = computed(() => normalizedEducation.value);
                 <div class="text-sm font-medium text-blue-600 mb-2">
                   {{ derivedHighest.school_name }}
                 </div>
-                <div v-if="derivedHighest.description"
-                     class="text-sm text-gray-700 mb-3 whitespace-pre-line">
+                <div v-if="derivedHighest.description" class="text-sm text-gray-700 mb-3 whitespace-pre-line">
                   {{ derivedHighest.description }}
                 </div>
-                <div v-if="derivedHighest.achievement"
-                     class="mt-2 text-sm text-gray-700">
+                <div v-if="derivedHighest.achievement" class="mt-2 text-sm text-gray-700">
                   <strong>Achievements:</strong>
                   <ul class="list-disc list-inside">
                     <li v-for="(ach, idx) in derivedHighest.achievement.split(',')" :key="idx">
@@ -536,17 +537,13 @@ const allEducation = computed(() => normalizedEducation.value);
                 All Education
               </h4>
               <div class="grid md:grid-cols-2 gap-5">
-                <div
-                  v-for="edu in allEducation"
-                  :key="edu.id"
-                  class="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition hover:border-indigo-200"
-                >
+                <div v-for="edu in allEducation" :key="edu.id"
+                  class="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition hover:border-indigo-200">
                   <div class="flex justify-between items-start">
                     <div class="font-semibold text-gray-800">
                       {{ edu.program }}
                     </div>
-                    <span
-                      v-if="edu.is_current"
+                    <span v-if="edu.is_current"
                       class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                       Current
                     </span>
@@ -555,7 +552,7 @@ const allEducation = computed(() => normalizedEducation.value);
                     {{ edu.school_name }}
                   </p>
                   <p v-if="edu.level_of_education && edu.level_of_education !== edu.program"
-                     class="text-xs text-indigo-600 mt-1">
+                    class="text-xs text-indigo-600 mt-1">
                     {{ edu.level_of_education }}
                   </p>
                   <div class="mt-2 text-gray-500 flex items-center text-xs">
@@ -565,12 +562,10 @@ const allEducation = computed(() => normalizedEducation.value);
                       {{ edu.is_current ? 'Present' : formatDate(edu.end_date) }}
                     </span>
                   </div>
-                  <div v-if="edu.description"
-                       class="mt-2 text-gray-600 text-xs line-clamp-5 whitespace-pre-line">
+                  <div v-if="edu.description" class="mt-2 text-gray-600 text-xs line-clamp-5 whitespace-pre-line">
                     {{ edu.description }}
                   </div>
-                  <div v-if="edu.achievement"
-                       class="mt-2 text-gray-600 text-xs">
+                  <div v-if="edu.achievement" class="mt-2 text-gray-600 text-xs">
                     <strong>Achievements:</strong>
                     <ul class="list-disc list-inside">
                       <li v-for="(ach, idx) in edu.achievement.split(',')" :key="idx">
@@ -578,8 +573,7 @@ const allEducation = computed(() => normalizedEducation.value);
                       </li>
                     </ul>
                   </div>
-                  <div
-                    v-if="derivedHighest && edu.id === derivedHighest.id"
+                  <div v-if="derivedHighest && edu.id === derivedHighest.id"
                     class="absolute top-2 left-2 text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded uppercase font-semibold tracking-wide">
                     Highest
                   </div>
@@ -705,6 +699,48 @@ const allEducation = computed(() => normalizedEducation.value);
           </div>
           <h3 class="text-lg font-medium text-gray-800 mb-2">No Documents</h3>
           <p class="text-gray-500">The graduate has not uploaded any documents yet.</p>
+        </div>
+
+        <div v-if="props.certifications && props.certifications.length > 0"
+          class="bg-white rounded-lg border border-gray-200 p-4 mb-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-300">
+          <h4 class="text-base font-medium text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-certificate text-indigo-500 mr-2"></i>
+            Certifications
+            <span class="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+              {{ props.certifications.length }}
+            </span>
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-for="cert in props.certifications" :key="cert.id"
+              class="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow transition-all duration-200">
+              <div class="flex items-center mb-2">
+                <i class="fas fa-certificate text-indigo-400 mr-2"></i>
+                <span class="font-semibold text-gray-800">{{ cert.name }}</span>
+              </div>
+              <div class="text-sm text-gray-600 mb-1">
+                Issuer: {{ cert.issuer }}
+              </div>
+              <div class="text-sm text-gray-600 mb-1">
+                Issued: {{ cert.issue_date ? (new Date(cert.issue_date)).toLocaleDateString() : 'N/A' }}
+                <span v-if="cert.expiry_date"> | Expires: {{ (new Date(cert.expiry_date)).toLocaleDateString() }}</span>
+                <span v-else> | No Expiry</span>
+              </div>
+              <div class="text-sm text-gray-600 mb-1" v-if="cert.credential_id">
+                Credential ID: {{ cert.credential_id }}
+              </div>
+              <div class="text-sm text-gray-600 mb-1" v-if="cert.credential_url">
+                <a :href="cert.credential_url" target="_blank" class="text-indigo-600 hover:underline">
+                  Credential URL
+                </a>
+              </div>
+              <div v-if="cert.file_path" class="mt-2">
+                <a :href="`/storage/${cert.file_path}`" target="_blank"
+                  class="text-blue-600 hover:underline bg-gray-50 p-2 rounded-md border border-blue-100 inline-block">
+                  <i class="fas fa-file-pdf mr-2"></i> View Certificate
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1013,8 +1049,8 @@ const allEducation = computed(() => normalizedEducation.value);
                 </div>
               </div>
               <div class="flex-grow">
-                <h4 class="text-base font-medium text-gray-900">{{ testimonial.author|| 'Anonymous' }}</h4>
-               
+                <h4 class="text-base font-medium text-gray-900">{{ testimonial.author || 'Anonymous' }}</h4>
+
               </div>
               <div class="flex-shrink-0 text-sm text-gray-500">
                 {{ formatDate(testimonial.created_at) }}
@@ -1026,7 +1062,7 @@ const allEducation = computed(() => normalizedEducation.value);
               {{ testimonial.content || 'No content provided' }}
               <i class="fas fa-quote-right text-indigo-300 ml-1 opacity-50"></i>
             </div>
-          </div>  
+          </div>
         </div>
 
         <div v-else

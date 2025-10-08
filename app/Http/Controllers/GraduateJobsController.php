@@ -447,229 +447,38 @@ class GraduateJobsController extends Controller
     }
 
 
-    public function recommendations(Request $request)
-    {
-        $user = Auth::user();
-        $graduate = $user->graduate;
-        $graduateSkills = \DB::table('graduate_skills')
-            ->join('skills', 'graduate_skills.skill_id', '=', 'skills.id')
-            ->where('graduate_skills.graduate_id', $graduate->id)
-            ->select('skills.name', 'graduate_skills.type')
-            ->get();
+   public function recommendations(Request $request)
+{
+    $user = Auth::user();
+    $graduate = $user->graduate;
 
-        $graduateTechnicalSkills = $graduateSkills->where('type', 'Technical Skills')->pluck('name')->all();
-        $graduateOtherSkills = $graduateSkills->where('type', '!=', 'Technical Skills')->pluck('name')->all();
+    // Get search keywords (for m10)
+    $searchKeywords = $request->input('keywords', null);
 
-        // Get graduate's skills (array of skill names)
+    $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+    $recommendations = [];
 
+    foreach ($jobs as $job) {
+        // Pass keywords to the screening service if needed
+        $screening = (new ApplicantScreeningService())->screen($graduate, $job, $searchKeywords);
 
-        $normalizedGraduateTechnicalSkills = collect($graduateTechnicalSkills)->map(function ($s) {
-            $s = trim($s);
-            $s = preg_replace('/\s+/', '', $s);
-            $s = str_replace(['[', ']', '"', "'"], '', $s);
-            return strtolower($s);
-        })->unique()->toArray();
+        $job->match_labels = $screening['labels'] ?? [];
+        $job->match_score = $screening['score'] ?? 0;
+        $job->match_percentage = $screening['match_percentage'] ?? 0;
 
-        $normalizedGraduateOtherSkills = collect($graduateOtherSkills)->map(function ($s) {
-            $s = trim($s);
-            $s = preg_replace('/\s+/', '', $s);
-            $s = str_replace(['[', ']', '"', "'"], '', $s);
-            return strtolower($s);
-        })->unique()->toArray();
-
-        // Get graduate's education (program name)
-        $education = \App\Models\GraduateEducation::where('graduate_id', $graduate->id)
-            ->orderByDesc('is_current')
-            ->orderByDesc('end_date')
-            ->first();
-        $graduateProgram = $education ? trim(strtolower($education->program)) : null;
-
-        // Get job's required program names
-
-
-
-        // Get graduate's experience (e.g., job titles)
-        $experiences = \App\Models\Experience::where('graduate_id', $graduate->id)->get();
-        $experienceTitles = $experiences->pluck('title')->filter()->unique()->toArray();
-
-        // Get employment preferences
-        $preferences = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
-        $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
-        $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
-        $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
-        $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
-        $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
-        $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
-
-        // Get search keywords (for m10)
-        $searchKeywords = $request->input('keywords', null);
-
-        // Define weights for each criterion (consistent with methodology)
-        $weights = [
-            'technical_skills' => 7, // m1 highest priority
-            'other_skills' => 2,     //  m1 lower weight for other skills
-            'education' => 5,       // m2
-            'experience' => 5,    // m3
-
-            // Employment Preferences (to achieve '1' all of these should be met)
-            'job_type' => 0.143, // m4: Preferred Job Type
-            'location' => 0.143, // m5: Preferred Location
-            'work_environment' => 0.143, // m6: Preferred Work Environment
-            'min_salary' => 0.143, // m7: Preferred Min Salary
-            'max_salary' => 0.143, // m8: Preferred Max Salary
-            'salary_type' => 0.143, // m9: Preferred Salary Type
-            'keywords' => 0.143, // m10: search keywords
-        ];
-
-        $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
-        $recommendations = [];
-
-        foreach ($jobs as $job) {
-            $labels = [];
-            $score = 0;
-            $totalWeight = array_sum($weights);
-            $skillsArray = [];
-            if (is_string($job->skills)) {
-                $decoded = json_decode($job->skills, true);
-                $skillsArray = is_array($decoded) ? $decoded : [];
-            } elseif (is_array($job->skills)) {
-                $skillsArray = $job->skills;
-            }
-
-            $jobProgramNames = \DB::table('job_program')
-                ->join('programs', 'job_program.program_id', '=', 'programs.id')
-                ->where('job_program.job_id', $job->id)
-                ->pluck('programs.name')
-                ->map(fn($name) => trim(strtolower($name)))
-                ->toArray();
-
-            // Clean each skill: trim, remove extra spaces, brackets, and quotes, then lowercase
-            $cleanSkills = array_map(function ($skill) {
-                $skill = trim($skill);
-                $skill = preg_replace('/\s+/', '', $skill); // Remove all spaces inside
-                $skill = str_replace(['[', ']', '"', "'"], '', $skill);
-                return strtolower($skill);
-            }, $skillsArray);
-
-            $normalizedJobSkills = collect($cleanSkills)->unique()->toArray();
-
-
-            $jobProgramIds = \DB::table('job_program')
-                ->where('job_id', $job->id)
-                ->pluck('program_id')
-                ->toArray();
-
-            // m1: Skills (binary)
-            // m1: Technical Skills (binary, highest priority)
-            $technicalSkillMatch = 0;
-            foreach ($normalizedGraduateTechnicalSkills as $skill) {
-                if (in_array($skill, $normalizedJobSkills)) {
-                    $labels[] = 'Technical Skills';
-                    $technicalSkillMatch = 1;
-                    break;
-                }
-            }
-            $score += $technicalSkillMatch * $weights['technical_skills'];
-
-            // m1b: Other Skills (binary, lower priority)
-            $otherSkillMatch = 0;
-            if (!$technicalSkillMatch) { // Only check if no technical skill matched
-                foreach ($normalizedGraduateOtherSkills as $skill) {
-                    if (in_array($skill, $normalizedJobSkills)) {
-                        $labels[] = 'Other Skills (Soft, Language)';
-                        $otherSkillMatch = 1;
-                        break;
-                    }
-                }
-            }
-            $score += $otherSkillMatch * $weights['other_skills'];
-
-            // m2: Education (binary)
-            $educationMatch = ($graduateProgram && in_array($graduateProgram, $jobProgramNames)) ? 1 : 0;
-            if ($educationMatch) $labels[] = 'Education';
-            $score += $educationMatch * $weights['education'];
-
-            // m3: Experience (binary)
-            $experienceMatch = 0;
-            foreach ($experienceTitles as $title) {
-                if (stripos($job->job_title, $title) !== false) {
-                    $labels[] = 'Experience';
-                    $experienceMatch = 1;
-                    break;
-                }
-            }
-            $score += $experienceMatch * $weights['experience'];
-
-            // m4: Preferred Job Type (binary)
-            $jobTypeMatch = in_array($job->job_type, $preferredJobTypes) ? 1 : 0;
-            if ($jobTypeMatch) $labels[] = 'Preferred Job Type';
-            $score += $jobTypeMatch * $weights['job_type'];
-
-            // m5: Preferred Location (binary)
-            $locationMatch = in_array($job->location, $preferredLocations) ? 1 : 0;
-            if ($locationMatch) $labels[] = 'Preferred Location';
-            $score += $locationMatch * $weights['location'];
-
-            // m6: Preferred Work Environment (binary)
-            $workEnvMatch = in_array($job->work_environment, $preferredWorkEnvironments) ? 1 : 0;
-            if ($workEnvMatch) $labels[] = 'Preferred Work Environment';
-            $score += $workEnvMatch * $weights['work_environment'];
-
-            // m7: Preferred Min Salary (binary)
-            $minSalaryMatch = ($minSalary && $job->job_min_salary >= $minSalary) ? 1 : 0;
-            if ($minSalaryMatch) $labels[] = 'Preferred Min Salary';
-            $score += $minSalaryMatch * $weights['min_salary'];
-
-            // m8: Preferred Max Salary (binary)
-            $maxSalaryMatch = ($maxSalary && $job->job_max_salary <= $maxSalary) ? 1 : 0;
-            if ($maxSalaryMatch) $labels[] = 'Preferred Max Salary';
-            $score += $maxSalaryMatch * $weights['max_salary'];
-
-            // m9: Preferred Salary Type (binary)
-            $salaryTypeMatch = ($salaryType && stripos($job->job_salary_type, $salaryType) !== false) ? 1 : 0;
-            if ($salaryTypeMatch) $labels[] = 'Preferred Salary Type';
-            $score += $salaryTypeMatch * $weights['salary_type'];
-
-            // m10: Search Keywords (binary, match in job title or description)
-            $keywordsMatch = 0;
-            if ($searchKeywords) {
-                $kw = strtolower($searchKeywords);
-                $title = strtolower($job->job_title ?? '');
-                $desc = strtolower($job->job_description ?? '');
-                if (strpos($title, $kw) !== false || strpos($desc, $kw) !== false) {
-                    $labels[] = 'Keywords';
-                    $keywordsMatch = 1;
-                }
-            }
-            $score += $keywordsMatch * $weights['keywords'];
-
-            // Only include jobs with at least one label (i.e., a match)
-            if (!empty($labels)) {
-                $job->match_labels = array_unique($labels);
-                $job->match_score = $score;
-                $job->match_percentage = $totalWeight > 0 ? round(($score / $totalWeight) * 100) : 0;
-                $recommendations[] = $job;
-            } else {
-                \Log::info('No match for job', [
-                    'job_title' => $job->job_title,
-                    'labels' => $labels,
-                    'normalizedJobSkills' => $normalizedJobSkills,
-                    'normalizedGraduateTechnicalSkills' => $normalizedGraduateTechnicalSkills,
-                    'normalizedGraduateOtherSkills' => $normalizedGraduateOtherSkills,
-                    'graduateProgram' => $graduateProgram,
-                    'jobProgramNames' => $jobProgramNames,
-                ]);
-            }
+        if (!empty($job->match_labels)) {
+            $recommendations[] = $job;
         }
-
-        // Sort by match score descending
-        usort($recommendations, fn($a, $b) => $b->match_score <=> $a->match_score);
-
-        // Limit to 5 recommendations
-        $recommendations = array_slice($recommendations, 0, 10);
-
-        return response()->json(['recommendations' => $recommendations]);
     }
+
+    // Sort by match score descending
+    usort($recommendations, fn($a, $b) => $b->match_score <=> $a->match_score);
+
+    // Limit to 10 recommendations
+    $recommendations = array_slice($recommendations, 0, 10);
+
+    return response()->json(['recommendations' => $recommendations]);
+}
 
     public function applyForJob(Request $request)
     {
