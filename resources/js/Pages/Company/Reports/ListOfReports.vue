@@ -44,36 +44,36 @@ const categories = [
     code: 'B',
     title: 'Recruitment Process & Pipeline Reports',
     reports: [
-      { 
-        label: 'Hiring Funnel', 
-        route: 'company.reports.hiringFunnel',
-        description: 'Visualizes the recruitment pipeline from applications to hires.'
-      },
-      { 
-        label: 'Application Analysis', 
-        route: 'company.reports.applicationAnalysis',
-        description: 'Examines volume, trends, and patterns of job applications.'
-      },
-      { 
-        label: 'Applicant Status Overview', 
-        route: 'company.reports.applicantStatus',
-        description: 'Summarizes candidate statuses such as applied, screened, or hired.'
-      },
-      { 
-        label: 'Candidate Screening Insights', 
-        route: 'company.reports.screening',
-        description: 'Shows how candidates are screened by qualifications and skills.'
-      },
+      // { 
+      //   label: 'Hiring Funnel', 
+      //   route: 'company.reports.hiringFunnel',
+      //   description: 'Visualizes the recruitment pipeline from applications to hires.'
+      // },
+      // { 
+      //   label: 'Application Analysis', 
+      //   route: 'company.reports.applicationAnalysis',
+      //   description: 'Examines volume, trends, and patterns of job applications.'
+      // },
+      // { 
+      //   label: 'Applicant Status Overview', 
+      //   route: 'company.reports.applicantStatus',
+      //   description: 'Summarizes candidate statuses such as applied, screened, or hired.'
+      // },
+      // { 
+      //   label: 'Candidate Screening Insights', 
+      //   route: 'company.reports.screening',
+      //   description: 'Shows how candidates are screened by qualifications and skills.'
+      // },
       // { 
       //   label: 'Interview Progress', 
       //   route: 'company.reports.interviewProgress',
       //   description: 'Tracks candidates through different interview stages.'
       // },
-      { 
-        label: 'Recruitment Efficiency', 
-        route: 'company.reports.efficiency',
-        description: 'Measures time and success rate across recruitment stages.'
-      },
+      // { 
+      //   label: 'Recruitment Efficiency', 
+      //   route: 'company.reports.efficiency',
+      //   description: 'Measures time and success rate across recruitment stages.'
+      // },
     ]
   },
   {
@@ -85,11 +85,11 @@ const categories = [
         route: 'company.reports.skills',
         description: 'Highlights required skills in jobs versus skills in the talent pool.'
       },
-      // { 
-      //   label: 'Skills and Competency Analysis', 
-      //   route: 'company.reports.competency',
-      //   description: 'Compares candidate skill levels with job role requirements.'
-      // },
+      { 
+        label: 'Skills and Competency Analysis', 
+        route: 'company.reports.competency',
+        description: 'Compares candidate skill levels with job role requirements.'
+      },
     ]
   },
   {

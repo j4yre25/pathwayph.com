@@ -277,8 +277,6 @@ class CompanyJobsController extends Controller
         foreach ($pesoUsers as $pesoUser) {
             $pesoUser->notify(new NewCompanyJobPostedNotification($new_job));
         }
-        // Notify graduates of the new job posting
-        $this->notifyGraduates($new_job);
 
         return redirect()
            ->route('company.jobs.create', ['user' => $user->id])
@@ -596,7 +594,6 @@ class CompanyJobsController extends Controller
             // Auto-invite + general notification
             $invited = $this->autoScreenAndInvite($job, 30);
             $totalInvited += $invited;
-            $this->notifyGraduates($job);
 
             $pesoUsers = User::where('role', 'peso')->get();
             foreach ($pesoUsers as $pesoUser) {

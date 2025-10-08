@@ -179,6 +179,23 @@ class PipelineActionExecutor
 
                 $application->forceFill(['stage' => $to])->save();
 
+                // --- PATCH: Always sync status for hired/rejected ---
+                if ($to === 'hired') {
+                    $application->status = 'hired';
+                    $application->save();
+                    $this->handleHireAction($application);
+                    if (Schema::hasColumn('job_applications','archived_at')) {
+                        $application->forceFill(['archived_at'=>now()])->save();
+                    } elseif (Schema::hasColumn('job_applications','is_archived')) {
+                        $application->forceFill(['is_archived'=>1])->save();
+                    }
+                }
+                if ($to === 'rejected') {
+                    $application->status = 'rejected';
+                    $application->save();
+                }
+                // --- END PATCH ---
+
                 if (method_exists($application, 'syncStatusFromStage') && $application->syncStatusFromStage()) {
                     $application->save();
                 }
@@ -350,6 +367,19 @@ class PipelineActionExecutor
                         $application,
                         "transition_{$prevStage}_to_hired",
                         "Stage moved {$prevStage} -> hired (implicit via hire action)",
+                        $payload
+                    );
+                }
+                // PATCH: ensure reject action sets both stage and status
+                if (in_array($key, ['reject','reject_withdraw'], true) && $application->stage !== 'rejected') {
+                    $prevStage = $application->stage ?: 'applied';
+                    $application->stage = 'rejected';
+                    $application->status = 'rejected';
+                    $application->save();
+                    $this->logAction(
+                        $application,
+                        "transition_{$prevStage}_to_rejected",
+                        "Stage moved {$prevStage} -> rejected (implicit via reject action)",
                         $payload
                     );
                 }

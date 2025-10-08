@@ -179,7 +179,7 @@ const submit = () => {
 
                                   <div>
                                      <InputLabel for="middle_name" class="text-slate-800 font-medium">
-                                         Middle Name <span class="text-red-500">*</span>
+                                         Middle Name 
                                      </InputLabel>
                                      <TextInput 
                                          id="middle_name" 

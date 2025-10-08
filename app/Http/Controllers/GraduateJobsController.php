@@ -33,19 +33,29 @@ class GraduateJobsController extends Controller
                 ->toArray();
         }
 
-        $showApplied = $request->boolean('showApplied', false);
+        $hideApplied = $request->boolean('hideApplied', false);
 
         // Fetch filter options
         $industries = \App\Models\Sector::select('id', 'name')->get();
         $companies = \App\Models\Company::select('id', 'company_name')->get();
         $jobTypes = \App\Models\JobType::pluck('type', 'id');
-        $locations = \App\Models\Location::pluck('address', 'id');
+        $locations = \App\Models\Location::select('id', 'barangay')
+            ->whereNotNull('barangay')
+            ->where('barangay', '!=', '')
+            ->get()
+            ->unique('barangay')
+            ->mapWithKeys(function ($loc) {
+                return [$loc->id => $loc->barangay];
+        });
         $experienceLevels = Job::distinct()->pluck('job_experience_level');
 
         // Fetch jobs with relationships for poster info
         $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'salary'])
             ->where('status', 'open')
             ->where('is_approved', 1)
+            ->when($hideApplied && !empty($appliedJobIds), function ($q) use ($appliedJobIds) {
+                $q->whereNotIn('id', $appliedJobIds);
+            })
             ->when($request->keywords, function ($query, $keywords) {
                 $query->where(function ($q) use ($keywords) {
                     $q->where('job_title', 'like', "%{$keywords}%")
@@ -53,20 +63,19 @@ class GraduateJobsController extends Controller
                 });
             })
             ->when($request->jobType, function ($q, $type) {
-                $q->whereHas('jobTypes', fn($sub) => $sub->where('job_type_id', $type));
+                $q->whereHas('jobTypes', fn($sub) => $sub->where('job_types.id', $type));
             })
            ->when($request->location, function ($q, $location) {
-               // Accept either a location id (resolve to address) or an address string
-               $addr = null;
-               if (is_numeric($location)) {
-                   $loc = \App\Models\Location::find($location);
-                   $addr = $loc?->address ?? null;
-               }
-                if (!$addr) {
-                    $addr = (string)$location;
+                $barangay = null;
+                if (is_numeric($location)) {
+                    $loc = \App\Models\Location::find($location);
+                    $barangay = $loc?->barangay ?? null;
                 }
-                // match partial address
-                $q->where('location', 'like', "%{$addr}%");
+                if (!$barangay) {
+                    $barangay = (string)$location;
+                }
+                // match jobs where location string contains the barangay
+                $q->where('location', 'like', "%{$barangay}%");
             })
             ->when($request->industry, fn($q, $industry) => $q->where('sector_id', $industry))
             ->when($request->salaryMin, function ($q, $min) {
@@ -124,7 +133,33 @@ class GraduateJobsController extends Controller
             })->values()->toArray();
 
         // Clean skills field before sending to Inertia
-        $jobs->getCollection()->transform(function ($job) {
+        // $jobs->getCollection()->transform(function ($job) {
+        //     // Decode JSON skills if stored as string, or use as is if array
+        //     $skillsArray = [];
+        //     if (is_string($job->skills)) {
+        //         $decoded = json_decode($job->skills, true);
+        //         $skillsArray = is_array($decoded) ? $decoded : [];
+        //     } elseif (is_array($job->skills)) {
+        //         $skillsArray = $job->skills;
+        //     }
+
+
+        //     // Clean each skill
+        //     $cleanSkills = array_map(function ($skill) {
+        //         $skill = trim($skill);
+        //         // Remove spaces inside the skill (turn "P y t h o n" into "Python")
+        //         $skill = preg_replace('/\s+/', '', $skill);
+        //         // Remove any brackets or quotes
+        //         $skill = str_replace(['[', ']', '"', "'"], '', $skill);
+        //         return $skill;
+        //     }, $skillsArray);
+
+        //     // Assign back clean skills
+        //     $job->skills = $cleanSkills;
+
+        //     return $job;
+        // });
+        $jobs->getCollection()->transform(function ($job) use ($user, $jobTypes) {
             // Decode JSON skills if stored as string, or use as is if array
             $skillsArray = [];
             if (is_string($job->skills)) {
@@ -133,7 +168,6 @@ class GraduateJobsController extends Controller
             } elseif (is_array($job->skills)) {
                 $skillsArray = $job->skills;
             }
-
 
             // Clean each skill
             $cleanSkills = array_map(function ($skill) {
@@ -144,43 +178,36 @@ class GraduateJobsController extends Controller
                 $skill = str_replace(['[', ']', '"', "'"], '', $skill);
                 return $skill;
             }, $skillsArray);
-
-            // Assign back clean skills
             $job->skills = $cleanSkills;
 
-            return $job;
-        });
-        $jobs->getCollection()->transform(function ($job) use ($user) {
-            // Decode JSON skills if stored as string, or use as is if array
-            $skillsArray = [];
-            if (is_string($job->skills)) {
-                $decoded = json_decode($job->skills, true);
-                $skillsArray = is_array($decoded) ? $decoded : [];
-            } elseif (is_array($job->skills)) {
-                $skillsArray = $job->skills;
+            // job_type_names mapping (same logic as search())
+            if ($job->relationLoaded('jobTypes') && $job->jobTypes && $job->jobTypes->count()) {
+                $job->job_type_names = $job->jobTypes->pluck('type')->filter()->values()->all();
+            } elseif (is_array($job->job_type)) {
+                $job->job_type_names = collect($job->job_type)->map(function ($id) use ($jobTypes) {
+                    return $jobTypes[$id] ?? null;
+                })->filter()->values()->all();
+            } elseif (is_numeric($job->job_type)) {
+                $job->job_type_names = [$jobTypes[$job->job_type] ?? null];
+            } elseif (is_string($job->job_type) && $job->job_type !== '') {
+                $job->job_type_names = [$job->job_type];
+            } else {
+                $job->job_type_names = [];
             }
 
+            // Provide locations array (compat with legacy Vue)
+            $job->locations = $job->location
+                ? [['address' => $job->location]]
+                : [];
 
-            // Clean each skill
-            $cleanSkills = array_map(function ($skill) {
-                $skill = trim($skill);
-                // Remove spaces inside the skill (turn "P y t h o n" into "Python")
-                $skill = preg_replace('/\s+/', '', $skill);
-                // Remove any brackets or quotes
-                $skill = str_replace(['[', ']', '"', "'"], '', $skill);
-                return $skill;
-            }, $skillsArray);
-
-            // Assign back clean skills
-            $job->skills = $cleanSkills;
-
-            // Calculate match_percentage for each job
+            // Match percentage
             $match = 0;
             if ($user && $user->graduate) {
                 $screening = (new ApplicantScreeningService())->screen($user->graduate, $job);
                 $match = $screening['match_percentage'] ?? 0;
             }
             $job->match_percentage = $match;
+
             return $job;
         });
 
@@ -215,7 +242,7 @@ class GraduateJobsController extends Controller
             'jobs' => $jobs,
             'appliedJobIds' => $appliedJobIds,
             'myApplications' => $myApplications,
-            'showApplied' => $showApplied,
+            'hideApplied' => $hideApplied,
             'industries' => $industries,
             'companies' => $companies,
             'jobTypes' => $jobTypes,
@@ -242,7 +269,7 @@ class GraduateJobsController extends Controller
                 ->toArray();
         }
 
-        $showApplied = $request->boolean('showApplied', false);
+        $hideApplied = $request->boolean('hideApplied', false);
 
 
         if ($user && $user->role === 'graduate' && $user->graduate && $request->keywords) {
@@ -260,13 +287,23 @@ class GraduateJobsController extends Controller
         $industries = \App\Models\Sector::select('id', 'name')->get();
         $companies = \App\Models\Company::select('id', 'company_name')->get();
         $jobTypes = \App\Models\JobType::pluck('type', 'id');
-        $locations = \App\Models\Location::pluck('address', 'id');
+        $locations = \App\Models\Location::select('id', 'barangay')
+            ->whereNotNull('barangay')
+            ->where('barangay', '!=', '')
+            ->get()
+            ->unique('barangay')
+            ->mapWithKeys(function ($loc) {
+                return [$loc->id => $loc->barangay];
+        });
         $experienceLevels = Job::distinct()->pluck('job_experience_level');
 
         // Fetch jobs with relationships for poster info (same as index)
         $jobs = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'salary'])
             ->where('status', 'open')
             ->where('is_approved', 1)
+            ->when($hideApplied && !empty($appliedJobIds), function ($q) use ($appliedJobIds) {
+                $q->whereNotIn('id', $appliedJobIds);
+            })
             ->when($request->keywords, function ($query, $keywords) {
                 $query->where(function ($q) use ($keywords) {
                     $q->where('job_title', 'like', "%{$keywords}%")
@@ -274,18 +311,20 @@ class GraduateJobsController extends Controller
                 });
             })
             ->when($request->jobType, function ($q, $type) {
-                $q->whereHas('jobTypes', fn($sub) => $sub->where('job_type_id', $type));
+                // filter by job_types.id (NOT pivot column name directly)
+                $q->whereHas('jobTypes', fn($sub) => $sub->where('job_types.id', $type));
             })
             ->when($request->location, function ($q, $location) {
-                $addr = null;
+                $barangay = null;
                 if (is_numeric($location)) {
                     $loc = \App\Models\Location::find($location);
-                    $addr = $loc?->address ?? null;
+                    $barangay = $loc?->barangay ?? null;
                 }
-                if (!$addr) {
-                    $addr = (string)$location;
+                if (!$barangay) {
+                    $barangay = (string)$location;
                 }
-                $q->where('location', 'like', "%{$addr}%");
+                // match jobs where location string contains the barangay
+                $q->where('location', 'like', "%{$barangay}%");
             })
             ->when($request->industry, fn($q, $industry) => $q->where('sector_id', $industry))
             ->when($request->salaryMin, function ($q, $min) {
@@ -307,7 +346,7 @@ class GraduateJobsController extends Controller
 
         $graduateId = $user && $user->graduate ? $user->graduate->id : null;
 
-        $myApplications = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'locations', 'salary'])
+        $myApplications = Job::with(['company', 'institution', 'peso', 'sector', 'category', 'jobTypes', 'salary'])
             ->whereIn('id', $appliedJobIds)
             ->get()
             ->map(function ($j) use ($user, $graduateId) {
@@ -323,7 +362,7 @@ class GraduateJobsController extends Controller
                         'id' => $j->company->id,
                         'company_name' => $j->company->company_name,
                     ] : null,
-                    'locations' => $j->locations ? $j->locations->map(fn($l) => ['address' => $l->address])->values()->all() : [],
+                    'locations' => $j->location ? [['address' => $j->location]] : [],
                     'jobTypes' => $j->jobTypes ? $j->jobTypes->map(fn($t) => ['type' => $t->type])->values()->all() : [],
                     'job_experience_level' => $j->job_experience_level,
                     'salary' => $j->salary ? [
@@ -342,32 +381,33 @@ class GraduateJobsController extends Controller
             })->values()->toArray();
 
         // Clean skills field before sending to Inertia
-        $jobs->getCollection()->transform(function ($job) {
-            // Decode JSON skills if stored as string, or use as is if array
-            $skillsArray = [];
-            if (is_string($job->skills)) {
-                $decoded = json_decode($job->skills, true);
-                $skillsArray = is_array($decoded) ? $decoded : [];
-            } elseif (is_array($job->skills)) {
-                $skillsArray = $job->skills;
-            }
+        // $jobs->getCollection()->transform(function ($job) {
+        //     // Decode JSON skills if stored as string, or use as is if array
+        //     $skillsArray = [];
+        //     if (is_string($job->skills)) {
+        //         $decoded = json_decode($job->skills, true);
+        //         $skillsArray = is_array($decoded) ? $decoded : [];
+        //     } elseif (is_array($job->skills)) {
+        //         $skillsArray = $job->skills;
+        //     }
 
 
-            // Clean each skill
-            $cleanSkills = array_map(function ($skill) {
-                $skill = trim($skill);
-                // Remove spaces inside the skill (turn "P y t h o n" into "Python")
-                $skill = preg_replace('/\s+/', '', $skill);
-                // Remove any brackets or quotes
-                $skill = str_replace(['[', ']', '"', "'"], '', $skill);
-                return $skill;
-            }, $skillsArray);
+        //     // Clean each skill
+        //     $cleanSkills = array_map(function ($skill) {
+        //         $skill = trim($skill);
+        //         // Remove spaces inside the skill (turn "P y t h o n" into "Python")
+        //         $skill = preg_replace('/\s+/', '', $skill);
+        //         // Remove any brackets or quotes
+        //         $skill = str_replace(['[', ']', '"', "'"], '', $skill);
+        //         return $skill;
+        //     }, $skillsArray);
 
-            // Assign back clean skills
-            $job->skills = $cleanSkills;
+        //     // Assign back clean skills
+        //     $job->skills = $cleanSkills;
 
-            return $job;
-        });
+        //     return $job;
+        // });
+
         $jobs->getCollection()->transform(function ($job) use ($user, $jobTypes) {
             // Decode JSON skills if stored as string, or use as is if array
             $skillsArray = [];
@@ -378,7 +418,6 @@ class GraduateJobsController extends Controller
                 $skillsArray = $job->skills;
             }
 
-
             // Clean each skill
             $cleanSkills = array_map(function ($skill) {
                 $skill = trim($skill);
@@ -388,34 +427,35 @@ class GraduateJobsController extends Controller
                 $skill = str_replace(['[', ']', '"', "'"], '', $skill);
                 return $skill;
             }, $skillsArray);
-
-            // Assign back clean skills
             $job->skills = $cleanSkills;
 
-            // Calculate match_percentage for each job
-            $match = 0;
-            if ($user && $user->graduate) {
-                $screening = (new ApplicantScreeningService())->screen($user->graduate, $job);
-                $match = $screening['match_percentage'] ?? 0;
-            }
-            $job->match_percentage = $match;
-
-            // Attach job_type_names
+            // job_type_names mapping (same logic as search())
             if ($job->relationLoaded('jobTypes') && $job->jobTypes && $job->jobTypes->count()) {
                 $job->job_type_names = $job->jobTypes->pluck('type')->filter()->values()->all();
             } elseif (is_array($job->job_type)) {
-                // If job_type is array of IDs, map to names
                 $job->job_type_names = collect($job->job_type)->map(function ($id) use ($jobTypes) {
                     return $jobTypes[$id] ?? null;
                 })->filter()->values()->all();
             } elseif (is_numeric($job->job_type)) {
-                // If job_type is a single ID
                 $job->job_type_names = [$jobTypes[$job->job_type] ?? null];
             } elseif (is_string($job->job_type) && $job->job_type !== '') {
                 $job->job_type_names = [$job->job_type];
             } else {
                 $job->job_type_names = [];
             }
+
+            // Provide locations array (compat with legacy Vue)
+            $job->locations = $job->location
+                ? [['address' => $job->location]]
+                : [];
+
+            // Match percentage
+            $match = 0;
+            if ($user && $user->graduate) {
+                $screening = (new ApplicantScreeningService())->screen($user->graduate, $job);
+                $match = $screening['match_percentage'] ?? 0;
+            }
+            $job->match_percentage = $match;
 
             return $job;
         });
@@ -451,7 +491,7 @@ class GraduateJobsController extends Controller
             'jobs' => $jobs,
             'appliedJobIds' => $appliedJobIds,
             'myApplications' => $myApplications,
-            'showApplied' => $showApplied,
+            'hideApplied' => $hideApplied,
             'industries' => $industries,
             'companies' => $companies,
             'jobTypes' => $jobTypes,
@@ -468,7 +508,13 @@ class GraduateJobsController extends Controller
     public function recommendations(Request $request)
     {
         $user = Auth::user();
+        if (!$user || !$user->graduate) {
+            return response()->json(['recommendations' => []]);
+        }
+
         $graduate = $user->graduate;
+
+        // Gather graduate profile context (same as before)
         $graduateSkills = \DB::table('graduate_skills')
             ->join('skills', 'graduate_skills.skill_id', '=', 'skills.id')
             ->where('graduate_skills.graduate_id', $graduate->id)
@@ -476,219 +522,232 @@ class GraduateJobsController extends Controller
             ->get();
 
         $graduateTechnicalSkills = $graduateSkills->where('type', 'Technical Skills')->pluck('name')->all();
-        $graduateOtherSkills = $graduateSkills->where('type', '!=', 'Technical Skills')->pluck('name')->all();
-
-        // Get graduate's skills (array of skill names)
-
+        $graduateOtherSkills     = $graduateSkills->where('type', '!=', 'Technical Skills')->pluck('name')->all();
 
         $normalizedGraduateTechnicalSkills = collect($graduateTechnicalSkills)->map(function ($s) {
             $s = trim($s);
             $s = preg_replace('/\s+/', '', $s);
-            $s = str_replace(['[', ']', '"', "'"], '', $s);
+            $s = str_replace(['[',']','"',"'"], '', $s);
             return strtolower($s);
         })->unique()->toArray();
 
         $normalizedGraduateOtherSkills = collect($graduateOtherSkills)->map(function ($s) {
             $s = trim($s);
             $s = preg_replace('/\s+/', '', $s);
-            $s = str_replace(['[', ']', '"', "'"], '', $s);
+            $s = str_replace(['[',']','"',"'"], '', $s);
             return strtolower($s);
         })->unique()->toArray();
 
-        // Get graduate's education (program name)
         $education = \App\Models\GraduateEducation::where('graduate_id', $graduate->id)
             ->orderByDesc('is_current')
             ->orderByDesc('end_date')
             ->first();
         $graduateProgram = $education ? trim(strtolower($education->program)) : null;
 
-        // Get job's required program names
-
-
-
-        // Get graduate's experience (e.g., job titles)
-        $experiences = \App\Models\Experience::where('graduate_id', $graduate->id)->get();
+        $experiences     = \App\Models\Experience::where('graduate_id', $graduate->id)->get();
         $experienceTitles = $experiences->pluck('title')->filter()->unique()->toArray();
 
-        // Get employment preferences
         $preferences = \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first();
-        $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
-        $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
-        $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
-        $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
-        $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
-        $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
 
-        // Get search keywords (for m10)
-        $searchKeywords = $request->input('keywords', null);
+        $parsePrefArray = function ($value) {
+            if (is_array($value)) return array_values(array_filter(array_map('trim', $value)));
+            if (is_string($value)) {
+                $dec = @json_decode($value, true);
+                if (is_array($dec)) return array_values(array_filter(array_map('trim', $dec)));
+                return array_values(array_filter(array_map('trim', explode(',', $value))));
+            }
+            return [];
+        };
 
-        // Define weights for each criterion (consistent with methodology)
+        $preferredJobTypes        = $preferences ? $parsePrefArray($preferences->job_type) : [];
+        $preferredLocations       = $preferences ? $parsePrefArray($preferences->location) : [];
+        $preferredWorkEnvironments= $preferences ? $parsePrefArray($preferences->work_environment) : [];
+        $minSalary                = $preferences->employment_min_salary ?? null;
+        $maxSalary                = $preferences->employment_max_salary ?? null;
+        $salaryType               = $preferences->salary_type ?? null;
+
+        // Incoming search filters
+        $keywords    = $request->keywords;
+        $jobTypeId   = $request->jobType;
+        $locationIn  = $request->location;
+        $industry    = $request->industry;
+        $salaryMin   = $request->salaryMin;
+        $salaryMax   = $request->salaryMax;
+        $skillsFilt  = $request->skills;
+        $experience  = $request->experience;
+        $company     = $request->company;
+        $hideApplied = $request->boolean('hideApplied', false);
+
+        $appliedJobIds = [];
+       if ($user && $user->graduate) {
+           $appliedJobIds = JobApplication::where('graduate_id', $user->graduate->id)
+               ->pluck('job_id')
+               ->toArray();
+       }
+
+        // ---- PATCH: location filter uses barangay ----
+        $jobsQuery = Job::with(['company','jobTypes','salary'])
+            ->where('status', 'open')
+            ->where('is_approved', 1)
+            ->when($hideApplied && !empty($appliedJobIds), function ($q) use ($appliedJobIds) {
+               $q->whereNotIn('id', $appliedJobIds);
+           })
+            ->when($keywords, function ($q, $kw) {
+                $q->where(function ($sub) use ($kw) {
+                    $sub->where('job_title', 'like', "%{$kw}%")
+                        ->orWhere('job_description', 'like', "%{$kw}%");
+                });
+            })
+            ->when($jobTypeId, function ($q, $type) {
+                $q->whereHas('jobTypes', fn($sub) => $sub->where('job_types.id', $type));
+            })
+            ->when($locationIn, function ($q, $loc) {
+                $barangay = null;
+                if (is_numeric($loc)) {
+                    $found = \App\Models\Location::find($loc);
+                    $barangay = $found?->barangay;
+                }
+                if (!$barangay) $barangay = (string)$loc;
+                $q->where('location', 'like', "%{$barangay}%");
+            })
+            ->when($industry, fn($q, $ind) => $q->where('sector_id', $ind))
+            ->when($salaryMin, fn($q, $min) => $q->whereHas('salary', fn($s) => $s->where('job_min_salary', '>=', $min)))
+            ->when($salaryMax, fn($q, $max) => $q->whereHas('salary', fn($s) => $s->where('job_max_salary', '<=', $max)))
+            ->when($skillsFilt, function ($q, $skills) {
+                foreach ((array)$skills as $skill) {
+                    $q->whereJsonContains('skills', $skill);
+                }
+            })
+            ->when($experience, fn($q, $exp) => $q->where('job_experience_level', $exp))
+            ->when($company, fn($q, $comp) => $q->where('company_id', $comp))
+            ->limit(150);
+
+        $jobs = $jobsQuery->get();
+
+        // ---- Scoring Weights ----
         $weights = [
-            'technical_skills' => 7, // m1 highest priority
-            'other_skills' => 2,     //  m1 lower weight for other skills
-            'education' => 5,       // m2
-            'experience' => 5,    // m3
-
-            // Employment Preferences (to achieve '1' all of these should be met)
-            'job_type' => 0.143, // m4: Preferred Job Type
-            'location' => 0.143, // m5: Preferred Location
-            'work_environment' => 0.143, // m6: Preferred Work Environment
-            'min_salary' => 0.143, // m7: Preferred Min Salary
-            'max_salary' => 0.143, // m8: Preferred Max Salary
-            'salary_type' => 0.143, // m9: Preferred Salary Type
-            'keywords' => 0.143, // m10: search keywords
+            'technical_skills' => 7,
+            'other_skills'     => 2,
+            'education'        => 5,
+            'experience'       => 5,
+            'job_type'         => 0.143,
+            'location'         => 0.143,
+            'work_environment' => 0.143,
+            'min_salary'       => 0.143,
+            'max_salary'       => 0.143,
+            'salary_type'      => 0.143,
+            'keywords'         => 0.143,
         ];
+        $totalWeight = array_sum($weights);
 
-        $jobs = Job::with(['company', 'jobTypes', 'salary'])->get();
         $recommendations = [];
 
         foreach ($jobs as $job) {
             $labels = [];
-            $score = 0;
-            $totalWeight = array_sum($weights);
+            $score  = 0;
+
+            // Skills normalization
             $skillsArray = [];
             if (is_string($job->skills)) {
-                $decoded = json_decode($job->skills, true);
-                $skillsArray = is_array($decoded) ? $decoded : [];
+                $dec = json_decode($job->skills, true);
+                $skillsArray = is_array($dec) ? $dec : [];
             } elseif (is_array($job->skills)) {
                 $skillsArray = $job->skills;
             }
-
-            $jobProgramNames = \DB::table('job_program')
-                ->join('programs', 'job_program.program_id', '=', 'programs.id')
-                ->where('job_program.job_id', $job->id)
-                ->pluck('programs.name')
-                ->map(fn($name) => trim(strtolower($name)))
-                ->toArray();
-
-            // Clean each skill: trim, remove extra spaces, brackets, and quotes, then lowercase
-            $cleanSkills = array_map(function ($skill) {
-                $skill = trim($skill);
-                $skill = preg_replace('/\s+/', '', $skill); // Remove all spaces inside
-                $skill = str_replace(['[', ']', '"', "'"], '', $skill);
-                return strtolower($skill);
+            $cleanSkills = array_map(function ($s) {
+                $s = trim($s);
+                $s = preg_replace('/\s+/', '', $s);
+                $s = str_replace(['[',']','"',"'"], '', $s);
+                return strtolower($s);
             }, $skillsArray);
-
             $normalizedJobSkills = collect($cleanSkills)->unique()->toArray();
 
+            // Program names tied to job
+            $jobProgramNames = \DB::table('job_program')
+                ->join('programs','job_program.program_id','=','programs.id')
+                ->where('job_program.job_id', $job->id)
+                ->pluck('programs.name')
+                ->map(fn($n)=>trim(strtolower($n)))->toArray();
 
-            $jobProgramIds = \DB::table('job_program')
-                ->where('job_id', $job->id)
-                ->pluck('program_id')
-                ->toArray();
-
-            // m1: Skills (binary)
-            // m1: Technical Skills (binary, highest priority)
-            $technicalSkillMatch = 0;
-            foreach ($normalizedGraduateTechnicalSkills as $skill) {
-                if (in_array($skill, $normalizedJobSkills)) {
-                    $labels[] = 'Technical Skills';
-                    $technicalSkillMatch = 1;
-                    break;
-                }
-            }
+            // m1 Technical skills
+            $technicalSkillMatch = (int)collect($normalizedGraduateTechnicalSkills)->contains(fn($gs)=>in_array($gs,$normalizedJobSkills));
+            if ($technicalSkillMatch) $labels[] = 'Technical Skills';
             $score += $technicalSkillMatch * $weights['technical_skills'];
 
-            // m1b: Other Skills (binary, lower priority)
+            // m1b Other skills (only if no technical match)
             $otherSkillMatch = 0;
-            if (!$technicalSkillMatch) { // Only check if no technical skill matched
-                foreach ($normalizedGraduateOtherSkills as $skill) {
-                    if (in_array($skill, $normalizedJobSkills)) {
-                        $labels[] = 'Other Skills (Soft, Language)';
-                        $otherSkillMatch = 1;
-                        break;
-                    }
-                }
+            if (!$technicalSkillMatch) {
+                $otherSkillMatch = (int)collect($normalizedGraduateOtherSkills)->contains(fn($os)=>in_array($os,$normalizedJobSkills));
+                if ($otherSkillMatch) $labels[] = 'Other Skills (Soft, Language)';
+                $score += $otherSkillMatch * $weights['other_skills'];
             }
-            $score += $otherSkillMatch * $weights['other_skills'];
 
-            // m2: Education (binary)
+            // m2 Education
             $educationMatch = ($graduateProgram && in_array($graduateProgram, $jobProgramNames)) ? 1 : 0;
             if ($educationMatch) $labels[] = 'Education';
             $score += $educationMatch * $weights['education'];
 
-            // m3: Experience (binary)
+            // m3 Experience (title match)
             $experienceMatch = 0;
             foreach ($experienceTitles as $title) {
-                if (stripos($job->job_title, $title) !== false) {
-                    $labels[] = 'Experience';
-                    $experienceMatch = 1;
-                    break;
-                }
+                if (stripos($job->job_title, $title) !== false) { $experienceMatch = 1; break; }
             }
+            if ($experienceMatch) $labels[] = 'Experience';
             $score += $experienceMatch * $weights['experience'];
 
-            // m4: Preferred Job Type (binary)
-            $jobTypeMatch = in_array($job->job_type, $preferredJobTypes) ? 1 : 0;
+            // m4 Preferred Job Type (any overlap)
+            $jobTypeList = $job->jobTypes ? $job->jobTypes->pluck('type')->map(fn($t)=>trim($t))->toArray() : [];
+            $jobTypeMatch = count(array_intersect($preferredJobTypes, $jobTypeList)) > 0 ? 1 : 0;
             if ($jobTypeMatch) $labels[] = 'Preferred Job Type';
             $score += $jobTypeMatch * $weights['job_type'];
 
-            // m5: Preferred Location (binary)
-            $locationMatch = in_array($job->location, $preferredLocations) ? 1 : 0;
+            // m5 Preferred Location
+            $locationMatch = $job->location && in_array($job->location, $preferredLocations) ? 1 : 0;
             if ($locationMatch) $labels[] = 'Preferred Location';
             $score += $locationMatch * $weights['location'];
 
-            // m6: Preferred Work Environment (binary)
-            $workEnvMatch = in_array($job->work_environment, $preferredWorkEnvironments) ? 1 : 0;
+            // m6 Work Environment
+            $workEnvMatch = $job->work_environment && in_array($job->work_environment, $preferredWorkEnvironments) ? 1 : 0;
             if ($workEnvMatch) $labels[] = 'Preferred Work Environment';
             $score += $workEnvMatch * $weights['work_environment'];
 
-            // m7: Preferred Min Salary (binary)
+            // m7 Min Salary
             $minSalaryMatch = ($minSalary && $job->job_min_salary >= $minSalary) ? 1 : 0;
             if ($minSalaryMatch) $labels[] = 'Preferred Min Salary';
             $score += $minSalaryMatch * $weights['min_salary'];
 
-            // m8: Preferred Max Salary (binary)
-            $maxSalaryMatch = ($maxSalary && $job->job_max_salary <= $maxSalary) ? 1 : 0;
+            // m8 Max Salary
+            $maxSalaryMatch = ($maxSalary && $job->job_max_salary && $job->job_max_salary <= $maxSalary) ? 1 : 0;
             if ($maxSalaryMatch) $labels[] = 'Preferred Max Salary';
             $score += $maxSalaryMatch * $weights['max_salary'];
 
-            // m9: Preferred Salary Type (binary)
-            $salaryTypeMatch = ($salaryType && stripos($job->job_salary_type, $salaryType) !== false) ? 1 : 0;
+            // m9 Salary Type
+            $salaryTypeMatch = ($salaryType && $job->job_salary_type && stripos($job->job_salary_type, $salaryType) !== false) ? 1 : 0;
             if ($salaryTypeMatch) $labels[] = 'Preferred Salary Type';
             $score += $salaryTypeMatch * $weights['salary_type'];
 
-            // m10: Search Keywords (binary, match in job title or description)
-            $keywordsMatch = 0;
-            if ($searchKeywords) {
-                $kw = strtolower($searchKeywords);
-                $title = strtolower($job->job_title ?? '');
-                $desc = strtolower($job->job_description ?? '');
-                if (strpos($title, $kw) !== false || strpos($desc, $kw) !== false) {
-                    $labels[] = 'Keywords';
-                    $keywordsMatch = 1;
-                }
-            }
+            // m10 Keywords (already filtered by keywords but keep binary score)
+            $keywordsMatch = $keywords ? 1 : 0;
+            if ($keywordsMatch) $labels[] = 'Keywords';
             $score += $keywordsMatch * $weights['keywords'];
 
-            // Only include jobs with at least one label (i.e., a match)
             if (!empty($labels)) {
-                $job->match_labels = array_unique($labels);
+                $job->match_labels = array_values(array_unique($labels));
                 $job->match_score = $score;
                 $job->match_percentage = $totalWeight > 0 ? round(($score / $totalWeight) * 100) : 0;
+                // Provide compatibility locations array
+                $job->locations = $job->location ? [['address' => $job->location]] : [];
                 $recommendations[] = $job;
-            } else {
-                \Log::info('No match for job', [
-                    'job_title' => $job->job_title,
-                    'labels' => $labels,
-                    'normalizedJobSkills' => $normalizedJobSkills,
-                    'normalizedGraduateTechnicalSkills' => $normalizedGraduateTechnicalSkills,
-                    'normalizedGraduateOtherSkills' => $normalizedGraduateOtherSkills,
-                    'graduateProgram' => $graduateProgram,
-                    'jobProgramNames' => $jobProgramNames,
-                ]);
             }
         }
 
-        // Sort by match score descending
-        usort($recommendations, fn($a, $b) => $b->match_score <=> $a->match_score);
+        usort($recommendations, fn($a,$b) => $b->match_score <=> $a->match_score);
 
-        // Limit to 5 recommendations
+        // limit final output
         $recommendations = array_slice($recommendations, 0, 10);
 
         return response()->json(['recommendations' => $recommendations]);
     }
-
     public function applyForJob(Request $request)
     {
         $user = Auth::user();
@@ -700,7 +759,7 @@ class GraduateJobsController extends Controller
             'interview_date' => 'nullable|date',
             'resume_id' => 'nullable|exists:resumes,id',
             'cover_letter' => 'nullable|string',
-            'cover_letter_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // add
+            'cover_letter_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'additional_documents' => 'nullable|array',
         ]);
 

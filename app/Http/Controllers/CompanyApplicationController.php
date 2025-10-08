@@ -142,7 +142,6 @@ class CompanyApplicationController extends Controller
             'graduate.certifications',
             'graduate.testimonials',
             'graduate.employmentPreference',
-            'graduate.employmentPreference.locations',
             'graduate.employmentPreference.salary',
             'graduate.careerGoals',
             'graduate.resume',
