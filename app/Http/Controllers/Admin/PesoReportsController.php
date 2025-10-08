@@ -7,7 +7,9 @@ use App\Models\Graduate;
 use App\Models\Program;
 use App\Models\Job;
 use App\Models\JobApplicationStage;
+use App\Models\Institution;
 use App\Models\GraduateSkill;
+use App\Models\GraduateEducation;
 use App\Models\Skill;
 use App\Models\Sector;
 use App\Models\Location;
@@ -19,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Services\ApplicantScreeningService;
 
 
 class PesoReportsController extends Controller
@@ -39,7 +42,13 @@ class PesoReportsController extends Controller
     {
         $year = $request->input('year');
         $institutionId = $request->input('institution_id');
+        $programIds = $request->input('program_ids', []);
         $programId = $request->input('program_id');
+        $status = $request->input('status');
+
+        if (!is_array($programIds)) {
+            $programIds = [$programIds];
+        }
         $status = $request->input('status');
         $timeline = $request->input('timeline');
 
@@ -67,12 +76,21 @@ class PesoReportsController extends Controller
         if ($institutionId) {
             $graduatesQuery->where('institution_id', $institutionId);
         }
-        if ($programId) {
+        if (!empty($programIds)) {
+            $graduatesQuery->whereIn('program_id', $programIds);
+        } elseif ($programId) {
             $graduatesQuery->where('program_id', $programId);
         }
         if ($status) {
             $graduatesQuery->where('employment_status', $status);
         }
+
+        \Log::info('Schoolwise SQL:', [
+            'sql' => $graduatesQuery->toSql(),
+            'bindings' => $graduatesQuery->getBindings()
+        ]);
+        \Log::info('Filtering by program_ids', ['program_ids' => $programIds]);
+        \Log::info('Graduates count', ['count' => $graduatesQuery->count()]);
 
         $graduates = $graduatesQuery->get();
 
@@ -155,8 +173,8 @@ class PesoReportsController extends Controller
         if ($institutionId) {
             $allGraduatesQuery->where('institution_id', $institutionId);
         }
-        if ($programId) {
-            $allGraduatesQuery->where('program_id', $programId);
+        if (!empty($programIds)) {
+            $allGraduatesQuery->whereIn('program_id', $programIds);
         }
 
         $allGraduates = $allGraduatesQuery->get();
@@ -200,8 +218,8 @@ class PesoReportsController extends Controller
         if ($institutionId) {
             $hiredGraduatesQuery->where('institution_id', $institutionId);
         }
-        if ($programId) {
-            $hiredGraduatesQuery->where('program_id', $programId);
+        if (!empty($programIds)) {
+            $hiredGraduatesQuery->whereIn('program_id', $programIds);
         }
         if ($timeline) {
             $hiredGraduatesQuery->whereHas('jobApplications', function ($q) use ($timeline) {
@@ -582,7 +600,7 @@ class PesoReportsController extends Controller
         }
         $areaTrendData = $lineTrendData;
 
-       
+
 
         // Clustered Bar & Stacked Column: Referral performance by role
         $roleStats = [];
@@ -602,7 +620,7 @@ class PesoReportsController extends Controller
                 'rejected'    => $jobApplications->where('stage', 'rejected')->count(),
             ];
         }
-      
+
         // Word Cloud & Stacked Column: Reason for referral success
         $feedbacks = $referrals->pluck('referral_feedback')->filter();
         $wordCloudData = [];
@@ -640,7 +658,7 @@ class PesoReportsController extends Controller
                 'lineTrendData' => $lineTrendData,
                 'areaTrendData' => $areaTrendData,
                 'roleStats' => $roleStats,
-            
+
                 'wordCloudData' => $wordCloudData,
                 'stackedFeedback' => $stackedFeedback,
                 'screenedKPI' => $screenedKPI,
@@ -803,14 +821,25 @@ class PesoReportsController extends Controller
         // For Jetstream/Material-style filter dropdowns, etc.
         $educationLevels = \App\Models\Education::pluck('name');
         $programs = \App\Models\Program::pluck('name');
-        $industries = \App\Models\Sector::pluck('name');
+        $industries = \App\Models\Sector::all()->map(fn($i) => [
+            'id' => $i->id,
+            'name' => $i->name,
+        ]);
         $jobRoles = \App\Models\Job::distinct()->pluck('job_title')->filter()->values();
+        $graduates = \App\Models\Graduate::with(['graduateEducations', 'schoolYear'])->get();
+        $grad = Graduate::with('schoolYear')->first();
 
         return Inertia::render('Admin/Reports/Career', [
             'educationLevels' => $educationLevels,
+            'institutions' => Institution::all()->map(fn($i) => [
+                'id' => $i->id,
+                'name' => $i->institution_name,
+            ]),
             'programs' => $programs,
             'jobRoles' => $jobRoles,
             'industries' => $industries,
+            'graduates' => $grad,
+
         ]);
     }
 
@@ -818,8 +847,7 @@ class PesoReportsController extends Controller
     {
         // --- Bar Chart: Employment rates by level of education ---
 
-        $graduates = \App\Models\Graduate::with('graduateEducations')->get();
-
+        $graduates = \App\Models\Graduate::with(['graduateEducations', 'schoolYear'])->get();
         // Get all education levels
         $educationLevels = \App\Models\Education::pluck('name');
         $barChartData = [];
@@ -851,6 +879,9 @@ class PesoReportsController extends Controller
                 'employment_rate' => $employmentRate,
                 'total' => $total,
                 'employed' => $employed,
+                'year' => $graduatesWithLevel->first()?->schoolYear?->school_year_range ?? null,
+                'program' => $graduatesWithLevel->first()?->program?->name ?? null,
+                'institution_name' => $graduatesWithLevel->first()?->institution?->institution_name ?? null,
             ];
         }
 
@@ -868,7 +899,8 @@ class PesoReportsController extends Controller
             foreach ($radarTypes as $type) {
                 $count = \App\Models\GraduateSkill::whereIn('graduate_id', $programGraduates)
                     ->where('type', $type)
-                    ->count();
+                    ->distinct('graduate_id')
+                    ->count('graduate_id');
                 $percentage = $programGraduates->count() ? round(($count / $programGraduates->count()) * 100, 2) : 0;
                 $typeScores[] = $percentage;
             }
@@ -983,16 +1015,29 @@ class PesoReportsController extends Controller
             'salaryExpectations' => $salaryExpectations,
             'radarSkills' => $radarTypes,
             'radarData' => $radarData,
+            'graduates' => $graduates,
+
         ]);
     }
 
     public function diversity()
     {
-        $industries = \App\Models\Sector::pluck('name');
+        $industries = \App\Models\Sector::all()->map(fn($i) => [
+            'id' => $i->id,
+            'name' => $i->name,
+        ]);
+
+
+
+
         $employerTypes = ['Small Business', 'Medium Enterprise', 'Large Corporation']; // Adjust as needed
         return Inertia::render('Admin/Reports/Diversity', [
             'industries' => $industries,
             'employerTypes' => $employerTypes,
+            'educationLevels' => GraduateEducation::all()->map(fn($e) => [
+                'id' => $e->id,
+                'level_of_education' => $e->level_of_education,
+            ]),
         ]);
     }
 
@@ -1285,15 +1330,29 @@ class PesoReportsController extends Controller
 
     public function jobMarketData(Request $request)
     {
+        $roles = $request->input('roles', []);
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        // Filter JobApplications by roles and date
+        $jobApplicationsQuery = \App\Models\JobApplication::with(['graduate.graduateSkills', 'job']);
+        if (!empty($roles)) {
+            $jobApplicationsQuery->whereHas('job', function ($q) use ($roles) {
+                $q->whereIn('job_title', $roles);
+            });
+        }
+        if ($dateFrom && $dateTo) {
+            $jobApplicationsQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
+        }
+        $jobApplications = $jobApplicationsQuery->get();
+
         // --- Job Seeker and Role Alignment: Scatter Plot & Bar Chart ---
-        // Scatter: Each point is a job seeker, x = skills matched, y = required skills for job
         $scatterData = [];
         $barAlignment = [
             'Meets' => 0,
             'Exceeds' => 0,
             'Falls Short' => 0,
         ];
-        $jobApplications = \App\Models\JobApplication::with(['graduate.graduateSkills', 'job'])->get();
         foreach ($jobApplications as $app) {
             $graduateSkills = $app->graduate?->graduateSkills->pluck('skill.name')->filter()->unique()->toArray() ?? [];
             $jobSkills = is_array($app->job?->skills) ? $app->job->skills : (json_decode($app->job?->skills, true) ?: []);
@@ -1307,6 +1366,7 @@ class PesoReportsController extends Controller
                 'required' => $required,
                 'matchedSkills' => $matchedSkills,
                 'requiredSkills' => $jobSkills,
+                'job_title' => $app->job?->job_title,
             ];
 
             if ($required > 0) {
@@ -1315,25 +1375,17 @@ class PesoReportsController extends Controller
                 else $barAlignment['Falls Short']++;
             }
         }
+
         // --- Matching Success Rate ---
-        // Funnel Chart Data
-
-        $jobApplications = \App\Models\JobApplication::all();
-
-
-
-
         $funnelStages = ['applied', 'screening', 'interview', 'offer', 'hired', 'rejected'];
         $funnelData = [];
         foreach ($funnelStages as $stage) {
             if ($stage === 'applied') {
-                // Count as applied if status or stage is 'applied' or 'applying'
                 $count = $jobApplications->filter(function ($app) {
                     return in_array(strtolower($app->status), ['applied', 'applying']) ||
                         in_array(strtolower($app->stage), ['applied', 'applying']);
                 })->count();
             } else {
-                // For other stages, match by stage column
                 $count = $jobApplications->filter(function ($app) use ($stage) {
                     return strtolower($app->stage) === $stage;
                 })->count();
@@ -1342,272 +1394,182 @@ class PesoReportsController extends Controller
                 'stage' => ucfirst($stage),
                 'count' => $count,
             ];
+        }
 
+        // Pie Chart: Successful vs Unmatched (using matching criteria)
+        $matchedApplications = 0;
+        $unmatchedApplications = 0;
+        $matchThreshold = 60; // percent
 
-
-            // Pie Chart: Successful vs Unmatched (using matching criteria)
-
-            $matchedApplications = 0;
-            $unmatchedApplications = 0;
-            $matchThreshold = 60; // percent
-
-            foreach ($jobApplications as $app) {
-                $criteria = 0;
-                $matchScore = 0;
-
-                $graduate = $app->graduate;
-                $job = $app->job;
-
-                if (!$graduate || !$job) continue;
-
-                // Skills
-                $criteria++;
-                $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
-                $jobSkills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
-                $skillMatch = false;
-                foreach ($graduateSkills as $skill) {
-                    if (stripos(json_encode($jobSkills), $skill) !== false) {
-                        $skillMatch = true;
-                        break;
-                    }
-                }
-                if ($skillMatch) $matchScore++;
-
-                // Education (Program)
-                $criteria++;
-                $program = $graduate->program_id ? \App\Models\Program::find($graduate->program_id)->name ?? null : null;
-                $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
-                if ($educationMatch) $matchScore++;
-
-                // Experience
-                $criteria++;
-                $experiences = $graduate->experience ? $graduate->experience->pluck('job_title')->filter()->unique()->toArray() : [];
-                $experienceMatch = false;
-                foreach ($experiences as $title) {
-                    if (stripos($job->job_title, $title) !== false) {
-                        $experienceMatch = true;
-                        break;
-                    }
-                }
-                if ($experienceMatch) $matchScore++;
-
-                // Past Search Keywords (optional, if you want to include)
-                // $criteria++;
-                // $pastKeywords = $graduate->jobSearchHistory ? $graduate->jobSearchHistory->pluck('keywords')->unique()->toArray() : [];
-                // $pastKeywordMatch = false;
-                // foreach ($pastKeywords as $keyword) {
-                //     if (
-                //         stripos($job->job_title, $keyword) !== false ||
-                //         stripos($job->job_description, $keyword) !== false
-                //     ) {
-                //         $pastKeywordMatch = true;
-                //         break;
-                //     }
-                // }
-                // if ($pastKeywordMatch) $matchScore++;
-
-                $match_percentage = $criteria > 0 ? round(($matchScore / $criteria) * 100) : 0;
-
-                if ($match_percentage >= $matchThreshold) {
-                    $matchedApplications++;
-                } else {
-                    $unmatchedApplications++;
-                }
+        foreach ($jobApplications as $app) {
+            $graduate = $app->graduate;
+            $job = $app->job;
+            if (!$graduate || !$job) continue;
+            $screening = (new ApplicantScreeningService())->screen($graduate, $job);
+            $match_percentage = $screening['match_percentage'] ?? 0;
+            if ($match_percentage >= $matchThreshold) {
+                $matchedApplications++;
+            } else {
+                $unmatchedApplications++;
             }
+        }
+        $totalApplications = $matchedApplications + $unmatchedApplications;
+        $matchingSuccessRate = $totalApplications > 0 ? round(($matchedApplications / $totalApplications) * 100, 2) : 0;
+        $pieMatchData = [
+            ['name' => 'Matched', 'value' => $matchedApplications],
+            ['name' => 'Unmatched', 'value' => $unmatchedApplications],
+        ];
 
-            $totalApplications = $matchedApplications + $unmatchedApplications;
-            $matchingSuccessRate = $totalApplications > 0 ? round(($matchedApplications / $totalApplications) * 100, 2) : 0;
+        // --- Future Job Trends ---
+        // Optionally filter jobs by date if you want trends to match the filter
+        $jobsQuery = \App\Models\Job::where('is_approved', 1);
+        if ($dateFrom && $dateTo) {
+            $jobsQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
+        }
+        $jobs = $jobsQuery->orderBy('created_at')->get();
 
-            $pieMatchData = [
-                ['name' => 'Matched', 'value' => $matchedApplications],
-                ['name' => 'Unmatched', 'value' => $unmatchedApplications],
+        $jobsByMonth = $jobs->groupBy(function ($job) {
+            return $job->created_at->format('Y-m');
+        });
+        $lineTrendData = [];
+        $areaTrendData = [];
+        foreach ($jobsByMonth as $month => $jobsInMonth) {
+            $lineTrendData[] = ['month' => $month, 'openings' => $jobsInMonth->count()];
+            $areaTrendData[] = ['month' => $month, 'openings' => $jobsInMonth->count()];
+        }
+
+        // Stacked Area Chart: Job openings by industry and skills over time
+        $jobsWithCompany = $jobs->filter(fn($job) => $job->company);
+        $sectors = \App\Models\Sector::pluck('name', 'id');
+        $industryAreaData = [];
+        foreach ($jobsWithCompany as $job) {
+            $month = $job->created_at->format('Y-m');
+            $sectorId = $job->company ? $job->company->sector_id : null;
+            $sector = $sectors[$sectorId] ?? 'Unknown';
+            $industryAreaData[$sector][$month] = ($industryAreaData[$sector][$month] ?? 0) + 1;
+        }
+        $months = $jobs->pluck('created_at')->map(fn($d) => $d->format('Y-m'))->unique()->sort()->values();
+        $industryAreaChart = [];
+        foreach ($industryAreaData as $sector => $monthCounts) {
+            $data = [];
+            foreach ($months as $month) {
+                $data[] = $monthCounts[$month] ?? 0;
+            }
+            $industryAreaChart[] = [
+                'name' => $sector,
+                'type' => 'line',
+                'stack' => 'total',
+                'areaStyle' => [],
+                'data' => $data,
             ];
+        }
 
-
-            // --- Future Job Trends ---
-            // Line & Area Chart: Project future job openings (simple projection based on past 12 months)
-            $jobsByMonth = \App\Models\Job::where('is_approved', 1)
-
-                ->whereNotNull('is_approved')
-                ->orderBy('created_at')
-                ->get()
-                ->groupBy(function ($job) {
-                    return $job->created_at->format('Y-m');
-                });
-
-            $lineTrendData = [];
-            $areaTrendData = [];
-            foreach ($jobsByMonth as $month => $jobs) {
-                $lineTrendData[] = ['month' => $month, 'openings' => $jobs->count()];
-                $areaTrendData[] = ['month' => $month, 'openings' => $jobs->count()];
+        // Skill Area Chart
+        $skillAreaData = [];
+        foreach ($jobs as $job) {
+            $month = $job->created_at->format('Y-m');
+            $skills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
+            foreach ($skills as $skill) {
+                $skillAreaData[$skill][$month] = ($skillAreaData[$skill][$month] ?? 0) + 1;
             }
-
-            // Stacked Area Chart: Job openings by industry and skills over time
-            $jobs = \App\Models\Job::where('is_approved', 1)
-                ->whereHas('company')
-                ->with(['company'])
-                ->orderBy('created_at')
-                ->get(['id', 'company_id', 'created_at']);
-
-            $sectors = \App\Models\Sector::pluck('name', 'id');
-
-            // Group jobs by month and company sector
-            $industryAreaData = [];
-            foreach ($jobs as $job) {
-                $month = $job->created_at->format('Y-m');
-                $sectorId = $job->company ? $job->company->sector_id : null;
-                $sector = $sectors[$sectorId] ?? 'Unknown';
-                $industryAreaData[$sector][$month] = ($industryAreaData[$sector][$month] ?? 0) + 1;
+        }
+        $skillAreaChart = [];
+        foreach ($skillAreaData as $skill => $monthCounts) {
+            $data = [];
+            foreach ($months as $month) {
+                $data[] = $monthCounts[$month] ?? 0;
             }
+            $skillAreaChart[] = [
+                'name' => $skill,
+                'type' => 'line',
+                'stack' => 'total',
+                'areaStyle' => [],
+                'data' => $data,
+            ];
+        }
 
-            // Format for chart: [{name: sector, data: [counts per month]}, ...]
-            $months = collect($jobs)->pluck('created_at')->map(fn($d) => $d->format('Y-m'))->unique()->sort()->values();
-            $industryAreaChart = [];
-            foreach ($industryAreaData as $sector => $monthCounts) {
-                $data = [];
-                foreach ($months as $month) {
-                    $data[] = $monthCounts[$month] ?? 0;
-                }
-                $industryAreaChart[] = [
-                    'name' => $sector,
-                    'type' => 'line',
-                    'stack' => 'total',
-                    'areaStyle' => [],
-                    'data' => $data,
-                ];
+        // --- Employer Preferences ---
+        $jobsForPreferences = $jobs; // Already filtered by date
+        $allQualifications = collect();
+        foreach ($jobsForPreferences as $job) {
+            // Job requirements
+            $requirements = [];
+            if (is_array($job->job_requirements)) {
+                $requirements = $job->job_requirements;
+            } elseif (is_string($job->job_requirements) && $job->job_requirements !== '') {
+                $decoded = json_decode($job->job_requirements, true);
+                $requirements = is_array($decoded) ? $decoded : [$job->job_requirements];
             }
-
-            // Get all approved jobs with skills and created_at
-            $jobs = \App\Models\Job::where('is_approved', 1)
-                ->orderBy('created_at')
-                ->get(['id', 'skills', 'created_at']);
-
-            $skillAreaData = [];
-            foreach ($jobs as $job) {
-                $month = $job->created_at->format('Y-m');
-                $skills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
-                foreach ($skills as $skill) {
-                    $skillAreaData[$skill][$month] = ($skillAreaData[$skill][$month] ?? 0) + 1;
-                }
+            // Skills
+            $skills = [];
+            if (is_array($job->skills)) {
+                $skills = $job->skills;
+            } elseif (is_string($job->skills) && $job->skills !== '') {
+                $decoded = json_decode($job->skills, true);
+                $skills = is_array($decoded) ? $decoded : [$job->skills];
             }
+            $allQualifications = $allQualifications->merge($requirements)->merge($skills);
+        }
+        $qualificationCounts = $allQualifications
+            ->filter()
+            ->map(fn($q) => trim($q))
+            ->filter()
+            ->countBy()
+            ->sortDesc()
+            ->take(10);
+        $barQualificationData = [];
+        foreach ($qualificationCounts as $qualification => $count) {
+            $barQualificationData[] = [
+                'qualification' => $qualification,
+                'count' => $count,
+            ];
+        }
 
-            // Get all months
-            $months = collect($jobs)->pluck('created_at')->map(fn($d) => $d->format('Y-m'))->unique()->sort()->values();
-            $skillAreaChart = [];
-            foreach ($skillAreaData as $skill => $monthCounts) {
-                $data = [];
-                foreach ($months as $month) {
-                    $data[] = $monthCounts[$month] ?? 0;
-                }
-                $skillAreaChart[] = [
-                    'name' => $skill,
-                    'type' => 'line',
-                    'stack' => 'total',
-                    'areaStyle' => [],
-                    'data' => $data,
-                ];
-            }
+        // Radar Chart: Employer priorities
+        $radarPriorityLabels = ['Skills', 'Experience', 'Education'];
+        $skillsCount = $jobsForPreferences->filter(fn($job) => !empty($job->skills))->count();
+        $experienceCount = $jobsForPreferences->filter(
+            fn($job) =>
+            !empty($job->job_requirements) &&
+                (is_string($job->job_requirements) && stripos($job->job_requirements, 'experience') !== false)
+        )->count();
+        $educationCount = $jobsForPreferences->filter(
+            fn($job) =>
+            !empty($job->job_requirements) &&
+                (is_string($job->job_requirements) &&
+                    (stripos($job->job_requirements, 'education') !== false || stripos($job->job_requirements, 'degree') !== false))
+        )->count();
+        $radarPriorityData = [$skillsCount, $experienceCount, $educationCount];
 
-            // --- Employer Preferences ---
-            // Bar Chart: Most requested qualifications/certifications
-            $jobs = \App\Models\Job::where('is_approved', 1)
-                ->whereNotNull('is_approved')
-                ->get(['job_requirements', 'skills']);
+        return response()->json([
+            'scatterData' => $scatterData,
+            'barAlignment' => $barAlignment,
+            'matchingSuccessRate' => $matchingSuccessRate,
+            'funnelData' => $funnelData,
+            'pieMatchData' => $pieMatchData,
+            'lineTrendData' => $lineTrendData,
+            'areaTrendData' => $areaTrendData,
+            'industryAreaChart' => $industryAreaChart,
+            'skillAreaChart' => $skillAreaChart,
+            'barQualificationData' => $barQualificationData,
+            'radarPriorityLabels' => $radarPriorityLabels,
+            'radarPriorityData' => $radarPriorityData,
+        ]);
+    }
 
-            // Collect all requirements and skills
-            $allQualifications = collect();
-
-            foreach ($jobs as $job) {
-                // Job requirements (may be JSON, array, or string)
-                $requirements = [];
-                if (is_array($job->job_requirements)) {
-                    $requirements = $job->job_requirements;
-                } elseif (is_string($job->job_requirements) && $job->job_requirements !== '') {
-                    $decoded = json_decode($job->job_requirements, true);
-                    $requirements = is_array($decoded) ? $decoded : [$job->job_requirements];
-                }
-
-                // Skills (may be JSON, array, or string)
-                $skills = [];
-                if (is_array($job->skills)) {
-                    $skills = $job->skills;
-                } elseif (is_string($job->skills) && $job->skills !== '') {
-                    $decoded = json_decode($job->skills, true);
-                    $skills = is_array($decoded) ? $decoded : [$job->skills];
-                }
-
-                // Merge and normalize
-                $allQualifications = $allQualifications->merge($requirements)->merge($skills);
-            }
-
-            // Count and sort
-            $qualificationCounts = $allQualifications
+    public function jobMarketRoles()
+    {
+        try {
+            $roles = \App\Models\Job::where('is_approved', 1)
+                ->pluck('job_title')
                 ->filter()
-                ->map(fn($q) => trim($q))
-                ->filter()
-                ->countBy()
-                ->sortDesc()
-                ->take(10);
-
-            $barQualificationData = [];
-            foreach ($qualificationCounts as $qualification => $count) {
-                $barQualificationData[] = [
-                    'qualification' => $qualification,
-                    'count' => $count,
-                ];
-            }
-
-            // Radar Chart: Employer priorities (skills, experience, education)
-            $radarPriorityLabels = ['Skills', 'Experience', 'Education'];
-            $radarPriorityData = [];
-
-            // Skills: jobs where skills is not null or not empty
-            $skillsCount = \App\Models\Job::where('is_approved', 1)
-                ->whereNotNull('skills')
-                ->where('skills', '!=', '[]')
-                ->count();
-            $radarPriorityData[] = $skillsCount;
-
-            // Experience: jobs where job_requirements contains 'experience' (case-insensitive)
-            $experienceCount = \App\Models\Job::where('is_approved', 1)
-                ->whereNotNull('job_requirements')
-                ->where('job_requirements', 'like', '%experience%')
-                ->count();
-            $radarPriorityData[] = $experienceCount;
-
-            // Education: jobs where job_requirements contains 'education' or 'degree' (case-insensitive)
-            $educationCount = \App\Models\Job::where('is_approved', 1)
-                ->whereNotNull('job_requirements')
-                ->where(function ($q) {
-                    $q->where('job_requirements', 'like', '%education%')
-                        ->orWhere('job_requirements', 'like', '%degree%');
-                })
-                ->count();
-            $radarPriorityData[] = $educationCount;
-
-
-            return response()->json([
-
-                'scatterData' => $scatterData,
-                'barAlignment' => $barAlignment,
-
-                // Matching Success Rate
-                'matchingSuccessRate' => $matchingSuccessRate,
-                'funnelData' => $funnelData,
-                'pieMatchData' => $pieMatchData,
-
-                // Future Job Trends
-                'lineTrendData' => $lineTrendData,
-                'areaTrendData' => $areaTrendData,
-                'industryAreaChart' => $industryAreaChart,
-                'skillAreaChart' => $skillAreaChart,
-
-                // Employer Preferences
-                'barQualificationData' => $barQualificationData,
-                'radarPriorityLabels' => $radarPriorityLabels,
-                'radarPriorityData' => $radarPriorityData,
-
-            ]);
+                ->unique()
+                ->values();
+            \Log::info('JobMarketRoles returned:', $roles->toArray()); // <-- Add this line
+            return response()->json(['roles' => $roles]);
+        } catch (\Exception $e) {
+            \Log::error('JobMarketRoles error: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
         }
     }
 }

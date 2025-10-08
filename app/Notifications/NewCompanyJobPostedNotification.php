@@ -27,6 +27,8 @@ class NewCompanyJobPostedNotification extends Notification
             'message' => "A new job \"{$this->job->job_title}\" was posted by {$company}.",
             'job_id' => $this->job->id,
             'company_id' => $this->job->company->id ?? null,
+            'url' => route('admin.jobs.view', $this->job->id), // Add this line
+
         ];
     }
 

@@ -282,7 +282,9 @@ class GraduateController extends Controller
             'program_id' => $validated['program_id'],
             'school_year_id' => $this->getInstitutionSchoolYearId($validated['graduate_year_graduated'], $validated['graduate_term'], $graduate->institution_id),
             'employment_status' => $validated['employment_status'],
-            'current_job_title' => $validated['current_job_title'],
+            'current_job_title' => $validated['employment_status'] === 'Unemployed'
+                ? 'N/A'
+                : ($validated['current_job_title'] ?? 'N/A'),
             'dob' => $validated['dob'],
             'gender' => $validated['gender'],
             'contact_number' => $validated['contact_number'],

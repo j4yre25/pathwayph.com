@@ -12,6 +12,7 @@ import Datepicker from 'vue3-datepicker';
 import { isValid, format } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import { Inertia } from '@inertiajs/inertia';
 
 // Define props
 
@@ -58,6 +59,7 @@ function openConfirm(type, entry) {
           successMessage.value = 'Achievement deleted successfully!';
           isSuccessModalOpen.value = true;
           closeConfirm();
+          Inertia.reload();
         },
         onError: () => {
           errorMessage.value = 'Failed to delete achievement. Please try again.';
@@ -75,6 +77,7 @@ function openConfirm(type, entry) {
           successMessage.value = 'Achievement archived successfully!';
           isSuccessModalOpen.value = true;
           closeConfirm();
+          Inertia.reload();
         },
         onError: () => {
           errorMessage.value = 'Failed to archive achievement. Please try again.';
@@ -92,6 +95,7 @@ function openConfirm(type, entry) {
           successMessage.value = 'Achievement restored successfully!';
           isSuccessModalOpen.value = true;
           closeConfirm();
+          Inertia.reload();
         },
         onError: () => {
           errorMessage.value = 'Failed to restore achievement. Please try again.';
@@ -221,6 +225,7 @@ const updateAchievement = () => {
                 successMessage.value = 'Achievement updated successfully!';
                 isSuccessModalOpen.value = true;
                 resetAchievementForm();
+                Inertia.reload();
             },
             onError: (errors) => {
                 console.error(errors);
@@ -259,6 +264,7 @@ const addAchievement = () => {
                 successMessage.value = 'Achievement added successfully!';
                 isSuccessModalOpen.value = true;
                 resetAchievementForm();
+                Inertia.reload();
             },
             onError: (errors) => {
                 console.error(errors);

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -16,9 +17,11 @@ class GraduateSkill extends Model
         'proficiency_type',
         'type',
         'years_experience',
+        'months_experience',
+
     ];
     public function skill()
-{
-    return $this->belongsTo(Skill::class);
-}
+    {
+        return $this->belongsTo(Skill::class);
+    }
 }

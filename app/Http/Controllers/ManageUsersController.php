@@ -97,6 +97,19 @@ class ManageUsersController extends Controller
         ]);
     }
 
+    public function apiUser($id)
+    {
+        $user = User::with([
+            'company.sector',
+            'company.category',
+            'hr',
+            'institution',
+            'peso',
+        ])->findOrFail($id);
+
+        return response()->json(['user' => $user]);
+    }
+
     public function list(Request $request)
     {
         $users = User::with(['company', 'institution', 'peso'])
@@ -118,7 +131,7 @@ class ManageUsersController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
-            
+
         $users->getCollection()->transform(function ($user) {
             switch ($user->role) {
                 case 'company':

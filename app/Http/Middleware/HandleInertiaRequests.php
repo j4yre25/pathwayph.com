@@ -41,56 +41,59 @@ class HandleInertiaRequests extends Middleware
                 'bannerStyle' => session('flash.bannerStyle', 'success'),
             ],
             'roles' => [
-                'isPeso' => fn () => $request->user()?->hasRole('peso'),
-                'isInstitution' => fn () => $request->user()?->hasRole('institution'),
-                'isCompany' => fn () => $request->user()?->hasRole('company'),
-                'isGraduate' => fn () => $request->user()?->hasRole('graduate'),
+                'isPeso' => fn() => $request->user()?->hasRole('peso'),
+                'isInstitution' => fn() => $request->user()?->hasRole('institution'),
+                'isCompany' => fn() => $request->user()?->hasRole('company'),
+                'isGraduate' => fn() => $request->user()?->hasRole('graduate'),
             ],
             'permissions' => [
-                'canManageUsers' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('manage users'): null,
-                'canManageApprovalGraduate' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('manage approval graduate'): null,
-                'canManageGraduate' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('manage graduate'): null,
-        
-                'canManageInstitution' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('manage institution'): null,
+                'canManageUsers' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('manage users') : null,
+                'canManageApprovalGraduate' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('manage approval graduate') : null,
+                'canManageGraduate' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('manage graduate') : null,
 
-                'addSectors' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('add sectors'): null,
-                'updateSectors' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('update sectors'): null,
-                'deleteSectors' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('delete sectors'): null,
-             
-                'viewSectors' => fn () => $request->user()
-                ? $request->user()->hasPermissionTo('view sectors'): null,
-             
+                'canManageInstitution' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('manage institution') : null,
+
+                'addSectors' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('add sectors') : null,
+                'updateSectors' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('update sectors') : null,
+                'deleteSectors' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('delete sectors') : null,
+
+                'viewSectors' => fn() => $request->user()
+                    ? $request->user()->hasPermissionTo('view sectors') : null,
+
             ],
             'csrf_token' => csrf_token(),
             'userNotApproved' => session('user_not_approved'),
-            'notifications' => fn () => auth()->check()
-            ? auth()->user()->notifications->map(function ($notif) {
-                return [
-                    'id' => $notif->id,
-                    'title' => $notif->data['title'] ?? '',
-                    'company' => $notif->data['company'] ?? '',
-                    'body' => $notif->data['message'] ?? '',
-                    'certificate_path' => $notif->data['certificate_path'] ?? null,
-                    'created_at' => $notif->created_at->diffForHumans(),
-                ];
-            })
-            : [],
+            'notifications' => fn() => auth()->check()
+                ? auth()->user()->notifications->map(function ($notif) {
+                    return [
+                        'id' => $notif->id,
+                        'title' => $notif->data['title'] ?? '',
+                        'company' => $notif->data['company'] ?? '',
+                        'body' => $notif->data['message'] ?? '',
+                        'certificate_path' => $notif->data['certificate_path'] ?? null,
+                        'created_at' => $notif->created_at->diffForHumans(),
+                        'url' => $notif->data['url'] ?? '',
+                        'user_id' => $notif->data['user_id'] ?? null, // <-- add this if missing!
+
+                    ];
+                })
+                : [],
         ]);
     }
     public function handle($request, \Closure $next)
-{
-    // Example: Restrict access to routes for non-PESO users
-    if ($request->routeIs('admin.manage_users.*') && !$request->user()?->hasRole('peso')) {
-        abort(403, 'Unauthorized');
-    }
+    {
+        // Example: Restrict access to routes for non-PESO users
+        if ($request->routeIs('admin.manage_users.*') && !$request->user()?->hasRole('peso')) {
+            abort(403, 'Unauthorized');
+        }
 
-    return parent::handle($request, $next);
-}
+        return parent::handle($request, $next);
+    }
 }

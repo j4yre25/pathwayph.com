@@ -173,6 +173,8 @@ class ProfileController extends Controller
                         'graduate_skills_proficiency_type' => $gs->proficiency_type,
                         'graduate_skills_type' => $gs->type,
                         'graduate_skills_years_experience' => $gs->years_experience,
+                        'graduate_skills_months_experience' => $gs->months_experience,
+
                     ];
                 }),
             'archivedSkillEntries' => GraduateSkill::with('skill')
@@ -186,6 +188,8 @@ class ProfileController extends Controller
                         'graduate_skills_proficiency_type' => $gs->proficiency_type,
                         'graduate_skills_type' => $gs->type,
                         'graduate_skills_years_experience' => $gs->years_experience,
+                        'graduate_skills_months_experience' => $gs->months_experience,
+
                     ];
                 }),
             'archivedProjectsEntries' => Project::where('graduate_id', $graduate->id)
@@ -402,7 +406,6 @@ class ProfileController extends Controller
 
             $graduate->graduate_picture = $path;
             $graduate->save();
-
         }
 
         $graduate = \App\Models\Graduate::with('graduateSkills.skill')->find($graduate->id);
@@ -646,7 +649,11 @@ class ProfileController extends Controller
             'graduate_skills_proficiency_type' => 'required|string|in:Beginner,Intermediate,Advanced,Expert',
             'graduate_skills_type' => 'required|string|max:255',
             'graduate_skills_years_experience' => 'required|integer|min:0',
+            'graduate_skills_months_experience' => 'nullable|integer|min:0|max:11',
+
         ]);
+        $months = $request->input('graduate_skills_months_experience', 0);
+
 
         $user = Auth::user();
         $graduate = \App\Models\Graduate::where('user_id', $user->id)->firstOrFail();
@@ -670,6 +677,11 @@ class ProfileController extends Controller
             return back()->withErrors(['flash.banner' => 'You already have this skill.']);
         }
 
+        \Log::info('Months experience received:', [
+            'months' => $months,
+            'request' => $request->all()
+        ]);
+
         // Add to graduate_skills
         GraduateSkill::create([
             'graduate_id' => $graduate->id,
@@ -677,6 +689,12 @@ class ProfileController extends Controller
             'proficiency_type' => $request->graduate_skills_proficiency_type,
             'type' => $request->graduate_skills_type,
             'years_experience' => $request->graduate_skills_years_experience,
+            'months_experience' => $months,
+
+        ]);
+        \Log::info('Months experience received:', [
+            'months' => $months,
+            'request' => $request->all()
         ]);
 
         // Reload graduate with skills
@@ -697,7 +715,11 @@ class ProfileController extends Controller
             'graduate_skills_proficiency_type' => 'required|string|in:Beginner,Intermediate,Advanced,Expert',
             'graduate_skills_type' => 'required|string|max:255',
             'graduate_skills_years_experience' => 'required|integer|min:0',
+            'graduate_skills_months_experience' => 'nullable|integer|min:0|max:11',
+
         ]);
+        $months = $request->input('graduate_skills_months_experience', 0);
+
 
         $graduateSkill = GraduateSkill::findOrFail($id);
 
@@ -712,6 +734,12 @@ class ProfileController extends Controller
         $graduateSkill->proficiency_type = $request->graduate_skills_proficiency_type;
         $graduateSkill->type = $request->graduate_skills_type;
         $graduateSkill->years_experience = $request->graduate_skills_years_experience;
+        $graduateSkill->months_experience = $months;
+
+        \Log::info('Months experience received:', [
+            'months' => $months,
+            'request' => $request->all()
+        ]);
         $graduateSkill->save();
         $graduate = Graduate::with('graduateSkills.skill')->find($graduateSkill->graduate_id);
         if ($graduate) {
@@ -1515,9 +1543,10 @@ class ProfileController extends Controller
                 Storage::disk('public')->delete($resume->file_path);
                 $resume->delete();
             }
-            return response()->json(['success' => true]);
+            // Redirect back with a flash message (Inertia will handle this)
+            return redirect()->back();
         } catch (\Exception $e) {
-            return response()->json(['success' => false], 500);
+            return redirect()->back();
         }
     }
 

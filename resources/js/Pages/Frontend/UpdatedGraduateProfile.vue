@@ -19,6 +19,7 @@ const props = defineProps({
     isCompany: Boolean,
     isHiring: Boolean,
     hiringProcess: Object,
+    certifications: Array,
 });
 
 // Toast notification state
@@ -108,7 +109,7 @@ const groupedEducationByLevel = computed(() => {
 });
 
 const highestEducation = computed(() => {
-    
+
     if (!props.education || !props.education.length) return null;
 
     // Priority order of education levels (highest to lowest)
@@ -274,14 +275,9 @@ const yearsOfExperience = computed(() => {
 
                 <!-- Right Column (Tabs) -->
                 <div class="lg:col-span-2">
-                    <TabsSection :graduate="graduate"
-                        :experiences="experiences"
-                        :education="education"
-                        :highestEducation="highestEducation"
-                        :projects="projects"
-                        :testimonials="testimonials"
-                        :resume="resume"
-                        :skills="skills"
+                    <TabsSection :graduate="graduate" :experiences="experiences" :education="education"
+                        :highestEducation="highestEducation" :projects="projects" :testimonials="testimonials"
+                        :resume="resume" :skills="skills" :certifications="certifications"
                         class="transition-all duration-300" />
                 </div>
             </div>

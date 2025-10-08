@@ -57,133 +57,24 @@ class ManageJobReferralsController extends Controller
         $successfulReferrals = $query->clone()->where('status', 'success')->count(); // <-- use 'success' status
         $successRate = $totalReferrals > 0 ? round(($successfulReferrals / $totalReferrals) * 100, 2) : 0;
         // Prepare data for Vue
-       $referralData = $referrals->getCollection()->map(function ($ref) {
-    $matchScore = 0;
-    $matchDetails = [];
-    $graduate = $ref->graduate;
-    $job = $ref->job;
+        $referralData = $referrals->getCollection()->map(function ($ref) {
+            $matchScore = 0;
+            $matchDetails = [];
+            $graduate = $ref->graduate;
+            $job = $ref->job;
 
-    // Define weights (keep consistent with recommendations)
-    $weights = [
-        'skills' => 3,
-        'education' => 2,
-        'experience' => 2,
-        'job_type' => 1,
-        'location' => 1,
-        'work_environment' => 1,
-        'min_salary' => 1,
-        'max_salary' => 1,
-        'salary_type' => 1,
-        'keywords' => 2, // m10: search keywords
-    ];
-    $totalWeight = array_sum($weights);
+            $screening = ($graduate && $job)
+                ? (new \App\Services\ApplicantScreeningService())->screen($graduate, $job)
+                : [
+                    'score' => 0,
+                    'labels' => [],
+                    'match_percentage' => 0,
+                    'screening_label' => null,
+                    'screening_feedback' => null,
+                    'is_shortlisted' => false,
+                    'status' => null,
+                ];
 
-    // All mi are binary (1 or 0)
-    $mi = [
-        'skills' => 0,
-        'education' => 0,
-        'experience' => 0,
-        'job_type' => 0,
-        'location' => 0,
-        'work_environment' => 0,
-        'min_salary' => 0,
-        'max_salary' => 0,
-        'salary_type' => 0,
-        'keywords' => 0,
-    ];
-
-    if ($graduate && $job) {
-        // m1: Skills
-        $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
-        $jobSkills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
-        foreach ($graduateSkills as $skill) {
-            if (stripos(json_encode($jobSkills), $skill) !== false) {
-                $mi['skills'] = 1;
-                $matchDetails[] = 'Skills';
-                break;
-            }
-        }
-
-        // m2: Education
-        $program = $graduate->program_id ? \App\Models\Program::find($graduate->program_id)->name ?? null : null;
-        if ($program && stripos($job->job_requirements, $program) !== false) {
-            $mi['education'] = 1;
-            $matchDetails[] = 'Education';
-        }
-
-        // m3: Experience
-        $experiences = $graduate->experience ? $graduate->experience->pluck('job_title')->filter()->unique()->toArray() : [];
-        foreach ($experiences as $title) {
-            if (stripos($job->job_title, $title) !== false) {
-                $mi['experience'] = 1;
-                $matchDetails[] = 'Experience';
-                break;
-            }
-        }
-
-        // m4: Preferred Job Type
-        $preferences = $graduate->employmentPreference;
-        $preferredJobTypes = $preferences && $preferences->job_type ? explode(',', $preferences->job_type) : [];
-        if (in_array($job->job_type, $preferredJobTypes)) {
-            $mi['job_type'] = 1;
-            $matchDetails[] = 'Preferred Job Type';
-        }
-
-        // m5: Preferred Location
-        $preferredLocations = $preferences && $preferences->location ? explode(',', $preferences->location) : [];
-        if (in_array($job->location, $preferredLocations)) {
-            $mi['location'] = 1;
-            $matchDetails[] = 'Preferred Location';
-        }
-
-        // m6: Preferred Work Environment
-        $preferredWorkEnvironments = $preferences && $preferences->work_environment ? explode(',', $preferences->work_environment) : [];
-        if (in_array($job->work_environment, $preferredWorkEnvironments)) {
-            $mi['work_environment'] = 1;
-            $matchDetails[] = 'Preferred Work Environment';
-        }
-
-        // m7: Preferred Min Salary
-        $minSalary = $preferences && $preferences->employment_min_salary ? $preferences->employment_min_salary : null;
-        if ($minSalary && $job->job_min_salary >= $minSalary) {
-            $mi['min_salary'] = 1;
-            $matchDetails[] = 'Preferred Min Salary';
-        }
-
-        // m8: Preferred Max Salary
-        $maxSalary = $preferences && $preferences->employment_max_salary ? $preferences->employment_max_salary : null;
-        if ($maxSalary && $job->job_max_salary <= $maxSalary) {
-            $mi['max_salary'] = 1;
-            $matchDetails[] = 'Preferred Max Salary';
-        }
-
-        // m9: Preferred Salary Type
-        $salaryType = $preferences && $preferences->salary_type ? $preferences->salary_type : null;
-        if ($salaryType && stripos($job->job_salary_type, $salaryType) !== false) {
-            $mi['salary_type'] = 1;
-            $matchDetails[] = 'Preferred Salary Type';
-        }
-
-        // m10: Search Keywords (from job search history)
-        $pastKeywords = $graduate->jobSearchHistory ? $graduate->jobSearchHistory->pluck('keywords')->unique()->toArray() : [];
-        foreach ($pastKeywords as $keyword) {
-            if (
-                stripos($job->job_title, $keyword) !== false ||
-                stripos($job->job_description, $keyword) !== false
-            ) {
-                $mi['keywords'] = 1;
-                $matchDetails[] = 'Past Search';
-                break;
-            }
-        }
-    }
-
-    // Calculate weighted score
-    $score = 0;
-    foreach ($weights as $key => $weight) {
-        $score += $mi[$key] * $weight;
-    }
-    $match_percentage = $totalWeight > 0 ? round(($score / $totalWeight) * 100) : 0;
 
             return [
                 'id' => $ref->id,
@@ -196,10 +87,10 @@ class ManageJobReferralsController extends Controller
                 'status' => $ref->status,
                 'referred_at' => $ref->created_at ? $ref->created_at->toDateString() : '',
                 'hired_at' => $ref->status === 'hired' && $ref->updated_at ? $ref->updated_at->toDateString() : null,
-                'match_score' => $score,
-                'match_details' => $matchDetails,
+                'match_score' => $screening['score'],
+                'match_details' => $screening['labels'],
                 'certificate_path' => $ref->certificate_path,
-                'match_percentage' => $match_percentage,
+                'match_percentage' => $screening['match_percentage'],
             ];
         });
 

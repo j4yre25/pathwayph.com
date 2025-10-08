@@ -1,8 +1,8 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
-import { Inertia } from '@inertiajs/inertia';
+import { watch } from 'vue';
 
 const { props } = usePage();
 
@@ -18,21 +18,11 @@ const filters = ref({
   search: props.filters?.search || '',
 });
 
-
 const pagination = computed(() => props.referrals || {});
 
-
-
+// Filtering actions
 function applyFilters() {
-  router.get(route('peso.job-referrals.index'), filters.value, { preserveState: true, replace: true });
-
-}
-
-function downloadCertificate(referralId) {
-  window.open(route('referral.certificate.download', referralId), '_blank');
-}
-function viewCertificate(referralId) {
-  window.open(route('referral.certificate.view', referralId), '_blank');
+  router.get(route('peso.job-referrals.index'), { ...filters.value }, { preserveState: true, replace: true });
 }
 
 function resetFilters() {
@@ -42,12 +32,19 @@ function resetFilters() {
     candidate: '',
     search: '',
   };
+  applyFilters();
 }
 
 function onSearch() {
-  filters.value.page = 1;
-
   applyFilters();
+}
+
+// Referral actions
+function downloadCertificate(referralId) {
+  window.open(route('referral.certificate.download', referralId), '_blank');
+}
+function viewCertificate(referralId) {
+  window.open(route('referral.certificate.view', referralId), '_blank');
 }
 
 function generateCertificate(referralId) {
@@ -59,7 +56,7 @@ function generateCertificate(referralId) {
     }
   }).then(() => {
     window.open(route('peso.job-referrals.certificate', referralId), '_blank');
-    applyFilters();
+    router.get(route('peso.job-referrals.index'), { ...filters.value }, { preserveState: true, replace: true });
   });
 }
 
@@ -71,22 +68,8 @@ function declineReferral(referralId) {
       'Accept': 'application/json'
     }
   }).then(() => {
-    Inertia.reload();
+    router.get(route('peso.job-referrals.index'), { ...filters.value }, { preserveState: true, replace: true });
   });
-}
-
-
-
-// function onPageChange(page) {
-//   router.get(route('peso.job-referrals.index'), { ...filters.value, page }, { preserveState: true, replace: true });
-// }
-
-function goToPage(link) {
-  if (!link.url) return;
-  // Extract the page number from the URL (?page=2)
-  const url = new URL(link.url, window.location.origin);
-  const page = url.searchParams.get('page') || 1;
-  onPageChange(page);
 }
 
 watch(
@@ -101,13 +84,6 @@ watch(
   },
   { immediate: true }
 );
-watch(filters, () => {
-  router.get(route('peso.job-referrals.index'), filters.value, {
-    preserveState: true,
-    replace: true,
-  });
-}, { deep: true });
-
 </script>
 
 <template>
@@ -161,11 +137,10 @@ watch(filters, () => {
           <i class="fas fa-filter text-blue-500 mr-2"></i>
           <h3 class="font-medium text-gray-700">Filter Referrals</h3>
           <div class="ml-auto">
-            <button type="button" @click="resetFilters()"
+            <button type="button" @click="resetFilters"
               class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-medium flex items-center hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-sm border border-gray-300">
               <i class="fas fa-undo mr-2"></i> Reset Filter
             </button>
-
           </div>
         </div>
         <div class="p-6">
@@ -173,7 +148,8 @@ watch(filters, () => {
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select v-model="filters.status"
-                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all appearance-none">
+                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all appearance-none"
+                @change="applyFilters">
                 <option value="">All Status</option>
                 <option value="success">Success</option>
                 <option value="pending">Pending</option>
@@ -183,12 +159,14 @@ watch(filters, () => {
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Company</label>
               <input v-model="filters.company" type="text" placeholder="Company name"
-                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none" />
+                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                @keyup.enter="onSearch" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Candidate</label>
               <input v-model="filters.candidate" type="text" placeholder="Candidate name"
-                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none" />
+                class="block w-full border border-gray-300 rounded-xl shadow-sm px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                @keyup.enter="onSearch" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
@@ -281,10 +259,9 @@ watch(filters, () => {
                     </button>
                     <button v-if="ref.certificate_path" @click="viewCertificate(ref.id)"
                       class="text-blue-600 underline">
-                      Download and View  Certificate
+                      Download and View Certificate
                     </button>
                     <span v-else class="text-gray-400 italic">Not available</span>
-
                   </div>
                 </td>
               </tr>
@@ -310,15 +287,16 @@ watch(filters, () => {
         <nav aria-label="Page navigation">
           <ul class="inline-flex items-center -space-x-px rounded-md shadow-sm">
             <li v-for="(link, i) in pagination.links" :key="i">
-              <button :disabled="!link.url" @click="goToPage(link)" :class="[
-                'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
-                link.active
-                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                link.label.includes('Previous') ? 'rounded-l-md' : '',
-                link.label.includes('Next') ? 'rounded-r-md' : '',
-                !link.url ? 'opacity-50 cursor-not-allowed' : ''
-              ]">
+              <button :disabled="!link.url"
+                @click="link.url && router.get(link.url, {}, { preserveState: true, replace: true })" :class="[
+                  'relative inline-flex items-center px-4 py-2 text-sm font-medium border',
+                  link.active
+                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                  link.label.includes('Previous') ? 'rounded-l-md' : '',
+                  link.label.includes('Next') ? 'rounded-r-md' : '',
+                  !link.url ? 'opacity-50 cursor-not-allowed' : ''
+                ]">
                 <span v-html="link.label"></span>
               </button>
             </li>

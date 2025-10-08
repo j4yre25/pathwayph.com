@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import VueECharts from 'vue-echarts'
 import axios from 'axios'
 import Container from '@/Components/Container.vue'
+import MultiSelect from '@/Components/MultiSelect.vue'
 
 
 const loading = ref(false)
@@ -17,22 +18,48 @@ const reportTypes = [
     { key: 'preference', label: 'Employer Preferences' },
 ]
 
+const selectedRoles = ref([]);
+const dateFrom = ref('');
+const dateTo = ref('');
+const allRoles = ref([]);
+
 
 
 function fetchJobMarketData() {
-    loading.value = true
-    axios.get(route('peso.reports.jobmarket.data'))
+    loading.value = true;
+    axios.get(route('peso.reports.jobmarket.data'), {
+        params: {
+            roles: selectedRoles.value.map(r => r.value), // <-- Only send values!
+            date_from: dateFrom.value,
+            date_to: dateTo.value,
+        }
+    })
         .then(res => {
-            analyticsData.value = res.data
-            console.log('JobMarket:', res.data)
+            analyticsData.value = res.data;
+            console.log('JobMarket:', res.data);
         })
         .finally(() => {
-            loading.value = false
-        })
+            loading.value = false;
+        });
 }
 
-onMounted(fetchJobMarketData)
 
+
+
+onMounted(() => {
+    fetchJobMarketData();
+    axios.get(route('peso.reports.jobmarket.roles'))
+        .then(res => {
+            allRoles.value = (res.data.roles || []).map(role => ({
+                label: role,
+                value: role
+            }));
+            console.log('Fetched job roles:', allRoles.value);
+        })
+        .catch(err => {
+            console.error('Error fetching job roles:', err);
+        });
+});
 
 // Scatter Plot: Job Seeker & Role Alignment
 
@@ -42,9 +69,10 @@ const scatterOption = computed(() => ({
         trigger: 'item',
         formatter: function (params) {
             // params.data = [matched, required, applicant, matchedSkills, requiredSkills]
-            const [matched, required, applicant, matchedSkills, requiredSkills] = params.data;
+            const [matched, required, applicant, matchedSkills, requiredSkills, jobTitle] = params.data;
             return `
                 <b>${'Job Seeker'}</b><br/>
+                  <b>Role:</b> ${jobTitle}<br/>
                 Skills Matched: ${matched}<br/>
                 Required Skills: ${required}<br/>
                 <span class="block mt-1 text-xs text-gray-500">Matched Skills: ${matchedSkills?.join(', ') || '-'}</span>
@@ -61,7 +89,8 @@ const scatterOption = computed(() => ({
             d.required,
             d.applicant,
             d.matchedSkills ?? [],
-            d.requiredSkills ?? []
+            d.requiredSkills ?? [],
+            d.job_title || 'N/A'
         ]),
         type: 'scatter',
         itemStyle: { color: '#3b82f6' }
@@ -376,6 +405,33 @@ const employerPreferencesSummary = computed(() => {
 
             <!-- Job Seeker and Role Alignment Section -->
             <div v-if="reportType === 'alignment'">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-filter text-blue-500 mr-2"></i>
+                        Filter Reports
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Job Role</label>
+                            <MultiSelect v-model="selectedRoles" :options="allRoles" placeholder="Select job roles"
+                                multiple class="min-w-[200px] w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                            <input type="date" v-model="dateFrom" class="form-input w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                            <input type="date" v-model="dateTo" class="form-input w-full" />
+                        </div>
+                        <div class="flex items-end">
+                            <button @click="fetchJobMarketData"
+                                class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 w-full">
+                                Apply Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <!-- Scatter Plot: Job Seeker & Role Alignment -->
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
@@ -430,7 +486,30 @@ const employerPreferencesSummary = computed(() => {
 
             <!-- Matching Success Rate Section -->
             <div v-if="reportType === 'matching'">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-filter text-blue-500 mr-2"></i>
+                        Filter Reports
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <!-- Job Role filter only for alignment tab -->
 
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                            <input type="date" v-model="dateFrom" class="form-input w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                            <input type="date" v-model="dateTo" class="form-input w-full" />
+                        </div>
+                        <div class="flex items-end">
+                            <button @click="fetchJobMarketData"
+                                class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 w-full">
+                                Apply Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
                         <i class="fas fa-percentage text-green-500"></i>
@@ -475,6 +554,30 @@ const employerPreferencesSummary = computed(() => {
 
             <!-- Future Job Trends Section -->
             <div v-if="reportType === 'future'">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-filter text-blue-500 mr-2"></i>
+                        Filter Reports
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <!-- Job Role filter only for alignment tab -->
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                            <input type="date" v-model="dateFrom" class="form-input w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                            <input type="date" v-model="dateTo" class="form-input w-full" />
+                        </div>
+                        <div class="flex items-end">
+                            <button @click="fetchJobMarketData"
+                                class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 w-full">
+                                Apply Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
                         <i class="fas fa-chart-line text-blue-500"></i>
@@ -529,6 +632,30 @@ const employerPreferencesSummary = computed(() => {
 
             <!-- Employer Preferences Section -->
             <div v-if="reportType === 'preference'">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-filter text-blue-500 mr-2"></i>
+                        Filter Reports
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <!-- Job Role filter only for alignment tab -->
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                            <input type="date" v-model="dateFrom" class="form-input w-full" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                            <input type="date" v-model="dateTo" class="form-input w-full" />
+                        </div>
+                        <div class="flex items-end">
+                            <button @click="fetchJobMarketData"
+                                class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 w-full">
+                                Apply Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
                         <i class="fas fa-user-tie text-yellow-500"></i>

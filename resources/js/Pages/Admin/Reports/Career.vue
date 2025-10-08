@@ -1,10 +1,71 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import VueECharts from 'vue-echarts'
 import axios from 'axios'
 import Container from '@/Components/Container.vue'
+import MultiSelect from '@/Components/MultiSelect.vue';
+import { usePage } from '@inertiajs/vue3'
 
+
+const page = usePage()
+const institutions = ref(page.props.institutions ?? [])
+const graduates = computed(() => analyticsData.value.graduates ?? []);
+
+const industries = ref(page.props.industries ?? []);
+const experienceLevels = [
+    { id: 'Entry', name: 'Entry' },
+    { id: 'Mid', name: 'Mid' },
+    { id: 'Senior', name: 'Senior' }
+];
+
+const selectedIndustries = ref([]);
+const selectedExperienceLevels = ref([]);
+const dateFromSalary = ref('');
+const dateToSalary = ref('');
+
+
+console.log('Institutions:', institutions.value);
+const programs = ref(page.props.programs ?? [])
+const selectedYear = ref('');
+const selectedPrograms = ref([]);
+const selectedInstitutions = ref([]);
+const selectedSkillTypes = ref([]);
+const years = computed(() => {
+    const set = new Set();
+    graduates.value.forEach(g => {
+        if (g.school_year?.school_year_range) set.add(g.school_year.school_year_range);
+    });
+    return Array.from(set).sort().reverse();
+});
+
+const programOptions = computed(() =>
+    Array.isArray(programs.value)
+        ? programs.value
+            .filter(p => p && (p.name || typeof p === 'string'))
+            .map(program => ({
+                id: program.id ?? program.name ?? program,
+                name: program.name ?? program
+            }))
+        : []
+);
+
+const institutionOptions = computed(() =>
+    Array.isArray(institutions.value)
+        ? institutions.value
+            .filter(i => i && (i.name || typeof i === 'string'))
+            .map(inst => ({
+                id: inst.id ?? inst.name,
+                name: inst.name ?? inst
+            }))
+        : []
+);
+
+const skillTypeOptions = [
+    { id: 'Technical Skills', name: 'Technical Skills' },
+    { id: 'Soft Skills', name: 'Soft Skills' },
+    { id: 'Language Skills', name: 'Language Skills' }
+];
 const loading = ref(false)
 const analyticsData = ref({})
 
@@ -21,6 +82,11 @@ function fetchCareerData() {
         .then(res => {
             analyticsData.value = res.data
             console.log('Career Analytics:', res.data)
+            if (res.data.graduates) {
+                res.data.graduates.forEach(g => {
+                    console.log('Graduate object:', g);
+                });
+            }
         })
         .finally(() => {
             loading.value = false
@@ -29,40 +95,100 @@ function fetchCareerData() {
 
 onMounted(fetchCareerData)
 
+
+const filteredBarChartData = computed(() => {
+    let data = analyticsData.value.barChartData ?? [];
+    if (selectedYear.value) {
+        data = data.filter(d => String(d.year) === String(selectedYear.value));
+    }
+    if (selectedPrograms.value.length) {
+        const selected = selectedPrograms.value.map(p => p.name);
+        data = data.filter(d => selected.includes(d.program));
+    }
+    if (selectedInstitutions.value.length) {
+        const selected = selectedInstitutions.value.map(i => i.name);
+        data = data.filter(d =>
+            selected.includes(d.institution) ||
+            selected.includes(d.institution_name)
+        );
+    }
+    data = data.filter(d => d.employment_rate > 0);
+    return Array.isArray(data) ? data : [];
+});
+
+const filteredRadarData = computed(() => {
+    let data = analyticsData.value.radarData ?? [];
+    if (selectedPrograms.value.length) {
+        const selected = selectedPrograms.value.map(p => p.name);
+        data = data.filter(d => selected.includes(d.name));
+    }
+    // Skill Type filter (optional, only if you want to filter radar indicators)
+    if (selectedSkillTypes.value.length) {
+        const selectedSkills = selectedSkillTypes.value.map(s => s.name);
+        // Filter radar indicators and values to only selected skill types
+        // This requires you to also filter radarOption's indicators and each data.value
+        // If not needed, you can skip this part
+    }
+    return Array.isArray(data) ? data : [];
+});
+
 // Bar Chart: Employment Rate by Education Level
 const barOption = computed(() => ({
     tooltip: { trigger: 'axis' },
     xAxis: {
         type: 'category',
-        data: (analyticsData.value.barChartData ?? []).map(d => d.education),
+        data: filteredBarChartData.value.map(d => d.education),
         axisLabel: { rotate: 20 }
     },
     yAxis: { type: 'value', name: 'Employment Rate (%)' },
     series: [{
         name: 'Employment Rate',
         type: 'bar',
-        data: (analyticsData.value.barChartData ?? []).map(d => d.employment_rate),
+        data: filteredBarChartData.value.map(d => d.employment_rate),
         itemStyle: { color: '#3b82f6' }
     }]
 }))
 
+
+
 // Radar Chart: Skills Development vs Employability by Program
 const radarOption = computed(() => ({
     tooltip: { trigger: 'item' },
-    legend: { data: (analyticsData.value.radarData ?? []).map(d => d.name) },
+    legend: {
+        data: filteredRadarData.value.map(d => d.name),
+        bottom: 0,
+        type: 'scroll',
+        orient: 'horizontal',
+        itemWidth: 18,
+        itemHeight: 14,
+        textStyle: { fontSize: 12 }
+    },
     radar: {
         indicator: (analyticsData.value.radarSkills ?? []).map(skill => ({
             name: skill, max: 100
         })),
-        radius: 90
+        radius: 120
     },
     series: [{
         type: 'radar',
-        data: analyticsData.value.radarData ?? [],
+        data: filteredRadarData.value,
         areaStyle: { opacity: 0.1 }
     }]
-}))
-
+}));
+const filteredIndustrySalaryBoxData = computed(() => {
+    let data = analyticsData.value.industrySalaryBoxData ?? [];
+    if (selectedIndustries.value.length) {
+        const selected = selectedIndustries.value.map(i => i.name);
+        data = data.filter(d => selected.includes(d.industry));
+    }
+    if (dateFromSalary.value) {
+        data = data.filter(d => !d.date || d.date >= dateFromSalary.value);
+    }
+    if (dateToSalary.value) {
+        data = data.filter(d => !d.date || d.date <= dateToSalary.value);
+    }
+    return data;
+});
 
 // Box Plot: Salary Ranges Across Industries
 const boxPlotOption = computed(() => ({
@@ -70,14 +196,14 @@ const boxPlotOption = computed(() => ({
     legend: { data: ['Salary Range'] },
     xAxis: {
         type: 'category',
-        data: (analyticsData.value.industrySalaryBoxData ?? []).map(d => d.industry),
+        data: (filteredIndustrySalaryBoxData.value ?? []).map(d => d.industry),
         axisLabel: { rotate: 20 }
     },
     yAxis: { type: 'value', name: 'Salary' },
     series: [{
         name: 'Salary Range',
         type: 'boxplot',
-        data: (analyticsData.value.industrySalaryBoxData ?? []).map(d => {
+        data: (filteredIndustrySalaryBoxData.value ?? []).map(d => {
             // ECharts expects [min, Q1, median, Q3, max]
             const arr = d.all ?? [];
             arr.sort((a, b) => a - b);
@@ -92,13 +218,41 @@ const boxPlotOption = computed(() => ({
     }]
 }));
 
+
+const filteredIndustryLevelSalaries = computed(() => {
+    let data = analyticsData.value.industryLevelSalaries ?? [];
+    if (selectedIndustries.value.length) {
+        const selected = selectedIndustries.value.map(i => i.name);
+        data = data.filter(d => selected.includes(d.industry));
+    }
+    if (selectedExperienceLevels.value.length) {
+        const selectedLevels = selectedExperienceLevels.value.map(e => e.name);
+        // Optionally filter series or just show selected levels in chart
+        data = data.map(d => {
+            let filtered = { industry: d.industry };
+            selectedLevels.forEach(level => {
+                filtered[level] = d[level];
+            });
+            return filtered;
+        });
+    }
+    if (dateFromSalary.value) {
+        data = data.filter(d => !d.date || d.date >= dateFromSalary.value);
+    }
+    if (dateToSalary.value) {
+        data = data.filter(d => !d.date || d.date <= dateToSalary.value);
+    }
+    return data;
+});
+
+
 // Stacked Bar: Entry/Mid/Senior Salary per Industry
 const stackedBarOption = computed(() => ({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { data: ['Entry', 'Mid', 'Senior'] },
     xAxis: {
         type: 'category',
-        data: (analyticsData.value.industryLevelSalaries ?? []).map(d => d.industry),
+        data: (filteredIndustryLevelSalaries.value ?? []).map(d => d.industry),
         axisLabel: { rotate: 20 }
     },
     yAxis: { type: 'value', name: 'Average Salary' },
@@ -107,7 +261,7 @@ const stackedBarOption = computed(() => ({
             name: 'Entry',
             type: 'bar',
             stack: 'salary',
-            data: (analyticsData.value.industryLevelSalaries ?? []).map(d => d.Entry),
+            data: (filteredIndustryLevelSalaries.value ?? []).map(d => d.Entry),
             itemStyle: { color: '#60a5fa' }
         },
         {
@@ -126,6 +280,18 @@ const stackedBarOption = computed(() => ({
         }
     ]
 }));
+
+const filteredSalaryExpectations = computed(() => {
+    let data = analyticsData.value.salaryExpectations ?? {};
+    // If your salary data has date/industry, filter here
+    // Otherwise, just use as is
+    return data;
+});
+
+watch([filteredBarChartData, filteredRadarData], ([bar, radar]) => {
+    console.log('Filtered Bar Chart Data:', bar)
+    console.log('Filtered Radar Data:', radar)
+})
 
 
 // Histogram: Salary Expectations vs Offered
@@ -178,7 +344,7 @@ const histogramOption = computed(() => ({
             name: 'Graduate Min',
             type: 'bar',
             data: allBins.value.map(bin =>
-                graduateMinBins.value.find(b => b.bin === bin)?.count ?? 0
+                binData(filteredSalaryExpectations.value.graduateMin).find(b => b.bin === bin)?.count ?? 0
             ),
             itemStyle: { color: '#60a5fa', opacity: 0.7 }
         },
@@ -186,7 +352,7 @@ const histogramOption = computed(() => ({
             name: 'Graduate Max',
             type: 'bar',
             data: allBins.value.map(bin =>
-                graduateMaxBins.value.find(b => b.bin === bin)?.count ?? 0
+                binData(filteredSalaryExpectations.value.graduateMax).find(b => b.bin === bin)?.count ?? 0
             ),
             itemStyle: { color: '#3b82f6', opacity: 0.7 }
         },
@@ -194,7 +360,7 @@ const histogramOption = computed(() => ({
             name: 'Job Min',
             type: 'bar',
             data: allBins.value.map(bin =>
-                jobMinBins.value.find(b => b.bin === bin)?.count ?? 0
+                binData(filteredSalaryExpectations.value.jobMin).find(b => b.bin === bin)?.count ?? 0
             ),
             itemStyle: { color: '#fbbf24', opacity: 0.7 }
         },
@@ -202,7 +368,7 @@ const histogramOption = computed(() => ({
             name: 'Job Max',
             type: 'bar',
             data: allBins.value.map(bin =>
-                jobMaxBins.value.find(b => b.bin === bin)?.count ?? 0
+                binData(filteredSalaryExpectations.value.jobMax).find(b => b.bin === bin)?.count ?? 0
             ),
             itemStyle: { color: '#f59e42', opacity: 0.7 }
         }
@@ -211,8 +377,8 @@ const histogramOption = computed(() => ({
 
 // Education Analytics Summary
 const educationSummary = computed(() => {
-    const bar = analyticsData.value.barChartData ?? [];
-    const radar = analyticsData.value.radarData ?? [];
+    const bar = filteredBarChartData.value;
+    const radar = filteredRadarData.value;
     let summary = "<ul class='list-disc ml-6 mb-2'>";
 
     // Bar Chart: Employment Rate by Education
@@ -221,12 +387,16 @@ const educationSummary = computed(() => {
         summary += `<li>Highest employment rate: <strong>${top.education}</strong> (${top.employment_rate}%)</li>`;
         const low = bar.reduce((a, b) => (a.employment_rate < b.employment_rate ? a : b));
         summary += `<li>Lowest employment rate: <strong>${low.education}</strong> (${low.employment_rate}%)</li>`;
+    } else {
+        summary += `<li>No employment rate data for selected filters.</li>`;
     }
 
     // Radar Chart: Skills Development vs Employability
     if (radar.length) {
         const topProgram = radar.reduce((a, b) => (a.value?.reduce((x, y) => x + y, 0) > b.value?.reduce((x, y) => x + y, 0) ? a : b));
         summary += `<li>Program with strongest skills-employability: <strong>${topProgram.name}</strong></li>`;
+    } else {
+        summary += `<li>No skills-employability data for selected filters.</li>`;
     }
 
     summary += "</ul>";
@@ -235,9 +405,9 @@ const educationSummary = computed(() => {
 
 // Salary Analytics Summary
 const salarySummary = computed(() => {
-    const box = analyticsData.value.industrySalaryBoxData ?? [];
-    const stacked = analyticsData.value.industryLevelSalaries ?? [];
-    const hist = analyticsData.value.salaryExpectations ?? {};
+    const box = filteredIndustrySalaryBoxData.value ?? [];
+    const stacked = filteredIndustryLevelSalaries.value ?? [];
+    const hist = filteredSalaryExpectations.value ?? {};
     let summary = "<ul class='list-disc ml-6 mb-2'>";
 
     // Box Plot: Salary Ranges
@@ -246,6 +416,8 @@ const salarySummary = computed(() => {
         summary += `<li>Highest salary range: <strong>${top.industry}</strong></li>`;
         const low = box.reduce((a, b) => (Math.min(...(a.all ?? [0])) < Math.min(...(b.all ?? [0])) ? a : b));
         summary += `<li>Lowest salary range: <strong>${low.industry}</strong></li>`;
+    } else {
+        summary += `<li>No salary range data for selected filters.</li>`;
     }
 
     // Stacked Bar: Salary by Experience Level
@@ -254,6 +426,8 @@ const salarySummary = computed(() => {
         summary += `<li>Highest entry-level salary: <strong>${topEntry.industry}</strong> (₱${topEntry.Entry})</li>`;
         const topSenior = stacked.reduce((a, b) => (a.Senior > b.Senior ? a : b));
         summary += `<li>Highest senior-level salary: <strong>${topSenior.industry}</strong> (₱${topSenior.Senior})</li>`;
+    } else {
+        summary += `<li>No experience-level salary data for selected filters.</li>`;
     }
 
     // Histogram: Salary Expectations vs Offered
@@ -262,6 +436,8 @@ const salarySummary = computed(() => {
         const jobMin = Math.min(...Object.values(hist.jobMin));
         summary += `<li>Lowest expected salary: <strong>₱${gradMin}</strong></li>`;
         summary += `<li>Lowest offered salary: <strong>₱${jobMin}</strong></li>`;
+    } else {
+        summary += `<li>No salary expectation data for selected filters.</li>`;
     }
 
     summary += "</ul>";
@@ -291,7 +467,37 @@ const salarySummary = computed(() => {
             </div>
 
 
-            <div v-if="reportType === 'education'">
+            <div v-if="reportType === 'education'"
+                class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-filter text-blue-500 mr-2"></i>
+                    Filter Reports
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                        <select v-model="selectedYear"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
+                            <option value="">All Years</option>
+                            <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Program</label>
+                        <MultiSelect v-model="selectedPrograms" :options="programOptions" label="name" track-by="id"
+                            :searchable="true" :multiple="true" placeholder="Select programs" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Institution</label>
+                        <MultiSelect v-model="selectedInstitutions" :options="institutionOptions" label="name"
+                            track-by="id" :searchable="true" :multiple="true" placeholder="Select institutions" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Skill Type</label>
+                        <MultiSelect v-model="selectedSkillTypes" :options="skillTypeOptions" label="name" track-by="id"
+                            :searchable="true" :multiple="true" placeholder="Select skill types" />
+                    </div>
+                </div>
                 <!-- Bar Chart: Employment Rate by Education Level -->
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
@@ -303,14 +509,14 @@ const salarySummary = computed(() => {
                         <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
                     </div>
                     <div v-else>
-                        <VueECharts v-if="analyticsData.barChartData && analyticsData.barChartData.length"
-                            :option="barOption" style="height: 400px; width: 100%;" />
+                        <VueECharts v-if="filteredBarChartData.length" :option="barOption"
+                            style="height: 400px; width: 100%;" />
                         <div v-else class="text-gray-400 text-center py-12">No bar chart data available.</div>
                     </div>
                 </div>
 
                 <!-- Radar Chart: Skills Development vs Employability -->
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8">
+                <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8 ">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
                         <i class="fas fa-chart-pie text-green-500"></i>
                         Skills Development vs Employability <span class="font-bold text-green-600">(Radar Chart)</span>
@@ -319,9 +525,9 @@ const salarySummary = computed(() => {
                         <span class="loader mr-3"></span>
                         <span class="text-blue-500 text-lg font-semibold">Loading analytics...</span>
                     </div>
-                    <div v-else>
-                        <VueECharts v-if="analyticsData.radarData && analyticsData.radarData.length"
-                            :option="radarOption" style="height: 400px; width: 100%;" />
+                    <div v-else class="w-full flex flex-col items-center">
+                        <VueECharts v-if="filteredRadarData.length" :option="radarOption"
+                            style="height: 600px; width: 100%; max-width: 700px;" />
                         <div v-else class="text-gray-400 text-center py-12">No radar chart data available.</div>
                     </div>
                 </div>
@@ -345,8 +551,33 @@ const salarySummary = computed(() => {
 
             </div>
 
-            <div v-if="reportType === 'salary'">
-
+            <div v-if="reportType === 'salary'" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-filter text-orange-500 mr-2"></i>
+                    Filter Reports
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                        <MultiSelect v-model="selectedIndustries" :options="industries" label="name" track-by="id"
+                            :searchable="true" :multiple="true" placeholder="Select industries" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Experience Level</label>
+                        <MultiSelect v-model="selectedExperienceLevels" :options="experienceLevels" label="name"
+                            track-by="id" :searchable="true" :multiple="true" placeholder="Select experience levels" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                        <input type="date" v-model="dateFromSalary"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-200 focus:ring-opacity-50 transition-colors duration-200" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                        <input type="date" v-model="dateToSalary"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-200 focus:ring-opacity-50 transition-colors duration-200" />
+                    </div>
+                </div>
                 <!-- Box Plot: Salary Ranges Across Industries -->
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
