@@ -1092,6 +1092,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso-reports/diversity/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'diversityData'])->name('peso.reports.diversity.data');
     Route::get('/peso-reports/jobmarket', [App\Http\Controllers\Admin\PesoReportsController::class, 'jobmarket'])->name('peso.reports.jobmarket');
     Route::get('/peso-reports/jobmarket/data', [App\Http\Controllers\Admin\PesoReportsController::class, 'jobmarketData'])->name('peso.reports.jobmarket.data');
+    Route::get('/admin/reports/jobmarket/roles', [App\Http\Controllers\Admin\PesoReportsController::class, 'jobMarketRoles'])->name('peso.reports.jobmarket.roles');
 
     Route::get('/admin/job-referrals/{referral}/certificate', [ManageJobReferralsController::class, 'generateCertificate'])->name('peso.job-referrals.certificate');
     Route::get('/admin/seminar-requests', [PesoCareerGuidanceController::class, 'seminarRequests'])->name('admin.seminar-requests');
