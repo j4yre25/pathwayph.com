@@ -10,7 +10,7 @@ const seminarRequests = computed(() => props.seminarRequests || []);
 const showDetailsModal = ref(false);
 const details = ref({});
 
-const approve = (id) => {
+const p = (id) => {
   router.post(route('admin.seminar-requests.update-status', id), { status: 'approved' });
 };
 const disapprove = (id) => {

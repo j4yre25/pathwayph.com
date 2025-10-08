@@ -7,15 +7,17 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import Datepicker from 'vue3-datepicker';
-import { parseISO,isValid } from 'date-fns';
+import { parseISO, isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
+import { Inertia } from '@inertiajs/inertia'
+
 
 // Define props
 const props = defineProps({
   activeSection: { type: String, default: 'experience' },
   experienceEntries: Array,
   archivedExperienceEntries: { type: Array, default: () => [] },
-  companies: { type: Array, default: () => [] }, 
+  companies: { type: Array, default: () => [] },
   locations: { type: Array, default: () => [] },
 })
 
@@ -218,6 +220,7 @@ const addExperience = () => {
       companySearchAdd.value = ''
       isAddExperienceModalOpen.value = false
       isSuccessModalOpen.value = true
+      Inertia.reload()
     },
     onError: () => {
       isErrorModalOpen.value = true
@@ -249,6 +252,7 @@ const updateExperience = () => {
       isUpdateExperienceModalOpen.value = false
       successMessage.value = 'Experience updated successfully.'
       isSuccessModalOpen.value = true
+      Inertia.reload()
     },
     onError: (errors) => {
       errorMessage.value = 'An error occurred while updating the experience. Please check the form and try again.'
@@ -309,16 +313,30 @@ function closeConfirm() {
 // Actual server actions
 function doArchive(entry) {
   closeConfirm();
-  useForm({}).put(route('profile.experience.archive', entry.id), { preserveScroll: true });
+  useForm({}).put(route('profile.experience.archive', entry.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      Inertia.reload();
+    }
+  });
 }
 function doUnarchive(entry) {
   closeConfirm();
-  useForm({}).put(route('profile.experience.unarchive', entry.id), { preserveScroll: true });
+  useForm({}).put(route('profile.experience.unarchive', entry.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      Inertia.reload();
+    }
+  });
 }
 function doDelete(entry) {
   closeConfirm();
-  // Uses remove route (DELETE) which soft-deletes first time, force-deletes if already archived
-  useForm({}).delete(route('profile.experience.remove', entry.id), { preserveScroll: true });
+  useForm({}).delete(route('profile.experience.remove', entry.id), {
+    preserveScroll: true,
+    onSuccess: () => {
+      Inertia.reload();
+    }
+  });
 }
 
 // Button handlers (used in template)
@@ -457,17 +475,11 @@ experienceForm.graduate_experience_address = selectedLocation
       <p class="text-center text-gray-600 mb-4">{{ confirmModal.message }}</p>
       <div class="mt-6 flex justify-center space-x-2">
         <SecondaryButton type="button" @click="closeConfirm">Cancel</SecondaryButton>
-        <DangerButton
-          v-if="confirmModal.type === 'delete'"
-          type="button"
-          @click="confirmModal.confirmAction"
-        >Delete</DangerButton>
-        <PrimaryButton
-          v-else
-          type="button"
+        <DangerButton v-if="confirmModal.type === 'delete'" type="button" @click="confirmModal.confirmAction">Delete
+        </DangerButton>
+        <PrimaryButton v-else type="button"
           :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
-          @click="confirmModal.confirmAction"
-        >{{ confirmModal.confirmLabel }}</PrimaryButton>
+          @click="confirmModal.confirmAction">{{ confirmModal.confirmLabel }}</PrimaryButton>
       </div>
     </div>
   </Modal>
@@ -475,7 +487,8 @@ experienceForm.graduate_experience_address = selectedLocation
   <div v-if="activeSection === 'experience'" class="flex flex-col lg:flex-row">
     <div class="w-full mb-6">
       <!-- Work Experience Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
+      <div
+        class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
         <!-- Card Header -->
         <div class="flex justify-between items-center p-4 bg-gradient-to-r from-blue-100 to-white">
           <div class="flex items-center">
@@ -485,7 +498,8 @@ experienceForm.graduate_experience_address = selectedLocation
             <h3 class="text-lg font-semibold text-blue-700">Work Experience</h3>
           </div>
           <div class="flex space-x-2">
-            <PrimaryButton class="bg-blue-600 text-white px-3 py-1 rounded-lg flex items-center hover:bg-blue-700 text-sm"
+            <PrimaryButton
+              class="bg-blue-600 text-white px-3 py-1 rounded-lg flex items-center hover:bg-blue-700 text-sm"
               @click="openAddExperienceModal">
               <i class="fas fa-plus mr-1"></i> Add Experience
             </PrimaryButton>
@@ -497,75 +511,77 @@ experienceForm.graduate_experience_address = selectedLocation
             </button>
           </div>
         </div>
-        
+
         <!-- Card Body -->
         <div class="p-6 transition-all duration-300">
           <p class="text-gray-600 mb-6">Showcase your professional experience</p>
 
           <!-- Experience Entries -->
           <div v-if="experienceEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div v-for="experienceEntry in experienceEntries" :key="experienceEntry.id"
-            class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative group border border-gray-200">
-            <div>
-              <div class="border-b border-blue-100 pb-3">
-                <h2 class="text-xl font-bold text-blue-900">{{ experienceEntry.title }}</h2>
-                <div class="flex items-center text-gray-700 mt-1">
-                  <i class="fas fa-building text-blue-600 mr-2"></i>
-                  <span class="font-medium">
-                    {{experienceEntry.company_name}}
+            <div v-for="experienceEntry in experienceEntries" :key="experienceEntry.id"
+              class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 space-y-3 relative group border border-gray-200">
+              <div>
+                <div class="border-b border-blue-100 pb-3">
+                  <h2 class="text-xl font-bold text-blue-900">{{ experienceEntry.title }}</h2>
+                  <div class="flex items-center text-gray-700 mt-1">
+                    <i class="fas fa-building text-blue-600 mr-2"></i>
+                    <span class="font-medium">
+                      {{ experienceEntry.company_name }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
+                  <span>{{ experienceEntry.address }}</span>
+                </div>
+                <!-- Experience Card Date & Duration Block -->
+                <div class="flex items-center text-gray-600 mt-2">
+                  <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
+                  <span>
+                    {{ formatDate(experienceEntry.start_date) }}
+                    -
+                    {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.end_date) }}
                   </span>
                 </div>
-              </div>
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
-                <span>{{ experienceEntry.address }}</span>
-              </div>
-              <!-- Experience Card Date & Duration Block -->
-              <div class="flex items-center text-gray-600 mt-2">
-                <i class="far fa-calendar-alt text-blue-600 mr-2"></i>
-                <span>
-                  {{ formatDate(experienceEntry.start_date) }}
-                  -
-                  {{ experienceEntry.is_current ? 'Present' : formatDate(experienceEntry.end_date) }}
-                </span>
-              </div>
-              <p v-if="!experienceEntry.is_current" class="text-gray-600 mt-2 flex items-center">
-                <i class="fas fa-hourglass-half text-blue-600 mr-2"></i>
-                <strong class="text-blue-900">Experience:</strong>
-                <span class="ml-1">{{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false) }}</span>
-              </p>
-              <p class="text-gray-600 mt-2 flex items-center">
-                <i class="fas fa-briefcase text-blue-600 mr-2"></i>
-                <strong class="text-blue-900">Employment Type:</strong> {{ experienceEntry.employment_type }}
-              </p>
-              <div class="mt-3">
-                <div class="flex items-center mb-2">
-                  <i class="fas fa-info-circle text-blue-600 mr-2"></i>
-                  <strong class="text-blue-900">Description:</strong>
-                </div>
-                <div class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400">
-                  {{ experienceEntry.description || 'No description provided' }}
+                <p v-if="!experienceEntry.is_current" class="text-gray-600 mt-2 flex items-center">
+                  <i class="fas fa-hourglass-half text-blue-600 mr-2"></i>
+                  <strong class="text-blue-900">Experience:</strong>
+                  <span class="ml-1">{{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false)
+                  }}</span>
+                </p>
+                <p class="text-gray-600 mt-2 flex items-center">
+                  <i class="fas fa-briefcase text-blue-600 mr-2"></i>
+                  <strong class="text-blue-900">Employment Type:</strong> {{ experienceEntry.employment_type }}
+                </p>
+                <div class="mt-3">
+                  <div class="flex items-center mb-2">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    <strong class="text-blue-900">Description:</strong>
+                  </div>
+                  <div class="bg-gray-50 p-3 rounded-md border-l-4 border-blue-400">
+                    {{ experienceEntry.description || 'No description provided' }}
+                  </div>
                 </div>
               </div>
+              <div
+                class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <button type="button"
+                  class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200"
+                  @click="openUpdateExperienceModal(experienceEntry)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button type="button"
+                  class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200"
+                  @click="archiveExperience(experienceEntry)">
+                  <i class="fas fa-archive"></i>
+                </button>
+                <button type="button"
+                  class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200"
+                  @click="deleteExperience(experienceEntry)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
             </div>
-            <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <button type="button"
-                class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-full transition-colors duration-200"
-                @click="openUpdateExperienceModal(experienceEntry)">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button type="button"
-                class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-full transition-colors duration-200"
-                @click="archiveExperience(experienceEntry)">
-                <i class="fas fa-archive"></i>
-              </button>
-              <button type="button"
-                class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200"
-                @click="deleteExperience(experienceEntry)">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
           </div>
 
           <!-- If no experience entries exist -->
@@ -576,7 +592,8 @@ experienceForm.graduate_experience_address = selectedLocation
       </div>
 
       <!-- Archived Experience Card -->
-      <div v-if="showArchivedExperience" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
+      <div v-if="showArchivedExperience"
+        class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 mb-6">
         <!-- Card Header -->
         <div class="flex justify-between items-center p-4 bg-gradient-to-r from-gray-200 to-white">
           <div class="flex items-center">
@@ -586,7 +603,7 @@ experienceForm.graduate_experience_address = selectedLocation
             <h3 class="text-lg font-semibold text-gray-700">Archived Experience</h3>
           </div>
         </div>
-        
+
         <!-- Card Body -->
         <div class="p-6 transition-all duration-300">
           <div v-if="archivedExperienceEntries.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -616,7 +633,8 @@ experienceForm.graduate_experience_address = selectedLocation
                 <p v-if="!experienceEntry.is_current" class="text-gray-600 mt-2 flex items-center">
                   <i class="fas fa-hourglass-half text-blue-600 mr-2"></i>
                   <strong class="text-blue-900">Experience:</strong>
-                  <span class="ml-1">{{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false) }}</span>
+                  <span class="ml-1">{{ calculateYears(experienceEntry.start_date, experienceEntry.end_date, false)
+                  }}</span>
                 </p>
                 <p class="text-gray-600 mt-2 flex items-center">
                   <i class="fas fa-briefcase text-gray-500 mr-2"></i>
@@ -629,18 +647,21 @@ experienceForm.graduate_experience_address = selectedLocation
                   {{ experienceEntry.description || 'No description provided' }}
                 </p>
               </div>
-              <div class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wide">
+              <div
+                class="absolute top-2 left-2 bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded uppercase tracking-wide">
                 Archived
               </div>
               <div class="absolute top-2 right-2 flex space-x-2">
                 <button type="button"
-                  class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200" @click="unarchiveExperience(experienceEntry)">
-                    <i class="fas fa-undo"></i>
-                  </button>
-                  <button type="button"
-                    class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200" @click="deleteExperience(experienceEntry)">
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded-full transition-colors duration-200"
+                  @click="unarchiveExperience(experienceEntry)">
+                  <i class="fas fa-undo"></i>
+                </button>
+                <button type="button"
+                  class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-full transition-colors duration-200"
+                  @click="deleteExperience(experienceEntry)">
+                  <i class="fas fa-trash"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -676,25 +697,14 @@ experienceForm.graduate_experience_address = selectedLocation
             <!-- Company: suggestive dropdown -->
             <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="companySearchAdd"
-                @focus="showAddSuggestions = true"
+              <input type="text" v-model="companySearchAdd" @focus="showAddSuggestions = true"
                 @blur="() => setTimeout(() => showAddSuggestions = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Type to search or enter a new company"
-                required
-              />
-              <ul
-                v-if="showAddSuggestions && filteredCompaniesAdd.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="c in filteredCompaniesAdd"
-                  :key="c.id"
-                  @mousedown.prevent="selectCompanyForAdd(c)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                placeholder="Type to search or enter a new company" required />
+              <ul v-if="showAddSuggestions && filteredCompaniesAdd.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="c in filteredCompaniesAdd" :key="c.id" @mousedown.prevent="selectCompanyForAdd(c)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ c.name }}
                 </li>
               </ul>
@@ -705,25 +715,14 @@ experienceForm.graduate_experience_address = selectedLocation
 
             <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Location <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="locationSearchAdd"
-                @focus="showLocationSuggestionsAdd = true"
+              <input type="text" v-model="locationSearchAdd" @focus="showLocationSuggestionsAdd = true"
                 @blur="() => setTimeout(() => showLocationSuggestionsAdd = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Type to search or enter a new location"
-                required
-              />
-              <ul
-                v-if="showLocationSuggestionsAdd && filteredLocationsAdd.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="l in filteredLocationsAdd"
-                  :key="l.id"
-                  @mousedown.prevent="selectLocationForAdd(l)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                placeholder="Type to search or enter a new location" required />
+              <ul v-if="showLocationSuggestionsAdd && filteredLocationsAdd.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="l in filteredLocationsAdd" :key="l.id" @mousedown.prevent="selectLocationForAdd(l)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ l.name }}
                 </li>
               </ul>
@@ -736,8 +735,7 @@ experienceForm.graduate_experience_address = selectedLocation
               <label class="block text-gray-700 font-medium  mb-2">Employment Type <span
                   class="text-red-500">*</span></label>
               <select v-model="experienceForm.graduate_experience_employment_type"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                required>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
                 <option value="" disabled>Select employment type</option>
                 <option value="Full-time">Full-time</option>
                 <option value="Part-time">Part-time</option>
@@ -772,8 +770,8 @@ experienceForm.graduate_experience_address = selectedLocation
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="experienceForm.graduate_experience_description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                rows="3" placeholder="Describe your role and responsibilities..."></textarea>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" rows="3"
+                placeholder="Describe your role and responsibilities..."></textarea>
               <InputError :message="experienceForm.errors.graduate_experience_description" class="mt-2" />
             </div>
             <div class="flex justify-end">
@@ -790,7 +788,8 @@ experienceForm.graduate_experience_address = selectedLocation
     </div>
 
     <!-- Update Experience Modal -->
-    <div v-if="isUpdateExperienceModalOpen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="isUpdateExperienceModalOpen"
+      class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold">Update Experience</h2>
@@ -811,25 +810,14 @@ experienceForm.graduate_experience_address = selectedLocation
             <!-- Company: suggestive dropdown -->
             <div class="mb-4 relative">
               <label class="block text-gray-700 font-medium mb-2">Company <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                v-model="companySearchUpdate"
-                @focus="showUpdateSuggestions = true"
+              <input type="text" v-model="companySearchUpdate" @focus="showUpdateSuggestions = true"
                 @blur="setTimeout(() => showUpdateSuggestions = false, 150)"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                placeholder="Type to search or enter a new company"
-                required
-              />
-              <ul
-                v-if="showUpdateSuggestions && filteredCompaniesUpdate.length"
-                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm"
-              >
-                <li
-                  v-for="c in filteredCompaniesUpdate"
-                  :key="c.id"
-                  @mousedown.prevent="selectCompanyForUpdate(c)"
-                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                >
+                placeholder="Type to search or enter a new company" required />
+              <ul v-if="showUpdateSuggestions && filteredCompaniesUpdate.length"
+                class="absolute z-20 mt-1 w-full bg-white border rounded shadow max-h-48 overflow-auto text-sm">
+                <li v-for="c in filteredCompaniesUpdate" :key="c.id" @mousedown.prevent="selectCompanyForUpdate(c)"
+                  class="px-3 py-2 hover:bg-blue-50 cursor-pointer">
                   {{ c.name }}
                 </li>
               </ul>
@@ -849,8 +837,7 @@ experienceForm.graduate_experience_address = selectedLocation
               <label class="block text-gray-700 font-medium mb-2">Employment Type <span
                   class="text-red-500">*</span></label>
               <select v-model="experience.employment_type"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                required>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
                 <option value="" disabled>Select employment type</option>
                 <option value="Full-time">Full-time</option>
                 <option value="Part-time">Part-time</option>
@@ -886,8 +873,8 @@ experienceForm.graduate_experience_address = selectedLocation
             <div class="mb-4">
               <label class="block text-gray-700 font-medium mb-2">Description</label>
               <textarea v-model="experience.description"
-                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                rows="3" placeholder="Describe your role and responsibilities..."></textarea>
+                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" rows="3"
+                placeholder="Describe your role and responsibilities..."></textarea>
               <InputError :message="experienceForm.errors.graduate_experience_description" class="mt-2" />
             </div>
             <div class="flex justify-end">
@@ -912,9 +899,11 @@ experienceForm.graduate_experience_address = selectedLocation
   0% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
   }
@@ -925,6 +914,7 @@ experienceForm.graduate_experience_address = selectedLocation
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

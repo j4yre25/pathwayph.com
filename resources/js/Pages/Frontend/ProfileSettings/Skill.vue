@@ -28,6 +28,7 @@ const props = defineProps({
 
 });
 
+console.log('Props:', props.skillEntries);
 
 const confirmModal = reactive({
   show: false,
@@ -74,6 +75,8 @@ const yearsExperience = ref(0);
 const isUpdateSkillModalOpen = ref(false);
 let currentSkillIndex = ref(null);
 const noExpiryDate = ref(false);
+const lessThanYear = ref(false);
+const monthsExperience = ref(0);
 
 // Register ApexCharts component
 const apexchart = ApexCharts;
@@ -87,6 +90,8 @@ const skillForm = useForm({
   graduate_skills_proficiency_type: skillProficiencyType.value,
   graduate_skills_type: skillType.value,
   graduate_skills_years_experience: yearsExperience.value,
+  graduate_skills_months_experience: monthsExperience.value, 
+
 });
 
 const saveSkill = () => {
@@ -103,16 +108,26 @@ const saveSkill = () => {
     skillForm.setError('graduate_skills_type', 'The graduate skills type field is required.');
     return;
   }
-  if (yearsExperience.value < 0) {
-    skillForm.setError('graduate_skills_years_experience', 'Years of experience cannot be negative.');
-    return;
+  if (lessThanYear.value) {
+    if (monthsExperience.value < 1 || monthsExperience.value > 11) {
+      skillForm.setError('graduate_skills_years_experience', 'Months must be between 1 and 11.');
+      return;
+    }
+    skillForm.graduate_skills_years_experience = 0;
+    skillForm.graduate_skills_months_experience = monthsExperience.value;
+  } else {
+    if (yearsExperience.value < 0) {
+      skillForm.setError('graduate_skills_years_experience', 'Years of experience cannot be negative.');
+      return;
+    }
+    skillForm.graduate_skills_years_experience = yearsExperience.value;
+    skillForm.graduate_skills_months_experience = 0;
   }
 
   // Sync form values
   skillForm.graduate_skills_name = skillName.value;
   skillForm.graduate_skills_proficiency_type = skillProficiencyType.value;
   skillForm.graduate_skills_type = skillType.value;
-  skillForm.graduate_skills_years_experience = yearsExperience.value;
 
   skillForm.post(route('profile.skills.add'), {
     preserveScroll: true,
@@ -121,6 +136,8 @@ const saveSkill = () => {
       closeAddSkillModal();
       isSuccessModalOpen.value = true;
       skillForm.reset();
+      lessThanYear.value = false;
+      monthsExperience.value = 0;
     },
     onError: (errors) => {
       if (errors.response?.status === 409) {
@@ -131,7 +148,6 @@ const saveSkill = () => {
     },
   });
 };
-
 // skillForm is already defined in saveSkill function, so we don't need to redefine it here
 
 // Update Skill Handler
@@ -142,19 +158,46 @@ const openEditSkillModal = (skill) => {
   skillProficiencyType.value = skill.graduate_skills_proficiency_type;
   skillType.value = skill.graduate_skills_type;
   yearsExperience.value = skill.graduate_skills_years_experience;
+  monthsExperience.value = skill.graduate_skills_months_experience || 0;
+  lessThanYear.value = skill.graduate_skills_years_experience === 0 && skill.graduate_skills_months_experience > 0;
   isUpdateSkillModalOpen.value = true;
 };
 
 const updateSkill = () => {
-
-    skillForm.graduate_skills_name = skillName.value;
-  skillForm.graduate_skills_proficiency_type = skillProficiencyType.value;
-  skillForm.graduate_skills_type = skillType.value;
-  skillForm.graduate_skills_years_experience = yearsExperience.value;
-  if (!skillProficiencyType.value) {
-    alert("Please select a proficiency type.");
+  // Validate fields
+  if (!skillName.value.trim()) {
+    skillForm.setError('graduate_skills_name', 'The graduate skills name field is required.');
     return;
   }
+  if (!skillProficiencyType.value) {
+    skillForm.setError('graduate_skills_proficiency_type', 'The graduate skills proficiency type field is required.');
+    return;
+  }
+  if (!skillType.value) {
+    skillForm.setError('graduate_skills_type', 'The graduate skills type field is required.');
+    return;
+  }
+
+  if (lessThanYear.value) {
+    if (monthsExperience.value < 1 || monthsExperience.value > 11) {
+      skillForm.setError('graduate_skills_years_experience', 'Months must be between 1 and 11.');
+      return;
+    }
+    skillForm.graduate_skills_years_experience = 0;
+    skillForm.graduate_skills_months_experience = monthsExperience.value;
+  } else {
+    if (yearsExperience.value < 0) {
+      skillForm.setError('graduate_skills_years_experience', 'Years of experience cannot be negative.');
+      return;
+    }
+    skillForm.graduate_skills_years_experience = yearsExperience.value;
+    skillForm.graduate_skills_months_experience = 0;
+  }
+
+  // Sync form values
+  skillForm.graduate_skills_name = skillName.value;
+  skillForm.graduate_skills_proficiency_type = skillProficiencyType.value;
+  skillForm.graduate_skills_type = skillType.value;
 
   const duplicateSkill = skills.value.some(
     (skill, index) =>
@@ -167,8 +210,6 @@ const updateSkill = () => {
     return;
   }
 
-
-
   const skillId = skills.value[currentSkillIndex.value]?.id;
   if (!skillId) {
     console.error('No skill ID found for update');
@@ -180,6 +221,8 @@ const updateSkill = () => {
       emit('refresh-skills');
       skills.value[currentSkillIndex.value] = { ...skillForm.data(), id: skillId };
       closeUpdateSkillModal();
+      lessThanYear.value = false;
+      monthsExperience.value = 0;
     },
     onError: (errors) => {
       alert('An error occurred while updating the skill. Please try again.');
@@ -192,6 +235,7 @@ const editSkill = (skill) => {
   skillProficiencyType.value = skill.graduate_skills_proficiency_type;
   skillType.value = skill.graduate_skills_type;
   yearsExperience.value = skill.graduate_skills_years_experience;
+  monthsExperience.value = skill.graduate_skills_months_experience || 0; // <-- ADD THIS
   currentSkillIndex.value = skills.value.indexOf(skill);
   isUpdateSkillModalOpen.value = true;
 };
@@ -287,13 +331,7 @@ const removeSkill = (skill) => {
 };
 
 const archiveSkill = (skill) => {
-  if (!skill.id) {
-    alert('Skill ID not found.');
-    return;
-  }
-  if (!confirm(`Are you sure you want to archive the skill: ${skill.graduate_skills_name}?`)) {
-    return;
-  }
+
   router.put(route('profile.skills.archive', { id: skill.id }), {}, {
     preserveScroll: true,
     onSuccess: () => {
@@ -625,6 +663,7 @@ const archiveExperience = (experienceEntry) => {
                             </span>
                             <span class="text-gray-600 text-sm">
                               {{ skill.graduate_skills_years_experience }} year(s)
+                              {{ skill.graduate_skills_months_experience }} month(s)
                             </span>
                           </div>
                         </div>
@@ -847,9 +886,20 @@ const archiveExperience = (experienceEntry) => {
             <div class="mb-4">
               <label for="yearsExperience" class="block text-gray-700">Years of Experience <span
                   class="text-red-500">*</span></label>
-              <input type="number" id="yearsExperience" v-model="yearsExperience"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                :class="{ 'border-red-500': skillForm.errors.graduate_skills_years_experience }" required>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="yearsExperience" v-model="yearsExperience"
+                  class="w-24 px-3 py-2 border border-gray-300 rounded-md" :disabled="lessThanYear"
+                  :class="{ 'border-red-500': skillForm.errors.graduate_skills_years_experience }" min="0" required>
+                <label class="flex items-center ml-2">
+                  <input type="checkbox" v-model="lessThanYear" class="mr-1" />
+                  Less than a year
+                </label>
+              </div>
+              <div v-if="lessThanYear" class="mt-2 flex items-center space-x-2">
+                <label for="monthsExperience" class="text-gray-700">Months:</label>
+                <input type="number" id="monthsExperience" v-model="monthsExperience" min="1" max="11"
+                  class="w-20 px-3 py-2 border border-gray-300 rounded-md" required>
+              </div>
               <div v-if="skillForm.errors.graduate_skills_years_experience" class="text-red-500 text-sm mt-1">
                 {{ skillForm.errors.graduate_skills_years_experience }}
               </div>
@@ -917,9 +967,20 @@ const archiveExperience = (experienceEntry) => {
             <div class="mb-4">
               <label for="yearsExperience" class="block text-gray-700">Years of Experience <span
                   class="text-red-500">*</span></label>
-              <input type="number" id="yearsExperience" v-model="yearsExperience"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md"
-                :class="{ 'border-red-500': skillForm.errors.graduate_skills_years_experience }" required>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="yearsExperience" v-model="yearsExperience"
+                  class="w-24 px-3 py-2 border border-gray-300 rounded-md" :disabled="lessThanYear"
+                  :class="{ 'border-red-500': skillForm.errors.graduate_skills_years_experience }" min="0" required>
+                <label class="flex items-center ml-2">
+                  <input type="checkbox" v-model="lessThanYear" class="mr-1" />
+                  Less than a year
+                </label>
+              </div>
+              <div v-if="lessThanYear" class="mt-2 flex items-center space-x-2">
+                <label for="monthsExperience" class="text-gray-700">Months:</label>
+                <input type="number" id="monthsExperience" v-model="monthsExperience" min="1" max="11"
+                  class="w-20 px-3 py-2 border border-gray-300 rounded-md" required>
+              </div>
               <div v-if="skillForm.errors.graduate_skills_years_experience" class="text-red-500 text-sm mt-1">
                 {{ skillForm.errors.graduate_skills_years_experience }}
               </div>

@@ -42,9 +42,10 @@ const scatterOption = computed(() => ({
         trigger: 'item',
         formatter: function (params) {
             // params.data = [matched, required, applicant, matchedSkills, requiredSkills]
-            const [matched, required, applicant, matchedSkills, requiredSkills] = params.data;
+            const [matched, required, applicant, matchedSkills, requiredSkills, jobTitle] = params.data;
             return `
                 <b>${'Job Seeker'}</b><br/>
+                  <b>Role:</b> ${jobTitle}<br/>
                 Skills Matched: ${matched}<br/>
                 Required Skills: ${required}<br/>
                 <span class="block mt-1 text-xs text-gray-500">Matched Skills: ${matchedSkills?.join(', ') || '-'}</span>
@@ -61,7 +62,8 @@ const scatterOption = computed(() => ({
             d.required,
             d.applicant,
             d.matchedSkills ?? [],
-            d.requiredSkills ?? []
+            d.requiredSkills ?? [],
+            d.job_title || 'N/A'
         ]),
         type: 'scatter',
         itemStyle: { color: '#3b82f6' }

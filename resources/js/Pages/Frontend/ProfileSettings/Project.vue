@@ -331,26 +331,40 @@ const unarchiveProject = (entry) => {
 
 // Remove Project
 const removeProject = (id) => {
-  if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-    useForm().delete(route('profile.projects.delete', id), {
+  try {
+    useForm().delete(route('profile.projects.remove', id), {
       onSuccess: (response) => {
-        if (response?.props?.projectsEntries) {
-          projectsEntries.value = response.props.projectsEntries;
+        try {
+          console.log('Delete response:', response);
+          if (response?.props?.projectsEntries) {
+            projectsEntries.value = response.props.projectsEntries;
+          }
+          if (response?.props?.archivedProjectsEntries) {
+            archivedProjectsEntries.value = response.props.archivedProjectsEntries;
+          }
+          successMessage.value = 'Project deleted successfully!';
+          isSuccessModalOpen.value = true;
+          closeConfirm();
+        } catch (err) {
+          console.error('Error in onSuccess:', err);
+          errorMessage.value = 'Unexpected error after deletion.';
+          isErrorModalOpen.value = true;
+          closeConfirm();
         }
-        if (response?.props?.archivedProjectsEntries) {
-          archivedProjectsEntries.value = response.props.archivedProjectsEntries;
-        }
-        successMessage.value = 'Project deleted successfully!';
-        isSuccessModalOpen.value = true;
       },
       onError: () => {
         errorMessage.value = 'Failed to delete project. Please try again.';
         isErrorModalOpen.value = true;
+        closeConfirm();
       },
     });
+  } catch (err) {
+    console.error('Error in removeProject:', err);
+    errorMessage.value = 'Unexpected error during deletion.';
+    isErrorModalOpen.value = true;
+    closeConfirm();
   }
 };
-
 // Watchers
 watch(() => form.is_current, (val) => {
   if (val) form.graduate_projects_end_date = null;

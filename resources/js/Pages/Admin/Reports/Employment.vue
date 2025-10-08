@@ -5,7 +5,7 @@ import VueECharts from 'vue-echarts';
 import { usePage } from '@inertiajs/vue3'
 import Container from '@/Components/Container.vue';
 import axios from 'axios'
-
+import MultiSelect from '@/Components/MultiSelect.vue';
 
 const tabs = [
     { label: 'Employment Overview', value: 'overview' },
@@ -16,11 +16,20 @@ const tabs = [
 ]
 const activeTab = ref('overview')
 
+
+
 // --- Filter state ---
 const selectedYear = ref('')
 const selectedProgram = ref('')
 const selectedStatus = ref('')
 const selectedInstitution = ref('')
+
+const roleOptions = computed(() => {
+    // Use inDemandJobs.value if available, otherwise fallback
+    const roles = inDemandJobs.value.map(job => job.role).filter(Boolean);
+    // Remove duplicates
+    return Array.from(new Set(roles)).map(role => ({ id: role, name: role }));
+});
 
 const smartSchoolPages = computed(() => {
     const total = schoolTotalPages.value;
@@ -70,6 +79,16 @@ function fetchAnalyticsData() {
         }
     } else if (activeTab.value === 'demandSupply') {
         params = {};
+    } else if (activeTab.value === 'schoolwise') {
+        params = {
+            institution_id: schoolFilters.value.institution_id,
+            program_ids: selectedPrograms.value.length
+                ? selectedPrograms.value.map(p => p.id)
+                : [], // Always an array
+            timeline: schoolFilters.value.timeline,
+        }
+          console.log('Schoolwise filter params:', params);
+
     }
     axios.get(route('peso.reports.employment.data'), { params })
         .then(res => {
@@ -83,7 +102,9 @@ function fetchAnalyticsData() {
 
 // Fetch on mount and when filters change
 onMounted(fetchAnalyticsData)
+
 watch([selectedYear, selectedProgram, selectedInstitution, activeTab], fetchAnalyticsData)
+
 watch(analyticsData, () => { }, { deep: true })
 // --- Graduates and computed values ---
 const graduates = computed(() => analyticsData.value.graduates ?? [])
@@ -341,18 +362,16 @@ const careerGapCurrentPage = ref(1);
 const careerGapPageSize = ref(10);
 
 console.log(inDemandJobs.value)
+const selectedRoles = ref([]);
 
 const filteredInDemandJobs = computed(() => {
     let jobs = inDemandJobs.value;
-    if (roleFilter.value) {
-        jobs = jobs.filter(job =>
-            job.role && job.role.toLowerCase().includes(roleFilter.value.toLowerCase())
-        );
+    if (selectedRoles.value.length) {
+        const selectedRoleNames = selectedRoles.value.map(r => r.name);
+        jobs = jobs.filter(job => selectedRoleNames.includes(job.role));
     }
     if (careerGapYear.value) {
-        jobs = jobs.filter(job =>
-            job.year === careerGapYear.value
-        );
+        jobs = jobs.filter(job => job.year === careerGapYear.value);
     }
     return jobs;
 });
@@ -381,6 +400,20 @@ function getLocalGraduateCount(job) {
         return byProgramId;
     }).length;
 }
+const selectedPrograms = ref([]); // Array of selected program objects
+
+function onProgramChange(newPrograms) {
+    selectedPrograms.value = [...newPrograms];
+}
+const programOptions = computed(() => {
+    // programs.value should be an array of program objects { id, name }
+    return programs.value.map(program => ({
+        id: program.id,
+        name: program.name
+    }));
+});
+
+
 
 const uniqueRoleSuggestions = computed(() => {
     const set = new Set(inDemandJobs.value.map(job => job.role));
@@ -461,8 +494,8 @@ const schoolTopSchool = computed(() => {
         return sorted.length ? sorted[0][0] : "N/A";
     }
 });
-const schoolTotalHired = computed(() => schoolGraduates.value.length);
 
+const schoolTotalHired = computed(() => schoolGraduates.value.length);
 const schoolDynamicChartLabels = computed(() => {
     if (schoolFilters.value.institution_id) {
         const selectedInstitution = schoolInstitutions.value.find(i => i.id == schoolFilters.value.institution_id);
@@ -666,16 +699,7 @@ const schoolEmployabilitySummaryInsight = computed(() => {
                                 </option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                            <select v-model="selectedStatus"
-                                class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200">
-                                <option value="">All Statuses</option>
-                                <option value="Employed">Employed</option>
-                                <option value="Unemployed">Unemployed</option>
-                                <option value="Underemployed">Underemployed</option>
-                            </select>
-                        </div>
+                    
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Institution</label>
                             <select v-model="selectedInstitution"
@@ -706,7 +730,7 @@ const schoolEmployabilitySummaryInsight = computed(() => {
                                 <h3 class="text-gray-600 text-sm font-medium mb-2">Employed</h3>
                                 <p class="text-3xl font-bold text-green-600">{{ employed }}</p>
                                 <p class="text-sm text-gray-500 mt-1">{{ ((employed / totalGraduates) * 100).toFixed(1)
-                                }}%
+                                    }}%
                                     of graduates</p>
                             </div>
                             <div class="bg-green-100 rounded-full p-3 flex items-center justify-center">
@@ -722,7 +746,7 @@ const schoolEmployabilitySummaryInsight = computed(() => {
                                 <p class="text-3xl font-bold text-red-600">{{ unemployed }}</p>
                                 <p class="text-sm text-gray-500 mt-1">{{ ((unemployed / totalGraduates) *
                                     100).toFixed(1)
-                                }}% of graduates</p>
+                                    }}% of graduates</p>
                             </div>
                             <div class="bg-red-100 rounded-full p-3 flex items-center justify-center">
                                 <i class="fas fa-user-clock text-red-500"></i>
@@ -971,12 +995,9 @@ const schoolEmployabilitySummaryInsight = computed(() => {
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                            <input v-model="roleFilter" type="text" placeholder="Filter by role..."
-                                class="w-full border-gray-300 rounded-md shadow-sm px-2 py-1 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200"
-                                list="role-suggestions" autocomplete="off" />
-                            <datalist id="role-suggestions">
-                                <option v-for="job in uniqueRoleSuggestions" :key="job" :value="job" />
-                            </datalist>
+                            <MultiSelect v-model="selectedRoles" :options="roleOptions" label="name" track-by="id"
+                                :searchable="true" :multiple="true" placeholder="Select roles" />
+
                         </div>
 
                     </div>
@@ -1024,7 +1045,7 @@ const schoolEmployabilitySummaryInsight = computed(() => {
                             <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
                                 :disabled="careerGapCurrentPage === 1" @click="careerGapCurrentPage--">Prev</button>
                             <span class="text-gray-700">Page {{ careerGapCurrentPage }} of {{ careerGapTotalPages
-                            }}</span>
+                                }}</span>
                             <button class="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
                                 :disabled="careerGapCurrentPage === careerGapTotalPages"
                                 @click="careerGapCurrentPage++">Next</button>
@@ -1036,92 +1057,92 @@ const schoolEmployabilitySummaryInsight = computed(() => {
                         <h3 class="text-lg font-semibold mb-6 text-gray-700">Career Demand-Supply Map</h3>
                         <VueECharts :option="careerGapBarOption" style="height: 400px; width: 100%;" />
                     </div>
-               
 
-                <!-- Data Interpretation -->
-                <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-                    <div class="text-blue-900 space-y-2">
-                        <div>
-                            <span class="font-semibold">Analytics Summary:</span>
-                            <ul class="list-disc ml-6 space-y-1">
-                                <li>
-                                    <span class="font-semibold">Total Roles Analyzed:</span>
-                                    {{ inDemandJobs.length }}
-                                </li>
-                                <li>
-                                    <span class="font-semibold">Average Local Graduate Supply per Role:</span>
-                                    {{
-                                        (() => {
-                                            const total = inDemandJobs.reduce((sum, job) => sum +
-                                                getLocalGraduateCount(job),
-                                                0);
-                                            return inDemandJobs.length ? Math.round(total / inDemandJobs.length) : 0;
-                                        })()
-                                    }}
-                                </li>
-                                <li>
-                                    <span class="font-semibold">Roles with Zero Local Supply:</span>
-                                    {{
-                                        inDemandJobs.filter(job => getLocalGraduateCount(job) === 0).length
-                                    }}
-                                </li>
-                                <li>
-                                    <span class="font-semibold">Role with Largest Gap:</span>
-                                    {{
-                                        (() => {
-                                            const gaps = inDemandJobs.map(job => ({
-                                                role: job.role,
-                                                demand: job.demand,
-                                                supply: getLocalGraduateCount(job),
-                                                gap: job.demand - getLocalGraduateCount(job)
-                                            }));
-                                            const largest = gaps.sort((a, b) => b.gap - a.gap)[0];
-                                            return largest ? `${largest.role} (Demand: ${largest.demand}, Supply:
-                                    ${largest.supply})` :
-                                                'N/A';
-                                        })()
-                                    }}
-                                </li>
-                                <li>
-                                    <span class="font-semibold">Top 3 Roles by Local Graduate Supply:</span>
-                                    {{
-                                        (() => {
-                                            const sorted = inDemandJobs
-                                                .map(job => ({ role: job.role, supply: getLocalGraduateCount(job) }))
-                                                .sort((a, b) => b.supply - a.supply)
-                                                .slice(0, 3);
-                                            return sorted.map(j => `${j.role} (${j.supply})`).join(', ') || 'N/A';
-                                        })()
-                                    }}
-                                </li>
-                                <li>
-                                    <span class="font-semibold">Top In-Demand Career:</span>
-                                    {{ topInDemandCareer ? `${topInDemandCareer.role} (${topInDemandCareer.supply})`
-                                        :
-                                        'N/A' }}
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <span>
-                                <strong>Interpretation:</strong>
-                                This analytics dashboard compares the demand for key job roles with the local
-                                graduate
-                                supply.
-                                Roles with a high demand but low or zero local supply indicate potential talent
-                                shortages and
-                                opportunities for targeted upskilling or recruitment.
-                                Conversely, roles with high supply may signal a need for career guidance or employer
-                                engagement.
-                                Use the table and chart above to identify which careers require the most attention
-                                for
-                                workforce
-                                planning.
-                            </span>
+
+                    <!-- Data Interpretation -->
+                    <div class="mt-8 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                        <div class="text-blue-900 space-y-2">
+                            <div>
+                                <span class="font-semibold">Analytics Summary:</span>
+                                <ul class="list-disc ml-6 space-y-1">
+                                    <li>
+                                        <span class="font-semibold">Total Roles Analyzed:</span>
+                                        {{ inDemandJobs.length }}
+                                    </li>
+                                    <li>
+                                        <span class="font-semibold">Average Local Graduate Supply per Role:</span>
+                                        {{
+                                            (() => {
+                                                const total = inDemandJobs.reduce((sum, job) => sum +
+                                                    getLocalGraduateCount(job),
+                                                    0);
+                                                return inDemandJobs.length ? Math.round(total / inDemandJobs.length) : 0;
+                                            })()
+                                        }}
+                                    </li>
+                                    <li>
+                                        <span class="font-semibold">Roles with Zero Local Supply:</span>
+                                        {{
+                                            inDemandJobs.filter(job => getLocalGraduateCount(job) === 0).length
+                                        }}
+                                    </li>
+                                    <li>
+                                        <span class="font-semibold">Role with Largest Gap:</span>
+                                        {{
+                                            (() => {
+                                                const gaps = inDemandJobs.map(job => ({
+                                                    role: job.role,
+                                                    demand: job.demand,
+                                                    supply: getLocalGraduateCount(job),
+                                                    gap: job.demand - getLocalGraduateCount(job)
+                                                }));
+                                                const largest = gaps.sort((a, b) => b.gap - a.gap)[0];
+                                                return largest ? `${largest.role} (Demand: ${largest.demand}, Supply:
+                                        ${largest.supply})` :
+                                                    'N/A';
+                                            })()
+                                        }}
+                                    </li>
+                                    <li>
+                                        <span class="font-semibold">Top 3 Roles by Local Graduate Supply:</span>
+                                        {{
+                                            (() => {
+                                                const sorted = inDemandJobs
+                                                    .map(job => ({ role: job.role, supply: getLocalGraduateCount(job) }))
+                                                    .sort((a, b) => b.supply - a.supply)
+                                                    .slice(0, 3);
+                                                return sorted.map(j => `${j.role} (${j.supply})`).join(', ') || 'N/A';
+                                            })()
+                                        }}
+                                    </li>
+                                    <li>
+                                        <span class="font-semibold">Top In-Demand Career:</span>
+                                        {{ topInDemandCareer ? `${topInDemandCareer.role} (${topInDemandCareer.supply})`
+                                            :
+                                            'N/A' }}
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <span>
+                                    <strong>Interpretation:</strong>
+                                    This analytics dashboard compares the demand for key job roles with the local
+                                    graduate
+                                    supply.
+                                    Roles with a high demand but low or zero local supply indicate potential talent
+                                    shortages and
+                                    opportunities for targeted upskilling or recruitment.
+                                    Conversely, roles with high supply may signal a need for career guidance or employer
+                                    engagement.
+                                    Use the table and chart above to identify which careers require the most attention
+                                    for
+                                    workforce
+                                    planning.
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                 </div>
             </div>
 
             <div v-else-if="activeTab === 'schoolwise'">
@@ -1140,12 +1161,9 @@ const schoolEmployabilitySummaryInsight = computed(() => {
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Program</label>
-                        <select v-model="schoolFilters.program_id" class="rounded border-gray-300">
-                            <option value="">All Programs</option>
-                            <option v-for="prog in schoolPrograms" :key="prog.id" :value="prog.id">
-                                {{ prog.name }}
-                            </option>
-                        </select>
+                        <MultiSelect v-model="selectedPrograms" :options="programOptions" label="name" track-by="id"
+                            :searchable="true" @update:modelValue="onProgramChange" :multiple="true"
+                            placeholder="Select programs" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Timeline</label>

@@ -154,6 +154,7 @@ class GraduateProfileController extends Controller
             'testimonials' => Testimonial::where('graduate_id', $graduate->id)->get(),
             'employmentPreferences' => \App\Models\EmploymentPreference::where('graduate_id', $graduate->id)->first(),
             'careerGoals' => \App\Models\CareerGoal::where('graduate_id', $graduate->id)->first(),
+            'certifications' => Certification::where('graduate_id', $graduate->id)->get(),
             'resume' => Resume::where('graduate_id', $graduate->id)->first(),
             'auth' => [
                 'user' => $user,

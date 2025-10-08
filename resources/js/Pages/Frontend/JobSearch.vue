@@ -388,6 +388,7 @@ function fetchRecommendations() {
     axios.get(route('graduate-jobs.recommendations'), { params })
         .then(res => {
             recommendations.value = res.data.recommendations || [];
+            console.log('Fetched recommendations:', recommendations.value);
         })
         .finally(() => {
             recommendationsLoading.value = false;

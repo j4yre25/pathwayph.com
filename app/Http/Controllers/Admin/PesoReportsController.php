@@ -7,7 +7,9 @@ use App\Models\Graduate;
 use App\Models\Program;
 use App\Models\Job;
 use App\Models\JobApplicationStage;
+use App\Models\Institution;
 use App\Models\GraduateSkill;
+use App\Models\GraduateEducation;
 use App\Models\Skill;
 use App\Models\Sector;
 use App\Models\Location;
@@ -19,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Services\ApplicantScreeningService;
 
 
 class PesoReportsController extends Controller
@@ -39,7 +42,13 @@ class PesoReportsController extends Controller
     {
         $year = $request->input('year');
         $institutionId = $request->input('institution_id');
+        $programIds = $request->input('program_ids', []);
         $programId = $request->input('program_id');
+        $status = $request->input('status');
+
+        if (!is_array($programIds)) {
+            $programIds = [$programIds];
+        }
         $status = $request->input('status');
         $timeline = $request->input('timeline');
 
@@ -67,12 +76,21 @@ class PesoReportsController extends Controller
         if ($institutionId) {
             $graduatesQuery->where('institution_id', $institutionId);
         }
-        if ($programId) {
+        if (!empty($programIds)) {
+            $graduatesQuery->whereIn('program_id', $programIds);
+        } elseif ($programId) {
             $graduatesQuery->where('program_id', $programId);
         }
         if ($status) {
             $graduatesQuery->where('employment_status', $status);
         }
+
+        \Log::info('Schoolwise SQL:', [
+            'sql' => $graduatesQuery->toSql(),
+            'bindings' => $graduatesQuery->getBindings()
+        ]);
+        \Log::info('Filtering by program_ids', ['program_ids' => $programIds]);
+        \Log::info('Graduates count', ['count' => $graduatesQuery->count()]);
 
         $graduates = $graduatesQuery->get();
 
@@ -155,8 +173,8 @@ class PesoReportsController extends Controller
         if ($institutionId) {
             $allGraduatesQuery->where('institution_id', $institutionId);
         }
-        if ($programId) {
-            $allGraduatesQuery->where('program_id', $programId);
+        if (!empty($programIds)) {
+            $allGraduatesQuery->whereIn('program_id', $programIds);
         }
 
         $allGraduates = $allGraduatesQuery->get();
@@ -200,8 +218,8 @@ class PesoReportsController extends Controller
         if ($institutionId) {
             $hiredGraduatesQuery->where('institution_id', $institutionId);
         }
-        if ($programId) {
-            $hiredGraduatesQuery->where('program_id', $programId);
+        if (!empty($programIds)) {
+            $hiredGraduatesQuery->whereIn('program_id', $programIds);
         }
         if ($timeline) {
             $hiredGraduatesQuery->whereHas('jobApplications', function ($q) use ($timeline) {
@@ -582,7 +600,7 @@ class PesoReportsController extends Controller
         }
         $areaTrendData = $lineTrendData;
 
-       
+
 
         // Clustered Bar & Stacked Column: Referral performance by role
         $roleStats = [];
@@ -602,7 +620,7 @@ class PesoReportsController extends Controller
                 'rejected'    => $jobApplications->where('stage', 'rejected')->count(),
             ];
         }
-      
+
         // Word Cloud & Stacked Column: Reason for referral success
         $feedbacks = $referrals->pluck('referral_feedback')->filter();
         $wordCloudData = [];
@@ -640,7 +658,7 @@ class PesoReportsController extends Controller
                 'lineTrendData' => $lineTrendData,
                 'areaTrendData' => $areaTrendData,
                 'roleStats' => $roleStats,
-            
+
                 'wordCloudData' => $wordCloudData,
                 'stackedFeedback' => $stackedFeedback,
                 'screenedKPI' => $screenedKPI,
@@ -803,14 +821,25 @@ class PesoReportsController extends Controller
         // For Jetstream/Material-style filter dropdowns, etc.
         $educationLevels = \App\Models\Education::pluck('name');
         $programs = \App\Models\Program::pluck('name');
-        $industries = \App\Models\Sector::pluck('name');
+        $industries = \App\Models\Sector::all()->map(fn($i) => [
+            'id' => $i->id,
+            'name' => $i->name,
+        ]);
         $jobRoles = \App\Models\Job::distinct()->pluck('job_title')->filter()->values();
+        $graduates = \App\Models\Graduate::with(['graduateEducations', 'schoolYear'])->get();
+        $grad = Graduate::with('schoolYear')->first();
 
         return Inertia::render('Admin/Reports/Career', [
             'educationLevels' => $educationLevels,
+            'institutions' => Institution::all()->map(fn($i) => [
+                'id' => $i->id,
+                'name' => $i->institution_name,
+            ]),
             'programs' => $programs,
             'jobRoles' => $jobRoles,
             'industries' => $industries,
+            'graduates' => $grad,
+
         ]);
     }
 
@@ -818,8 +847,7 @@ class PesoReportsController extends Controller
     {
         // --- Bar Chart: Employment rates by level of education ---
 
-        $graduates = \App\Models\Graduate::with('graduateEducations')->get();
-
+        $graduates = \App\Models\Graduate::with(['graduateEducations', 'schoolYear'])->get();
         // Get all education levels
         $educationLevels = \App\Models\Education::pluck('name');
         $barChartData = [];
@@ -851,6 +879,9 @@ class PesoReportsController extends Controller
                 'employment_rate' => $employmentRate,
                 'total' => $total,
                 'employed' => $employed,
+                'year' => $graduatesWithLevel->first()?->schoolYear?->school_year_range ?? null,
+                'program' => $graduatesWithLevel->first()?->program?->name ?? null,
+                'institution_name' => $graduatesWithLevel->first()?->institution?->institution_name ?? null,
             ];
         }
 
@@ -868,7 +899,8 @@ class PesoReportsController extends Controller
             foreach ($radarTypes as $type) {
                 $count = \App\Models\GraduateSkill::whereIn('graduate_id', $programGraduates)
                     ->where('type', $type)
-                    ->count();
+                    ->distinct('graduate_id')
+                    ->count('graduate_id');
                 $percentage = $programGraduates->count() ? round(($count / $programGraduates->count()) * 100, 2) : 0;
                 $typeScores[] = $percentage;
             }
@@ -983,16 +1015,29 @@ class PesoReportsController extends Controller
             'salaryExpectations' => $salaryExpectations,
             'radarSkills' => $radarTypes,
             'radarData' => $radarData,
+            'graduates' => $graduates,
+
         ]);
     }
 
     public function diversity()
     {
-        $industries = \App\Models\Sector::pluck('name');
+        $industries = \App\Models\Sector::all()->map(fn($i) => [
+            'id' => $i->id,
+            'name' => $i->name,
+        ]);
+
+
+
+
         $employerTypes = ['Small Business', 'Medium Enterprise', 'Large Corporation']; // Adjust as needed
         return Inertia::render('Admin/Reports/Diversity', [
             'industries' => $industries,
             'employerTypes' => $employerTypes,
+            'educationLevels' => GraduateEducation::all()->map(fn($e) => [
+                'id' => $e->id,
+                'level_of_education' => $e->level_of_education,
+            ]),
         ]);
     }
 
@@ -1307,6 +1352,7 @@ class PesoReportsController extends Controller
                 'required' => $required,
                 'matchedSkills' => $matchedSkills,
                 'requiredSkills' => $jobSkills,
+                'job_title' => $app->job?->job_title,
             ];
 
             if ($required > 0) {
@@ -1360,53 +1406,11 @@ class PesoReportsController extends Controller
 
                 if (!$graduate || !$job) continue;
 
-                // Skills
-                $criteria++;
-                $graduateSkills = $graduate->graduateSkills->pluck('skill.name')->filter()->unique()->toArray();
-                $jobSkills = is_array($job->skills) ? $job->skills : (json_decode($job->skills, true) ?: []);
-                $skillMatch = false;
-                foreach ($graduateSkills as $skill) {
-                    if (stripos(json_encode($jobSkills), $skill) !== false) {
-                        $skillMatch = true;
-                        break;
-                    }
-                }
-                if ($skillMatch) $matchScore++;
+                $screening = (new ApplicantScreeningService())->screen($graduate, $job);
 
-                // Education (Program)
-                $criteria++;
-                $program = $graduate->program_id ? \App\Models\Program::find($graduate->program_id)->name ?? null : null;
-                $educationMatch = $program && stripos($job->job_requirements, $program) !== false;
-                if ($educationMatch) $matchScore++;
 
-                // Experience
-                $criteria++;
-                $experiences = $graduate->experience ? $graduate->experience->pluck('job_title')->filter()->unique()->toArray() : [];
-                $experienceMatch = false;
-                foreach ($experiences as $title) {
-                    if (stripos($job->job_title, $title) !== false) {
-                        $experienceMatch = true;
-                        break;
-                    }
-                }
-                if ($experienceMatch) $matchScore++;
 
-                // Past Search Keywords (optional, if you want to include)
-                // $criteria++;
-                // $pastKeywords = $graduate->jobSearchHistory ? $graduate->jobSearchHistory->pluck('keywords')->unique()->toArray() : [];
-                // $pastKeywordMatch = false;
-                // foreach ($pastKeywords as $keyword) {
-                //     if (
-                //         stripos($job->job_title, $keyword) !== false ||
-                //         stripos($job->job_description, $keyword) !== false
-                //     ) {
-                //         $pastKeywordMatch = true;
-                //         break;
-                //     }
-                // }
-                // if ($pastKeywordMatch) $matchScore++;
-
-                $match_percentage = $criteria > 0 ? round(($matchScore / $criteria) * 100) : 0;
+                $match_percentage = $screening['match_percentage'] ?? 0;
 
                 if ($match_percentage >= $matchThreshold) {
                     $matchedApplications++;

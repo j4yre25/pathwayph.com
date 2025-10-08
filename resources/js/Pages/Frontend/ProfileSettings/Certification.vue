@@ -4,6 +4,7 @@ import { useForm, router } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import Datepicker from 'vue3-datepicker';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { Inertia } from '@inertiajs/inertia'
 
 
 // Props
@@ -134,6 +135,8 @@ const addCertification = () => {
       successMessage.value = 'Certification added successfully!';
       isSuccessModalOpen.value = true;
       resetForm();
+      Inertia.reload();
+
     },
     onError: (errors) => {
       if (errors.duplicate) {
@@ -159,6 +162,7 @@ const updateCertification = () => {
       successMessage.value = 'Certification updated successfully!';
       isSuccessModalOpen.value = true;
       resetForm();
+      Inertia.reload();
 
     },
     onError: (errors) => {
@@ -214,6 +218,8 @@ function openConfirm(type, entry) {
           successMessage.value = 'Certification deleted successfully!';
           isSuccessModalOpen.value = true;
           closeConfirm();
+          Inertia.reload();
+
         },
         onError: () => {
           errorMessage.value = 'Failed to delete certification. Please try again.';
@@ -231,6 +237,7 @@ function openConfirm(type, entry) {
           successMessage.value = 'Certification archived successfully!';
           isSuccessModalOpen.value = true;
           closeConfirm();
+          Inertia.reload();
         },
         onError: () => {
           errorMessage.value = 'Failed to archive certification. Please try again.';
@@ -248,6 +255,8 @@ function openConfirm(type, entry) {
           successMessage.value = 'Certification restored successfully!';
           isSuccessModalOpen.value = true;
           closeConfirm();
+          Inertia.reload();
+
         },
         onError: () => {
           errorMessage.value = 'Failed to restore certification. Please try again.';
@@ -403,7 +412,7 @@ function closeConfirm() {
                 <div class="border-b border-blue-100 pb-2">
                   <h2 class="text-xl font-bold text-blue-900">{{ entry.name }}</h2>
                   <p class="text-sm text-gray-600"><i class="fas fa-certificate text-blue-600 mr-2"></i>{{ entry.issuer
-                    }}</p>
+                  }}</p>
                 </div>
                 <div class="flex items-center text-gray-600 mt-2 bg-blue-50 px-3 py-1 rounded-full inline-block">
                   <i class="far fa-calendar-alt mr-2 text-blue-600"></i>
@@ -426,9 +435,9 @@ function closeConfirm() {
                 </div>
                 <p class="mt-2 bg-gray-50 p-2 rounded-md">
                   <strong>
-                    <i class="fas fa-id-badge text-blue-600 mr-2"></i> Credential ID:
+                    <i class="fas fa-id-badge text-blue-600 mr-2"></i> Credential Number:
                   </strong>
-                  <span class="font-mono">{{ entry.credential_id || 'No credential ID provided' }}</span>
+                  <span class="font-mono">{{ entry.credential_id || 'No credential number provided' }}</span>
                 </p>
                 <div v-if="entry.file_path" class="mt-3">
                   <a :href="`/storage/${entry.file_path}`" target="_blank"
@@ -508,9 +517,9 @@ function closeConfirm() {
                   </div>
                   <p class="mt-2 bg-gray-100 p-2 rounded-md">
                     <strong>
-                      <i class="fas fa-id-badge text-gray-500 mr-2"></i> Credential ID:
+                      <i class="fas fa-id-badge text-gray-500 mr-2"></i> Credential Number:
                     </strong>
-                    <span class="font-mono">{{ entry.credential_id || 'No credential ID provided' }}</span>
+                    <span class="font-mono">{{ entry.credential_id || 'No credential number provided' }}</span>
                   </p>
                   <div v-if="entry.file_path" class="mt-3">
                     <a :href="`/storage/${entry.file_path}`" target="_blank"
@@ -600,7 +609,7 @@ function closeConfirm() {
               <label for="noCredentialUrl" class="text-sm text-gray-700 ml-2">No Credential URL</label>
             </div>
             <div class="mb-4">
-              <label class="block text-gray-700 font-medium mb-2">Credential ID</label>
+              <label class="block text-gray-700 font-medium mb-2">Credential Number</label>
               <input type="text" v-model="form.credential_id"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. 123456" />
@@ -669,7 +678,7 @@ function closeConfirm() {
               <label for="noCredentialUrlUpdate" class="text-sm text-gray-700 ml-2">No Credential URL</label>
             </div>
             <div class="mb-4">
-              <label class="block text-gray-700 font-medium mb-2">Credential ID</label>
+              <label class="block text-gray-700 font-medium mb-2">Credential Number</label>
               <input type="text" v-model="form.credential_id"
                 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                 placeholder="e.g. 123456" />

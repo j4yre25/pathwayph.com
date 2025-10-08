@@ -4,9 +4,96 @@ import { ref, onMounted, computed } from 'vue'
 import VueECharts from 'vue-echarts'
 import axios from 'axios'
 import Container from '@/Components/Container.vue';
+import MultiSelect from '@/Components/MultiSelect.vue';
+
 
 const loading = ref(false)
 const skillsData = ref({})
+
+const selectedIndustries = ref([]);
+const selectedGapSkills = ref([]);
+const dateFromGap = ref('');
+const dateToGap = ref('');
+
+const gapIndustryOptions = computed(() =>
+    Array.from(new Set((skillsData.value.heatmap ?? []).map(d => d.industry)))
+        .map(industry => ({ id: industry, name: industry }))
+);
+
+const gapSkillOptions = computed(() =>
+    Array.from(new Set((skillsData.value.heatmap ?? []).map(d => d.skill)))
+        .map(skill => ({ id: skill, name: skill }))
+);
+
+
+const selectedRoles = ref([]);
+const selectedSkills = ref([]);
+const rolesOptions = computed(() =>
+    Array.from(new Set(jobRolesWordCloud.value.map(r => r.role)))
+        .map(role => ({ id: role, name: role }))
+);
+const skillsOptions = computed(() =>
+    Array.from(new Set(skillsWordCloud.value.map(s => s.skill)))
+        .map(skill => ({ id: skill, name: skill }))
+);
+
+const dateFromRoles = ref('');
+const dateToRoles = ref('');
+
+// Extract unique industries and skills from your data
+const industryOptions = computed(() =>
+    Array.from(new Set((skillsData.value.heatmap ?? []).map(d => d.industry))).sort()
+);
+const skillOptions = computed(() =>
+    Array.from(new Set((skillsData.value.heatmap ?? []).map(d => d.skill))).sort()
+);
+
+const filteredHeatmapData = computed(() => {
+    let data = skillsData.value.heatmap ?? [];
+    if (selectedIndustries.value.length) {
+        const selected = selectedIndustries.value.map(i => i.name);
+        data = data.filter(d => selected.includes(d.industry));
+    }
+    if (selectedGapSkills.value.length) {
+        const selected = selectedGapSkills.value.map(s => s.name);
+        data = data.filter(d => selected.includes(d.skill));
+    }
+    if (dateFromGap.value) {
+        data = data.filter(d => !d.date || d.date >= dateFromGap.value);
+    }
+    if (dateToGap.value) {
+        data = data.filter(d => !d.date || d.date <= dateToGap.value);
+    }
+    return data;
+});
+
+const filteredBubbleData = computed(() => {
+    let data = skillsData.value.bubbleData ?? [];
+    if (selectedIndustries.value.length) {
+        const selected = selectedIndustries.value.map(i => i.name);
+        data = data.filter(d => selected.includes(d.industry));
+    }
+    if (selectedGapSkills.value.length) {
+        const selected = selectedGapSkills.value.map(s => s.name);
+        data = data.filter(d => selected.includes(d.skill));
+    }
+    if (dateFromGap.value) {
+        data = data.filter(d => !d.date || d.date >= dateFromGap.value);
+    }
+    if (dateToGap.value) {
+        data = data.filter(d => !d.date || d.date <= dateToGap.value);
+    }
+    return data;
+});
+
+function applyGapFilters() {
+    fetchSkillsData({
+        industry: selectedIndustry.value,
+        skill: selectedSkill.value,
+        date_from: dateFrom.value,
+        date_to: dateTo.value,
+    });
+}
 
 function fetchSkillsData() {
     loading.value = true
@@ -14,6 +101,7 @@ function fetchSkillsData() {
         .then(res => {
             skillsData.value = res.data
             console.log('Skill Data:', res.data);
+            console.log(skillsData.value.heatmap);
         })
         .finally(() => {
             loading.value = false
@@ -22,20 +110,30 @@ function fetchSkillsData() {
 
 onMounted(fetchSkillsData)
 
-// --- Chart options ---
+
+const topHeatmapData = computed(() => {
+    return filteredHeatmapData.value
+        .sort((a, b) => b.demand - a.demand)
+        .slice(0, 20);
+});
+
+
 const heatmapOption = computed(() => ({
-    tooltip: { trigger: 'item', formatter: params => `${params.data.industry}<br/>${params.data.skill}: ${params.data.demand}` },
+    tooltip: { trigger: 'item', formatter: params => `${params.data[1]}<br/>${params.data[0]}: ${params.data[2]}` },
     grid: { left: '5%', right: '5%', top: '10%', bottom: '10%' },
-    xAxis: { type: 'category', data: Array.from(new Set((skillsData.value.heatmap ?? []).map(d => d.skill))), name: 'Skill', axisLabel: { rotate: 30 } },
-    yAxis: { type: 'category', data: Array.from(new Set((skillsData.value.heatmap ?? []).map(d => d.industry))), name: 'Industry' },
-    visualMap: { min: 0, max: Math.max(...(skillsData.value.heatmap ?? []).map(d => d.demand), 10), calculable: true, orient: 'horizontal', left: 'center', bottom: '5%' },
+    xAxis: { type: 'category', data: Array.from(new Set(topHeatmapData.value.map(d => d.skill))), name: 'Skill', axisLabel: { rotate: 30 } },
+    yAxis: { type: 'category', data: Array.from(new Set(topHeatmapData.value.map(d => d.industry))), name: 'Industry' },
+    visualMap: { min: 0, max: Math.max(...topHeatmapData.value.map(d => d.demand), 10), calculable: true, orient: 'horizontal', left: 'center', bottom: '5%' },
     series: [{
         type: 'heatmap',
-        data: (skillsData.value.heatmap ?? []).map(d => [d.skill, d.industry, d.demand, d]),
+        data: topHeatmapData.value.map(d => [d.skill, d.industry, d.demand]),
         encode: { x: 0, y: 1, value: 2 },
         label: { show: false }
     }]
-}))
+}));
+
+
+
 
 const bubbleOption = computed(() => ({
     tooltip: {
@@ -49,7 +147,7 @@ const bubbleOption = computed(() => ({
     series: [{
         type: 'scatter',
         symbolSize: val => Math.max(val[2], 10),
-        data: (skillsData.value.bubbleData ?? []).map(d => [d.supply, d.demand, d.size, d.skill]),
+        data: filteredBubbleData.value.map(d => [d.supply, d.demand, d.size, d.skill]),
         label: {
             show: true,
             formatter: params => params.data[3], // skill name
@@ -57,16 +155,89 @@ const bubbleOption = computed(() => ({
         },
         itemStyle: { color: '#3b82f6', opacity: 0.7 }
     }]
-}))
+}));
+
+
+// Skills Gap Summary
+const skillsGapSummary = computed(() => {
+    const heatmap = filteredHeatmapData.value;
+    const bubble = filteredBubbleData.value;
+    let summary = "<ul class='list-disc ml-6 mb-2'>";
+
+    // Heatmap: Most critical skill gap
+    if (heatmap.length) {
+        const topGap = heatmap.reduce((a, b) => (b.demand > a.demand ? b : a));
+        summary += `<li>Largest skill gap: <strong>${topGap.skill}</strong> in <strong>${topGap.industry}</strong> (Demand: ${topGap.demand})</li>`;
+    }
+
+    // Bubble: Skill with highest demand-supply gap
+    if (bubble.length) {
+        const top = bubble.reduce((a, b) => ((b.demand - b.supply) > (a.demand - a.supply) ? b : a));
+        summary += `<li>Highest demand-supply gap: <strong>${top.skill}</strong> (Demand: ${top.demand}, Supply: ${top.supply})</li>`;
+    }
+
+    summary += "</ul>";
+    return summary;
+});
+
+const filteredJobRolesWordCloud = computed(() => {
+    let data = jobRolesWordCloud.value;
+    if (selectedRoles.value.length) {
+        const selected = selectedRoles.value.map(r => r.name);
+        data = data.filter(r => selected.includes(r.role));
+    }
+    if (dateFromRoles.value) {
+        data = data.filter(r => !r.date || r.date >= dateFromRoles.value);
+    }
+    if (dateToRoles.value) {
+        data = data.filter(r => !r.date || r.date <= dateToRoles.value);
+    }
+    return data;
+});
+
+const filteredSkillsWordCloud = computed(() => {
+    let data = skillsWordCloud.value;
+    if (selectedSkills.value.length) {
+        const selected = selectedSkills.value.map(s => s.name);
+        data = data.filter(s => selected.includes(s.skill));
+    }
+    if (dateFromRoles.value) {
+        data = data.filter(s => !s.date || s.date >= dateFromRoles.value);
+    }
+    if (dateToRoles.value) {
+        data = data.filter(s => !s.date || s.date <= dateToRoles.value);
+    }
+    return data;
+});
+
+const filteredBarChartData = computed(() => {
+    let data = skillsData.value.barChartData ?? [];
+    if (selectedRoles.value.length) {
+        const selected = selectedRoles.value.map(r => r.name);
+        data = data.filter(d => selected.includes(d.role));
+    }
+    if (selectedSkills.value.length) {
+        const selected = selectedSkills.value.map(s => s.name);
+        data = data.filter(d => selected.includes(d.skill));
+    }
+    if (dateFromRoles.value) {
+        data = data.filter(d => !d.date || d.date >= dateFromRoles.value);
+    }
+    if (dateToRoles.value) {
+        data = data.filter(d => !d.date || d.date <= dateToRoles.value);
+    }
+    return data;
+});
+
 
 const barOption = computed(() => ({
     tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: Array.from(new Set((skillsData.value.barChartData ?? []).map(d => d.skill))), axisLabel: { rotate: 30 } },
+    xAxis: { type: 'category', data: Array.from(new Set(filteredBarChartData.value.map(d => d.skill))), axisLabel: { rotate: 30 } },
     yAxis: { type: 'value', name: 'Demand' },
     series: [{
         name: 'Demand',
         type: 'bar',
-        data: (skillsData.value.barChartData ?? []).map(d => d.demand),
+        data: filteredBarChartData.value.map(d => d.demand),
         itemStyle: { color: '#f59e42' }
     }]
 }))
@@ -95,7 +266,7 @@ const jobRolesWordCloudOption = computed(() => ({
             fontWeight: 'bold',
             color: () => '#' + Math.floor(Math.random() * 16777215).toString(16)
         },
-        data: jobRolesWordCloud.value.map(item => ({
+        data: filteredJobRolesWordCloud.value.map(item => ({
             name: item.role,
             value: item.count
         }))
@@ -122,7 +293,7 @@ const skillsWordCloudOption = computed(() => ({
             fontWeight: 'bold',
             color: () => '#' + Math.floor(Math.random() * 16777215).toString(16)
         },
-        data: skillsWordCloud.value.map(item => ({
+        data: filteredSkillsWordCloud.value.map(item => ({
             name: item.skill,
             value: item.count
         }))
@@ -153,42 +324,13 @@ const skillsWordCloud = computed(() => {
     return [];
 });
 
-const reportType = ref('gap'); // 'gap' or 'roles'
 
-const reportTypes = [
-    { key: 'gap', label: 'Skills Gap Analysis' },
-    { key: 'roles', label: 'Skills & Roles Analysis' }
-];
-
-
-
-// Skills Gap Summary
-const skillsGapSummary = computed(() => {
-    const heatmap = skillsData.value.heatmap ?? [];
-    const bubble = skillsData.value.bubbleData ?? [];
-    let summary = "<ul class='list-disc ml-6 mb-2'>";
-
-    // Heatmap: Most critical skill gap
-    if (heatmap.length) {
-        const topGap = heatmap.reduce((a, b) => (b.demand > a.demand ? b : a));
-        summary += `<li>Largest skill gap: <strong>${topGap.skill}</strong> in <strong>${topGap.industry}</strong> (Demand: ${topGap.demand})</li>`;
-    }
-
-    // Bubble: Skill with highest demand-supply gap
-    if (bubble.length) {
-        const top = bubble.reduce((a, b) => ((b.demand - b.supply) > (a.demand - a.supply) ? b : a));
-        summary += `<li>Highest demand-supply gap: <strong>${top.skill}</strong> (Demand: ${top.demand}, Supply: ${top.supply})</li>`;
-    }
-
-    summary += "</ul>";
-    return summary;
-});
 
 // Skills & Roles Summary
 const skillsRolesSummary = computed(() => {
-    const jobRoles = jobRolesWordCloud.value ?? [];
-    const skills = skillsWordCloud.value ?? [];
-    const bar = skillsData.value.barChartData ?? [];
+    const jobRoles = filteredJobRolesWordCloud.value ?? [];
+    const skills = filteredSkillsWordCloud.value ?? [];
+    const bar = filteredBarChartData.value ?? [];
     const topDemand = topSkillDemand.value ?? [];
     const topSupply = topSkillSupply.value ?? [];
     let summary = "<ul class='list-disc ml-6 mb-2'>";
@@ -219,6 +361,19 @@ const skillsRolesSummary = computed(() => {
     summary += "</ul>";
     return summary;
 });
+const reportType = ref('gap'); // 'gap' or 'roles'
+
+const reportTypes = [
+    { key: 'gap', label: 'Skills Gap Analysis' },
+    { key: 'roles', label: 'Skills & Roles Analysis' }
+];
+
+
+
+
+
+
+
 </script>
 
 <template>
@@ -238,7 +393,34 @@ const skillsRolesSummary = computed(() => {
             </div>
             <h2 class="text-2xl font-bold mb-6 text-gray-800">Skills Gap & Roles Analysis</h2>
 
-            <div v-if="reportType === 'gap'">
+            <div v-if="reportType === 'gap'" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-filter text-blue-500 mr-2"></i>
+                    Filter Reports
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                        <MultiSelect v-model="selectedIndustries" :options="gapIndustryOptions" label="name"
+                            track-by="id" :searchable="true" :multiple="true" placeholder="Select industries" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                        <MultiSelect v-model="selectedGapSkills" :options="gapSkillOptions" label="name" track-by="id"
+                            :searchable="true" :multiple="true" placeholder="Select skills" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                        <input type="date" v-model="dateFromGap"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                        <input type="date" v-model="dateToGap"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200" />
+                    </div>
+                </div>
+
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
                         <i class="fas fa-chart-bar text-blue-500"></i>
@@ -287,8 +469,33 @@ const skillsRolesSummary = computed(() => {
                 </div>
             </div>
 
-            <div v-if="reportType === 'roles'">
-
+            <div v-if="reportType === 'roles'" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-filter text-blue-500 mr-2"></i>
+                    Filter Reports
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Job Roles</label>
+                        <MultiSelect v-model="selectedRoles" :options="rolesOptions" label="name" track-by="id"
+                            :searchable="true" :multiple="true" placeholder="Select job roles" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                        <MultiSelect v-model="selectedSkills" :options="skillsOptions" label="name" track-by="id"
+                            :searchable="true" :multiple="true" placeholder="Select skills" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                        <input type="date" v-model="dateFromRoles"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                        <input type="date" v-model="dateToRoles"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-colors duration-200" />
+                    </div>
+                </div>
 
                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 mb-8">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">

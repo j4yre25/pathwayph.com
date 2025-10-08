@@ -12,6 +12,8 @@ import Datepicker from 'vue3-datepicker';
 import { isValid } from 'date-fns';
 import '@fortawesome/fontawesome-free/css/all.css';
 import axios from 'axios';
+import { Inertia } from '@inertiajs/inertia';
+
 
 
 // Define props
@@ -114,19 +116,27 @@ function openConfirm(type, entry) {
     confirmModal.message = 'Are you sure you want to delete this testimonial? This action cannot be undone.';
     confirmModal.confirmLabel = 'Delete';
     confirmModal.confirmAction = () => {
-      useForm({}).delete(route('profile.testimonials.remove', entry.id), {
-        onSuccess: () => {
-          successMessage.value = 'Testimonial deleted successfully!';
-          isSuccessModalOpen.value = true;
-          closeConfirm();
-          fetchTestimonials();
-        },
-        onError: () => {
-          errorMessage.value = 'Failed to delete testimonial. Please try again.';
-          isErrorModalOpen.value = true;
-          closeConfirm();
-        }
-      });
+      try {
+        useForm({}).delete(route('profile.testimonials.remove', entry.id), {
+          onSuccess: () => {
+            successMessage.value = 'Testimonial deleted successfully!';
+            isSuccessModalOpen.value = true;
+            closeConfirm();
+            fetchTestimonials();
+            Inertia.reload();
+          },
+          onError: () => {
+            errorMessage.value = 'Failed to delete testimonial. Please try again.';
+            isErrorModalOpen.value = true;
+            closeConfirm();
+          }
+        });
+      } catch (err) {
+        errorMessage.value = 'Unexpected error during deletion.';
+        isErrorModalOpen.value = true;
+        closeConfirm();
+        console.error('Error in confirmAction:', err);
+      }
     };
   } else if (type === 'archive') {
     confirmModal.message = 'Are you sure you want to archive this testimonial?';
@@ -138,6 +148,7 @@ function openConfirm(type, entry) {
           isSuccessModalOpen.value = true;
           closeConfirm();
           fetchTestimonials();
+          Inertia.reload();
         },
         onError: () => {
           errorMessage.value = 'Failed to archive testimonial. Please try again.';
@@ -156,6 +167,7 @@ function openConfirm(type, entry) {
           isSuccessModalOpen.value = true;
           closeConfirm();
           fetchTestimonials();
+          Inertia.reload();
         },
         onError: () => {
           errorMessage.value = 'Failed to restore testimonial. Please try again.';
@@ -217,6 +229,7 @@ const addTestimonials = () => {
       successMessage.value = 'Testimonial added successfully!';
       isSuccessModalOpen.value = true;
       fetchTestimonials();
+      Inertia.reload();
     },
     onError: (errors) => {
       errorMessage.value = 'Failed to add testimonial. Please check the form and try again.';
@@ -274,6 +287,7 @@ const updateTestimonials = () => {
       successMessage.value = 'Testimonial updated successfully!';
       isSuccessModalOpen.value = true;
       fetchTestimonials();
+      Inertia.reload();
     },
     onError: (errors) => {
       console.error(errors);
@@ -286,6 +300,7 @@ const updateTestimonials = () => {
 // Archive testimonial function
 const archiveTestimonialForm = useForm({
   is_archived: true
+
 });
 
 
@@ -441,8 +456,11 @@ onMounted(() => {
             class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition duration-200">
             Cancel
           </button>
-          <button v-if="confirmModal.type === 'delete'" type="button" @click="confirmModal.confirmAction"
-            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition duration-200">Delete</button>
+          <button v-if="confirmModal.type === 'delete'" type="button"
+            @click="() => { try { confirmModal.confirmAction && confirmModal.confirmAction(); } catch (e) { errorMessage.value = 'Unexpected error.'; isErrorModalOpen.value = true; } }"
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition duration-200">
+            Delete
+          </button>
           <button v-else type="button"
             :class="confirmModal.type === 'archive' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'"
             class="text-white px-4 py-2 rounded transition duration-200" @click="confirmModal.confirmAction">{{
@@ -573,7 +591,7 @@ onMounted(() => {
               </button>
               <button
                 class="inline-flex items-center px-2 py-1 bg-red-100 border border-red-300 rounded-md font-semibold text-xs text-red-700 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition ease-in-out duration-150"
-                @click="deleteTestimonial(entry.id)">
+                @click="deleteTestimonial(entry)">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
