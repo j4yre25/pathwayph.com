@@ -41,6 +41,7 @@ class Job extends Model
         'posted_by',
         'job_code',
         'job_id',
+        'location',
     ];
 
 
@@ -97,6 +98,33 @@ class Job extends Model
                     $query->orWhere('location', 'like', "%{$location}%");
                 }
             });
+    }
+
+    protected static function booted()
+    {
+        // When status changes to closed or expired -> archive (soft delete)
+        static::updated(function (Job $job) {
+            if ($job->wasChanged('status')) {
+                $status = strtolower($job->status);
+                if (in_array($status, ['closed', 'expired']) && !$job->trashed()) {
+                    // Normalize expired to closed
+                    if ($status === 'expired' && $job->status !== 'closed') {
+                        $job->status = 'closed';
+                        $job->saveQuietly();
+                    }
+                    // Archive
+                    $job->delete();
+                }
+            }
+        });
+
+        // When explicitly archived (soft deleted), force status to closed
+        static::deleting(function (Job $job) {
+            if (!$job->trashed() && strtolower($job->status) !== 'closed') {
+                $job->status = 'closed';
+                $job->saveQuietly();
+            }
+        });
     }
 
     /**
@@ -191,10 +219,6 @@ class Job extends Model
         return $this->belongsToMany(JobType::class, 'job_job_type');
     }
 
-    public function locations()
-    {
-        return $this->belongsToMany(Location::class, table: 'job_location');
-    }
 
     public function salary()
     {
@@ -219,5 +243,13 @@ class Job extends Model
             'id',                              // Local key on Job table...
             'id'                               // Local key on JobApplication table...
         );
+    }
+
+    // Optional compatibility accessor if legacy code expects job->locations:
+    public function getLocationsAttribute()
+    {
+        // Return collection-like array with single pseudo record to avoid errors
+        if (!$this->location) return [];
+        return [(object)['address' => $this->location]];
     }
 }

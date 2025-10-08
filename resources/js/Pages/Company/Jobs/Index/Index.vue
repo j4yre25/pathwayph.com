@@ -19,11 +19,15 @@ const props = defineProps({
     expiredJobs: Number,
 })
 
+// Added: actionError ref to remove Vue warning
+const actionError = ref(null)
+
 // Filters
 const searchQuery = ref('');
 const selectedJobType = ref('');
 const selectedWorkEnvironment = ref('');
-const selectedStatus = ref('');
+// Status filter removed from UI logic; still kept variable if needed
+const selectedStatus = ref(''); 
 const selectedExperienceLevel = ref('');
 const selectedOpenDate = ref('');
 const customFromDate = ref('');
@@ -37,13 +41,8 @@ const workEnvironmentOptions = [
     { value: '3', label: 'Hybrid' }
 ];
 
-const statusOptions = [
-    { value: '', label: 'All Statuses' },
-    { value: 'open', label: 'Open' },
-    { value: 'closed', label: 'Closed' },
-    { value: 'expired', label: 'Expired' },
-    { value: 'full', label: 'Full' }
-];
+// (Status options no longer shown – list is forced to OPEN jobs)
+// const statusOptions = [...]
 
 const experienceLevelOptions = [
     { value: '', label: 'All Experience Levels' },
@@ -53,84 +52,86 @@ const experienceLevelOptions = [
     { value: 'Senior/Executive', label: 'Senior/Executive-level' }
 ];
 
-// Filtering only the jobs on the current page
+// Only OPEN jobs, newest first (client-side safeguard)
+const jobData = computed(() => {
+    // Accept both paginator object {data:[]} or plain array []
+    if (Array.isArray(props.jobs)) return props.jobs
+    return Array.isArray(props.jobs?.data) ? props.jobs.data : []
+})
+
+// UPDATE filteredJobs to use jobData and safer status check
 const filteredJobs = computed(() => {
-    return props.jobs.data.filter(job => {
-        const matchesSearch = job.job_title.toLowerCase().includes(searchQuery.value.toLowerCase());
-        const matchesJobType = selectedJobType.value
-            ? job.job_type == selectedJobType.value
-            : true;
-        const matchesWorkEnv = selectedWorkEnvironment.value
-            ? String(job.work_environment) === selectedWorkEnvironment.value
-            : true;
-        const matchesStatus = selectedStatus.value
-            ? job.status === selectedStatus.value
-            : true;
-        const matchesExperience = selectedExperienceLevel.value
-            ? job.job_experience_level === selectedExperienceLevel.value
-            : true;
+    const base = jobData.value.filter(job =>
+        ['open','pending'].includes((job.status || '').toLowerCase())
+    )
 
-        // --- NEW Posted Date Filter ---
-        const createdDate = new Date(job.created_at); // assumes job.created_at exists
-        const today = new Date();
-        let matchesOpenDate = true;
+    return base
+        .filter(job => {
+            const title = (job.job_title || '').toLowerCase()
+            const matchesSearch = title.includes(searchQuery.value.toLowerCase())
+            const matchesJobType = selectedJobType.value
+                ? String(job.job_type) === String(selectedJobType.value)
+                : true
+            const matchesWorkEnv = selectedWorkEnvironment.value
+                ? String(job.work_environment) === String(selectedWorkEnvironment.value)
+                : true
+            const matchesExperience = selectedExperienceLevel.value
+                ? job.job_experience_level === selectedExperienceLevel.value
+                : true
 
-        if (selectedOpenDate.value === 'today') {
-            matchesOpenDate = createdDate.toDateString() === today.toDateString();
-        } else if (selectedOpenDate.value === 'week') {
-            const weekAgo = new Date();
-            weekAgo.setDate(today.getDate() - 7);
-            matchesOpenDate = createdDate >= weekAgo;
-        } else if (selectedOpenDate.value === 'month') {
-            const monthAgo = new Date();
-            monthAgo.setMonth(today.getMonth() - 1);
-            matchesOpenDate = createdDate >= monthAgo;
-        } else if (selectedOpenDate.value === '3months') {
-            const threeMonthsAgo = new Date();
-            threeMonthsAgo.setMonth(today.getMonth() - 3);
-            matchesOpenDate = createdDate >= threeMonthsAgo;
-        } else if (selectedOpenDate.value === 'custom') {
-            if (customFromDate.value && customToDate.value) {
-                const from = new Date(customFromDate.value);
-                const to = new Date(customToDate.value);
-                // normalize "to" to include whole day
-                to.setHours(23, 59, 59, 999);
-                matchesOpenDate = createdDate >= from && createdDate <= to;
-            } else {
-                matchesOpenDate = true; // if no range yet, don't filter
+            // Posted date filter
+            const createdRaw = job.created_at || job.posted_at
+            const createdDate = createdRaw ? new Date(createdRaw) : null
+            let matchesOpenDate = true
+            if (createdDate) {
+                const today = new Date()
+                if (selectedOpenDate.value === 'today') {
+                    matchesOpenDate = createdDate.toDateString() === today.toDateString()
+                } else if (selectedOpenDate.value === 'week') {
+                    const weekAgo = new Date(); weekAgo.setDate(today.getDate() - 7)
+                    matchesOpenDate = createdDate >= weekAgo
+                } else if (selectedOpenDate.value === 'month') {
+                    const monthAgo = new Date(); monthAgo.setMonth(today.getMonth() - 1)
+                    matchesOpenDate = createdDate >= monthAgo
+                } else if (selectedOpenDate.value === '3months') {
+                    const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(today.getMonth() - 3)
+                    matchesOpenDate = createdDate >= threeMonthsAgo
+                } else if (selectedOpenDate.value === 'custom') {
+                    if (customFromDate.value && customToDate.value) {
+                        const from = new Date(customFromDate.value)
+                        const to = new Date(customToDate.value); to.setHours(23,59,59,999)
+                        matchesOpenDate = createdDate >= from && createdDate <= to
+                    }
+                }
             }
-        }
 
-        return (
-            matchesSearch &&
-            matchesJobType &&
-            matchesWorkEnv &&
-            matchesStatus &&
-            matchesExperience &&
-            matchesOpenDate
-        );
-    });
-});
+            return matchesSearch &&
+                   matchesJobType &&
+                   matchesWorkEnv &&
+                   matchesExperience &&
+                   matchesOpenDate
+        })
+        .sort((a,b) => new Date(b.created_at || b.posted_at) - new Date(a.created_at || a.posted_at))
+})
 
 // Pagination helpers
 const jobsMeta = computed(() => props.jobs.meta ?? {});
 const jobsLinks = computed(() => props.jobs.links ?? []);
-const goTo = (url) => {
-    if (url) router.get(url);
-};
-
+const goTo = (url) => { if (url) router.get(url); };
 
 function resetFilters() {
     searchQuery.value = '';
     selectedJobType.value = '';
     selectedWorkEnvironment.value = '';
-    selectedStatus.value = '';
     selectedExperienceLevel.value = '';
     selectedOpenDate.value = '';
     customFromDate.value = '';
     customToDate.value = '';
 }
 
+// Helper flags
+const hasAnyJobs = computed(() => jobData.value.length > 0)
+const hasFilteredJobs = computed(() => filteredJobs.value.length > 0)
 </script>
 
 <template>
@@ -258,22 +259,6 @@ function resetFilters() {
                                     class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
             >
                                     <option v-for="option in workEnvironmentOptions" :key="option.value" :value="option.value">
-                                        {{ option.label }}
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Status Dropdown -->
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <div class="relative">
-                                <select 
-                                    id="status"
-                                    v-model="selectedStatus" 
-                                    class="w-full border border-gray-300 rounded-lg px-4 py-2 appearance-none focus:ring-blue-500 focus:border-blue-500 shadow-sm pr-10"
-                                >
-                                    <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                                         {{ option.label }}
                                     </option>
                                 </select>

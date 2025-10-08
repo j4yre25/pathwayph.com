@@ -48,6 +48,10 @@ const menuStructure = {
     title: 'Career Profile',
     icon: 'fas fa-bullseye'
   },
+  'employment': {
+    title: 'Employment Preferences',
+    icon: 'fas fa-briefcase'
+  },
   'internship': { title: 'Internship', icon: 'fas fa-user-graduate' },
 };
 
@@ -329,6 +333,17 @@ const { props } = usePage();
               <CareerProfile v-if="activeSection === 'career-profile'" :activeSection="activeSection"
                 :careerGoals="props.careerGoals" :employmentPreferences="props.employmentPreferences"
                 @close-all-modals="closeAllModals" @reset-all-states="resetAllStates" />
+
+              <!-- Employment Preferences Settings -->
+              <EmploymentSection
+                v-if="activeSection === 'employment'"
+                :activeSection="'employment'"
+                :employmentPreferences="props.employmentPreferences"
+                :defaultLocations="props.defaultLocations"
+                :locations="props.locations"
+                @close-all-modals="closeAllModals"
+                @reset-all-states="resetAllStates"
+              />
 
               <!-- Internship Settings -->
               <Internship v-if="activeSection === 'internship'" :internships="props.internships"

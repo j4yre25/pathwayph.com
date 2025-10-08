@@ -32,32 +32,105 @@ use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use App\Models\JobApplication;
+use App\Notifications\JobClosedNotification;
+use App\Notifications\JobExpiredNotification;
 
 
 class CompanyJobsController extends Controller
 {
+
+    private function updateJobLifecycle(int $companyId): void
+    {
+        $today = Carbon::today();
+
+        // Fetch active (non-archived) jobs for this company that could change
+        $jobs = Job::withTrashed()
+            ->where('company_id', $companyId)
+            ->whereNull('deleted_at') // only active ones
+            ->whereIn('status', ['open','pending','expired','closed'])
+            ->get();
+
+        foreach ($jobs as $job) {
+            $statusBefore = $job->status;
+            $needsClose = false;
+
+            // 1. Mark expired if past deadline (and not already closed)
+            if ($job->job_deadline && Carbon::parse($job->job_deadline)->lt($today) && $job->status !== 'closed') {
+                $job->status = 'expired';
+            }
+
+            // 2. Vacancies filled
+            $hiredCount = JobApplication::where('job_id', $job->id)
+                ->where(function($q){
+                    $q->where('stage','hired')->orWhere('status','hired');
+                })
+                ->count();
+            if ($job->job_vacancies !== null && $hiredCount >= (int)$job->job_vacancies) {
+                $needsClose = true;
+            }
+
+            // 3. Application limit reached
+            if (!$needsClose && $job->job_application_limit) {
+                $totalApps = JobApplication::where('job_id',$job->id)->count();
+                if ($totalApps >= (int)$job->job_application_limit) {
+                    $needsClose = true;
+                }
+            }
+
+            if ($needsClose) {
+                $job->status = 'closed';
+            }
+
+            $statusChanged = $job->isDirty('status');
+
+            // Archive when status is closed or expired (keep original status)
+            if (in_array($job->status, ['closed','expired'], true)) {
+                if ($statusChanged) {
+                    $job->saveQuietly();
+                }
+                $job->delete(); // soft delete (archived)
+                continue;
+            }
+
+            if ($statusChanged) {
+                $job->saveQuietly();
+            }
+        }
+    }
+
     public function index(User $user)
     {
-        $jobs = Job::with(['salary', 'locations', 'workEnvironments', 'jobTypes'])
+        // Update lifecycle (archives closed/expired)
+        $this->updateJobLifecycle($user->hr->company_id);
+
+        // List: show OPEN + PENDING (active only)
+        $jobs = Job::with(['salary','workEnvironments','jobTypes'])
             ->where('company_id', $user->hr->company_id)
+            ->whereNull('deleted_at')
+            ->whereIn('status',['open','pending'])
+            ->orderByRaw("FIELD(status,'open','pending')")
             ->orderByRaw('is_approved DESC')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at','desc')
             ->paginate(10)
             ->withQueryString();
 
-        // Get overall counts (not paginated)
-        $allJobs = Job::where('company_id', $user->hr->company_id);
-        $totalJobs = $allJobs->count();
-        $openJobs = $allJobs->where('status', 'open')->count();
-        $closedJobs = $allJobs->where('status', 'closed')->count();
-        $expiredJobs = $allJobs->where('status', 'expired')->count();
+        // KPI counts (include archived for totals)
+        $allJobs = Job::withTrashed()->where('company_id',$user->hr->company_id);
+
+        $totalJobs   = (clone $allJobs)->count();                 // ALL (open, pending, closed, expired, archived)
+        $openJobs    = (clone $allJobs)->where('status','open')->whereNull('deleted_at')->count();
+        $closedJobs  = (clone $allJobs)->where('status','closed')->count();   // includes archived
+        $expiredJobs = (clone $allJobs)->where('status','expired')->count();  // includes archived
+        $pendingJobs = (clone $allJobs)->where('status','pending')->whereNull('deleted_at')->count(); // optional
 
         return Inertia::render('Company/Jobs/Index/Index', [
-            'jobs' => $jobs,
-            'totalJobs' => $totalJobs,
-            'openJobs' => $openJobs,
-            'closedJobs' => $closedJobs,
+            'jobs'        => $jobs,
+            'totalJobs'   => $totalJobs,
+            'openJobs'    => $openJobs,
+            'closedJobs'  => $closedJobs,
             'expiredJobs' => $expiredJobs,
+            'pendingJobs' => $pendingJobs, 
         ]);
     }
 
@@ -75,9 +148,9 @@ class CompanyJobsController extends Controller
     {
         $authUser = Auth::user()->load('hr');
 
-        $sectors = Sector::with('categories')->get();
-        $programs = Program::select('id', 'name')->get();
-        $skills = Skill::orderBy('name')->pluck('name');
+        $sectors   = Sector::with('categories')->get();
+        $programs  = Program::select('id', 'name')->get();
+        $skills    = Skill::orderBy('name')->pluck('name');
 
         $departments = [];
         if ($authUser->hr && $authUser->hr->company_id) {
@@ -87,13 +160,18 @@ class CompanyJobsController extends Controller
                 ->get();
         }
 
+        // ADD: fetch default locations (lookup list only)
+        $defaultLocations = Location::select('id','address')
+            ->orderBy('address')
+            ->get();
 
         return Inertia::render('Company/Jobs/Index/CreateJobs', [
-            'sectors' => $sectors,
-            'programs' => $programs,
-            'authUser' => $authUser,
-            'skills' => $skills,
-            'departments' => $departments,
+            'sectors'          => $sectors,
+            'programs'         => $programs,
+            'authUser'         => $authUser,
+            'skills'           => $skills,
+            'departments'      => $departments,
+            'defaultLocations' => $defaultLocations,  
         ]);
     }
 
@@ -108,15 +186,17 @@ class CompanyJobsController extends Controller
 
     public function manage(User $user)
     {
+        $this->updateJobLifecycle($user->hr->company_id);
+
         $jobs = Job::with([
             'jobTypes:id,type',
-            'locations:id,address',
             'workEnvironments:id,environment_type',
             'salary'
         ])
             ->where('company_id', $user->hr->company_id)
-            ->orderByRaw('is_approved DESC') // prioritize approved jobs
-            ->orderBy('created_at', 'desc')            // then by latest
+            ->whereNull('deleted_at')
+            ->orderByRaw('is_approved DESC')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return Inertia::render('Company/Jobs/Index/ManageJobs', [
@@ -197,8 +277,6 @@ class CompanyJobsController extends Controller
         foreach ($pesoUsers as $pesoUser) {
             $pesoUser->notify(new NewCompanyJobPostedNotification($new_job));
         }
-        // Notify graduates of the new job posting
-        $this->notifyGraduates($new_job);
 
         return redirect()
            ->route('company.jobs.create', ['user' => $user->id])
@@ -381,6 +459,18 @@ class CompanyJobsController extends Controller
 
             // --- Location ---
             $row['location'] = $row['location'] ?? null;
+            // Use the provided address string only. Ignore any location_id.
+            $resolvedLocation = null;
+            if (!empty($row['location']) && trim((string)$row['location']) !== '') {
+                $resolvedLocation = trim((string)$row['location']);
+            }
+
+            // If work environment indicates Remote (id === 2), clear location
+            if (!empty($row['work_environment']) && (string)$row['work_environment'] === '2') {
+                $resolvedLocation = null;
+            }
+
+            $row['location'] = $resolvedLocation;
 
             // --- Deadline (supports Excel serial) ---
             if (isset($row['job_deadline']) && trim($row['job_deadline']) !== '') {
@@ -504,7 +594,6 @@ class CompanyJobsController extends Controller
             // Auto-invite + general notification
             $invited = $this->autoScreenAndInvite($job, 30);
             $totalInvited += $invited;
-            $this->notifyGraduates($job);
 
             $pesoUsers = User::where('role', 'peso')->get();
             foreach ($pesoUsers as $pesoUser) {
@@ -538,7 +627,6 @@ class CompanyJobsController extends Controller
             'user.hr',
             'jobTypes',
             'workEnvironments',
-            'locations',
             'programs'
         ]);
 
@@ -551,7 +639,7 @@ class CompanyJobsController extends Controller
             'job' => [
                 'id' => $job->id,
                 'job_title' => $job->job_title,
-                'location' => $job->locations->pluck('address')->toArray(), // array of addresses
+               'location' => $job->location ? [$job->location] : [],
                 'job_type' => $job->jobTypes->pluck('type')->toArray(), // array of types
                 'work_environment' => $job->workEnvironments->pluck('environment_type')->toArray(), // array of env types
                 'job_experience_level' => $job->job_experience_level,
@@ -630,14 +718,17 @@ class CompanyJobsController extends Controller
             'job_max_salary' => $job->job_max_salary ?? '',
         ];
 
+        $defaultLocations = Location::select('id','address')->orderBy('address')->get();
+
         return Inertia::render('Company/Jobs/Edit/Index', [
-            'job' => $jobData,
-            'departments' => $departments,
-            'programs' => $programs,
-            'jobTypes' => $jobTypes,
+            'job'            => $jobData,
+            'departments'    => $departments,
+            'programs'       => $programs,
+            'jobTypes'       => $jobTypes,
             'workEnvironments' => $workEnvironments,
-            'skills' => $skills,
-            'authUser' => Auth::user()->load('hr'),
+            'skills'         => $skills,
+            'authUser'       => Auth::user()->load('hr'),
+            'defaultLocations' => $defaultLocations, // ADDED
         ]);
     }
 
@@ -761,7 +852,7 @@ class CompanyJobsController extends Controller
     {
         $service = new ApplicantScreeningService();
 
-        $job->loadMissing(['company', 'programs', 'jobTypes', 'locations']);
+        $job->loadMissing(['company', 'programs', 'jobTypes']);
         $companyIdForInvite = $job->company_id ?? $job->company->id ?? null;
 
         $programIds = $job->programs->pluck('id');

@@ -5,6 +5,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'; // added router
 import { ref, computed } from 'vue';
 import '@fortawesome/fontawesome-free/css/all.css';
 import Modal from '@/Components/Modal.vue';
+import CandidatePipeline from '@/Components/CandidatePipeline.vue'
 
 const props = defineProps({
   job: Object,
@@ -48,33 +49,24 @@ const bubbleColors = [
 ];
 
 // Application progress
-const stages = ['Applying', 'Screening', 'Interview', 'Offer', 'Hired'];
+const pipelineStageLabel = computed(() => {
+  const raw = (props.application?.stage || props.application?.status || '').toString().trim();
+  if (!raw) return 'Not Applied';
+  return raw
+    .replace(/[_-]+/g,' ')
+    .split(' ')
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+});
 
-function normalizeStage(app) {
-  if (!app) return { index: -1, label: 'Not applied', rejected: false };
-  const stageRaw = (app.stage || '').toString().toLowerCase();
-  const statusRaw = (app.status || '').toString().toLowerCase();
-
-  if (statusRaw === 'rejected') return { index: 1, label: 'Rejected', rejected: true };
-  if (statusRaw === 'hired') return { index: 4, label: 'Hired', rejected: false };
-  if (statusRaw === 'applied') return { index: 0, label: 'Applying', rejected: false };
-  if (statusRaw === 'shortlisted') return { index: 1, label: 'Screening', rejected: false };
-  if (statusRaw === 'interview') return { index: 2, label: 'Interview', rejected: false };
-  if (statusRaw === 'offered' || statusRaw === 'offer') return { index: 3, label: 'Offer', rejected: false };
-
-  // fallback to stage
-  if (stageRaw.includes('screen')) return { index: 1, label: 'Screening', rejected: false };
-  if (stageRaw.includes('interview')) return { index: 2, label: 'Interview', rejected: false };
-  if (stageRaw.includes('offer')) return { index: 3, label: 'Offer', rejected: false };
-  if (stageRaw.includes('apply')) return { index: 0, label: 'Applying', rejected: false };
-
-  return { index: 0, label: 'Applying', rejected: false };
-}
-
-const current = computed(() => normalizeStage(props.application));
-const progressPercent = computed(() => {
-  if (current.value.index < 0) return 0;
-  return (current.value.index / (stages.length - 1)) * 100;
+// --- New: determine concluded states and badge class ---
+const applicationStatus = computed(() => (props.application?.status || props.application?.stage || '').toString().toLowerCase());
+const isHired = computed(() => ['hired','onboarded','hired'].includes(applicationStatus.value));
+const isRejected = computed(() => ['rejected','declined','decline'].includes(applicationStatus.value));
+const applicationStatusBadgeClass = computed(() => {
+  if (isHired.value) return 'bg-green-100 text-green-800 border-green-200';
+  if (isRejected.value) return 'bg-red-100 text-red-800 border-red-200';
+  return 'bg-gray-100 text-gray-800 border-gray-200';
 });
 
 const hasApplied = ref(!!props.application);
@@ -171,7 +163,7 @@ const matchLabel = computed(() => {
               </div>
               <div class="flex items-center mr-4 mb-2 md:mb-0">
                 <i class="fas fa-calendar-alt text-green-500 mr-1"></i>
-                <span>Posted on {{ formatDate(job.posted_at) }}</span>
+                <span>Posted on {{ formatDate(job.created_at) }}</span>
               </div>
             </div>
           </div>
@@ -208,26 +200,30 @@ const matchLabel = computed(() => {
       <!-- Progress + Content -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 overflow-hidden p-6">
         <!-- Application Progress (only if applied) -->
-        <div v-if="application" class="mb-6">
-          <div class="flex items-center justify-between mb-2">
+        <div v-if="application && !isHired && !isRejected" class="mb-6">
+          <div class="flex items-center justify-between mb-3">
             <h3 class="text-lg font-semibold text-gray-800 flex items-center">
               <i class="fas fa-route text-indigo-500 mr-2"></i>
               Application Progress
             </h3>
-            <span class="text-sm" :class="current.rejected ? 'text-red-600' : 'text-gray-600'">
-              {{ current.label }}
+            <span class="text-sm text-gray-600">
+              {{ pipelineStageLabel }}
             </span>
           </div>
-
-          <div class="relative">
-            <div class="h-2 bg-gray-200 rounded">
-              <div class="h-2 bg-indigo-600 rounded transition-all" :style="{ width: progressPercent + '%' }"></div>
-            </div>
-            <div class="flex justify-between text-xs text-gray-600 mt-2">
-              <span v-for="(s, idx) in stages" :key="s" class="flex-1 text-center"
-                    :class="idx <= current.index ? 'font-semibold text-indigo-700' : ''">
-                {{ s }}
-              </span>
+          <CandidatePipeline :stage="application.stage || application.status" />
+        </div>
+        <!-- Show badge only for hired/rejected, no pipeline -->
+        <div v-if="application && (isHired || isRejected)" class="mb-6">
+          <div :class="['p-4 rounded border', applicationStatusBadgeClass]">
+            <div class="flex items-center gap-3">
+              <div>
+                <div class="text-sm font-semibold">{{ pipelineStageLabel }}</div>
+                <div class="text-xs text-gray-600">Application concluded</div>
+              </div>
+              <div class="ml-auto">
+                <i v-if="isHired" class="fas fa-check-circle text-green-600 text-2xl"></i>
+                <i v-if="isRejected" class="fas fa-times-circle text-red-600 text-2xl"></i>
+              </div>
             </div>
           </div>
         </div>
@@ -389,7 +385,7 @@ const matchLabel = computed(() => {
                   <h4 class="text-sm font-medium text-gray-500 mb-1">Posted Date</h4>
                   <div class="flex items-center">
                     <i class="far fa-calendar-plus text-gray-400 mr-2"></i>
-                    <span>{{ formatDate(job.posted_at) }}</span>
+                    <span>{{ formatDate(job.created_at) }}</span>
                   </div>
                 </div>
                 <div class="bg-white p-4 rounded-lg border border-gray-200">

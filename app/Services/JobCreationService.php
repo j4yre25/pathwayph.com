@@ -22,11 +22,11 @@ class JobCreationService
      */
     public function createJob(array $validated, User $user): Job
     {
-        $location = $this->handleLocation($validated);
+        // RESOLVE location string (no pivot, no creation)
+        $locationString = $this->resolveLocationString($validated);
 
-        $jobData = $this->prepareJobData($validated, $user, null, $location);
+        $jobData = $this->prepareJobData($validated, $user, null, $locationString);
 
-    
         [$jobCode, $jobID] = $this->generateJobCodes(
             $validated['sector'] ?? $validated['sector_id'] ?? null,
             $validated['category'] ?? $validated['category_id'] ?? null,
@@ -38,13 +38,9 @@ class JobCreationService
 
         $job = Job::create($jobData);
 
-
-        // Sync relationships if present
+        // Sync relationships (exclude locations pivot)
         if (!empty($validated['job_type'])) {
             $job->jobTypes()->sync(is_array($validated['job_type']) ? $validated['job_type'] : [$validated['job_type']]);
-        }
-        if ($location) {
-            $job->locations()->sync([$location->id]);
         }
         if (!empty($validated['work_environment'])) {
             $job->workEnvironments()->sync(is_array($validated['work_environment']) ? $validated['work_environment'] : [$validated['work_environment']]);
@@ -66,19 +62,36 @@ class JobCreationService
         ]);
     }
 
-    private function handleLocation(array $validated): ?Location
+    // REMOVED: handleLocation (pivot creation no longer needed)
+
+    private function resolveLocationString(array $validated): ?string
     {
-        // work_environment == 2 means remote
+        // If remote (2) return null (or 'Remote' if desired)
         $workEnv = $validated['work_environment'] ?? $validated['work_environment_id'] ?? null;
-        if ($workEnv != 2 && !empty($validated['location'])) {
-            return Location::firstOrCreate(['address' => $validated['location']]);
+        if ((string)$workEnv === '2') {
+            return null;
         }
+
+        // Direct string provided
+        if (!empty($validated['location']) && is_string($validated['location'])) {
+            return trim($validated['location']);
+        }
+
+        // Dropdown gave an ID; convert to address string
+        if (!empty($validated['location_id'])) {
+            $loc = Location::find($validated['location_id']);
+            if ($loc && !empty($loc->address)) {
+                return $loc->address;
+            }
+        }
+
         return null;
     }
 
-    private function prepareJobData(array $validated, User $user, ?Salary $salary = null, $location): array
-    {   
+    private function prepareJobData(array $validated, User $user, ?Salary $salary = null, ?string $location): array
+    {
         $company = $user->company;
+
         return [
             'user_id' => $user->id,
             'posted_by' => $user->hr->full_name ?? ($validated['posted_by'] ?? null),
@@ -86,7 +99,7 @@ class JobCreationService
             'status' => 'open',
 
             'job_title' => $validated['job_title'],
-            'location' => $location ? $location->id : ($validated['location_id'] ?? null),
+            'location' => $location, // store string directly
             'is_approved' => null,
             'job_type' => $validated['job_type'] ?? null,
             'job_experience_level' => $validated['job_experience_level'] ?? null,
@@ -107,11 +120,9 @@ class JobCreationService
         ];
     }
 
-    private function generateJobCodes($sectorId, $categoryId,User $user, $jobTitle): array
+    private function generateJobCodes($sectorId, $categoryId, User $user, $jobTitle): array
     {
-        
-
-         $company = $user->company;
+        $company = $user->company;
         $sector = $company ? $company->sector : null;
 
         $sectorCode = $sector ? $sector->sector_id : 'SEC';

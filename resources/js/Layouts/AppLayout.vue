@@ -325,12 +325,12 @@ console.log('isNotApproved:', isNotApproved.value)
                   Reports
                 </NavLink>
 
-                <NavLink v-if="page.props.auth.user.role === 'company'"
+                <!-- <NavLink v-if="page.props.auth.user.role === 'company'"
                   :href="route('company.reports.listOfReports', { user: page.props.auth.user.id })"
                   :active="route().current('company.reports.listOfReports')"
                   :disabled="!page.props.auth.user.is_approved">
                   Reports (old)
-                </NavLink>
+                </NavLink> -->
 
               </div>
 

@@ -311,17 +311,17 @@ class DashboardController extends Controller
         $activeJobListings = \App\Models\Job::where('status', 'open')->count();
 
         $recentJobs = Job::where('status', 'open')
-            ->with(['company', 'sector', 'category', 'locations']) // Use correct relationships
+            ->with(['company', 'sector', 'category'])
             ->orderBy('created_at', 'desc')
             ->take(3)
             ->get()
             ->map(function ($job) {
                 return [
                     'title' => $job->job_title,
-                    'sector' => $job->sector ? $job->sector->name : '-', // sector() relationship
-                    'category' => $job->category ? $job->category->name : '-', // category() relationship
-                    'employer' => $job->company ? $job->company->company_name : '-', // company() relationship
-                    'location' => $job->locations->pluck('name')->join(', ') ?: '-',
+                    'sector' => $job->sector ? $job->sector->name : '-',
+                    'category' => $job->category ? $job->category->name : '-',
+                    'employer' => $job->company ? $job->company->company_name : '-',
+                    'location' => $job->location ?: '-',
                     'date_posted' => $job->created_at->format('Y-m-d'),
                 ];
             });
@@ -533,7 +533,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $jobs = Job::with(['company', 'jobTypes', 'locations', 'salary'])->get();
+        $jobs = Job::with(['company', 'jobTypes', 'salary'])->get();
 
         $jobsAligned = 0;
 
@@ -751,7 +751,7 @@ class DashboardController extends Controller
                         'job_max_salary' => $job->salary->job_max_salary,
                         'salary_type' => $job->salary->salary_type,
                     ] : null,
-                    'location' => $job->locations->pluck('address')->join(', '),
+                    'location' => $job->location,
                     'posted_at' => $job->created_at->diffForHumans(),
                     'match_labels' => $labels,
                     'match_percentage' => isset($score, $criteria) && $criteria ? round(($score / $criteria) * 100) : null,
@@ -962,7 +962,7 @@ class DashboardController extends Controller
         $companyId = $request->input('company_id'); // Get company_id from query
 
         $recentJobsQuery = Job::where('status', 'open')
-            ->with(['company', 'sector', 'category', 'locations']);
+            ->with(['company', 'sector', 'category']);
 
         if ($companyId) {
             $recentJobsQuery->where('company_id', $companyId);
@@ -981,7 +981,7 @@ class DashboardController extends Controller
                     'sector' => $job->sector ? $job->sector->name : '-',
                     'category' => $job->category ? $job->category->name : '-',
                     'employer' => $job->company ? $job->company->company_name : '-',
-                    'location' => $job->locations->pluck('name')->join(', ') ?: '-',
+                    'location' => $job->location ?: '-',
                     'date_posted' => $job->created_at->format('Y-m-d'),
                 ];
             });
