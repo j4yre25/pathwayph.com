@@ -118,7 +118,8 @@ class ApplicantScreeningService
                 break;
             }
         }
-        $score += $otherSkillMatch * $weights['other_skills'];
+    }
+    $score += $otherSkillMatch * $weights['other_skills'];
 
     // m2: Education
     $educationMatch = ($graduateProgram && in_array($graduateProgram, $jobProgramNames)) ? 1 : 0;
@@ -205,6 +206,5 @@ class ApplicantScreeningService
         'is_shortlisted' => $is_shortlisted,
         'status' => $status,
     ];
-}
 }
 }
