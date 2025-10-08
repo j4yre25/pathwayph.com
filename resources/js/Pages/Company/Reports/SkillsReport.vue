@@ -388,13 +388,13 @@ Balanced distribution (${balancedCount} skills) suggests stable alignment; monit
           </select>
         </div>
 
-        <div>
+        <!-- <div>
           <label class="block text-[11px] font-semibold mb-1 text-gray-600">Program (Optional)</label>
           <select v-model="local.program_id" class="border rounded px-2 py-1 text-sm w-56">
             <option value="">All</option>
             <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
-        </div>
+        </div> -->
 
         <div class="ml-auto">
           <button @click="() => { local.department=''; local.job_id=''; local.program_id=''; local.date_preset='overall'; local.date_from=''; local.date_to=''; }"
