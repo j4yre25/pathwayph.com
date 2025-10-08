@@ -11,46 +11,44 @@ class CareerAlignmentService
 {
     public static function score(Graduate $graduate)
     {
-        // If unemployed, show UNEMPLOYED and skip calculation
+        // --- 1. Skip if unemployed ---
         if (
             strtolower($graduate->employment_status) === 'unemployed' ||
             strtolower($graduate->current_job_title) === 'n/a'
         ) {
             $graduate->alignment_score = null;
+            $graduate->normalized_alignment_score = null;
             $graduate->save();
 
             return [
                 'score' => null,
                 'percentage' => null,
+                'normalized' => null,
                 'alignment' => 'UNEMPLOYED',
-                'degreeMatch' => null,
-                'skillsMatch' => null,
-                'careerOpportunityMatch' => null,
             ];
         }
 
         $jobTitle = strtolower((string) ($graduate->current_job_title ?? ''));
 
-        // 1. Degree Match
+        // --- 2. Degree Match ---
         $degreeMatch = InstitutionProgram::where('institution_id', $graduate->institution_id)
             ->where('program_id', $graduate->program_id)
             ->exists() ? 1 : 0;
 
         if (!$degreeMatch) {
-            // No degree match, always 0%
             $graduate->alignment_score = 0;
+            $graduate->normalized_alignment_score = 0;
             $graduate->save();
+
             return [
                 'score' => 0,
                 'percentage' => 0,
+                'normalized' => 0,
                 'alignment' => 'Misaligned',
-                'degreeMatch' => 0,
-                'skillsMatch' => 0,
-                'careerOpportunityMatch' => 0,
             ];
         }
 
-        // 2. Career Opportunity Match (for this degree/program)
+        // --- 3. Career Opportunity Match ---
         $careerOpportunities = InstitutionCareerOpportunity::where('institution_id', $graduate->institution_id)
             ->where('program_id', $graduate->program_id)
             ->with('careerOpportunity')
@@ -68,7 +66,7 @@ class CareerAlignmentService
             }
         }
 
-        // 3. Skills Match
+        // --- 4. Skills Match ---
         $graduateSkills = $graduate->graduateSkills
             ->pluck('skill.name')
             ->map(fn($s) => strtolower((string) $s))
@@ -88,21 +86,19 @@ class CareerAlignmentService
         }
 
         if ($matchedCareerOpportunityId) {
-            // Only use skills for the matched career opportunity
             $institutionSkills = InstitutionSkill::where('institution_id', $graduate->institution_id)
                 ->where('program_id', $graduate->program_id)
                 ->where('career_opportunity_id', $matchedCareerOpportunityId)
-                ->where('skill_id', '!=', null)
+                ->whereNotNull('skill_id')
                 ->get()
                 ->pluck('skill.name')
                 ->map(fn($s) => strtolower($s))
                 ->unique()
                 ->toArray();
         } else {
-            // Use all skills for the degree/program
             $institutionSkills = InstitutionSkill::where('institution_id', $graduate->institution_id)
                 ->where('program_id', $graduate->program_id)
-                ->where('skill_id', '!=', null)
+                ->whereNotNull('skill_id')
                 ->get()
                 ->pluck('skill.name')
                 ->map(fn($s) => strtolower($s))
@@ -113,42 +109,54 @@ class CareerAlignmentService
         $matchingSkills = array_intersect($graduateSkills, $institutionSkills);
         $skillsMatch = count($institutionSkills) > 0 ? count($matchingSkills) / count($institutionSkills) : 0;
 
-        // 4. Scoring
+        // --- 5. Raw Scoring Formula (0–100%) ---
         $percentage = 0;
         if ($degreeMatch) {
             if ($careerOpportunityMatch && $skillsMatch == 1) {
                 $percentage = 100;
-            } elseif ($careerOpportunityMatch && $skillsMatch < 1 && $skillsMatch > 0) {
-                $percentage = 70 + round($skillsMatch * 30); // 70-100%
+            } elseif ($careerOpportunityMatch && $skillsMatch > 0) {
+                $percentage = 70 + round($skillsMatch * 30); // 70–100%
             } elseif ($careerOpportunityMatch && $skillsMatch == 0) {
                 $percentage = 70;
             } elseif (!$careerOpportunityMatch && $skillsMatch > 0) {
-                $percentage = 50 + round($skillsMatch * 30); // 50-90% depending on skills
-            } elseif (!$careerOpportunityMatch && $skillsMatch == 0) {
+                $percentage = 50 + round($skillsMatch * 30); // 50–90%
+            } else {
                 $percentage = 50;
             }
-        } else {
-            $percentage = 0;
         }
 
-        // Alignment Category
+        // --- 6. Alignment Category ---
         if ($percentage >= 80) {
             $alignment = 'Directly aligned';
         } elseif ($percentage >= 60) {
             $alignment = 'Partially aligned';
-        } elseif ($percentage > 0) {
-            $alignment = 'Misaligned';
         } else {
             $alignment = 'Misaligned';
         }
 
-        // --- Real-time update in graduates table ---
+        // --- 7. Save Raw Alignment ---
         $graduate->alignment_score = $percentage;
         $graduate->save();
 
+        // --- 8. Normalization (Based on all graduates’ raw scores) ---
+        $min = Graduate::whereNotNull('alignment_score')->min('alignment_score');
+        $max = Graduate::whereNotNull('alignment_score')->max('alignment_score');
+
+        if ($max == $min) {
+            $normalized = 0;
+        } else {
+            $normalized = ($percentage - $min) / ($max - $min);
+        }
+
+        // --- 9. Save Normalized Score ---
+        $graduate->normalized_alignment_score = round($normalized, 3);
+        $graduate->save();
+
+        // --- 10. Return Results ---
         return [
-            'score' => $percentage / 100,
+            'score' => round($percentage / 100, 3),
             'percentage' => $percentage,
+            'normalized' => round($normalized, 3),
             'alignment' => $alignment,
             'degreeMatch' => $degreeMatch,
             'skillsMatch' => $skillsMatch,
