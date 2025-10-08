@@ -40,6 +40,7 @@ const form = useForm({
   company_name: '',
   other_company_name: '',
   other_company_sector: '',
+  graduate_term: '',
 });
 
 const { formattedMobileNumber } = useFormattedMobileNumber(form, 'mobile_number');
@@ -47,6 +48,16 @@ const { formattedMobileNumber } = useFormattedMobileNumber(form, 'mobile_number'
 const showModal = ref(false);
 const currentStep = ref(1);
 const totalSteps = 4;
+
+function validateTerm() {
+  const val = form.graduate_term.trim().toLowerCase();
+  if (!['1', '2', '3', '4', '5', 'summer'].includes(val)) {
+    form.errors.graduate_term = "Term must be a number 1-5 or 'summer'";
+    return false;
+  }
+  form.errors.graduate_term = '';
+  return true;
+}
 
 // Step navigation
 const nextStep = () => {
@@ -174,6 +185,7 @@ function selectCompany(company) {
 
 function submit() {
   if (currentStep.value === totalSteps && canProceed.value)
+    if (!validateTerm()) return;
     if (form.company_not_found && form.other_company_sector) {
       const sectorObj = props.sectors.find(s => s.id == form.other_company_sector);
       form.other_company_sector = sectorObj ? sectorObj.name : '';
@@ -248,17 +260,6 @@ async function validateSchoolYear() {
     return;
   }
 
-  // Check with backend if this school year exists for this institution
-  try {
-    const response = await axios.post(route('school-years.add'), {
-      institution_id: form.graduate_school_graduated_from,
-      school_year_range: val,
-    });
-    // Optionally, handle response (e.g., show success, update UI)
-    addYearError.value = '';
-  } catch (e) {
-    addYearError.value = e.response?.data?.message || 'Failed to add school year';
-  }
 }
 </script>
 
@@ -419,16 +420,20 @@ async function validateSchoolYear() {
                 <InputLabel for="graduate_year_graduated" class="text-slate-800 font-medium">
                   Year Graduated <span class="text-red-500">*</span>
                 </InputLabel>
-                <TextInput
-                  id="graduate_year_graduated"
-                  v-model="form.graduate_year_graduated"
-                  placeholder="e.g. 2022-2023"
-                  required
+                <TextInput id="graduate_year_graduated" v-model="form.graduate_year_graduated"
+                  placeholder="e.g. 2022-2023" required
                   class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
-                  @blur="validateSchoolYear"
-                />
+                  @blur="validateSchoolYear" />
                 <InputError :message="addYearError" class="text-red-600" />
                 <InputError :message="form.errors.graduate_year_graduated" class="text-red-600" />
+              </div>
+              <div>
+                <InputLabel for="graduate_term" class="text-slate-800 font-medium">
+                  Term <span class="text-red-500">*</span>
+                </InputLabel>
+                <TextInput id="graduate_term" v-model="form.graduate_term" placeholder="Enter 1-5 or 'summer'" required
+                  class="mt-2 block w-full bg-gray-50 border-gray-300 text-slate-800 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg" />
+                <InputError :message="form.errors.graduate_term" class="text-red-600" />
               </div>
             </div>
           </div>

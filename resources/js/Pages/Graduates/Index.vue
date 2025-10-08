@@ -292,7 +292,7 @@ function cancelArchive() {
                       </div>
                       <div class="ml-4">
                         <div class="text-sm font-medium text-gray-900">{{ graduate.first_name }} {{ graduate.middle_name
-                          }}
+                        }}
                           {{ graduate.last_name }}</div>
                         <div class="text-xs text-gray-500">{{ graduate.email }}</div>
                       </div>
@@ -314,7 +314,9 @@ function cancelArchive() {
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {{ graduate.current_job_title ?? 'N/A' }}
+                    <span
+                      v-if="!graduate.current_job_title || graduate.current_job_title.trim().toLowerCase() === 'n/a'">UNEMPLOYED</span>
+                    <span v-else>{{ graduate.current_job_title ?? 'N/A' }}</span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                     <button @click="editGraduate(graduate)"

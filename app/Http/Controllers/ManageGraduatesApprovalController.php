@@ -90,8 +90,8 @@ class ManageGraduatesApprovalController extends Controller
             return redirect()->back()->with('flash.banner', 'You can only disapprove graduates from your institution.');
         }
 
-        $user->delete();
-
+        $user->is_approved = false;
+        $user->save();
         return redirect()->back()->with('flash.banner', 'Graduate disapproved successfully.');
     }
 
