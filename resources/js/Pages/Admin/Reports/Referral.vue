@@ -54,6 +54,40 @@ function fetchAnalyticsData() {
     })
 }
 
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+const paginatedGraduateTableData = computed(() => {
+    const data = graduateTableData.value;
+    const start = (currentPage.value - 1) * pageSize.value;
+    return data.slice(start, start + pageSize.value);
+});
+const totalPages = computed(() =>
+    Math.ceil(graduateTableData.value.length / pageSize.value)
+);
+
+const tableStageFilter = ref(''); // '' means show all
+const graduateTableData = computed(() => {
+    // analyticsData.value.graduates should be an array of { name, stage, ... }
+    if (!analyticsData.value.graduates) return [];
+    if (!tableStageFilter.value) return analyticsData.value.graduates;
+    return analyticsData.value.graduates.filter(g => g.stage === tableStageFilter.value);
+});
+const referralStages = [
+    { value: '', label: 'All Stages' },
+    { value: 'referred', label: 'Referred' },
+    { value: 'applied', label: 'Applied' },
+    { value: 'screened', label: 'Screened' },
+    { value: 'interviewed', label: 'Interviewed' },
+    { value: 'offered', label: 'Offered' },
+    { value: 'hired', label: 'Hired' },
+    { value: 'rejected', label: 'Rejected' },
+];
+
+watch([tableStageFilter, graduateTableData], () => {
+    currentPage.value = 1;
+});
+
 // Fetch on mount and when filters change
 onMounted(fetchAnalyticsData)
 watch([selectedCompany, selectedRole, selectedSource, dateFrom, dateTo], fetchAnalyticsData)
@@ -405,8 +439,82 @@ const performanceSummary = computed(() => {
                 <h2 class="text-xl font-bold text-blue-700">Please select a report type.</h2>
             </div>
 
-            <!-- Funnel Chart -->
+
+            <!-- Referral Success Rate -->
             <div v-if="selectedReport === 'referralsuccess' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
+
+                <div class="bg-white rounded-2xl shadow border border-gray-200 mb-10 w-full">
+                    <!-- Filter Bar -->
+                    <div
+                        class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Stage</label>
+                            <select v-model="tableStageFilter"
+                                class="material-select block w-40 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option v-for="stage in referralStages" :key="stage.value" :value="stage.value">
+                                    {{ stage.label }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Rows per page</label>
+                            <select v-model="pageSize"
+                                class="material-select block w-20 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option :value="10">10</option>
+                                <option :value="25">25</option>
+                                <option :value="50">50</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-gray-800">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Graduate Name</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Stage</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Role</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Company</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="grad in paginatedGraduateTableData" :key="grad.id"
+                                    class="hover:bg-blue-50 transition">
+                                    <td class="px-4 py-3">{{ grad.name }}</td>
+                                    <td class="px-4 py-3 capitalize">{{ grad.stage }}</td>
+                                    <td class="px-4 py-3">{{ grad.role }}</td>
+                                    <td class="px-4 py-3">{{ grad.company }}</td>
+                                    <td class="px-4 py-3">{{ grad.date }}</td>
+                                </tr>
+                                <tr v-if="paginatedGraduateTableData.length === 0">
+                                    <td colspan="5" class="px-4 py-3 text-gray-400 text-center">No graduates found for
+                                        this stage.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Controls -->
+                    <div
+                        class="flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                        <div class="text-sm text-gray-600 mb-2 md:mb-0">
+                            Page <span class="font-semibold text-blue-600">{{ currentPage }}</span> of <span
+                                class="font-semibold text-blue-600">{{ totalPages }}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button
+                                class="material-btn px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium shadow hover:bg-blue-100 disabled:opacity-50 transition"
+                                :disabled="currentPage === 1" @click="currentPage--">
+                                Prev
+                            </button>
+                            <button
+                                class="material-btn px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium shadow hover:bg-blue-100 disabled:opacity-50 transition"
+                                :disabled="currentPage === totalPages || totalPages === 0" @click="currentPage++">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <h3 class="text-lg font-semibold mb-6 text-gray-700">Funnel Analytics</h3>
                 <template v-if="(analyticsData.funnelData ?? []).length">
                     <VueECharts :option="funnelOption" style="height: 400px; width: 100%;" />
@@ -414,6 +522,8 @@ const performanceSummary = computed(() => {
                 <template v-else>
                     <div class="text-gray-400 text-center py-8">No funnel data available.</div>
                 </template>
+
+
 
                 <!-- Analytics Summary Card for Funnel -->
                 <div class="mt-8 flex justify-center">
@@ -436,16 +546,89 @@ const performanceSummary = computed(() => {
 
 
             <!-- Referral Trends Over Time -->
-            <div v-if="selectedReport === 'trends' && !loading" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <div class="bg-white rounded-xl shadow p-8">
+            <div v-if="selectedReport === 'trends' && !loading">
+                <div class="bg-white rounded-2xl shadow border border-gray-200 mb-10 w-full">
+                    <!-- Filter Bar -->
+                    <div
+                        class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Stage</label>
+                            <select v-model="tableStageFilter"
+                                class="material-select block w-40 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option v-for="stage in referralStages" :key="stage.value" :value="stage.value">
+                                    {{ stage.label }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Rows per page</label>
+                            <select v-model="pageSize"
+                                class="material-select block w-20 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option :value="10">10</option>
+                                <option :value="25">25</option>
+                                <option :value="50">50</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-gray-800">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Graduate Name</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Stage</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Role</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Company</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="grad in paginatedGraduateTableData" :key="grad.id"
+                                    class="hover:bg-blue-50 transition">
+                                    <td class="px-4 py-3">{{ grad.name }}</td>
+                                    <td class="px-4 py-3 capitalize">{{ grad.stage }}</td>
+                                    <td class="px-4 py-3">{{ grad.role }}</td>
+                                    <td class="px-4 py-3">{{ grad.company }}</td>
+                                    <td class="px-4 py-3">{{ grad.date }}</td>
+                                </tr>
+                                <tr v-if="paginatedGraduateTableData.length === 0">
+                                    <td colspan="5" class="px-4 py-3 text-gray-400 text-center">No graduates found
+                                        for this
+                                        stage.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Controls -->
+                    <div
+                        class="flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                        <div class="text-sm text-gray-600 mb-2 md:mb-0">
+                            Page <span class="font-semibold text-blue-600">{{ currentPage }}</span> of <span
+                                class="font-semibold text-blue-600">{{ totalPages }}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button
+                                class="material-btn px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium shadow hover:bg-blue-100 disabled:opacity-50 transition"
+                                :disabled="currentPage === 1" @click="currentPage--">
+                                Prev
+                            </button>
+                            <button
+                                class="material-btn px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium shadow hover:bg-blue-100 disabled:opacity-50 transition"
+                                :disabled="currentPage === totalPages || totalPages === 0" @click="currentPage++">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow p-8 mb-10">
                     <h3 class="text-lg font-semibold mb-6 text-gray-700">Line Chart</h3>
                     <VueECharts :option="lineTrendOption" style="height: 400px; width: 100%;" />
                 </div>
-                <div class="bg-white rounded-xl shadow p-8">
+                <div class="bg-white rounded-xl shadow p-8 mb-10">
                     <h3 class="text-lg font-semibold mb-6 text-gray-700">Area Chart</h3>
                     <VueECharts :option="areaTrendOption" style="height: 400px; width: 100%;" />
                 </div>
-
 
                 <div class="mt-8 flex justify-center">
                     <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">
@@ -469,6 +652,79 @@ const performanceSummary = computed(() => {
             <!-- Referral Performance by Role -->
             <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
 
+                <div class="bg-white rounded-2xl shadow border border-gray-200 mb-10 w-full">
+                    <!-- Filter Bar -->
+                    <div
+                        class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Stage</label>
+                            <select v-model="tableStageFilter"
+                                class="material-select block w-40 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option v-for="stage in referralStages" :key="stage.value" :value="stage.value">
+                                    {{ stage.label }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Rows per page</label>
+                            <select v-model="pageSize"
+                                class="material-select block w-20 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option :value="10">10</option>
+                                <option :value="25">25</option>
+                                <option :value="50">50</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm text-gray-800">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Graduate Name</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Stage</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Role</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Company</th>
+                                    <th class="px-4 py-3 text-left font-semibold tracking-wide">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="grad in paginatedGraduateTableData" :key="grad.id"
+                                    class="hover:bg-blue-50 transition">
+                                    <td class="px-4 py-3">{{ grad.name }}</td>
+                                    <td class="px-4 py-3 capitalize">{{ grad.stage }}</td>
+                                    <td class="px-4 py-3">{{ grad.role }}</td>
+                                    <td class="px-4 py-3">{{ grad.company }}</td>
+                                    <td class="px-4 py-3">{{ grad.date }}</td>
+                                </tr>
+                                <tr v-if="paginatedGraduateTableData.length === 0">
+                                    <td colspan="5" class="px-4 py-3 text-gray-400 text-center">No graduates found for
+                                        this stage.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Controls -->
+                    <div
+                        class="flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                        <div class="text-sm text-gray-600 mb-2 md:mb-0">
+                            Page <span class="font-semibold text-blue-600">{{ currentPage }}</span> of <span
+                                class="font-semibold text-blue-600">{{ totalPages }}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button
+                                class="material-btn px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium shadow hover:bg-blue-100 disabled:opacity-50 transition"
+                                :disabled="currentPage === 1" @click="currentPage--">
+                                Prev
+                            </button>
+                            <button
+                                class="material-btn px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium shadow hover:bg-blue-100 disabled:opacity-50 transition"
+                                :disabled="currentPage === totalPages || totalPages === 0" @click="currentPage++">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div v-if="selectedReport === 'performance' && !loading" class="bg-white rounded-xl shadow p-8 mb-10">
                     <h3 class="text-lg font-semibold mb-6 text-gray-700">Clustered Bar Chart</h3>
                     <VueECharts :option="roleStatsOption" style="height: 400px; width: 100%;" />
@@ -478,6 +734,8 @@ const performanceSummary = computed(() => {
                     <h3 class="text-lg font-semibold mb-6 text-gray-700">Stacked Column Chart</h3>
                     <VueECharts :option="stackedRoleStatsOption" style="height: 400px; width: 100%;" />
                 </div>
+
+
 
                 <div class="mt-8 flex justify-center">
                     <div class="w-full md:w-2/3 lg:w-1/2 shadow-lg rounded-xl bg-white border border-gray-200">

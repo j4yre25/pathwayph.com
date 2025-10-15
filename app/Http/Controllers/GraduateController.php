@@ -391,6 +391,9 @@ class GraduateController extends Controller
                 return [strtolower(preg_replace('/\s+/', ' ', trim($company->company_name))) => $company->company_name];
             });
 
+        $batchSize = 200;
+        $batchRows = [];
+
         while (($data = fgetcsv($handle, 0, $delimiter)) !== false) {
             $row = array_combine($header, $data);
 
@@ -502,7 +505,7 @@ class GraduateController extends Controller
                     'messages' => $validator->errors()->all(),
                 ];
             } else {
-                $validRows[] = $row;
+                $batchRows[] = $row;
             }
 
             $rowNum++;
@@ -576,6 +579,8 @@ class GraduateController extends Controller
 
         return response()->json(['status' => 'success']);
     }
+
+    
 
     public function downloadTemplate()
     {

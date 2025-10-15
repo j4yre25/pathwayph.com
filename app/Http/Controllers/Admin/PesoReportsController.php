@@ -639,7 +639,19 @@ class PesoReportsController extends Controller
             ];
         }
 
-
+        $graduates = [];
+        foreach ($applications as $app) {
+            $grad = $app->graduate;
+            if (!$grad) continue;
+            $graduates[] = [
+                'id' => $grad->id,
+                'name' => $grad->first_name . ' ' . $grad->last_name,
+                'stage' => $app->stage ?? $app->status ?? 'unknown',
+                'role' => $app->job?->job_title ?? '',
+                'company' => $app->job?->company?->company_name ?? '',
+                'date' => $app->created_at ? $app->created_at->format('Y-m-d') : '',
+            ];
+        }
 
         try {
 
@@ -664,7 +676,7 @@ class PesoReportsController extends Controller
                 'screenedKPI' => $screenedKPI,
                 'interviewedKPI' => $interviewedKPI,
                 'hiredKPI' => $hiredKPI,
-
+                'graduates' => $graduates,
 
             ]);
         } catch (\Exception $e) {

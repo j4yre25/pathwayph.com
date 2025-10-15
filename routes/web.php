@@ -9,6 +9,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PesoCareerGuidanceController;
+use App\Http\Controllers\PesoSeminarController;
+
 use App\Http\Controllers\InstitutionCareerGuidanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManageJobReferralsController;
@@ -1072,6 +1074,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/peso/job-referrals', [ManageJobReferralsController::class, 'index'])->name('peso.job-referrals.index');
     Route::get('/peso/career-guidance', [PesoCareerGuidanceController::class, 'index'])->name('peso.career-guidance');
 
+
     Route::post('/job-referrals/{referral}/decline', [ManageJobReferralsController::class, 'decline'])->name('peso.job-referrals.decline');
     Route::post('/job-referrals/{referral}/mark-success', [ManageJobReferralsController::class, 'markSuccess'])->name('peso.job-referrals.mark-success');
 
@@ -1101,6 +1104,13 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/admin/seminar-requests/{id}/attendance', [PesoCareerGuidanceController::class, 'attendancePage'])->name('admin.seminar-requests.attendance');
     Route::post('/admin/seminar-requests/{id}/attendance', [PesoCareerGuidanceController::class, 'storeAttendance'])->name('admin.seminar-requests.attendance.store');
     Route::get('/seminar-requests/{id}/attendance/data', [PesoCareerGuidanceController::class, 'attendance'])->name('admin.seminar-requests.attendance.data');
+    Route::get('/seminars', [PesoSeminarController::class, 'index'])->name('admin.seminars.index');
+    Route::post('/seminars', [PesoSeminarController::class, 'store'])->name('admin.seminars.store');
+    Route::put('/seminars/{id}', [PesoSeminarController::class, 'update'])->name('admin.seminars.update');
+    Route::delete('/seminars/{id}', [PesoSeminarController::class, 'archive'])->name('admin.seminars.archive');
+    Route::get('/seminars/{id}', [PesoSeminarController::class, 'show'])->name('admin.seminars.show');
+    Route::post('/seminars/{id}/attendance', [PesoSeminarController::class, 'addAttendance'])->name('admin.seminars.attendance.add');
+    Route::get('/seminars/{id}/attendees', [PesoSeminarController::class, 'attendees']);
 });
 
 
