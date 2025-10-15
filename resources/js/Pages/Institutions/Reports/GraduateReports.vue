@@ -4,6 +4,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { GraduationCap, Briefcase, Users, ThumbsUp, TrendingUp, BarChart2, Zap, Monitor, Code } from 'lucide-vue-next';
 import VueECharts from 'vue-echarts';
 import axios from 'axios';
+import { debounce } from 'lodash-es'; 
 
 // --- (Keep all logic and computed properties as they were. Do not modify this section's content or structure) ---
 
@@ -31,6 +32,8 @@ const filters = ref({
   alignment: '',
 });
 
+const searchInput = ref('');
+
 const graduates = ref([]);
 const employed = ref(0);
 const underemployed = ref(0);
@@ -49,6 +52,11 @@ const partiallyAligned = computed(() =>
 const misalignedCount = computed(() =>
   graduates.value.filter(g => g.alignment_category === 'Misaligned').length
 );
+
+
+
+
+
 
 function fetchGraduateData() {
   loading.value = true;
@@ -81,7 +89,23 @@ function fetchGraduateData() {
 }
 
 onMounted(fetchGraduateData);
-watch(filters, fetchGraduateData, { deep: true });
+
+watch(
+  searchInput,
+  debounce((val) => {
+    filters.value.name = val;
+    fetchGraduateData();
+  }, 400)
+);
+
+watch(
+  () => ({
+    ...filters.value,
+    name: undefined // exclude name
+  }),
+  fetchGraduateData,
+  { deep: true }
+);
 
 const page = ref(1);
 const perPage = 10;
@@ -389,8 +413,7 @@ const genderEmploymentSummary = computed(() => {
               <Zap class="w-4 h-4 text-cyan-600" /> Filter Data Set
             </h2>
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              <input v-model="filters.name" type="text" placeholder="Search by name..."
-                class="rounded-md border-gray-300 focus:ring-cyan-500 focus:border-cyan-500 h-9 text-sm p-2" />
+              <input v-model="searchInput" type="text" placeholder="Search by name...">
               <select v-model="filters.gender"
                 class="rounded-md border-gray-300 focus:ring-cyan-500 focus:border-cyan-500 h-9 text-sm">
                 <option value="">All Genders</option>

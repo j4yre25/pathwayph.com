@@ -7,6 +7,7 @@ use App\Models\Program;
 use App\Models\Job;
 use App\Models\SeminarRequest;
 use App\Models\SeminarAttendance;
+use App\Models\Seminar;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -78,6 +79,7 @@ class PesoCareerGuidanceController extends Controller
 
         // Seminar requests logic
         $seminarRequests = SeminarRequest::with('institution')->orderByDesc('created_at')->get();
+        $seminars = Seminar::whereNull('archived_at')->orderByDesc('date')->get();
 
         return Inertia::render('Admin/CareerGuidance', [
             'counselingTips' => $counselingTips,
@@ -86,6 +88,8 @@ class PesoCareerGuidanceController extends Controller
             'resources' => $resources,
             'jobCounts' => $jobCounts,
             'seminarRequests' => $seminarRequests,
+            'seminars' => $seminars,
+
         ]);
     }
 
@@ -156,6 +160,14 @@ class PesoCareerGuidanceController extends Controller
                 'age' => $attendee['age'],
             ]);
         }
-         return redirect()->back();
+        return redirect()->back();
+    }
+
+    public function attendees($id)
+    {
+        $attendees = SeminarAttendance::where('seminar_id', $id)
+            ->orWhere('seminar_request_id', $id)
+            ->get();
+        return response()->json(['attendees' => $attendees]);
     }
 }

@@ -10,7 +10,7 @@
         <Link href="/institution/reports/school-year" class="px-6 py-2 hover:bg-gray-700 rounded transition">School Year</Link>
         <Link href="/institution/reports/degree" class="px-6 py-2 hover:bg-gray-700 rounded transition">Degree</Link>
         <Link href="/institution/reports/programs" class="px-6 py-2 hover:bg-gray-700 rounded transition">Programs</Link>
-        <Link href="/institution/reports/career" class="px-6 py-2 hover:bg-gray-700 rounded transition">Career</Link>
+        <!-- <Link href="/institution/reports/career" class="px-6 py-2 hover:bg-gray-700 rounded transition">Career</Link> -->
         <Link href="/institution/reports/skill" class="px-6 py-2 hover:bg-gray-700 rounded transition">Skill</Link>
         <Link href="/institution/reports/graduate" class="px-6 py-2 hover:bg-gray-700 rounded transition">Graduate</Link>
       </nav>

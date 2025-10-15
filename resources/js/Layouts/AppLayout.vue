@@ -491,7 +491,7 @@ console.log('isNotApproved:', isNotApproved.value)
 
               <NavLink :href="route('peso.career-guidance')" v-if="page.props.auth.user.role === 'peso'" Categories
                 :active="route().current('peso.career-guidance')">
-                Seminars
+                Career Guidance
               </NavLink>
               <!-- 
                                 <NavLink v-if="page.props.auth.user.role === 'peso'"
