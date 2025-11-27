@@ -37,7 +37,7 @@ class CareerOpportunityController extends Controller
             'careerOpportunity',
             'program'
         ])
-        ->where('institution_id', $institution->id);
+            ->where('institution_id', $institution->id);
 
         if ($filterProgramId) {
             $query->where('program_id', $filterProgramId);
@@ -188,7 +188,11 @@ class CareerOpportunityController extends Controller
 
         $message = '';
         if (!empty($created)) {
-            $message .= 'Career opportunities added: ' . implode(', ', $created) . '. ';
+            if (count($created) > 1) {
+                $message .= 'Career opportunities are being added for all of the programs selected. ';
+            } else {
+                $message .= 'Career opportunity added: ' . implode(', ', $created) . '. ';
+            }
         }
         if (!empty($duplicates)) {
             $message .= 'The following entries already exist: ' . implode(', ', $duplicates) . '.';
